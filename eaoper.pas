@@ -117,6 +117,11 @@ begin
     GetMem(eaop.fpFEA2List, ulFEASize);
     GetMem(eaop.fpGEA2List, ulGEASize);
 
+//JO: 25-08-2003 две нижележащие строки фиксят нерегулярные падения
+//    при попытке включить показ логических имён по Ctrl-N на CD
+    FillChar(eaop.fpFEA2List^, ulFEASize, 0);
+    FillChar(eaop.fpGEA2List^, ulGEASize, 0);
+
     eaop.fpGEA2List^.cbList := ulGEASize;
     eaop.fpGEA2List^.list[0].oNextEntryOffset := 0;
     eaop.fpGEA2List^.list[0].cbName := StrLen(pszName);

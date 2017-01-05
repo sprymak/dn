@@ -630,14 +630,14 @@ begin
   end;
  Wrt('');
  { Rainbow END }
- if DriveInfoData and fdiLowMemory <> 0 then
-   Wrt('~'+FStr(TotalMemory/1024)+GetString(dlDIMemoryTotal));
 {$IFNDEF NONBP}
  if DriveInfoData and fdiAvailLowMemory <> 0 then
    Wrt('~'+FStr(FreeMemory)+GetString(dlDIMemoryForUser));
 {$ENDIF}
  if DriveInfoData and fdiMemAvail <> 0 then
-   Wrt('~'+FStr(MemAvail)+GetString(dlDIMemoryForDN));
+   Wrt('~'+FStr(MemAvail/1024)+GetString(dlDIMemoryForDN));
+ if DriveInfoData and fdiLowMemory <> 0 then
+   Wrt('~'+FStr({TotalMemory}PhysMemAvail/1024)+GetString(dlDIMemoryTotal));
 {$IFDEF OS_DOS}
  if (EMSFound or XMSFound) and (Y > 0)
    and (DriveInfoData and (fdiEMSFree+fdiXMSFree) <> 0) then

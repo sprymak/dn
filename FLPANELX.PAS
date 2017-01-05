@@ -1692,32 +1692,9 @@ WrongArc:
                    PF^.DIZ^.isDisposable:=True;
                   end;
                   Drive^.EditDescription(PF);
-                 end else
-                 if (Drive^.DriveType = dtArvid) then
-                  begin
-                   IncDrawDisabled;
-                   Drive^.Flags:=Drive^.Flags or psShowDescript;
-                   FC:=Files;
-                   Files:=PFilesCollection(Drive^.GetDirectory(SortMode,
-                           PanelFlags, FileMask, FreeSpace, TotalInfo));
-                   if Files = nil then RunError(152);
-                   PFilesCollection(Files)^.Owner:=@Self;
-                   PFilesCollection(Files)^.SortMode:=SortMode;
-                   PF:=Files^.At(CurPos);
-                   Drive^.EditDescription(PF);
-                   Dispose(Files,Done);
-                   Drive^.Flags:=Drive^.Flags and not psShowDescript;
-                   Files:=PFilesCollection(Drive^.GetDirectory(SortMode,
-                          PanelFlags, FileMask, FreeSpace, TotalInfo));
-                   for I:=0 to Files^.Count-1 do
-                    PFileRec(Files^.At(I))^.Selected:=
-                     PFileRec(FC^.At(I))^.Selected;
-                   Dispose(FC,Done);
-                   DecDrawDisabled;
-                   DrawView;
-                  end;
-                 end else
-                 Drive^.EditDescription(PF);
+                 end;
+                end
+                else Drive^.EditDescription(PF);
                 CE;
               end;
     kbBack, kbShiftBack:

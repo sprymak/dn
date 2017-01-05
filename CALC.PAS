@@ -453,6 +453,7 @@ procedure TCalcInput.HandleEvent;
      end;
 
    MakeDefaultOptions(NewS, O, D, R);
+   TypeChanged := true; // на случай P=nil
    if P <> nil then with P^ do
      begin
      if (Options and coTypeMask) = coTypeMask then
@@ -1864,7 +1865,7 @@ function ReformFormula(const S: string; LX,LY, DX,DY: integer): String;
         else
           S1 := GetRowName(Y+DY);
         end;
-EndRowName: {сейчас S2 - имя строки }
+EndRowName: { сейчас S1 - имя строки }
 
     result := result + S2 + S1;
     end;
@@ -2052,7 +2053,16 @@ procedure TCalcView.ReCalc(Full: boolean);
           exit;
         end
       else if Full and ((Options and coValue) <> 0) then
-        begin Val(S, Value, ierr); if ierr <> 0 then exit; end;
+        if S[1] = '=' then
+          begin {После некоторых старых версий DN бывает флаг coValue
+          без флага coFormula для формул, включающих только константные
+          операнды. То, что TSort не воспринимал их, как формулы, не
+          страшно, так как от других ячеек они не зависят. }
+          Value := Evalue(system.Copy(S, 2, 255), @self);
+          Options := Options or coValue;
+          end
+        else
+          begin Val(S, Value, ierr); if ierr <> 0 then exit; end;
       StartRecalc := NextC;
       end;
     end;

@@ -647,8 +647,8 @@ NotArchive:
          else
 {JO}
           if LookInArchives and (InExtFilter(SR.Fullname, Archives^)
-             or InExtFilter(SR.Fullname, AddArchives)
-             or ((PosChar('.', SR.Fullname) = 0) and (SR.SR.Attr and SysFile = 0)))
+             or InExtFilter(SR.Fullname, AddArchives))
+{             or ((PosChar('.', SR.Fullname) = 0) and (SR.SR.Attr and SysFile = 0))}
                then DirCol^.Insert(NewStr(Path + SR.FullName + '|'));
 {/JO}
       lFindNext(SR);

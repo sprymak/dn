@@ -203,6 +203,7 @@ procedure SemCloseMutex(_Handle: TSemHandle);
 
 function SysMemInfo(_Base: Pointer; _Size: Longint; var _Flags: Longint): Boolean;
 function SysSetMemProtection(_Base: Pointer; _Size: Longint; _Flags: Longint): Boolean;
+function PhysMemAvail: Longint;  {AK155 20-08-2003}
 
 // GUI
 

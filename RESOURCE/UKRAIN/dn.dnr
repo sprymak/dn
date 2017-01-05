@@ -1696,6 +1696,9 @@ STATUSLINE
      StatusItem '-~W~ Список', kbAltW, cmMakeList,
      StatusItem '+Д~е~рево', kbCtrlT, cmDirTree,
      StatusItem '+~F12~ Календар', kbCtrlF12, cmCalendar,
+     StatusItem '+~Y~ Показ', kbCtrlY, cmToggleShowMode,
+     StatusItem '', kbAltSemicolon, cmToggleDescriptions,
+     StatusItem '', kbCtrlK, cmToggleDescriptions,
      StatusItem '', kbAltX, cmQuit,
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
@@ -3049,9 +3052,9 @@ DIALOG dlgDriveInfoSetup, 61, 14, 'Установки панелi iнформацiї'
       ITEM 'Се~р~iйний номеp диска'
       ITEM 'Фа~й~лова система'
 ;-NEW
-      ITEM 'Основна ~п~ам''ять'
+      ITEM 'Фiзична ~п~ам''ять'
       ITEM 'Пам''ять для програм'
-      ITEM 'Пам''ять для ~Н~авiгатора'
+      ITEM 'Вiртуальна пам''ять'
 ;$IFDEF OS_DOS
       ITEM '~Е~MS-память'
       ITEM '~Х~MS-память'

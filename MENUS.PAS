@@ -681,7 +681,7 @@ begin
               if Current = nil then Current := Menu^.Items;
              end;
             end;                                  {new end}
-          kbEnter:
+          kbEnter, kbShiftEnter:
             begin
               if Size.Y = 1 then AutoSelect := True;
               Action := DoSelect;

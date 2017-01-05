@@ -678,8 +678,10 @@ begin
      DisposeMenu(Menu);
      if I < 1000 then
       begin
-        EraseFile(UserParams.ActiveList);
-        EraseFile(UserParams.PassiveList);
+        if UserParams.ActiveList <> '' then
+          EraseFile(UserParams.ActiveList);
+        if UserParams.PassiveList <> '' then
+          EraseFile(UserParams.PassiveList);
         if I = cmEditMenu then
          begin
             Event.What := evCommand;

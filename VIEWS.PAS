@@ -224,7 +224,7 @@ type
     function    CommandEnabled(Command: Word): Boolean;
     function    DataSize: Word; virtual;
     procedure   DisableCommands(Commands: TCommandSet);
-    procedure   DragView(Event: TEvent; Mode: Byte; var Limits: TRect;
+    procedure   DragView(var Event: TEvent; Mode: Byte; var Limits: TRect;
                          MinSize, MaxSize: TPoint);
     procedure   Draw; virtual;
     procedure   DrawView;
@@ -749,7 +749,7 @@ begin
   CurCommandSet := CurCommandSet - Commands;
 end;
 
-procedure TView.DragView(Event: TEvent; Mode: Byte;
+procedure TView.DragView(var Event: TEvent; Mode: Byte;
   var Limits: TRect; MinSize, MaxSize: TPoint);
 var
   P, S: TPoint;
@@ -795,28 +795,56 @@ begin
   end;
 end;
 
+{AK155 13-08-2003 Введено прекращение по Esc перетаскивания и изменения
+размера. По мотивам патча
+dn3421-views(i)-dragging_and_resizing_terminates_by_esc.patch
+by Eugeny Zvyagintzev, но реализация более экономичная.
+}
 begin
   SetState(sfDragging, True);
   if Event.What = evMouseDown then
   begin
+    GetBounds(SaveBounds);
     if Mode and dmDragMove <> 0 then
     begin
       P.X := Origin.X - Event.Where.X;
       P.Y := Origin.Y - Event.Where.Y;
       repeat
-        Inc(Event.Where.X, P.X);
-        Inc(Event.Where.Y, P.Y);
-        MoveGrow(Event.Where, Size);
-      until not MouseEvent(Event, evMouseMove);
+        if (Event.What = evKeyDown) then
+        begin
+          if Event.KeyCode = kbEsc then
+          begin
+            Locate(SaveBounds);
+            break;
+          end;
+        end
+        else
+        begin
+          Inc(Event.Where.X, P.X);
+          Inc(Event.Where.Y, P.Y);
+          MoveGrow(Event.Where, Size);
+        end;
+      until not MouseEvent(Event, evMouseMove or evKeyDown);
     end else
     begin
       P.X := Size.X - Event.Where.X;
       P.Y := Size.Y - Event.Where.Y;
       repeat
-        Inc(Event.Where.X, P.X);
-        Inc(Event.Where.Y, P.Y);
-        MoveGrow(Origin, Event.Where);
-      until not MouseEvent(Event, evMouseMove);
+        if (Event.What = evKeyDown) then
+        begin
+          if Event.KeyCode = kbEsc then
+          begin
+            Locate(SaveBounds);
+            break;
+          end;
+        end
+        else
+        begin
+          Inc(Event.Where.X, P.X);
+          Inc(Event.Where.Y, P.Y);
+          MoveGrow(Origin, Event.Where);
+        end;
+      until not MouseEvent(Event, evMouseMove or evKeyDown);
     end;
   end else
   begin

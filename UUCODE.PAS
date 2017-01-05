@@ -1476,7 +1476,7 @@ type
       P: Pointer;
       PI: PWhileView;
       R: TRect;
-      Cancel, All: Boolean;
+      Cancel, All, Skip: Boolean; { Flash 30-04-2003 }
 
         Sec64Pn,
         SecCRC,
@@ -1696,6 +1696,7 @@ var LocalFreeStr, o:string;
     II: Integer;
 begin
  Inc(SectNo);
+ Skip:=False; { Flash 30-04-2003 }
  if NumSect=0 then LocalFreeStr := Xt
    else if SectNo < 10 then LocalFreeStr := Copy(Xt, 1, 3)+ItoS(SectNo)
      else if SectNo < 100 then LocalFreeStr := Copy(Xt, 1, 2)+ItoS(SectNo)
@@ -1704,7 +1705,7 @@ begin
  OutName:=Dr+Nm+LocalFreeStr;
  lAssignFile(t,OutName);
  {---------------------------------------------------------------}
- if not All then
+ if not All and (NumSect>0) then { Flash 30-04-2003 }
   begin
    { FileMode:=$40;}
     ClrIO;
@@ -1715,9 +1716,11 @@ begin
         P := @OutName;
         II := MessageBox(GetString(dlFileExist)+^M, @P, mfQuery+mfYesButton+mfNoButton+mfCancelButton+mfAllButton);
         Case II of
-         cmOk: All := true;
-         cmCancel,cmNo:
-         begin Cancel := True; Exit; end;
+          cmOk:     All := true;
+          { Flash 29-04-2003 >>> }
+          cmCancel: begin Cancel := True; Exit; end;
+          cmNo:     begin Skip   := True; Exit; end;
+          { Flash 29-04-2003 <<< }
         end;
         NewTimer(Timer, 0);
        end;
@@ -1823,7 +1826,7 @@ begin WriteSection(Buf,StrPerSect) end;
 procedure Write_Section;
 begin
  StartSection;
- if Cancel then Exit;  {!! IB}
+ if Cancel or Skip then Exit;   {!! IB} { Flash 30-04-2003 }
  GetData(SouBuf^,SectSize);
  WriteCompleteSection(SouBuf^);
  EndSection;
@@ -1833,7 +1836,7 @@ procedure WriteLastSection;
 var i:Longint;
 begin
  StartSection;
- if Cancel then Exit;  {!! IB}
+ if Cancel or Skip then Exit;   {!! IB}
  GetData(SouBuf^,LastSectSize);
  i:=StrPerLastS-1;
  if i>0 then WriteSection(SouBuf^,i);

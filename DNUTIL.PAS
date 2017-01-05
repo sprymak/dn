@@ -1359,13 +1359,9 @@ db:
              W^.Locate(R);
              with V^, P^ do
               begin
-                if fPos+fBufPos > FileSize then
-                begin
+                if fPos > FileSize then
                   fPos := 0;
-                  fBufPos := 0;
-                end;
                 Seek(fPos);
-                BufPos     := fBufPos;
                 if XLatFile<>nil then DisposeStr(XLatFile);
                 XLatFile   := NewStr(fXlatFile);
                 ViewMode   := fViewMode and not vmInternal;
@@ -1523,8 +1519,7 @@ begin
                     { Flash <<< }
                     WorkString := GetLine(fDelta.Y); {-$VIV 11.05.99}
                   end;
-              end else StoreEditInfo(W);
-
+              end{ else StoreEditInfo(W)}; { Commented by Flash 21-12-2002 }
             InsertWindow(W);
           end;
       end;

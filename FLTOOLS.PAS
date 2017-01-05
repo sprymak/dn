@@ -97,7 +97,7 @@ function FirstNameNum(P: PFilePanelRoot): longint;
 IMPLEMENTATION
 uses
   FNotify,
-  LFN, files, collect, xtime, dnini,
+  LFN, files, collect, xtime, dnini, HistList,
   advance, advance1, advance2, advance3, Dos, Objects, Dialogs,
   Views, DnApp, Commands, Drivers, FlPanel, Drives, FileCopy,
   Gauge, Gauges, Archiver, Startup, SWE, Validate, Messages, Menus, DnHelp,
@@ -1115,6 +1115,14 @@ begin
                P^.RereadDir;
                DrawViews(P);
              end;
+    dtFind,
+    dtList,
+    dtArcFind,
+    dtTemp: begin
+               P^.Drive^.Flags := P^.Drive^.Flags xor psShowDir;
+               DrawViews(P);
+            end;
+
   end;
 end;
 
@@ -1195,9 +1203,13 @@ begin
  Mover^.DragView(Event, dmDragMove, R, Mover^.Size, Mover^.Size);
  R.A := Mover^.Origin;
  Mover^.Free;
- C^.FC := FC; Desktop^.MakeGlobal(R.A, R.A); C^.Where := R.A;
- Message(Desktop^.FirstThat(@ContainsMouse), evBroadcast, cmDropped, C);
-{Application^.EFSpeed;}
+ if Event.What = evMouseUp then
+   {AK155 13-08-2003 Может быть не evMouseUp, если во время
+    перетаскивания нажали Esc, см. TView.DragView}
+ begin
+   C^.FC := FC; Desktop^.MakeGlobal(R.A, R.A); C^.Where := R.A;
+   Message(Desktop^.FirstThat(@ContainsMouse), evBroadcast, cmDropped, C);
+ end;
  Dispose(FC,Done);
 end;
 
@@ -1403,8 +1415,10 @@ begin
     CommandLine^.Update;
     end;
 
-  P^.Owner^.Insert(PIF);
-  DlgRes := P^.Owner^.ExecView(PIF); PIF^.GetData(S);
+  { Flash 09-06-2003 >>> }
+  PIF^.HelpCtx:=hcRenameFile;
+  DlgRes := {P^.Owner}Desktop^.ExecView(PIF); PIF^.GetData(S);
+  { Flash 09-06-2003 <<< }
 
   if ReEnableCmdLine then
     CommandLine^.SetState(sfDisabled, false);
@@ -1418,6 +1432,7 @@ begin
   {$ENDIF}
   if DlgRes <> cmCancel then
     begin
+      HistoryAdd(hsRenameFil, S); { Flash 09-06-2003, AK155 21-08-2003 }
       lGetDir(0, SSS);
       lChDir(PF^.Owner^);
       ClrIO;

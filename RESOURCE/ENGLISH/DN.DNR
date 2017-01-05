@@ -940,6 +940,7 @@ STATUSLINE
      StatusItem '+~N~ NetInfo', kbCtrlN, cmNetInfo,
 ;$ENDIF
      StatusItem '+~T~ Tree', kbCtrlT, cmDirTree,
+     StatusItem '+~Y~ Show', kbCtrlY, cmToggleShowMode,
 ;{SHIFT}
      StatusItem ':~F3~ Phones', kbShiftF3, cmPhoneBook,
      StatusItem ':~F4~ Edit...', kbShiftF4, cmXEditFile,
@@ -957,6 +958,8 @@ STATUSLINE
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
      StatusItem '', kbAltBack, cmDirHistory,
+     StatusItem '', kbAltSemicolon, cmToggleDescriptions,
+     StatusItem '', kbCtrlK, cmToggleDescriptions,
 
   StatusDef hcDirTree, hcDirTree,
 ;{BASE}
@@ -3241,9 +3244,9 @@ DIALOG dlgDriveInfoSetup, 55, 14, 'Information Panel Setup'
       ITEM 'Volume Serial N~u~mber'
       ITEM 'Volume File S~y~stem'
 ;-NEW
-      ITEM '~C~onventional Memory'
+      ITEM '~P~hysical Memory'
       ITEM '~M~emory for user'
-      ITEM 'Memory for ~N~avigator'
+      ITEM '~V~irtual memory'
 ;$IFDEF OS_DOS
       ITEM '~E~MS Information'
       ITEM '~X~MS Information'

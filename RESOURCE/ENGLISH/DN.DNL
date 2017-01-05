@@ -210,9 +210,9 @@ dlDIFreeDisk,         '~ free bytes on drive ~'
 dlDIVolumeID,         'Volume label on drive ~'
 dlDISerialNo,         'Serial number on drive ~' { Rainbow }
 dlDIFileSys,          'File system on drive ~' { Rainbow }
-dlDIMemoryTotal,      '~K Bytes conventional memory'
+dlDIMemoryTotal,      '~K Bytes free physical memory'
 dlDIMemoryForUser,    '~ Bytes memory for user'
-dlDIMemoryForDN,      '~ Bytes memory for Navigator'
+dlDIMemoryForDN,      '~K Bytes free virtual memory'
 dlDIEMS1,             '~K total, ~'
 dlDIEMS2,             '~K free'
 dlDIXMSFree,          '~K bytes free extended memory '

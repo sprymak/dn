@@ -1085,7 +1085,11 @@ begin
     begin
       if Modified then
         begin
-          ModifyLine(Delta.Y, WorkString, true);
+          {ModifyLine(Delta.Y, WorkString, true);}
+          { Commented by Flash at 05-03-2003 because of bug
+            with pressing Esc button after sorting a block.
+            This could cause erasing of a current line and
+            copying of another one. }
           S := Cut(EditName, 30);
           P := @S;
           I := MessageBox(GetString(dlQueryModified), @P, mfWarning+mfYesNoCancel);
@@ -3438,7 +3442,8 @@ begin
                               and (KeyCode <> kbShiftGrayPlus)
                               and (KeyCode <> kbShiftGrayMinus)
  {Есть! Alt-BS. На всякий случай отсекаем все с Alt и Ctrl}
-                              and (KeyCode and $C0000 = 0)
+ {JO: c Alt отсекать нельзя, т.к. не работает Alt-ввод}
+                              and (KeyCode and $40000 = 0)
                            then InputChar;
             end;
       end;

@@ -6,6 +6,136 @@
   [*] A bug fixed and/or functionality improved
 
 
+   Version 1.51.10b13
+  ---------------------------------------------------------------------
+        Pavel Borodin, Alexey Korop
+
+ak30813c
+[+] The Ctrl-Y hotkey now switch under current and full view mode for
+    archive panel also.
+[+] The Ctrl-K and Alt-; hotkeys in the panel of branch/find in archive
+    now toggle showing of the path inside of an archive.
+
+
+        Sergey Biryukov
+
+dn3216-editor(f)-esc_after_sort_block_fix
+[-] Fixed error in editor appeared when pressing Esc after sorting a
+    block.
+
+dn21202-editor(f)-double_items_in_history
+[-] Fixed error that could cause duplication of file name in editor
+    history.
+
+sb30725c-dn2825-panel_zoom_fix
+[*] Command "Window|Zoom" now works more correctly for file panels.
+
+
+        Sergey Biryukov, Alexey Korop
+
+ak30812a
+[+] Now when performing the "Quick Rename" operation in file panel a new
+    name is added to history of quick renaming files.
+[+] Fixed error that occured when calling help for the "Quick Rename"
+    operation, leading to the situation when help window stayed in
+    background after pressing Esc.
+
+ak30813b
+[-] During the process of UU-coding files in case some sections already
+    exist skipping one section cancelled the whole process.
+[-] When coding only one section and rewriting of existing file was
+    chosen, the question about rewriting appeared twice.
+
+
+
+        Alexey Korop
+
+ak30526a
+[-] The text view position didn't restored for small files. (This bug
+    was introduced in beta 12 by ak30325a.dif patch).
+
+ak30526b
+[-] In case of presence any nonfile panel (f.e. Info) menu activation and
+    deactivation (F10, Esc) produce the false disk error message.
+
+ak30604a
+[-] The compatibility of wkz files with old version of DN is restored.
+    (This bug was introduced in beta 10).
+[-] The new furmula input didn't work in the spreadsheet. (This bug was
+    introduced in beta 10).
+
+ak30609a
+[-] In the disk change menu (Alt-F1, Alt-F2) for nonactive panel pressing
+    of Shift-Enter didn't activate this panel.
+
+ak30628b
+[-] Win32 version crashed if to enable quick view (Ctrl-Q) in the empty
+    directory and than to press Tab and F2.
+[-] Quick view (Ctrl-Q) for UpDir points didn't show information about
+    current directory.
+
+ak30701a
+[-] During diskette image unpacking current date/time was set to all
+    unpacked files.
+
+ak30702a
+[-] DN crashed in text viewer in case of reverse search of whole word.
+
+ak30718a
+[-] The shortname processing under Win9x (in particular for !.! macros)
+    failed in some cases for path containing cyrillic letters (there is
+    the Win9x bug, not the DN bug, but...)
+[-] In Win32 version hotkeys Ctrl-[ and Ctrl-] was produced short path
+    always. Now short or long path is produced in dependence of mode of
+    the corresponding panel.
+
+ak30813f
+[-] The file extraction from archive did fail in case of the file name
+    contain two contiguous spaces.
+
+ak30820a
+[*] Now the free physical and virtual memory will be shown in the info
+    panel.
+
+
+        Alexey Korop, Eugeny Zvyagintzev
+
+ak30813a ak30813d
+[*] Now DN will terminate windows and files dragging and windows resizing
+    by ESC key pressing.
+
+
+        Jaroslaw Osadtchiy
+
+jo30614a
+[-] In Win32 version Alt-numeric input of symbols did not work in editor
+
+jo30825a.dif
+[-] OS/2 version crashed sporadically after attempt to switch on
+    (with Ctrl-N) display of logical names (EA .LONGNAME) on CD
+
+jo30825b.dif
+[-] During quick file rename (Alt-F6) and in file selection by mask
+    dialogs it was impossible to remove illegal symbols (pasted from
+    clipboard) using Del or Backspace keys
+
+
+        Maxim Vasilyev
+
+dn2-15110b12-Arvid_bugfix_and_TDR_detection
+[*] Arvid's streamer TDR file detection.
+[-] Work with file descriptions inside of AVT/TDR.
+[-] DN crashed in attempt to read AVT/TDR.
+
+dn2-15110b12-disk_unpacking_FAT_processing_fix
+[-] Diskette images unpacker was unable to process more than 16 files
+    correctly in some cases.
+[+] OS/2 fixpack diskimage unpacking.
+
+dn281-SearchInArchives_will_NOT_add_extensionless_files_to_archives_list
+[*] DN will NOT add extensionless files to archives list if 'Search in
+    archives' option is ON during Find process.
+
 
    Version 1.51.10b12
   ---------------------------------------------------------------------

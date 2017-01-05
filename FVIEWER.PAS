@@ -321,7 +321,7 @@ begin
      if WholeWords and not (((BufPos = 1) or (Char(Buf^[BufPos-2+StPos]) in BreakChars)) and
          (Char(Buf^[BufPos+Length(What)-1+StPos]) in BreakChars)) then
            begin
-             if Back then Dec(J, StPos-BufPos)
+             if Back then J := BufPos + Length(What) - 2
                      else Inc(StPos, BufPos);
              Goto 1;
            end;
@@ -1090,7 +1090,7 @@ begin
   for I := 1 to 8 do CC[I] := GetColor(I);
   TS := GetTabSize;
   ExpandTabs := (EditorDefaults.EdOpt{$IFNDEF OS_DOS} shl 2 {$ENDIF}and ebfTRp) <> 0;
-  if Buf = nil then
+  if (Buf = nil) and not QuickView then
   begin
     ReadFile(FileName, VFileName, true);
     BufPos:=0;
@@ -1449,21 +1449,18 @@ begin
   else if (i=2) and (FileName[2] = ':') then
     DirString := FileName {так бывает, например, при перезапуске
      DN с запомненным состоянием с Branch в корне диска }
-  else if (FileName <> ' ') and (IsDir(FileName)) then
+  else if (FileName = ' ') or not IsDir(FileName) then
   {Cat: проверка на пробел нужна, т.к. IsDir вернёт для него True, что нас
         не устраивает, поскольку пробел означает использование просмотрщика
         не для конкретного файла, а для заданного конструктору потока}
+    ReadDir := false;
+  if ReadDir then
     begin
     DirLen := CountDirLen(FileName, true, ClusterLen, NumFiles, NumDirs);
     DirString := FileName + #$0D#$0A#$0D#$0A +
         GetString(dlDirectories) + ': ' +  FStr(NumDirs) + #$0D#$0A#$0D#$0A +
         GetString(dlDIFiles) + ': ' +  FStr(NumFiles-NumDirs) + #$0D#$0A#$0D#$0A +
         GetString(dlDIBytes) + ': ' + FStr(DirLen);
-    end
-  else
-    ReadDir := false;
-  if ReadDir then
-    begin
     BufSize := length(DirString);
     BufPos := 0; FilePos := 0; FileSize := BufSize;
     GetMem(Buf, 100);
@@ -1808,8 +1805,16 @@ procedure TFileViewer.SeekEOF;
       OldFileSize: longint;
       OldStart, OldLen1: longint;
       Temp: LongInt;
+  label
+    EndProc;
 begin
- if Lines[Cur.Y].Pos < 0 then Exit;
+ with Lines[Cur.Y] do
+   begin
+   if Pos < 0 then
+     Exit;
+   if Pos + Len >= Fl^.StreamSize then
+     exit;
+   end;
  if ViewMode = vmText then
    begin
    OldStart := FilePos+Lines[0].Pos;
@@ -1828,7 +1833,7 @@ begin
    with PDOSStream(Fl)^ do
      begin
      if (Status <> stOk) then
-       exit;
+       goto EndProc;
 
      OldFileSize := FileSize;
      SysFileSeek(Handle, 0, 2, StreamSize);
@@ -1845,7 +1850,7 @@ begin
      begin
      AdjustBuf;
      if Buf = nil then
-       exit;
+       goto EndProc;
      end;
    end;
 
@@ -1889,6 +1894,8 @@ begin
    Cur.X := i mod HexPos * 2;
  end;
  DrawView;
+
+EndProc:
  Owner^.UnLock;
 end;
 

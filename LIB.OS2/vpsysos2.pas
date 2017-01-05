@@ -2343,6 +2343,31 @@ begin
   result := (DosSetMem(_Base, _Size, _Flags)=No_Error);
 end;
 
+{AK155 20-08-2003}
+{ "секретные" старинные функции, не описанные в тулките }
+{&OrgName+}
+function DosMemAvail(var l: longint): ApiRet16;
+  external 'DOSCALLS' index  127;
+function DosFlatToSel(p: pointer): pointer;
+  external 'DOSCALLS' index  425;
+{&OrgName-}
+
+var
+  l: longint; {локальную переменную PhysMemAvail (например, result)
+    использовать нельзя - трапается при выходе из DosMemAvail}
+
+function PhysMemAvail: Longint;
+begin
+asm
+   mov   eax,offset l
+   call  DosFlatToSel
+   push  eax
+   call  far ptr DosMemAvail     { call via CallGate }
+end;
+  result := l;
+end;
+{/AK155}
+
 {$IFDEF USESYSUTILS}
 procedure SysMessageBox(_Msg, _Title: PChar; _Error: Boolean);
 var

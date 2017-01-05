@@ -377,9 +377,21 @@ var NZ, NZ2: TNameZ;
 begin
   if (Name = '.') or (Name = '..') then begin lfGetShortFileName := Name; Exit; end;
   NameToNameZ(Name, NZ2);
+  if SysPlatformID = 1 then
+    OemToChar(@NZ2, @NZ2);
+    {AK155 18.07.2003 Тут и ниже приходится испралять баг Win9x,
+      в которых GetShortPathName работает в кодировке ANSI несмотря на
+      SetFileApisToOEM
+    }
   l := GetShortPathName(@NZ2, @NZ, SizeOf(NZ));
-  if l = 0 then lfGetShortFileName := NoShortName
-    else lfGetShortFileName := StrPas_(NZ);
+  if l = 0 then
+    lfGetShortFileName := NoShortName
+  else
+    begin
+    if SysPlatformID = 1 then
+      CharToOEM(@NZ, @NZ);
+    lfGetShortFileName := StrPas_(NZ);
+    end;
 end;
 {$ENDIF}
 {$IFDEF DPMI32}

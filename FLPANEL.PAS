@@ -1531,10 +1531,17 @@ begin
   evCommand: case Event.Command of
               cmDoSendLocated: SendLocated;
               cmGetName: begin
-                  if Drive^.DriveType = dtDisk
-                    then PString(Event.InfoPtr)^ := DirectoryName
-                      else if ScrollBar^.Value < Files^.Count then
-                              PString(Event.InfoPtr)^ := PFileRec(Files^.At(ScrollBar^.Value))^.Owner^;
+                  if Drive^.DriveType = dtDisk then
+                    begin
+{$IFNDEF OS2}
+                    if Drive^.Flags and psShowLongName = 0 then
+                      PString(Event.InfoPtr)^ := lfGetShortFileName(DirectoryName)
+                    else
+{$ENDIF}
+                      PString(Event.InfoPtr)^ := DirectoryName;
+                    end
+                  else if ScrollBar^.Value < Files^.Count then
+                    PString(Event.InfoPtr)^ := PFileRec(Files^.At(ScrollBar^.Value))^.Owner^;
                   ClearEvent( Event );
                 end;
               cmKillUsed: Drive^.KillUse;

@@ -854,8 +854,8 @@ Dos.Exec?}
           end;
         for J := 1 to Length(SS1) do
           if SS1[J] = #$14 then SS1[J] := #$20; {JO: заменяем временный символ на пробелы}
-        DelDoubles('  ', S);
-        AnsiDelDoubles('  ', SS1);
+       // DelDoubles('  ', S);{files can have 2 spaces in names}
+       // AnsiDelDoubles('  ', SS1);
 {JO: AnsiExec - процедура из модуля DNExec , которая }
 {    используется вместо DOS.Exec и в качестве       }
 {    коммандлайна использует строку типа Ansistring  }
@@ -867,8 +867,8 @@ Dos.Exec?}
     end
    else
     begin
-      DelDoubles('  ', S);
-      AnsiDelDoubles('  ', Lst);
+      // DelDoubles('  ', S);{files can have 2 spaces in names}
+      // AnsiDelDoubles('  ', Lst);
       SwapVectors;
       AnsiExec(GetEnv('COMSPEC'),'/c ' + S + ' ' + Lst + ' ');
       DE := DosError; ClrIO;

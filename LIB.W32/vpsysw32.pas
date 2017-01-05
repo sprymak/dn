@@ -376,6 +376,15 @@ begin
   end;
 end;
 
+function PhysMemAvail: Longint;  {AK155 20-08-2003}
+var
+  Status: TMemoryStatus;
+begin
+  Status.dwLength := SizeOf(TMemoryStatus);
+  GlobalMemoryStatus(Status);
+  Result := Status.dwAvailPhys;
+end;
+
 function SysMemAlloc(Size,Flags: Longint; var MemPtr: Pointer): Longint;
 begin
   MemPtr := VirtualAlloc(nil, Size, Flags, page_ReadWrite);

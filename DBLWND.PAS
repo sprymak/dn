@@ -732,11 +732,6 @@ begin
          kbCtrlSqBracketL: begin
                             S := '';
                             Message(LeftView, evCommand, cmGetName, @S);
-                            {$IFNDEF OS2}
-                            if (ShiftState and kbAltShift<>0)
-                             then {$IFDEF OS_DOS} S:=lfGetLongFileName(S) {$ENDIF}
-                             else S:=lfGetShortFileName(S);
-                            {$ENDIF}
                             if not (S[Length(S)] in ['\','/']) then AddStr(S, '\');
                             S:=SquashesName(S);
                             Message(CommandLine, evCommand, cmInsertName, @S);
@@ -746,11 +741,6 @@ begin
          kbCtrlSqBracketR: begin
                             S := '';
                             Message(RightView, evCommand, cmGetName, @S);
-                            {$IFNDEF OS2}
-                            if (ShiftState and kbAltShift<>0)
-                             then {$IFDEF OS_DOS} S:=lfGetLongFileName(S) {$ENDIF}
-                             else S:=lfGetShortFileName(S);
-                            {$ENDIF}
                             if not (S[Length(S)] in ['\','/']) then AddStr(S, '\');
                             S:=SquashesName(S);
                             Message(CommandLine, evCommand, cmInsertName, @S);
@@ -802,6 +792,10 @@ begin
               cmZoom: begin
                        if LSelected and (LType = dtView) then SwitchRight else
                          if not LSelected and (RType = dtView) then SwitchLeft;
+                       { Flash >>> }
+                       ChangeBounds(OldPanelBounds);
+                       GetBounds(OldPanelBounds);
+                       { Flash <<< }
                       end;
   {Knave 11.09.99 --------------- begin 1}
   {DataCompBoy} cmMaxi: if RVisible and LVisible then begin
