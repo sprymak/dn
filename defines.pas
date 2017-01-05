@@ -15,8 +15,6 @@ const
   MaxPtrs = MaxBytes div SizeOf(Pointer);
 
 type
-  CondInt = LongInt;
-
   Str2 = String[2];
   Str3 = String[3];
   Str4 = String[4];

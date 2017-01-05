@@ -142,7 +142,7 @@ function GetCellName(X, Y: Integer): String;
 implementation
 
 uses
-  Memory, Advance, Advance1, Advance2, Advance3, ObjType
+  Memory, Advance, Advance1, Advance2, ObjType
   ;
 
 const

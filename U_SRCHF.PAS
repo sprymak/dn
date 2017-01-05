@@ -62,7 +62,7 @@ function FindFileWithSPF(pFileName: String; Info: PWhileView): String;
 implementation
 
 uses
-  Dos, Advance, Advance1, Advance2, Advance3, Messages, DnIni
+  Dos, Advance, Advance1, Advance2, Messages, DnIni
   ;
 
 {-DataCompBoy-}
@@ -140,12 +140,10 @@ function FindFileWithSPF(pFileName: String; Info: PWhileView): String;
     P, I: Integer;
   label ex;
   begin
-  FindFileWithSPF := '';
-  if ExistFile(pFileName) then
-    begin
-    FindFileWithSPF := pFileName;
+  Result := ActiveDir+pFileName;
+  if ExistFile(Result) then
     Exit;
-    end;
+  Result := '';
   if CharCount('.', pFileName) = 0 then
     pFileName := pFileName+'.';
   lAssignText(F, SourceDir+'DN.SPF');
@@ -218,24 +216,23 @@ function FindFileWithSPF(pFileName: String; Info: PWhileView): String;
         then
           begin
           S2 := Copy(S, P, I-P);
-          if S2[1] = '*' then
-            S2 := RecursiveCheck(pFileName, Copy(S2, 2,
-                 MaxStringLength), True, Info)
-          else if S2[1] = '+' then
-            S2 := RecursiveCheck(pFileName, Copy(S2, 2,
-                 MaxStringLength), False, Info)
-          else if ExistFile(MakeNormName(Copy(S2, 2, MaxStringLength),
-                 pFileName))
-          then
-            S2 := MakeNormName(Copy(S2, 2, MaxStringLength), pFileName)
+          if S2[1] in ['+', '*'] then
+            S2 := RecursiveCheck(pFileName,
+              Copy(S2, 2, MaxStringLength),
+              S2[1]='*',
+              Info)
           else
-            S2 := '';
+            begin
+            S2 := MakeNormName(S2, pFileName);
+            if not ExistFile(S2) then
+              S2 := '';
+            end;
           if Abort then
             goto ex;
           P := I+1;
           if S2 <> '' then
             begin
-            FindFileWithSPF := S2;
+            Result := S2;
             Found := True;
             end
           end

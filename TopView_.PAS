@@ -3,14 +3,14 @@ unit TopView_;
 interface
 
 uses
-  Views, Streams
+  Views, Streams, Drivers
   ;
 
 type
   PTopView = ^TTopView;
   {`2 Базовый тип для текста, выводимого в заголовке панели. }
   TTopView = object(TView)
-    Panel: PView;
+    Panel: PView; //фактически -  PFilePanel
     constructor Load(var S: TStream);
     procedure Store(var S: TStream); virtual;
     procedure Draw; virtual;
@@ -22,10 +22,20 @@ type
     end;
   {`}
 
+  PSortView = ^TSortView;
+    {`2 Индикация текущей сортировки панели буковкой в левом верхнем углу `}
+  TSortView = object(TView)
+    Panel: PView; //фактически -  PFilePanel;
+    constructor Load(var S: TStream);
+    procedure Store(var S: TStream); virtual;
+    procedure Draw; virtual;
+    procedure HandleEvent(var Event: TEvent); virtual;
+    end;
+
 implementation
 
 uses
-  Defines, DblWnd, Drivers, Advance1
+  Defines, DblWnd, Advance1, flpanelx, Commands, dnApp, PDSetup
   ;
 
 const
@@ -62,10 +72,13 @@ procedure TTopView.Draw;
     R, OldR: TRect;
     D: Integer;
     Width: Integer;
+    Right: Boolean;
   begin
-  Width := Panel^.Size.X - 4;
+  Right := PDoubleWindow(Owner)^.Panel[pRight].AnyPanel = Panel;
+  Width := Panel^.Size.X - 4 - Ord(Right);
     {4 - это ширина элемента управления (номера окна в левой панели
-     и кнопки максимизации в правой панели }
+     и кнопки максимизации в правой панели. Для правой панели ещё
+     один символ - это пробел между индикатором сортировки и TopView }
   if Width < 1 then
     Exit;
   S := GetText(Width);
@@ -77,10 +90,10 @@ procedure TTopView.Draw;
   D := (Width - Length(S) + 4) div 2;
   if D >= 4 then
     Inc(R.A.X, D) { пока можно, центрируем без учёта асимметрии }
-  else if PDoubleWindow(Owner)^.Panel[pLeft].AnyPanel = Panel then
-    inc(R.A.X, 4) { левая панель, прижимаем к номеру окна }
-  else { правая панель, прижимаем к кнопке максимизации }
-    inc(R.A.X, Width - Length(S));
+  else if Right then { правая панель, прижимаем к кнопке максимизации }
+    inc(R.A.X, Width - Length(S) + 1)
+  else { левая панель, прижимаем к номеру окна }
+    inc(R.A.X, 4);
   R.B.X := R.A.X + Length(S);
   GetBounds(OldR);
   if not MemEqual(R, OldR, SizeOf(R)) then
@@ -94,5 +107,52 @@ procedure TTopView.Draw;
   MoveStr(B[0], S, C);
   WriteLine(0, 0, Size.X, Size.Y, B);
   end { TTopView.Draw };
+
+{ ---------------------------- TSortView ------------------------------ }
+
+constructor TSortView.Load(var S: TStream);
+  begin
+  inherited Load(S);
+  GetPeerViewPtr(S, Panel);
+  end;
+
+procedure TSortView.Store(var S: TStream);
+  begin
+  inherited Store(S);
+  PutPeerViewPtr(S, Panel);
+  end;
+
+procedure TSortView.Draw;
+  var
+    B: Word;
+    C: Char;
+    R: TRect;
+    SortSetup: ^TPanelSortSetup;
+  begin
+  if (Size.X <> 1) or (Size.Y <> 1) then
+    begin
+    GetBounds(R);
+    R.B.X := R.A.X;
+    Dec(R.A.X);
+    R.B.Y := R.A.Y + 1;
+    Locate(R); // тут будет рекурсия, которая и нарисует
+    Exit;
+    end;
+  SortSetup := @PFilePanelRoot(Panel)^.PanSetup^.Sort;
+  C := GetString(dlSortTag)[SortSetup^.SortMode + 1];
+  if (SortSetup^.SortFlags and psfInverted) <> 0  then
+    C := Upcase(C);
+  MoveChar(B, C, Panel^.Owner^.GetColor(3), 1);
+  WriteLine(0, 0, 1, 1, B);
+  end;
+
+procedure TSortView.HandleEvent(var Event: TEvent);
+  begin
+  if Event.What = evMouseDown then
+    begin
+    ClearEvent(Event);
+    Message(Panel, evCommand, {cmPanelSortSetup}cmSortBy, nil);
+    end;
+  end;
 
 end.

@@ -142,7 +142,7 @@ function TFindFile.GetText;
     S: String;
   begin
   UnpackTime(Time, DT);
-  MakeDate(DateMode, DT.Day, DT.Month, DT.Year mod 100, DT.Hour, DT.Min,
+  MakeDate(DT.Day, DT.Month, DT.Year mod 100, DT.Hour, DT.Min,
      S);
   GetText := '  '+AddSpace(CnvString(Name), 13)+PredSpace(FStr(Size), 13)
     +' '+S;

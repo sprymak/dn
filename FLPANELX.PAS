@@ -68,7 +68,7 @@ type
     isValid, MSelect, SelectFlag, Loaded, ChangeLocked: Boolean;
     SelfNum: Boolean; // Фактически - TPanelNum;
       {` Какая это панель: правая или левая `}
-    InfoView, DirView, DriveLine: PView;
+    InfoView, DirView, DriveLine, SortView: PView;
     Delta, OldDelta, OldPos, DeltaX: LongInt;
     Files: PFilesCollection;
     DirectoryName, OldDirectory: String;
@@ -139,7 +139,7 @@ type
      {` Сформировать строку имени для колонки, L - фактическая ширина
        (может быть не LFNLen, а 12, если под DualName установлен
        показ коротких имён) `}
-    procedure GetEmpty(var B; SC: Word); virtual;
+    procedure GetEmpty(var B; SC: Word; Scroll: Boolean); virtual;
      {` Записать в заранее заполненный буфер B в нужные места Draw-код
         разделителя колонок (SC). Используется для формирования
         пустых элементов панели и для соединения разделителя
@@ -165,6 +165,8 @@ type
     procedure SetupPanelFromDrive;
       {` После смены Drive принять к использованию секцию настроек,
       соответствующюю классу нового Drive  `}
+    procedure AddSelected(PF: PFileRec);
+      {` Если PF^ выделен, он учитывается в SelNum, SelectedLen, PackedLen`}
     end;
   {`}
 
@@ -197,6 +199,12 @@ QuickSearch может быть только один, естественным решением является
 глюков быть не может. Поводом для превращения этих поле в глобальную
 переменную послужило желание проанализировать ее в TCommandLine.Update }
 
+//JO: не делаем сортировку в TFilePanelRoot.ReadDirectory
+//    значение True задаётся в процедурах поиска чтобы не сортировать
+//    панель с результатами поиска; важно следить, чтобы на выходе из
+//    процедуры всегда было значение False
+  RereadNoSort: Boolean  = False;
+
 var
   CurrentDirectory: String;
   PShootState: Word;
@@ -219,7 +227,7 @@ uses
   {$IFDEF WIN32}, U_KeyMap {$ENDIF}
   {$ENDIF}
   {$IFDEF PLUGIN}, Plugin {$ENDIF}
-  , DblWnd, FlPanel
+  , DblWnd, FlPanel, FileType
   ;
 
 procedure TFilePanelRoot.IncDrawDisabled;
@@ -290,6 +298,7 @@ constructor TFilePanelRoot.Load;
   GetPeerViewPtr(S, DirView);
   GetPeerViewPtr(S, InfoView);
   GetPeerViewPtr(S, DriveLine);
+  GetPeerViewPtr(S, SortView);
   Drive := PDrive(S.Get);
   if Drive = nil then
     New(Drive, Init(0, @Self))
@@ -301,7 +310,14 @@ constructor TFilePanelRoot.Load;
   S.Read(PrevPresetNum, SizeOf(PrevPresetNum));
   S.Read(PrevPanelSetupSet, SizeOf(PrevPanelSetupSet));
 
-  Drive^.RereadDirectory('');
+ {$IFNDEF DPMI32}
+//JO: в осевой и виндовой веpсиях RunFirst = False только после
+//    смены языка, котоpая не может вызвать изменения в панелях;
+//    В DPMI-веpсии RunFirst = False и после запуска внешних пpогpамм,
+//    котоpые могут поудалять файлы из панели
+  if RunFirst then
+ {$ENDIF}
+    Drive^.RereadDirectory('');
   if Drive <> nil then
     begin
     Drive^.SizeX := Size.X;
@@ -311,10 +327,18 @@ constructor TFilePanelRoot.Load;
   OldDelta := -1;
   PosChanged := False;
   S.Read(ForceReading, 1);
-  Files := PFilesCollection(S.Get);
+//JO: 11-05-2006 - закомментаpенные ниже стpоки были ещё в pитлабовской
+//    веpсии; Для чего это нужно - не вполне понятно, но их наличие
+//    поpождает такой застаpелый глюк: пpи загpузке панели поиска или ветви
+//    у файла, котоpый является текущим, почему-то путь заменяется на
+//    значение Drive^.CurDir; После закомментаpивания никаких глюков или
+//    дополнительных тоpмозов на пеpвый взгляд не замечено, а учитывая, что
+//    в констpуктоpе Init значение Files не инициализиpуется, то можно его
+//    не инициализиpовать и в Load
+{ Files := PFilesCollection(S.Get);
   if Files <> nil then
     for I := 0 to Files^.Count-1 do
-      PFileRec(Files^.At(I))^.Owner := @Drive^.CurDir; {DataCompBoy}
+      PFileRec(Files^.At(I))^.Owner := @Drive^.CurDir;} {DataCompBoy}
   Loaded := True;
 //  MSelect := False;
   isValid := True;
@@ -349,6 +373,7 @@ procedure TFilePanelRoot.Store;
   PutPeerViewPtr(S, DirView);
   PutPeerViewPtr(S, InfoView);
   PutPeerViewPtr(S, DriveLine);
+  PutPeerViewPtr(S, SortView);
   if  (ActivePanel <> @Self) or (Drive^.DriveType <> dtDisk)
     or (StartupData.Unload and osuPreserveDir <> 0)
   then
@@ -361,8 +386,8 @@ procedure TFilePanelRoot.Store;
   S.Write(PrevPanelSetupSet, SizeOf(PrevPanelSetupSet));
   S.Write(Delta, 2);
   S.Write(ForceReading, 1);
-  PFilesCollection(Files)^.Selected := ScrollBar^.Value;
-  S.Put(Files);
+ {PFilesCollection(Files)^.Selected := ScrollBar^.Value;
+  S.Put(Files);} //JO: 11-05-2006 - см. комментаpий к TFilePanelRoot.Load;
   end { TFilePanelRoot.Store };
 
 function TFilePanelRoot.Valid;
@@ -393,12 +418,15 @@ destructor TFilePanelRoot.Done;
   end;
 
 procedure TFilePanelRoot.SetState(AState: Word; Enable: Boolean);
+   {По существу это используется при смене на нефайловую панель и обратно}
   begin
   inherited SetState(AState, Enable);
   if AState = sfVisible then
     begin
     if DirView <> nil then
       DirView^.SetState(AState, Enable);
+    if SortView <> nil then
+      SortView^.SetState(AState, Enable);
     if DriveLine <> nil then
       DriveLine^.SetState(AState, Enable);
     if Enable and Loaded then
@@ -438,6 +466,8 @@ procedure TFilePanelRoot.ChangeBounds;
   Dec(R.A.Y);
   if DirView <> nil then
     DirView^.SetBounds(R);
+  if SortView <> nil then
+    SortView^.SetBounds(R);
   if ScrollBar <> nil then
     begin
     R := Bounds;
@@ -482,8 +512,10 @@ procedure TFilePanelRoot.RereadDir;
     BB: Boolean;
     TF: TFileRec;
     WasLoaded, B: Boolean;
+    PanelHeight: Integer; // Высота панели без строки заголовков колонок
 
   begin
+  PanelHeight := Size.Y-Byte((Pansetup^.Show.MiscOptions and 2) <> 0);
   {$IFDEF DualName}
   uLfn := PanSetup^.Show.ColumnsMask and psLFN_InColumns <> 0;
   {$ENDIF}
@@ -497,8 +529,7 @@ procedure TFilePanelRoot.RereadDir;
     if Files <> nil then
       ScrollBar^.SetParams(PFilesCollection(Files)^.Selected, 0,
          Files^.Count-1,
-          (Size.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0))*
-          ( (Size.X+1) div LineLength), 1);
+         PanelHeight*((Size.X+1) div LineLength), 1);
     CurrentDirectory := ActiveDir;
     Loaded := False;
     if WasActive and (UpStrg(ActiveDir) <> UpStrg(DirectoryName)) then
@@ -594,12 +625,7 @@ procedure TFilePanelRoot.RereadDir;
             Files^.AtPut(J, PP); {-$VOL}
             if PP^.TType = ttUpDir then
               PP^.Selected := False;
-            if PP^.Selected then
-              begin
-              SelectedLen := SelectedLen+PP^.Size;
-              PackedLen := PackedLen+PP^.PSize;
-              Inc(SelNum);
-              end;
+            AddSelected(PP);
             Break;
             end;
           end;
@@ -641,6 +667,8 @@ procedure TFilePanelRoot.RedrawPanelInfoDir;
     InfoView^.DrawView;
   if DirView <> nil then
     DirView^.DrawView;
+  if SortView <> nil then
+    SortView^.DrawView;
   end;
 
 {-DataCompBoy-}
@@ -697,13 +725,21 @@ procedure TFilePanelRoot.ReadDirectory;
   PackedLen := 0;
 
   SM := PanSetup^.Sort.SortMode;
+  if RereadNoSort then
+    SM := psmUnsorted;
   PFilesCollection(Files)^.SortMode := SM;
-  if (SM <> -1) and (SM <> psmUnsorted) then
+
+  { Бывает сортировка по описаниям, поэтому Sort надо делать
+  после ReadDescrptions }
+  if SM <> psmUnsorted then
     Files^.Sort;
-      { Бывает сортировка по описаниям, поэтому Sort надо делать
-      после ReadDescrptions }
   if Abort then
     Exit;
+
+  Files^.DelDuplicates(TotalInfo);
+    { Дупы возможны после поиска в панели списка с обходом
+      подкаталогов, если файлы из подкаталогов присутствовали
+      и на верхнем уровне тоже.}
 
   if DriveState and dsInvalid > 0 then
     Exit;
@@ -718,7 +754,7 @@ procedure TFilePanelRoot.ReadDirectory;
     Message(Owner, evCommand, cmChangeTree, @DirectoryName);
 
   ScrollBar^.SetParams(ScrollBar^.Value, 0, Files^.Count-1,
-         (Size.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0))
+         (Size.Y-Byte((Pansetup^.Show.MiscOptions and 2) <> 0))
     * ( (Size.X+1) div LineLength), 1);
   if  (ActivePanel = @Self) and (Drive^.DriveType = dtDisk) then
     CurrentDirectory := DirectoryName
@@ -911,9 +947,7 @@ procedure TFilePanelRoot.CommandHandle;
     lFSplit(FileName, Dr, Nm, Xt);
     if Copy(Dr, 1, 5) = cLINK_ then
       Delete(Dr, 1, 5);
-    if  (Dr[Length(Dr)] = '\') and ((Dr[2] <> ':') or (Length(Dr) > 3))
-    then
-      SetLength(Dr, Length(Dr)-1);
+    MakeNoSlash(Dr);
     if ((Dr[2] = ':') or (Copy(Dr, 1, 2) = '\\'))
          and not (Drive^.DriveType in [dtDisk, dtLink, dtArc])
     then
@@ -1030,21 +1064,12 @@ WrongArc:
   procedure Recount;
     var
       I: LongInt;
-      PF: PFileRec;
     begin
     SelectedLen := 0;
     PackedLen := 0;
     SelNum := 0;
     for I := 1 to Files^.Count do
-      begin
-      PF := Files^.At(I-1);
-      if PF^.Selected then
-        begin
-        SelectedLen := SelectedLen+PF^.Size;
-        PackedLen := PackedLen+PF^.PSize;
-        Inc(SelNum);
-        end;
-      end;
+      AddSelected(Files^.At(I-1));
     DrawView;
     if InfoView <> nil then
       InfoView^.DrawView;
@@ -1133,6 +1158,16 @@ WrongArc:
         Dirs^.Insert(PDir);
         end;
       end;
+    if  (Drive^.DriveType = dtFind) and
+        (Drive^.Prev <> nil) and (Drive^.Prev^.DriveType = dtArcFind)
+    then
+      with PFindDrive(Drive)^ do
+        begin
+        DriveType := dtArcFind;
+        PDir := NewStr(PFindDrive(Drive^.Prev)^.UpFile^.Owner^);
+        UpFile^.Owner := PDir;
+        Dirs^.Insert(PDir);
+        end;
     if  (Drive^.DriveType = dtArc) or (Drive^.DriveType = dtArvid) then
       Drive^.lChDir(#0);
     {if WasFull then Drive^.Flags := Drive^.GetFullFlags else Drive^.Flags := 0;}
@@ -1347,19 +1382,22 @@ WrongArc:
   {-DataCompBoy-}
   procedure _DoRereadDir;
     var
-      S: String;
+      S, S1: String;
       I: LongInt;
     begin
-    S := UpStrg(CnvString(Event.InfoPtr));
-    if  (Length(S) > 3) and (S[Length(S)] = '\') then
-      SetLength(S, Length(S)-1);
+    S := CnvString(Event.InfoPtr);
+    S1 := S;
+    if S[1] = '>' then //признак перечитывания подкаталогов в ветви
+      S := Copy(S, 2, MaxStringLength);
+    MakeNoSlash(S);
     I := Length(S);
     if  (Drive^.DriveType <> dtDisk) or
-        (S = Copy(UpStrg({$IFDEF DPMI32}lfGetLongFileName{$ENDIF}(DirectoryName)), 1,
+        (UpStrg(S) = Copy(UpStrg(
+        {$IFDEF DPMI32}lfGetLongFileName{$ENDIF}(DirectoryName)), 1,
          Length(S)))
     then
       begin
-      Drive^.RereadDirectory(S);
+      Drive^.RereadDirectory(S1);
       RereadDir;
       end
     else if (Drive^.DriveType = dtDisk)
@@ -1513,8 +1551,7 @@ WrongArc:
     {$ENDIF};
     lGetDir(Byte(S[1])-64, S);
     {S:=GetNormPath(S);} {removed by AK155}
-    if  (S[Length(S)] = '\') and (S[Length(S)-1] <> ':') then
-      SetLength(S, Length(S)-1);
+    MakeNoSlash(S);
     DoChange(S);
     end { _ChangeDrv };
 
@@ -1532,23 +1569,6 @@ WrongArc:
       FreeByte := PosChar(':', Copy(S, 3, MaxStringLength))+2;
       if FreeByte > 2 then
         begin
-        (* {JO: закоментированный кусок реально никогда не работал, т.к. перед }
-   {    ним стояло ReplaceDrive, после которого ни одно из условий не  }
-   {    выполнялось. После того, как я перенёс ReplaceDrive ниже, этот }
-   {    кусок стал подключаться и выяснилось, что он не работает       }
-      Q:=Copy(S, 1, FreeByte-1);
-      if ((Drive^.DriveType = dtArc) and
-         (UpStrg(PArcDrive(Drive)^.ArcName)=UpStrg(Q)))
-         {$IFDEF ARVID}
-         or
-         ((Drive^.DriveType = dtArvid) and
-         (UpStrg(PArvidDrive(Drive)^.Name^)=UpStrg(Q)))
-         {$ENDIF}
-         then begin
-       Q:=Copy(S, FreeByte+1, MaxStringLength);
-       Message(@Self, evCommand, cmChangeDirectory, @Q)
-      end else begin
-*)
         Dr := nil;
         Dr := New(PArcDrive, Init(S, S));
         {$IFDEF ARVID}
@@ -1573,7 +1593,7 @@ WrongArc:
           end;
         if Drive^.DriveType <> dtDisk then
           ReplaceDrive(S[1]);
-        Message(@Self, evCommand, cmChangeDirectory, @S);
+        Self.ChDir(S);
         end
       else
         begin
@@ -1692,6 +1712,8 @@ WrongArc:
           DriveLine^.DrawView;
           end;
         GetEvent(Event);
+        if Event.What = evNothing then
+          TinySlice;
       until ShiftState and kbCtrlShift = 0;
       if DriveLetter <> DirectoryName[1] then
         begin
@@ -1805,8 +1827,8 @@ WrongArc:
       S: String;
     begin
 
-    if OS2exec and (Drive^.DriveType = dtDisk) and
-      (PF^.TType = ttExec)
+    if (OS2exec or Win32exec) and (Drive^.DriveType = dtDisk)
+      and (PF^.TType = ttExec)
       and (ShiftState and (kbCtrlShift or 3) <> 0)
     then
       begin
@@ -1886,8 +1908,13 @@ WrongArc:
       begin
       if Drive^.DriveType = dtArcFind
       then
-        S := MakeNormName(PArcDrive(Drive^.Prev)^.ArcName+':'+
-            PF^.Owner^, PF^.FlName[True])
+//JO: смысл громоздкой конструкции внизу - выделить путь к архиву из
+//    Owner'а UpFile (т.е. точечек '..') панели найденного в архиве и
+//    присоединить к нему путь к файлу внутри данного архива
+        S := MakeNormName(
+          Copy(PFindDrive(Drive)^.UpFile^.Owner^, 1, Pos(':',
+           Copy(PFindDrive(Drive)^.UpFile^.Owner^, 3, MaxStringLength))+2)
+          +':'+ PF^.Owner^, PF^.FlName[True])
       else
         S := MakeNormName(PF^.Owner^, PF^.FlName[uLfn]);
       (*
@@ -1998,7 +2025,9 @@ WrongArc:
       {$IFNDEF OS2}
       CondLfn: TUseLFN; {JO}
       {$ENDIF}
+      PanelHeight: Integer; // Высота панели без строки заголовков колонок
     begin
+    PanelHeight := Size.Y-Byte((Pansetup^.Show.MiscOptions and 2) <> 0);
     case Event.KeyCode of
       kbCtrlAltShift1, kbCtrlAltShift2, kbCtrlAltShift3,
       kbCtrlAltShift4, kbCtrlAltShift5, kbCtrlAltShift6,
@@ -2074,7 +2103,8 @@ WrongArc:
         end;
       kbCtrl1..kbCtrl0:
         begin
-        GetParam((Event.KeyCode shr 8)-(kbCtrl1 shr 8)+1);
+        GetParam((Event.KeyCode shr 8)-(kbCtrl1 shr 8)+1
+                  + ($10000*Byte(FullMenuPanelSetup)));
         Owner^.Redraw;
         end;
       kbCtrlMinus:
@@ -2197,8 +2227,7 @@ WrongArc:
               else
                 Inc(I);
           ScrollBar^.SetParams(CurPos, 0, Files^.Count-1,
-              (Size.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0))*
-              ( (Size.X+1) div LineLength), 1);
+              PanelHeight*((Size.X+1) div LineLength), 1);
           Recount;
           CE;
           end;
@@ -2210,18 +2239,14 @@ WrongArc:
       kbLeft:
         if  (Size.X+2 > LineLength) then
           if  (Delta > 0) or
-              (ScrollBar^.Value >
-              Size.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0))
+              (ScrollBar^.Value > PanelHeight)
           then
             begin
-            if ScrollBar^.Value-Delta < Size.Y-Byte(FMSetup.Show and
-                 fmsColumnTitles <> 0)
+            if ScrollBar^.Value-Delta < PanelHeight
             then
-              Dec(Delta, Size.Y-Byte(FMSetup.Show and fmsColumnTitles <>
-                   0));
+              Dec(Delta, PanelHeight);
             ScrollBar^.SetValue
-                (ScrollBar^.Value-Size.Y+Byte(FMSetup.Show and
-                 fmsColumnTitles <> 0));
+                (ScrollBar^.Value-PanelHeight);
             CE;
             end
           else
@@ -2243,11 +2268,9 @@ WrongArc:
           begin
           aaa := Delta;
           Owner^.Lock;
-          ScrollBar^.SetValue(ScrollBar^.Value+Size.Y-Byte(FMSetup.Show
-               and fmsColumnTitles <> 0));
+          ScrollBar^.SetValue(ScrollBar^.Value+PanelHeight);
           if aaa <> Delta then
-            Delta := aaa+Size.Y-
-              Byte(FMSetup.Show and fmsColumnTitles <> 0);
+            Delta := aaa+PanelHeight;
           CED;
           Owner^.UnLock;
           end
@@ -2370,8 +2393,9 @@ WrongArc:
           if PF^.TType <> ttUpDir then
             begin
             PF^.Selected := not PF^.Selected;
-            SelectedLen := SelectedLen-(1-2*Integer(PF^.Selected))
-              *PF^.Size;
+            if PF^.Size > 0 then
+              SelectedLen := SelectedLen-(1-2*Integer(PF^.Selected))
+                *PF^.Size;
             PackedLen := PackedLen-(1-2*Integer(PF^.Selected))*PF^.PSize;
             Dec(SelNum, 1-2*Integer(PF^.Selected));
             end;
@@ -2554,11 +2578,24 @@ WrongArc:
   {$ENDIF}
   {/Cat}
 
+  {JO}
+  procedure _UpdateHighlight;
+    var
+      I: LongInt;
+    begin
+    if Files^.Count > 0 then
+      for I := 0 to Files^.Count-1 do
+        with PFileRec(Files^.At(I))^ do
+          TType := GetFileType(FlName[True], Attr);
+    end;
+  {/JO}
+
   var
     FC: PFilesCollection;
-    I: LongInt;
     PSDEL: Byte;
+    ColumnTitles: Boolean;
   begin { TFilePanelRoot.CommandHandle }
+  ColumnTitles := (Pansetup^.Show.MiscOptions and 2) <> 0;
   if Drive <> nil
   then
 //!    WasFull := Drive^.GetFullFlags = Drive^.Flags
@@ -2666,7 +2703,7 @@ WrongArc:
             begin
             Files^.AtInsert(Files^.Count, Event.InfoPtr);
             ScrollBar^.SetParams(ScrollBar^.Value, 0, Files^.Count-1,
-                (Size.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0))*
+                (Size.Y-Byte(ColumnTitles))*
                 ( (Size.X+1) div LineLength), 1);
             DrawView;
             CE;
@@ -2825,7 +2862,10 @@ WrongArc:
         cmTotalReread:
           if GetState(sfVisible) or (Drive^.DriveType <> dtDisk) then
             begin
-            Drive^.RereadDirectory('');
+            if Event.InfoPtr <> nil then
+              Drive^.RereadDirectory(PString(Event.InfoPtr)^)
+            else
+              Drive^.RereadDirectory('');
             RereadDir;
             end;
         cmForceRescan:
@@ -2834,6 +2874,13 @@ WrongArc:
           begin
           RereadDir;
           CE
+          end;
+        cmUpdateHighlight:
+          begin
+          if Drive^.DriveType in [dtTemp, dtFind,
+                                  dtList, dtArcFind] then
+            _UpdateHighlight;
+          RereadDir;
           end;
         cmMakeList:
           begin
@@ -2888,7 +2935,7 @@ WrongArc:
           end;
         cmChangeDirectory:
           begin
-          ChDir(PString(Event.InfoPtr)^);
+          Self.ChDir(PString(Event.InfoPtr)^);
           CE;
           end;
         cmChangeDir:
@@ -2929,11 +2976,10 @@ WrongArc:
           CE
           end;
         cmFindFile:
-          if Drive^.DriveType in [dtArc, dtArvid] then
-            begin
-            Drive^.HandleCommand(cmFindFile, nil);
-            CE
-            end;
+          begin
+          Drive^.DrvFindFile(GetSelection(@Self, False));
+          CE
+          end;
         cmFindGotoFile:
           begin
           PanSetup^.FileMask := x_x;
@@ -3053,8 +3099,7 @@ WrongArc:
          ((MPos.X mod LineLength) <> LFNLen)
       then
         begin { D&D файла }
-        if  (MPos.Y = 0) and (FMSetup.Show and fmsColumnTitles <> 0)
-        then
+        if  (MPos.Y = 0) and ColumnTitles then
           begin
           LastRDelay := RepeatDelay;
           RepeatDelay := 0;
@@ -3073,8 +3118,8 @@ WrongArc:
           end;
         MakeLocal(Event.Where, MPos);
         CurPos := Delta+(MPos.X div LineLength)
-              *(Size.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0))
-          +MPos.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0);
+              *(Size.Y-Byte(ColumnTitles))
+          +MPos.Y-Byte(ColumnTitles);
         if Event.Double then
           begin
           MSelect := False;
@@ -3112,8 +3157,8 @@ WrongArc:
           if MSelect and (CurPos < Files^.Count) then
             begin
             CurPos := Delta+(MPos.X div LineLength)
-                  *(Size.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0))
-              +MPos.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0);
+                  *(Size.Y-Byte(ColumnTitles))
+              +MPos.Y-Byte(ColumnTitles);
             if  (CurPos >= Files^.Count) then
               CurPos := Files^.Count-1;
             if  (CurPos < 0) then
@@ -3132,8 +3177,8 @@ WrongArc:
             MSelect := False;
             RepeatDelay := LastRDelay;
             CurPos := Delta+(MPos.X div LineLength)
-                  *(Size.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0))
-              +MPos.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0);
+                  *(Size.Y-Byte(ColumnTitles))
+              +MPos.Y-Byte(ColumnTitles);
             if CurPos < Files^.Count then
               begin
               ScrollBar^.SetValue(CurPos);
@@ -3148,8 +3193,8 @@ WrongArc:
             if MouseInView(Event.Where) then
               begin
               CurPos := Delta+(MPos.X div LineLength)
-                    *(Size.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0))
-                +MPos.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0);
+                    *(Size.Y-Byte(ColumnTitles))
+                +MPos.Y-Byte(ColumnTitles);
               if CurPos < Files^.Count then
                 ScrollBar^.SetValue(CurPos);
               end
@@ -3207,8 +3252,7 @@ procedure TFilePanelRoot.ChDir;
   begin
   if Drive^.DriveType <> dtDisk then
     Exit;
-  if  (Length(Dir) > 3) and (Dir[Length(Dir)] = '\') then
-    SetLength(Dir, Length(Dir)-1);
+  MakeNoSlash(Dir);
   Drive^.lChDir(Dir);
   IncDrawDisabled;
   ReadDirectory;
@@ -3434,7 +3478,7 @@ procedure TFilePanelRoot.FormatName(P: PFileRec; var S: String; var L: Integer);
     S := FormatLongName(S, L, ThisEXTLen, OPT, NFM);
   end {TFilePanelRoot.FormatName};
 
-procedure TFilePanelRoot.GetEmpty(var B; SC: Word);
+procedure TFilePanelRoot.GetEmpty(var B; SC: Word; Scroll: Boolean);
   var
     X: AWord;
     Flags: Word;
@@ -3446,7 +3490,8 @@ procedure TFilePanelRoot.GetEmpty(var B; SC: Word);
   if not LFNLonger250 then
     begin
     X := CalcNameLength+1;
-    TAWordArray(B)[X-1] := SC;
+    if X-(DeltaX*Byte(Scroll)) > 0 then
+      TAWordArray(B)[X-(DeltaX*Byte(Scroll))-1] := SC;
     end;
   i := Low(TFileColNumber);
   while Flags <> 0 do
@@ -3464,7 +3509,8 @@ procedure TFilePanelRoot.GetEmpty(var B; SC: Word);
         inc(X, L);
         if X > 250 then
           Exit;
-        TAWordArray(B)[X-1] := SC;
+        if X-(DeltaX*Byte(Scroll)) > 0 then
+          TAWordArray(B)[X-(DeltaX*Byte(Scroll))-1] := SC;
         end;
       end;
     Flags := Flags shr 1;
@@ -3486,6 +3532,20 @@ procedure TFilePanelRoot.SetupPanelFromDrive;
      её показываем после остальных колонок}
   if Owner <> nil { nil бывает во время Load } then
     PDoubleWindow(Owner)^.SetMaxiState(@Self);
+  end;
+
+procedure TFilePanelRoot.AddSelected(PF: PFileRec);
+  begin
+  with PF^ do
+  if Selected then
+    begin
+    if Size > 0 then
+      begin { у каталога с неизвестным размером Size=-1}
+      SelectedLen := SelectedLen + Size;
+      PackedLen := PackedLen + PSize;
+      end;
+    Inc(SelNum);
+    end;
   end;
 
 procedure TFilePanelRoot.GetParam(i: Integer);

@@ -22,6 +22,8 @@ type
     ParentMenu: PMenuView;
     Menu: PMenu;
     Current: PMenuItem;
+    HaveSubmenu: Boolean;
+    LastActionIsExpand: Boolean;
     constructor Init(var Bounds: TRect);
     constructor Load(var S: TStream);
     {function Execute: Word; virtual;}
@@ -47,6 +49,7 @@ type
   PMenuBox = ^TMenuBox;
   TMenuBox = object(TMenuView)
     TopItem: PMenuItem;
+    ComboBoxPal: Boolean;
     constructor Init(var Bounds: TRect; AMenu: PMenu;
          AParentMenu: PMenuView);
     {procedure Draw; virtual;}

@@ -51,7 +51,7 @@ unit Macro;
 interface
 
 uses
-  Advance, Advance1, Advance2, Advance3, Defines, Objects2, Views, Collect,
+  Advance, Advance1, Advance2, Defines, Objects2, Views, Collect,
   Microed, highlite, Strings
   ;
 
@@ -120,7 +120,7 @@ type
     constructor Init(AL: Word; const AName: String);
     end;
 
-function Token(const S: String; var Pos: CondInt): String;
+function Token(const S: String; var Pos: LongInt): String;
   var
     A: String;
     B, Cmd: Boolean;
@@ -205,14 +205,14 @@ constructor TLngWord.Init;
 
 constructor TEditMacros.Init;
   var
-    I, J: CondInt;
+    I, J: LongInt;
     IDs: PIDCollection;
     Error: Boolean;
 
   function GetID(const S: String): LongInt;
     var
       T: TLngWord;
-      I: CondInt;
+      I: LongInt;
       L: LongInt;
       qq: Integer;
     begin

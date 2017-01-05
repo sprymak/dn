@@ -238,33 +238,9 @@ function GetFileNameMenu(Path, Mask, Default: String;
 implementation
 
 uses
-  HistList, Advance, Advance1, Advance2, Advance3, RStrings, Commands,
+  HistList, Advance, Advance1, Advance2, RStrings, Commands,
   Startup, DNHelp, {JO}Menus {JO}
   ;
-
-{-DataCompBoy-}
-function PathValid(var Path: String): Boolean;
-  var
-    ExpPath: String;
-    F: lFile;
-    SR: lSearchRec;
-  begin
-  ClrIO;
-  ExpPath := lFExpand(Path);
-  if Abort then
-    Exit;
-  if ExpPath[Length(ExpPath)] = '\' then
-    SetLength(ExpPath, Length(ExpPath)-1);
-  if (Length(ExpPath) = 2) and (ExpPath[2] = ':') then
-    PathValid := ValidDrive(ExpPath[1])
-  else
-    begin
-    lFindFirst(ExpPath+'\*.*', AnyFileDir, SR);
-    PathValid := DosError = 0;
-    lFindClose(SR);
-    end;
-  end;
-{-DataCompBoy-}
 
 {-DataCompBoy-}
 function ValidFileName(var FileName: String): Boolean;
@@ -320,7 +296,7 @@ function ValidFileName(var FileName: String): Boolean;
   ValidFileName := True;
   lTrueName(FileName, FileName);
   lFSplit(FileName, Dir, Name, Ext);
-  if not ((Dir = '') or PathValid(Dir)) or Contains(Name, IllegalChars) or
+  if not ((Dir = '') or PathExist(Dir)) or Contains(Name, IllegalChars) or
     Contains(Dir, IllegalChars)
   then
     ValidFileName := False;
@@ -460,7 +436,7 @@ procedure TSortedListBox.HandleEvent(var Event: TEvent);
   var
     CurString, NewString: String;
     K: Pointer;
-    Value, OldPos, OldValue: CondInt;
+    Value, OldPos, OldValue: LongInt;
     T: Boolean;
 
   function Equal(var S1: String; var S2: String; Count: Word): Boolean;
@@ -842,17 +818,14 @@ procedure TFileInfoPane.Draw;
   begin
   { Display path }
   {$IFDEF DPMI32}
-  Path := #0+Cut
-          (lfGetLongFileName(lFExpand(PFileDialog(Owner)^.Directory^))+
-      PFileDialog(Owner)^.WildCard^, Size.X-1)+#0;
+  Path := lfGetLongFileName(lFExpand(PFileDialog(Owner)^.Directory^))+
+      PFileDialog(Owner)^.WildCard^;
   {$ELSE}
-  Path := #0+Cut
-        (lFExpand(PFileDialog(Owner)^.Directory^)+PFileDialog(Owner)^.
-      WildCard^, Size.X-1)+#0;
+  Path := PFileDialog(Owner)^.Directory^+PFileDialog(Owner)^.WildCard^;
   {$ENDIF}
   Color := GetColor($01);
   MoveChar(B, ' ', Color, Size.X);
-  MoveCStr(B[1], Path, Color);
+  MoveStr(B[1], Cut(Path, Size.X-1), Color);
   WriteLine(0, 0, Size.X, 1, B);
 
   { Display file }
@@ -879,7 +852,7 @@ procedure TFileInfoPane.Draw;
     end;
   UnpackTime(S.Time, Time);
   with Time do
-    MakeDate(0, Day, Month, Year mod 100, Hour, Min, M);
+    MakeDate(Day, Month, Year mod 100, Hour, Min, M);
   {  M := GetString( TStrIdx( Integer( dlJanuary ) + Time.Month - 1 ));}
   Params {$IFNDEF OS2}[2] {$ELSE}[1] {$ENDIF}:= LongInt(@M);
   {  Params[3] := Time.Day;
@@ -1104,18 +1077,6 @@ procedure TFileDialog.GetFileName(var S: String);
     RTrim := S;
     end;
 
-  function RelativePath(var S: String): Boolean;
-    var
-      I, J: Integer;
-      P: String;
-    begin
-    S := LTrim(RTrim(S));
-    if  (S <> '') and ((S[1] = '\') or (S[2] = ':')) then
-      RelativePath := False
-    else
-      RelativePath := True;
-    end;
-
   (* function NoWildChars(S: String): String; assembler;
 {$IFNDEF BIT_32}
  asm
@@ -1194,10 +1155,14 @@ procedure TFileDialog.GetFileName(var S: String);
   begin { TFileDialog.GetFileName }
   S := FileName^.Data;
   ClrIO;
-  if RelativePath(S) then
-    S := lFExpand(Directory^+S)
-  else
-    S := lFExpand(S);
+   {AK155 разворачиваем S до полного пути, но не относительно
+   текущего каталога активной панели, а относительно каталога,
+   показанного сейчас в данном диалоге }
+  Path := ActiveDir;
+  ActiveDir := Directory^;
+  S := lFExpand(S);
+  ActiveDir := Path;
+
   if Abort then
     Exit;
   lFSplit(S, Path, Name, Ext);
@@ -1217,8 +1182,6 @@ procedure TFileDialog.GetFileName(var S: String);
   S := DelSquashes(S);
   {$IFDEF DPMI32}
   S := lfGetLongFileName(lfGetLongFileName(GetPath(S))+GetName(S));
-  {$ELSE}
-  S := GetPath(S)+GetName(S);
   {$ENDIF}
   end { TFileDialog.GetFileName };
 {-DataCompBoy-}
@@ -1356,7 +1319,7 @@ function TFileDialog.Valid(Command: Word): Boolean;
 
   function CheckDirectory(var S: String): Boolean;
     begin
-    if not PathValid(S) then
+    if not PathExist(S) then
       begin
       ErrMsg(erInvalidDrive);
       FileName^.Select;

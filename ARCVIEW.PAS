@@ -56,7 +56,7 @@ uses
   Lfn, Files, Tree, Dos, Defines, Objects2, Streams, Views, Drivers,
   FViewer, FlPanel, FilesCol, DiskInfo, DblWnd, HistList,
   RStrings, Drives, Commands, Archiver, FStorage, Histries,
-  Advance, Advance1, Advance2, Advance3, ArchDet, Collect
+  Advance, Advance1, Advance2, ArchDet, Collect
   , arc_RAR, arc_ACE
   ;
 
@@ -126,7 +126,8 @@ type
     procedure StdMsg4;
     function OpenDirectory(const Dir: String;
                                  PutDirs: Boolean): PDrive; virtual;
-    procedure FindFile;
+    procedure DrvFindFile(FC: PFilesCollection); virtual;
+    procedure ReadDescrptions(FilesC: PFilesCollection); virtual;
     end;
 
 function ArcViewer(AName, VAName: String): Boolean;
@@ -561,7 +562,7 @@ procedure TArcDrive.lChDir;
       do
         SetLength(CurDir, Length(CurDir)-1)
     else
-      Advance2.lChDir(GetPath(ArcName));
+      LFN.lChDir(GetPath(ArcName));
     Exit;
     end;
   lFSplit(ADir, Dr, Nm, Xt);
@@ -574,8 +575,9 @@ procedure TArcDrive.lChDir;
     end
   else
     CurDir := ADir;
-  if CurDir[Length(CurDir)] = '\' then SetLength(CurDir, Length(CurDir)-1);
-  if CurDir[1]<>'\' then CurDir:='\'+CurDir;
+  MakeNoSlash(CurDir);
+  if CurDir[1]<>'\' then
+    CurDir:='\'+CurDir;
   CheckSlashDot(CurDir);
   AddToDirectoryHistory(ArcName+':'+CurDir, Integer(DriveType));
   end { TArcDrive.lChDir };
@@ -625,7 +627,7 @@ function TArcDrive.GetDirectory;
   TPL := 0;
   {GetDirectory := AFiles;}AllFiles := (FileMask = x_x)
        or (FileMask = '*');
-  FD^.SortMode := 141;
+  FD^.SortMode := psmLongName; {<sort141.001>}
   Files^.ResetPointer('');
   {JO: сначала один pаз опpеделяем объём доступной памяти, а затем по ходу дела}
   {    подсчтитываем насколько тpебования памяти pастут и не пpевысили ли они  }
@@ -737,6 +739,7 @@ procedure TArcDrive.UseFile;
     ATime: LongInt;
     ASize: TSize;
     AAttr: Word;
+    RunUnp: Boolean;
     {$IFNDEF OS2}
   label TryAgain;
   {$ENDIF}
@@ -816,9 +819,9 @@ TryAgain:
     TempFile := TempFile+Q;
 
   GetFTimeSizeAttr(S2, ATime, ASize, AAttr);
-  if not ExistFile(S2) or (PackedDate(P) <> ATime) or (P^.Size <> ASize)
-  then
-
+  RunUnp := not ExistFile(S2) or (PackedDate(P) <> ATime)
+                or (P^.Size <> ASize);
+  if RunUnp then
     begin
     Unp := CnvString(AType^.UnPacker);
     if  (AType^.GetID = arcRAR) and (PosChar(';', Unp) > 0) then
@@ -832,17 +835,25 @@ TryAgain:
           Директорию нужно запоминать на том диске, где находится
           временный каталог. А на том, где лежит архив
           с просматриваемым файлом, она запомнится в любом случае. }
-    Advance2.lChDir(Copy(TempDir, 1, 2));
+    LFN.lChDir(Copy(TempDir, 1, 2));
     lGetDir(0, DirToChange);
-    Advance2.lChDir(TempDir);
+    LFN.lChDir(TempDir);
     Exec(Unp, {$IFDEF RecodeWhenDraw}OemToCharStr {$ENDIF}(S), '', False);
-    Advance2.lChDir(DirToChange);
+    LFN.lChDir(DirToChange);
     DirToChange := '';
     end;
-  TempFileSWP := {$IFDEF RecodeWhenDraw}OemToCharStr {$ENDIF}(TempFile);
-  {JO}
-  TempFile := ''; {-$VOL}
-  Message(Application, evCommand, cmRetrieveSwp, nil); {JO}
+  {$IFDEF DPMI32}
+  if not (AType^.SwapWhenExec and RunUnp) then
+    begin
+  {$ENDIF}
+    TempFileSWP := {$IFDEF RecodeWhenDraw}OemToCharStr {$ENDIF}(TempFile);
+    TempFile := ''; {-$VOL}
+    Message(Application, evCommand, cmRetrieveSwp, nil); {JO}
+  {$IFDEF DPMI32}
+    end
+  else
+    TempFile := ''; {-$VOL}
+  {$ENDIF}
   end { TArcDrive.UseFile };
 {-DataCompBoy-}
 
@@ -855,6 +866,11 @@ function TArcDrive.Exec;
     CmdLineLim, ListLineLim: AWord;
     CmdLineOK: Boolean;
     I, J: LongInt;
+    {$IFDEF DPMI32}
+    T: lText;
+    EX: String;
+    I1: Integer;
+    {$ENDIF}
 
   procedure StdMsg8;
     var
@@ -878,42 +894,94 @@ function TArcDrive.Exec;
   Exec := True;
   S := Prg+' '+Cmd;
   {$IFDEF DPMI32}
-  Message(Application, evCommand, cmExecString, @S);
+  if AType^.SwapWhenExec then
+    begin
+    if B then
+      begin
+      CmdLineLim := 120;
+      ListLineLim := CmdLineLim-Length(Prg+Cmd)-7;
+      CmdLineOK := False;
+      SS1 := Lst; {для перестраховки}
+      I1 := 1;
+      repeat
+        ClrIO;
+        EX := SwpDir+'$DN'+ItoS(I1)+'$.BAT';
+        lAssignText(T, EX);
+        FileMode := $40;
+        lResetText(T);
+        if IOResult <> 0 then
+          Break;
+        Close(T.T);
+        if InOutRes = 0 then
+          Inc(I1);
+      until IOResult <> 0;
+      ClrIO;
+      lAssignText(T, EX);
+      lRewriteText(T);
+      repeat
+        if Length(Lst) >= ListLineLim then
+          begin
+          for I := ListLineLim downto 1 do
+            if Lst[I] = #$14 then
+              begin
+              SS1 := Copy(Lst, 1, I-1);
+              Delete(Lst, 1, I);
+              Break;
+              end;
+          end
+        else
+          begin
+          SS1 := Lst;
+          CmdLineOK := True;
+          end;
+        for J := 1 to Length(SS1) do
+          if SS1[J] = #$14 then
+            SS1[J] := #$20; {JO: заменяем временный символ на пробелы}
+        Writeln(T.T, '@'+S+' '+SS1);
+      until CmdLineOK;
+      Write(T.T, '@del '+EX);
+      Close(T.T);
+      S := EX;
+      end {if B}
+    else
+      if Lst <> '' then
+        begin
+        TempFile := SwpDir+'$DN'+ItoS(DNNumber)+'$.LST';
+        S := S + ' ' + Lst;
+        end;
+    Message(Application, evCommand, cmExecString, @S);
+    end
+  else {if AType^.SwapWhenExec}
+  begin
   {$ENDIF}
   DoneSysError;
   DoneEvents;
   DoneVideo;
   DoneDOSMem;
   DoneMemory;
-  {$IFDEF DPMI32}
-  {AK155, дописано позже, чем комментарий к OS/2.
-Под Win32 тоже не следует заниматься самодеятельностью.
-Во-первых, мы отдаем консоль в каком-то не таком состоянии,
-так что консольный rar не может вводить с клавиатуры.
-Во-вторых, стОило ли работать с ansistring, чтобы потом вызвать
-Dos.Exec?}
-  S := GetEnv('PATH');
-  S := FSearch(Prg, S);
-  SwapVectors;
-  if InFilter(S, '*.EXE;*.COM')
-  then
-    Dos.Exec(S, Cmd)
-  else
-    Dos.Exec(GetEnv('COMSPEC'), '/c '+S+' '+Cmd);
-  {$ELSE}
   {AK155 Под OS/2, во-первых, PATH обычно не умещается
     в 255 символов, во-вторых, нет проблем с памятью,
     в третьих архиватор может оказаться ДОСовым.
     Так что пускай PATH просматривает cmd.exe, а мы не
     будем заниматься самодеятельностью }
+  {AK155, дописано позже, чем комментарий к OS/2.
+    Под Win32 тоже не следует заниматься самодеятельностью.
+    Во-первых, мы отдаем консоль в каком-то не таком состоянии,
+    так что консольный rar не может вводить с клавиатуры.
+    Во-вторых, стОило ли работать с ansistring, чтобы потом вызвать
+    Dos.Exec?}
   if B then
     begin
     {JO: разбираем ту часть командной строки, которая содержит список файлов    }
     {    на куски удобоваримой для командного процессора длины                  }
+    {$IFNDEF DPMI32}
     if AType^.ShortCmdLine then
       CmdLineLim := {$IFDEF OS2}95 {$ELSE}127 {$ENDIF}
     else
       CmdLineLim := {$IFDEF OS2}1000 {$ELSE}250 {$ENDIF};
+    {$ELSE}
+    CmdLineLim := 95;
+    {$ENDIF}
     ListLineLim := CmdLineLim-Length(Prg+Cmd)-7;
     CmdLineOK := False;
     SS1 := Lst; {для перестраховки}
@@ -959,7 +1027,6 @@ Dos.Exec?}
     SwapVectors;
     EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.LST'); {DataCompBoy}
     end;
-  {$ENDIF}
   InitDOSMem;
   InitMemory;
   InitVideo;
@@ -977,6 +1044,9 @@ Dos.Exec?}
   //     через временный каталог и после его удаления панель перечитывается
   { GlobalMessage(evCommand, cmPanelReread, nil);
   GlobalMessage(evCommand, cmRereadInfo, nil);}
+  {$IFDEF DPMI32}
+  end; {if AType^.SwapWhenExec}
+  {$ENDIF}
   end { TArcDrive.Exec };
 
 function TArcDrive.isUp;
@@ -1199,8 +1269,7 @@ procedure TArcDrive.ExtractFiles(AFiles: PCollection; ExtrDir: String;
       SetLength(SCurDir, Length(SCurDir)-1);
     while (SCurDir <> '') and (SCurDir[1] = '\') do
       Delete(SCurDir, 1, 1);
-    if  (SCurDir[Length(SCurDir)] <> '\') then
-      SCurDir := SCurDir+'\';
+    MakeSlash(SCurDir);
     if  (CnvString(AType^.SetPathInside) <> '') then
       begin
       SCr := ' '+ CnvString(AType^.SetPathInside)+
@@ -1247,7 +1316,6 @@ procedure TArcDrive.ExtractFiles(AFiles: PCollection; ExtrDir: String;
         Break;
       end;
     ClrIO;
-    TempExtrDir := TempExtrDir+'\';
     TempDirUsed := True;
     end;
   {/JO}
@@ -1315,7 +1383,7 @@ TryAgain:
       Директорию нужно запоминать на том диске, где находится
       временный каталог. А на том, где лежит архив
       с просматриваемым файлом, она запомнится в любом случае. }
-    Advance2.lChDir(Copy(TempDir,1,2));
+    LFN.lChDir(Copy(TempDir,1,2));
   lGetDir(0, DirToChange);
   Inhr := CreateDirInheritance(ExtrDir, True);
   CreateDirInheritance(TempExtrDir, False);
@@ -1323,14 +1391,23 @@ TryAgain:
   //    только на чтение), то нет смысла и вызывать аpхиватоp
   if not PathExist(TempExtrDir) then
     Exit;
-  Advance2.lChDir(TempExtrDir);
+  LFN.lChDir(TempExtrDir);
+ {$IFDEF DPMI32}
+  if AType^.SwapWhenExec and TempDirUsed then
+    begin
+    DirToMoveContent := TempExtrDir + '|' + SCurDir;
+    if Options and 4 <> 0 then
+      DirToMoveContent := '<'+ DirToMoveContent;
+    end;
+ {$ENDIF}
   Exec(Unp, {$IFDEF RecodeWhenDraw}OemToCharStr {$ENDIF}(S), SS, B);
   {JO}
   if not TempDirUsed then
     begin
-    Advance2.lChDir(DirToChange);
+    LFN.lChDir(DirToChange);
     DirToChange := '';
-    GlobalMessage(evCommand, cmPanelReread, nil);
+    ExtrDir := '>' + ExtrDir; //признак перечитывания подкаталогов в ветви
+    GlobalMessage(evCommand, cmPanelReread, @ExtrDir);
     GlobalMessage(evCommand, cmRereadInfo, nil);
     Exit;
     end
@@ -1339,8 +1416,8 @@ TryAgain:
     { перекидываем файлы из временного подкаталога в каталог назначения}
     PV := New(PUserWindow, Init);
     Desktop^.Insert(PV);
-    CopyDirContent(TempExtrDir+SCurDir, ExtrDir, True, (Options and 4 <>
-         0));
+    CopyDirContent(TempExtrDir+SCurDir, ExtrDir, True,
+       (Options and 4 <> 0));
     PV^.Free;
     { удаляем временный каталог со всем, что в нём осталось}
     SetLength(TempExtrDir, Length(TempExtrDir)-1);
@@ -1355,16 +1432,17 @@ TryAgain:
     FCT^.AtInsert(0, FRT);
     OldConfirms := Confirms;
     Confirms := 0;
-    Advance2.lChDir(S);
+    LFN.lChDir(S);
     Eraser.EraseFiles(FCT);
-    Advance2.lChDir(DirToChange);
+    LFN.lChDir(DirToChange);
     DirToChange := '';
     Confirms := OldConfirms;
     FCT^.DeleteAll;
     Dispose(FCT, Done);
     if Inhr > 0 then
       begin
-      GlobalMessage(evCommand, cmPanelReread, nil);
+      ExtrDir := '>' + ExtrDir; //признак перечитывания подкаталогов в ветви
+      GlobalMessage(evCommand, cmPanelReread, @ExtrDir);
       GlobalMessage(evCommand, cmRereadInfo, nil);
       end;
     end;
@@ -1602,8 +1680,6 @@ procedure TArcDrive.HandleCommand;
           end;
         PFilePanel(O)^.RereadDir;
         end;
-    cmFindFile:
-      FindFile;
   end {case};
   end { TArcDrive.HandleCommand };
 
@@ -1839,29 +1915,17 @@ function TArcDrive.OpenDirectory(const Dir: String;
       end;
     end;
   PI^.Free;
-  PDrv := New(PFindDrive, Init(GetString(dlBranch)+Dir, Dirs, Fils));
+//используем '><' в качестве пpизнака ветви
+  PDrv := New(PFindDrive, Init('><'+Dir, Dirs, Fils));
   PDrv^.NoMemory := MAvail <= MemReq;
   OpenDirectory := PDrv;
   LongWorkEnd;
   end { TArcDrive.OpenDirectory };
 
-type
-  TArcFindRec = record
-    Mask: String; {DataCompBoy}
-    Options: Word;
-    AddChar: String[3];
-    end;
-
-const
-  ArcFindRec: TArcFindRec = (Mask: '*.*';
-    Options: 2; {рекурсивный поиск}
-    AddChar: ''
-    );
-
-procedure TArcDrive.FindFile;
+procedure TArcDrive.DrvFindFile(FC: PFilesCollection);
   var
     I: LongInt;
-    PDrv: PDrive;
+    PDrv: PFindDrive;
     Dirs: PStringCollection;
     Fils: PFilesCollection;
     FR: PFileRec;
@@ -1879,31 +1943,27 @@ procedure TArcDrive.FindFile;
     MAvail: LongInt;
 
   begin
-  LongWorkBegin;
   NewTimer(tmr, 0);
-  ArcFindRec.AddChar := '';
-  ArcFindRec.Options := (FindRec.Options and 1)+
-      ( (FindRec.Options and 4) shr 1);
+  FindRec.AddChar := '';
+//JO: поскольку ArcFindRec по absolute совмещена с FindRec,
+//    то после вызова диалога можно использовать просто FindRec
   if ExecResource(dlgArcFileFind, ArcFindRec) = cmCancel then
     Exit;
-  FindRec.Options := (FindRec.Options and $FFFA)
-       or (ArcFindRec.Options and 1)
-    or ((ArcFindRec.Options and 2) shl 1);
   ConfigModified := True;
-  DelLeft(ArcFindRec.Mask);
-  DelRight(ArcFindRec.Mask);
-  if ArcFindRec.Mask = '' then
-    ArcFindRec.Mask := x_x;
-  if  (Pos('*', ArcFindRec.Mask) = 0) and
-      (Pos('.', ArcFindRec.Mask) = 0) and
-      (Pos(';', ArcFindRec.Mask) = 0) and
-      (Pos('?', ArcFindRec.Mask) = 0)
+  DelLeft(FindRec.Mask);
+  DelRight(FindRec.Mask);
+  if FindRec.Mask = '' then
+    FindRec.Mask := x_x;
+  if  (Pos('*', FindRec.Mask) = 0) and
+      (Pos('.', FindRec.Mask) = 0) and
+      (Pos(';', FindRec.Mask) = 0) and
+      (Pos('?', FindRec.Mask) = 0)
   then
-    ArcFindRec.AddChar := '*.*'
+    FindRec.AddChar := '*.*'
   else
-    ArcFindRec.AddChar := '';
+    FindRec.AddChar := '';
 
-  if ArcFindRec.Options and ffoAdvanced <> 0 then
+  if FindRec.Options and ffoAdvanced <> 0 then
     begin
     DateAfter := ParseTime(AdvanceSearchData.After);
     DateBefore := ParseTime(AdvanceSearchData.Before);
@@ -1924,6 +1984,7 @@ procedure TArcDrive.FindFile;
       Attr := Attr or ReadOnly;
     end;
 
+  LongWorkBegin;
   Dirs := New(PStringCollection, Init($10, $10, False));
   PI := WriteMsg(^M^M^C+GetString(dlSearching)+'...');
   New(Fils, Init($10, $10));
@@ -1943,14 +2004,14 @@ procedure TArcDrive.FindFile;
       begin
       with Files^.CurFile do
         begin
-        if  ( (ArcFindRec.Options and ffoAdvanced = 0) or
+        if  ( (FindRec.Options and ffoAdvanced = 0) or
               (Date >= DateAfter) and (Date <= DateBefore)
             and (Size >= SizeGreat) and (Size <= SizeLess)
             and ((Attr = 0) or (FileInfo.Attr and Attr <> 0)))
-          and ((ArcFindRec.Options and 2 <> 0) or
+          and ((FindRec.Options and ffoRecursive <> 0) or
               (Root = UpStrg(Files^.LastDir)))
           and (Name <> '') and (Name <> '..')
-          and InFilter(Name, ArcFindRec.Mask+ArcFindRec.AddChar)
+          and InFilter(Name, FindRec.Mask+FindRec.AddChar)
         then
           begin
           _USize := Size;
@@ -1980,10 +2041,10 @@ procedure TArcDrive.FindFile;
               //JO: всё равно для каталогов дата и атрибуты показываются
               //    весьма условно, размер равен нулю, так что при расширенном
               //    поиске каталоги только мешают
-              and (ArcFindRec.Options and ffoAdvanced = 0)
-              and ((ArcFindRec.Options and 2 <> 0) or
+              and (FindRec.Options and ffoAdvanced = 0)
+              and ((FindRec.Options and ffoRecursive <> 0) or
                   (Root = UpStrg(LDir)))
-              and InFilter(DrName, ArcFindRec.Mask+ArcFindRec.AddChar)
+              and InFilter(DrName, FindRec.Mask+FindRec.AddChar)
             then
               begin
               PDir := NewStr(Copy(LDir, 1, I));
@@ -2012,12 +2073,27 @@ procedure TArcDrive.FindFile;
       end;
     end;
   PI^.Free;
-  PDrv := New(PFindDrive, Init(GetString(dlFindPanel)+ArcFindRec.Mask,
-        Dirs, Fils));
-  PDrv^.NoMemory := MAvail <= MemReq;
-  Message(Panel, evCommand, cmInsertDrive, PDrv);
+  if Fils^.Count > 0 then
+    begin
+//используем '<>' в качестве пpизнака панели поиска
+    PDrv := New(PFindDrive, Init('<>'+FindRec.Mask,
+          Dirs, Fils));
+    PDrv^.AMask := NewStr(FindRec.Mask);
+    PDrv^.NoMemory := MAvail <= MemReq;
+    if (FindRec.Options and ffoNoSort) <> 0 then
+      RereadNoSort := True;
+    Message(Panel, evCommand, cmInsertDrive, PDrv);
+    RereadNoSort := False; //!!!
+    end
+  else
+    MessageBox(^C+GetString(dlNoFilesFound), nil,
+                 mfInformation+mfOKButton);
   LongWorkEnd;
-  end { TArcDrive.FindFile };
+  end { TArcDrive.DrvFindFile };
+
+procedure TArcDrive.ReadDescrptions(FilesC: PFilesCollection);
+  begin
+  end;
 
 end.
 

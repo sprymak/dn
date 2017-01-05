@@ -63,8 +63,27 @@ const
 
   { Color palettes }
 
-  CMenuView = #2#3#4#5#6#7;
+  CMenuView = #2#3#4#5#6#7#128#129;
   CStatusLine = #2#3#4#5#6#7;
+
+const
+  miDisabled = 1;
+   {` Бит TMenuItem.Flags. Пункт недоступен `}
+  miSubmenu = 2;
+   {` Бит TMenuItem.Flags. Пункт является подменю`}
+  miExecDefault = 4;
+   {` Бит TMenuItem.Flags. Пункт является подменю, но по Enter
+    не раскрывается подменю, а выполняется пункт по умолчанию
+    этого подменю. Обычно при наличии этого бита Command <> 0 `}
+  miDoNotDisposeSubmenu = 8;
+   {` Бит TMenuItem.Flags. При освобождении меню не освобождать
+    подменю, на которое ссылается данный пункт `}
+  miAllowChangeDefault = 16;
+   {` Бит TMenuItem.Flags. У подменю можно сменять пункт по умолчанию
+     (нажатием пробела) `}
+  miParam = 32;
+   {` Бит TMenuItem.Flags. Пункт имеет непустой Param `}
+
 
 type
 
@@ -79,12 +98,11 @@ type
     Next: PMenuItem;
     Name: PString;
     Command: Word;
-    Disabled: Boolean;
+    Flags: Byte;
     KeyCode: Word;
     HelpCtx: Word;
-    case Integer of
-      0: (Param: PString);
-      1: (SubMenu: PMenu);
+    Param: PString;
+    SubMenu: PMenu;
     end;
 
   TMenu = record
@@ -107,6 +125,13 @@ type
     ParentMenu: PMenuView;
     Menu: PMenu;
     Current: PMenuItem;
+    HaveSubmenu: Boolean;
+    LastActionIsExpand: Boolean;
+      { Такое поле аккуратнее, чем проверки TypeOf(Self) = TypeOf(TMenuBar),
+       поскольку такая проверка не даст True для типа, производного от
+       TMenuBar. Ни к чему строить такие ловушки. Для классов есть
+       операция 'is', но для объектов её аналога нет, поэтому приходится
+       исхитряться. }
     constructor Init(var Bounds: TRect);
     constructor Load(var S: TStream);
     function Execute: Word; virtual;
@@ -125,6 +150,10 @@ type
     function NewSubView(var Bounds: TRect; AMenu: PMenu;
         AParentMenu: PMenuView): PMenuView; virtual;
     procedure Store(var S: TStream);
+    function RightExpand: Boolean; virtual;
+      { по kbRight раскрывать подменю }
+    function LeftCollapse: Boolean; virtual;
+      { по kbLeft сворачивать развёрнутое подменю }
     end;
 
   { TMenuBar object }
@@ -143,6 +172,7 @@ type
     destructor Done; virtual;
     procedure Draw; virtual;
     procedure GetItemRect(Item: PMenuItem; var R: TRect); virtual;
+    function Execute: Word; virtual;
     end;
 
   { TMenuBox object }
@@ -158,10 +188,14 @@ type
   PMenuBox = ^TMenuBox;
   TMenuBox = object(TMenuView)
     TopItem: PMenuItem;
+    ComboBoxPal: Boolean;
     constructor Init(var Bounds: TRect; AMenu: PMenu;
         AParentMenu: PMenuView);
     procedure Draw; virtual;
     procedure GetItemRect(Item: PMenuItem; var R: TRect); virtual;
+    function Execute: Word; virtual;
+    function RightExpand: Boolean; virtual;
+    function LeftCollapse: Boolean; virtual;
     end;
 
   { TMenuPopup object }
@@ -261,9 +295,13 @@ procedure LoadMenuDefaults(Menu: PMenu; var S: TStream);
 const
   MenuActive: Boolean = False;
 
+var
+  ParentItem: PMenuItem;
+    {` Пункт родительского меню, из которого было вызвано подменю.`}
+
 implementation
 uses
-  Advance, Advance1, Advance2, Advance3, Commands, DNHelp, DNApp
+  Advance, Advance1, Advance2, Commands, DNHelp, DNApp
   , U_KeyMap
   ;
 
@@ -285,10 +323,13 @@ function NewItem(Name, Param: TMenuStr; KeyCode: Word; Command: Word;
     P^.Next := Next;
     P^.Name := NewStr(Name);
     P^.Command := Command;
-    P^.Disabled := not T^.MenuEnabled(Command); {-$VOL}
+    P^.Flags := miParam;
+    if not T^.MenuEnabled(Command) then {-$VOL}
+      P^.Flags := miDisabled;
     P^.KeyCode := KeyCode;
     P^.HelpCtx := AHelpCtx;
     P^.Param := NewStr(Param);
+    P^.Submenu := nil;
     NewItem := P;
     end
   else
@@ -319,9 +360,10 @@ function NewSubMenu(Name: TMenuStr; AHelpCtx: Word; SubMenu: PMenu;
     P^.Name := NewStr(Name);
     P^.Command := 0;
     P^.KeyCode := 0;
-    P^.Disabled := False;
+    P^.Flags := miSubmenu;
     P^.HelpCtx := AHelpCtx;
     P^.SubMenu := SubMenu;
+    P^.Param := nil;
     NewSubMenu := P;
     end
   else
@@ -352,9 +394,8 @@ procedure DisposeMenu(Menu: PMenu);
       if P^.Name <> nil then
         begin
         DisposeStr(P^.Name);
-        if P^.Command <> 0 then
-          DisposeStr(P^.Param)
-        else
+        DisposeStr(P^.Param);
+        if P^.Flags and miDoNotDisposeSubmenu = 0 then
           DisposeMenu(P^.SubMenu);
         end;
       Q := P;
@@ -397,14 +438,18 @@ constructor TMenuView.Load(var S: TStream);
         begin
         Name := S.ReadStr;
         S.Read(Command, SizeOf(Command));
-        S.Read(Disabled, SizeOf(Disabled));
+        S.Read(Flags, SizeOf(Flags));
         S.Read(KeyCode, SizeOf(KeyCode));
         S.Read(HelpCtx, SizeOf(HelpCtx));
         if  (Name <> nil) then
-          if Command = 0 then
-            SubMenu := DoLoadMenu
-          else
+          begin
+          Param := nil;
+          if (Flags and miParam) <> 0 then
             Param := S.ReadStr;
+          SubMenu := nil;
+          if (Flags and miSubmenu) <> 0 then
+            SubMenu := DoLoadMenu;
+          end;
         end;
       S.Read(Tok, 1);
       end;
@@ -432,12 +477,12 @@ function TMenuView.Execute: Word;
     MouseActive: Boolean;
     MouseWalk: Boolean;
     Going: Boolean; {new}
+    Mouse: TPoint;
 
   procedure TrackKey(FindNext: Boolean);forward;
 
   procedure TrackMouse;
     var
-      Mouse: TPoint;
       R: TRect;
     label q;
     begin
@@ -567,63 +612,11 @@ q:
   var
     W, H, L: Integer;
     R2: TRect;
+    ExecDefault: Boolean;
+  label
+    lEnter, lHotkey;
   begin { TMenuView.Execute: }
-  if TypeOf(Self) = TypeOf(TMenuBox) then
-    begin
-    W := 10;
-    H := 2;
-    if Menu <> nil then
-      begin
-      P := Menu^.Items;
-      while P <> nil do
-        begin
-        if P^.Name <> nil then
-          begin
-          L := CStrLen(P^.Name^)+6;
-          if P^.Command = 0 then
-            Inc(L, 3)
-          else if P^.Param <> nil then
-            Inc(L, CStrLen(P^.Param^)+2);
-          if L > W then
-            W := L;
-          end;
-        Inc(H);
-        P := P^.Next;
-        end;
-      end;
-    GetBounds(R);
-    Owner^.GetExtent(R2); {new begin}
-    if Options and ofCenterX <> 0 then
-      begin
-      R.A.X := (R2.B.X-R2.A.X-W) div 2;
-      end;
-    R.B.X := R.A.X+W;
-
-    if Options and ofCenterY <> 0 then
-      begin
-      R.A.Y := (R2.B.Y-R2.A.Y-H) div 2;
-      end;
-    R.B.Y := R.A.Y+H;
-
-    if R.B.Y > R2.B.Y then
-      begin
-      R.A.Y := R2.B.Y-H;
-      if R.A.Y < 0 then
-        R.A.Y := 0;
-      R.B.Y := R.A.Y+H;
-      if R.B.Y > R2.B.Y then
-        R.B.Y := R2.B.Y;
-      end;
-    if R.B.X > R2.B.X then
-      begin
-      R.A.X := R2.B.X-(R.B.X-R.A.X);
-      R.B.X := R2.B.X;
-      end;
-    SetBounds(R);
-    Owner^.Redraw;
-    end;
-  if TypeOf(Self) = TypeOf(TMenuBar) then
-    Message(Owner, evCommand, cmMenuOn, @Self);
+  LastActionIsExpand := False;
   AutoSelect := False;
   Result := 0;
   ItemShown := nil;
@@ -653,7 +646,10 @@ q:
             Current := Menu^.Default
           else if (Current <> nil) and (Current^.Name <> nil)
           then
-            Action := DoSelect
+            begin
+            Action := DoSelect;
+            ExecDefault := Mouse.X < Size.X-5;
+            end
           else if (Current <> nil) and (Current^.Name = nil)
           then
             Action := DoNothing
@@ -725,11 +721,24 @@ q:
                   end
                 else if E.KeyCode = kbDown then
                   AutoSelect := True; {new end}
-              kbLeft, kbRight:
+              kbRight:
+                begin
+                if RightExpand then
+                  goto lEnter;
                 if ParentMenu = nil then
                   TrackKey( {CtrlToArrow}(E.KeyCode) = kbRight)
                 else
                   Action := DoReturn;
+                end;
+              kbLeft:
+                begin
+                if LeftCollapse then
+                  {nothing to do}
+                else if ParentMenu = nil then
+                  TrackKey( {CtrlToArrow}(E.KeyCode) = kbRight)
+                else
+                  Action := DoReturn;
+                end;
               kbHome, kbEnd:
                 if Size.Y <> 1 then
                   begin
@@ -788,9 +797,28 @@ q:
                   end; {new end}
               kbEnter, kbShiftEnter:
                 begin
+lEnter:
                 if Size.Y = 1 then
                   AutoSelect := True;
                 Action := DoSelect;
+                ExecDefault := E.KeyCode = kbEnter;
+                end;
+              kbSpace:
+                begin
+                { Внутри подменю с умолчанием пробел меняет умолчание;
+                  но в других случаях он может оказаться корячей клавишей
+                  (например, в меню выбора дисков)}
+                if  (ParentMenu <> nil) and
+                    (ParentMenu^.Current^.Flags and
+                         miAllowChangeDefault <> 0)
+                then
+                  begin
+                  Action := DoNothing;
+                  Menu^.Default := Current;
+                  Draw;
+                  end
+                else
+                  goto lHotkey;
                 end;
               kbDoubleAlt:
                 begin
@@ -815,37 +843,41 @@ q:
                   ClearEvent(E);
                 end;
               else {case}
+                begin
+lHotkey:
                 Target := @Self;
-              Ch := GetAltChar(E.KeyCode);
-              if Ch = #0 then
-                Ch := E.CharCode
-              else
-                Target := TopMenu;
-              P := Target^.FindItem(Ch);
-              if  (Target = @Self) and (P = nil)
-              then
-                P := FindItem(GetAltChar(E.KeyCode and $FFFF00));
-              if P = nil then
-                begin
-                P := TopMenu^.HotKey(E.KeyCode);
-                if  (P <> nil) and CommandEnabled(P^.Command) then
+                Ch := GetAltChar(E.KeyCode);
+                if Ch = #0 then
+                  Ch := E.CharCode
+                else
+                  Target := TopMenu;
+                P := Target^.FindItem(Ch);
+                if  (Target = @Self) and (P = nil)
+                then
+                  P := FindItem(GetAltChar(E.KeyCode and $FFFF00));
+                if P = nil then
                   begin
-                  Result := P^.Command;
-                  Action := DoReturn;
+                  P := TopMenu^.HotKey(E.KeyCode);
+                  if  (P <> nil) and CommandEnabled(P^.Command) then
+                    begin
+                    Result := P^.Command;
+                    Action := DoReturn;
+                    end
                   end
-                end
-              else if Target = @Self then
-                begin
-                if Size.Y = 1 then
-                  AutoSelect := True;
-                Action := DoSelect;
-                Current := P;
-                end
-              else if (ParentMenu <> Target)
-                   or (ParentMenu^.Current <> P)
-              then
-                Action := DoReturn;
-            end
+                else if Target = @Self then
+                  begin
+                  if Size.Y = 1 then
+                    AutoSelect := True;
+                  Action := DoSelect;
+                  ExecDefault := True;
+                  Current := P;
+                  end
+                else if (ParentMenu <> Target)
+                     or (ParentMenu^.Current <> P)
+                then
+                  Action := DoReturn;
+                end;
+            end {case }
         end {case}; {new}
       evCommand:
         if  (E.Command = cmMenu) or (E.Command = cmMainMenu) then
@@ -866,33 +898,53 @@ q:
           end
         else
           Action := DoReturn;
+      else
+        TinySlice;
     end {case};
     if ItemShown <> Current then
       begin
       ItemShown := Current;
       DrawView;
       end;
+    LastActionIsExpand := False;
     if  (Action = DoSelect) or ((Action = DoNothing) and AutoSelect)
     then
+      begin
       if Current <> nil then
         with Current^ do
           if Name <> nil then
-            if Command = 0 then
+            if Flags and miSubmenu <> 0 then
               begin
-              if E.What and (evMouseDown+evMouseMove) <> 0 then
-                PutEvent(E);
-              GetItemRect(Current, R);
-              R.A.X := R.A.X+Origin.X;
-              R.A.Y := R.B.Y+Origin.Y;
-              R.B := Owner^.Size;
-              if Size.Y = 1 then
-                Dec(R.A.X);
-              Target := TopMenu^.NewSubView(R, SubMenu, @Self);
-              Result := Owner^.ExecView(Target);
-              Dispose(Target, Done);
+              ParentItem := Current;
+              if ExecDefault and (Flags and miExecDefault <> 0) then
+                Result := Submenu^.Default^.Command
+              else
+                begin
+                LastActionIsExpand := True;
+                if E.What and (evMouseDown+evMouseMove) <> 0 then
+                  PutEvent(E);
+                GetItemRect(Current, R);
+                R.A.X := R.A.X+Origin.X;
+                R.A.Y := R.B.Y+Origin.Y;
+                R.B := Owner^.Size;
+                if Size.Y = 1 then
+                  Dec(R.A.X);
+                Target := TopMenu^.NewSubView(R, SubMenu, @Self);
+                Result := Owner^.ExecView(Target);
+                Dispose(Target, Done);
+                end;
               end
-            else if (Action = DoSelect) and not Disabled {ak50521a.dif} then
+            else if (Action = DoSelect) and ((Flags and miDisabled) = 0) then
+              begin
+              if (ParentMenu <> nil) and
+                (ParentMenu^.Current^.Flags and miExecDefault <> 0)
+              then
+                ParentItem := ParentMenu^.Current
+              else
+                ParentItem := nil;
               Result := Command;
+              end;
+      end;
     if  (Result <> 0) and CommandEnabled(Result) then
       begin
       Action := DoReturn;
@@ -904,12 +956,17 @@ q:
       PutEvent(E);
   if Current <> nil then
     begin
-    Menu^.Default := Current;
+    { Выбранный пункт не делаем пунктом по умолчанияю, если
+    пункт родительского меню имеет подменю с miExecDefault.
+    В этом случае смена умолчания - только пробелом, да и то
+    только при наличии разрешения (miAllowChangeDefault) }
+    if (ParentMenu = nil) or
+       (ParentMenu^.Current^.Flags and miExecDefault = 0)
+    then
+      Menu^.Default := Current;
     Current := nil;
     DrawView;
     end;
-  if TypeOf(Self) = TypeOf(TMenuBar) then
-    Message(Owner, evCommand, cmMenuOff, @Self);
   MenuActive := False;
   end { TMenuView.Execute: };
 
@@ -922,7 +979,7 @@ function TMenuView.FindItem(Ch: Char): PMenuItem;
   P := Menu^.Items;
   while P <> nil do
     begin
-    if  (P^.Name <> nil) and not P^.Disabled then
+    if  (P^.Name <> nil) and ((P^.Flags and miDisabled) = 0) then
       begin
       I := Pos('~', P^.Name^);
       if  (I <> 0) and (Ch = UpCaseArray[P^.Name^[I+1]]) then
@@ -982,14 +1039,14 @@ procedure TMenuView.HandleEvent(var Event: TEvent);
     while P <> nil do
       begin
       if P^.Name <> nil then
-        if P^.Command = 0 then
-          UpdateMenu(P^.SubMenu)
-        else
+        if P^.Flags and miSubmenu <> 0 then
+          UpdateMenu(P^.SubMenu);
+        if P^.Command <> 0 then
           begin
           CommandState := MenuEnabled(P^.Command);
-          if P^.Disabled = CommandState then
+          if ((P^.Flags and miDisabled) <> 0) = CommandState then
             begin
-            P^.Disabled := not CommandState;
+            P^.Flags := P^.Flags xor miDisabled;
             CallDraw := True;
             end;
           end;
@@ -1064,7 +1121,7 @@ function TMenuView.HotKey(KeyCode: Word): PMenuItem;
     while P <> nil do
       begin
       if P^.Name <> nil then
-        if P^.Command = 0 then
+        if P^.Flags and miSubmenu <> 0 then
           begin
           T := FindHotKey(P^.SubMenu^.Items);
           if T <> nil then
@@ -1073,7 +1130,7 @@ function TMenuView.HotKey(KeyCode: Word): PMenuItem;
             Exit;
             end;
           end
-        else if not P^.Disabled and (P^.KeyCode <> kbNoKey) and
+        else if ((P^.Flags and miDisabled) = 0) and (P^.KeyCode <> kbNoKey) and
             (P^.KeyCode = KeyCode)
         then
           begin
@@ -1111,14 +1168,16 @@ procedure TMenuView.Store(var S: TStream);
         S.Write(Tok, 1);
         S.WriteStr(Name);
         S.Write(Command, SizeOf(Command));
-        S.Write(Disabled, SizeOf(Disabled));
+        S.Write(Flags, SizeOf(Flags));
         S.Write(KeyCode, SizeOf(KeyCode));
         S.Write(HelpCtx, SizeOf(HelpCtx));
         if  (Name <> nil) then
-          if Command = 0 then
-            DoStoreMenu(SubMenu)
-          else
+          begin
+          if (Flags and miParam) <> 0 then
             S.WriteStr(Param);
+          if (Flags and miSubmenu) <> 0 then
+            DoStoreMenu(SubMenu);
+          end;
         end;
       Item := Item^.Next;
       end;
@@ -1130,6 +1189,16 @@ procedure TMenuView.Store(var S: TStream);
   TView.Store(S);
   DoStoreMenu(Menu);
   end { TMenuView.Store };
+
+function TMenuView.RightExpand: Boolean;
+  begin
+  Result := False;
+  end;
+
+function TMenuView.LeftCollapse: Boolean;
+  begin
+  Result := False;
+  end;
 
 { TMenuBar }
 
@@ -1172,7 +1241,7 @@ procedure TMenuBar.Draw;
         L := CStrLen(P^.Name^);
         if X+L < Size.X then
           begin
-          if P^.Disabled then
+          if ((P^.Flags and miDisabled) <> 0) then
             if P = Current then
               Color := CSelDisabled
             else
@@ -1210,6 +1279,13 @@ procedure TMenuBar.GetItemRect(Item: PMenuItem; var R: TRect);
     end;
   end;
 
+function TMenuBar.Execute: Word;
+  begin
+  Message(Owner, evCommand, cmMenuOn, @Self);
+  Result := inherited Execute;
+  Message(Owner, evCommand, cmMenuOff, @Self);
+  end;
+
 { TMenuBox }
 
 constructor TMenuBox.Init(var Bounds: TRect; AMenu: PMenu;
@@ -1222,6 +1298,7 @@ constructor TMenuBox.Init(var Bounds: TRect; AMenu: PMenu;
   ParentMenu := AParentMenu;
   if Menu <> nil then
     TopItem := Menu^.Items;
+  ComboBoxPal := False;
   end;
 
 procedure TMenuBox.Draw;
@@ -1272,14 +1349,36 @@ procedure TMenuBox.Draw;
     Inc(Y);
     end;
 
+  var
+    ParamEnd: Integer;
+    SubmenuArrow: string[3];
+
   {--- start -------- Eugeny Zvyagintzev ---- 28-09-2003 ----}
   {Procedure was optimized: multiple recursion calls are removed}
   begin { TMenuBox.Draw }
-  CNormal := GetColor($0301);
-  CSelect := GetColor($0604);
-  CNormDisabled := GetColor($0202);
-  CSelDisabled := GetColor($0505);
+  if not ComboBoxPal then
+    begin
+    CNormal := GetColor($0301);
+    CSelect := GetColor($0604);
+    CNormDisabled := GetColor($0202);
+    CSelDisabled := GetColor($0505);
+    end
+  else
+    begin
+//JO: фон подсвеченных хоткеев делаем таким же как общий фон комбобокса,
+//    а цвет буковок - как у хоткеев в обычном меню
+    CNormal := (GetColor($0307) and $0FFF) + (GetColor($0700) and $F000);
+    CSelect := (GetColor($0608) and $0FFF) + (GetColor($0800) and $F000);
+//JO: аналогично - с недоступными элементами
+    CNormDisabled := (GetColor($0202) and $0F0F)
+                      + (GetColor($0707) and $F0F0);
+    CSelDisabled := (GetColor($0505) and $0F0F)
+                      + (GetColor($0808) and $F0F0);
+    end;
   Y := 0;
+  ParamEnd := Size.X-3;
+  if HaveSubmenu then
+    Dec(ParamEnd, 3);
   Color := CNormal;
   FrameLine(0);
   DrawLine;
@@ -1312,7 +1411,7 @@ procedure TMenuBox.Draw;
         FrameLine(15)
       else
         begin
-        if P^.Disabled then
+        if ((P^.Flags and miDisabled) <> 0) then
           if P = Current then
             Color := CSelDisabled
           else
@@ -1321,11 +1420,22 @@ procedure TMenuBox.Draw;
           Color := CSelect;
         FrameLine(10);
         MoveCStr(B[3], P^.Name^, Color);
-        if P^.Command = 0 then
-          MoveChar(B[Size.X-4], #16, Byte(Color), 1)
-        else if P^.Param <> nil then
-          MoveStr(B[Size.X-3-Length(P^.Param^)],
+        if (P = Menu.Default) and (ParentMenu <> nil) and
+          (ParentMenu^.Current^.Flags and miExecDefault <> 0)
+        then { помечаем алмазиком пункт, который выполняется по
+          Enter на пункте родительского меню }
+          MoveChar(B[2], #4, Byte(Color), 1);
+        if P^.Param <> nil then
+          MoveStr(B[ParamEnd-Length(P^.Param^)],
             P^.Param^, Byte(Color));
+        if P^.Flags and miSubmenu <> 0 then
+          begin
+          if P^.Flags and miExecDefault <> 0 then
+            SubmenuArrow := '['#16']'
+          else
+            SubmenuArrow := ' '#16' ';
+          MoveStr(B[Size.X-5], SubmenuArrow, Byte(Color));
+          end
         end;
       DrawLine;
       P := P^.Next;
@@ -1353,6 +1463,84 @@ procedure TMenuBox.GetItemRect(Item: PMenuItem; var R: TRect);
     R.Assign(0, 0, 0, 0)
   else
     R.Assign(2, Y, Size.X-2, Y+1);
+  end;
+
+function TMenuBox.Execute: Word;
+  var
+    W, H, L: Integer;
+    R2: TRect;
+    P: PMenuItem;
+    R: TRect;
+  begin
+  W := 10;
+  H := 2;
+  if Menu <> nil then
+    begin
+    P := Menu^.Items;
+    while P <> nil do
+      begin
+      if P^.Name <> nil then
+        begin
+        L := CStrLen(P^.Name^)+6;
+        if P^.Param <> nil then
+          Inc(L, CStrLen(P^.Param^)+2);
+        if P^.Flags and miSubmenu <> 0 then
+          begin
+          Inc(L, 3);
+          HaveSubmenu := True;
+          end;
+        if L > W then
+          W := L;
+        end;
+      Inc(H);
+      P := P^.Next;
+      end;
+    end;
+  GetBounds(R);
+  Owner^.GetExtent(R2); {new begin}
+  if Options and ofCenterX <> 0 then
+    begin
+    R.A.X := (R2.B.X-R2.A.X-W) div 2;
+    end;
+  R.B.X := R.A.X+W;
+
+  if Options and ofCenterY <> 0 then
+    begin
+    R.A.Y := (R2.B.Y-R2.A.Y-H) div 2;
+    end;
+  R.B.Y := R.A.Y+H;
+
+  if R.B.Y > R2.B.Y then
+    begin
+    R.A.Y := R2.B.Y-H;
+    if R.A.Y < 0 then
+      R.A.Y := 0;
+    R.B.Y := R.A.Y+H;
+    if R.B.Y > R2.B.Y then
+      R.B.Y := R2.B.Y;
+    end;
+  if R.B.X > R2.B.X then
+    begin
+    R.A.X := R2.B.X-(R.B.X-R.A.X);
+    R.B.X := R2.B.X;
+    end;
+  SetBounds(R);
+  Owner^.Redraw;
+  Result := inherited Execute;
+  end { TMenuBox.Execute };
+
+function TMenuBox.RightExpand: Boolean;
+  begin
+  Result := not LastActionIsExpand and (Current^.Flags and miSubmenu <> 0);
+    { Обычно по kbRight надо раскрывать подменю. Но если оно только что
+    было раскрыто и теперь закрывается по нажатию стрелки ВПРАВО,
+    то надо не опять раскрывать его, а передавать эту kbRight
+    вышележащемму меню }
+  end;
+
+function TMenuBox.LeftCollapse: Boolean;
+  begin
+  Result := LastActionIsExpand;
   end;
 
 {TMenuPopup}
@@ -1815,8 +2003,7 @@ function LookUpMenu(Menu: PMenu; idCheckItem: Word; Flags: Word)
         LookedUp := nil;
         if Item <> nil then
           repeat
-            if  (Item^.Command = 0) and (Item^.SubMenu <> nil)
-                 and (Item^.Name <> nil)
+            if  (Item^.Flags and miSubmenu <> 0) and (Item^.Name <> nil)
             then
               LookedUp := LookUpMenu(Item^.SubMenu, idCheckItem, Flags)
             else if (Item^.Command = idCheckItem)
@@ -1865,8 +2052,7 @@ procedure StoreMenuDefaults(Menu: PMenu; var S: TStream); {new}
       Item := Items;
       if Item <> nil then
         repeat
-          if  (Item^.Command = 0) and (Item^.SubMenu <> nil)
-               and (Item^.Name <> nil)
+          if  (Item^.Flags and miSubmenu <> 0) and (Item^.Name <> nil)
           then
             StoreMenuDefaults(Item^.SubMenu, S);
           Item := Item^.Next;
@@ -1887,8 +2073,7 @@ procedure LoadMenuDefaults(Menu: PMenu; var S: TStream); {new}
       Item := Items;
       if Item <> nil then
         repeat
-          if  (Item^.Command = 0) and (Item^.SubMenu <> nil)
-               and (Item^.Name <> nil)
+          if  (Item^.Flags and miSubmenu <> 0) and (Item^.Name <> nil)
           then
             LoadMenuDefaults(Item^.SubMenu, S);
           Item := Item^.Next;

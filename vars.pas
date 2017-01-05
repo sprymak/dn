@@ -524,7 +524,6 @@ end.
 (** Cat:todo
 dnapp
   AppPalette: Integer;
-  SkyVisible: Boolean;
 
 dnutil
   TrashCan: PTrashCan;

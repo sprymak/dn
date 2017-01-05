@@ -54,7 +54,7 @@ interface
 uses
   Lfn, Collect, Drivers, Defines, Objects2, Streams, Views, EdWin,
    Drives, Advance, Advance1,
-  Advance2, Advance3, U_KeyMap, Microed
+  Advance2, U_KeyMap, Microed
   {, Crt}
   {$IFDEF DBView}, DBView {$ENDIF} {$IFDEF SpreadSheet}, Calc {$ENDIF}
   ;
@@ -131,7 +131,7 @@ type
 
   PEditHistoryCol = ^TEditHistoryCol;
   TEditHistoryCol = object(TCollection)
-    function IndexOf(P: Pointer): CondInt; virtual;
+    function IndexOf(P: Pointer): LongInt; virtual;
     procedure PutItem(var S: TStream; P: Pointer); virtual;
     function GetItem(var S: TStream): Pointer; virtual;
     procedure FreeItem(P: Pointer); virtual;
@@ -857,14 +857,10 @@ procedure AddToDirectoryHistory(S: String; DriveType: Integer);
       (DriveType <> Integer(dtArvid)) and
       (DriveType <> Integer(dtArc))
   then
-    begin
-    if S[Length(S)] <> '\' then
-      AddStr(S, '\')
-    end
+    MakeSlash(S)
   else
     begin
-    if S[Length(S)] in ['\', '/'] then
-      SetLength(S, Length(S)-1);
+    MakeNoSlash(S);
     if  (DriveType = Integer(dtArvid)) or
         (DriveType = Integer(dtArc))
     then

@@ -52,7 +52,7 @@ interface
 
 uses
   Defines, Objects2, Streams, Drivers, Views, Dialogs, Dos, RStrings,
-  Advance, Advance1, Advance2, Advance3, Collect
+  Advance, Advance1, Advance2, Collect
   , VPUtils, TopView_
   ; {JO}
 
@@ -145,23 +145,9 @@ const
   TeamView: PTeamView = nil;
 
 var
-  {-DataCompBoy-}
-  DriveData: record
-    {00}RecSize: Word;
-    {02}StructVersion: Word;
-    {04}SectorsPerCluster: LongInt;
-    {08}BytesPerSector: LongInt;
-    {0C}AvailClusters: LongInt;
-    {10}TotalClusters: LongInt;
-    {14}NumPhisSectorsAvail: LongInt;
-    {18}NumPhisSectorsTotal: LongInt;
-    {1C}AvailAllocUnits: LongInt;
-    {20}TotalAllocUnits: LongInt;
-    {24}Reserved: array[0..7] of Byte;
-    end;
   FreeSpc, TotalSpc: TSize;
   {` Общий размер диска и свободное место на нём. Определяются для
-  полного пути каталога (в т.ч. сетвого), софтлинки NTFS отслеживаются.`}
+  полного пути каталога (в т.ч. сетевого), софтлинки NTFS отслеживаются.`}
   BytesPerCluster: LongInt;
   {` Определяется для корня диска или сетевого пути. Софтлинки
   не отслеживаются. `}
@@ -513,6 +499,16 @@ procedure TDiskInfo.Draw;
     Inc(Y);
     end;
 
+  procedure WrtTxt(S: String);
+    var
+      I: Integer;
+    begin
+    MoveChar(B, ' ', C, Size.X);
+    MoveCStr(B[0], S, C);
+    WriteLine(0, Y, Size.X, 1, B);
+    Inc(Y);
+    end;
+
   procedure XWrt(P: PString; Flag: Word);
     begin
     if  (P <> nil) and (DriveInfoData and Flag <> 0) then
@@ -605,8 +601,7 @@ procedure TDiskInfo.Draw;
     CC := True;
     for X := Delta.Y to Info.DirInfo^.Count-1 do
       begin
-      Wrt(#0+Copy(CnvString(Info.DirInfo^.At(X)), Delta.X,
-           MaxStringLength)+#0);
+      WrtTxt(Copy(CnvString(Info.DirInfo^.At(X)), Delta.X, MaxStringLength));
       if Y > Size.Y then
         Break;
       end;
@@ -723,11 +718,10 @@ procedure GetDrInfo(CurDir: String);
     Buffer: array[0..255] of Char;
     L: Integer;
   begin
-  if CurDir[Length(CurDir)] <> '\' then
-    CurDir := CurDir + '\';
+  MakeNoSlash(CurDir);
   Strings.StrPCopy(@Buffer, CurDir);
   FreeSpc := SysDiskFreeLongX(@Buffer);
-  TotalSpc := VpSysLow.SysDiskSizeLongX(@Buffer);
+  TotalSpc := SysDiskSizeLongX(@Buffer);
   L := GetRootStart(CurDir);
   Buffer[L] := #0;
   BytesPerCluster := GetBytesPerCluster(@Buffer);
@@ -821,10 +815,14 @@ procedure ReadDiskInfo(Dr: String; var B: TDiskInfoRec);
   if VolumeLabel = '' then
     VolumeLabel := GetString(dlDINone); {JO}
   B.VolumeID := NewStr(GetString(dlDIVolumeID) + VolumeLabel+'~');
-  S := Int2Hex(LongRec(SerialNo).Hi, 4) + '-' +
-       Int2Hex(LongRec(SerialNo).Lo, 4);
-  B.SerialNo := NewStr(GetString(dlDISerialNo) + S + '~');
-  B.FileSys := NewStr(GetString(dlDIFileSys) + FileSys+'~');
+  if SerialNo <> 0 then
+    begin
+    S := Int2Hex(LongRec(SerialNo).Hi, 4) + '-' +
+         Int2Hex(LongRec(SerialNo).Lo, 4);
+    B.SerialNo := NewStr(GetString(dlDISerialNo) + S + '~');
+    end;
+  if FileSys <> '' then
+    B.FileSys := NewStr(GetString(dlDIFileSys) + FileSys+'~');
   end { ReadDiskInfo };
 {-DataCompBoy-}
 

@@ -78,6 +78,8 @@ type
     destructor Done; virtual;
     function OpenDirectory(const Dir: String;
                                  PutDirs: Boolean): PDrive; virtual;
+    procedure DrvFindFile(FC: PFilesCollection); virtual;
+    procedure ReadDescrptions(FilesC: PFilesCollection); virtual;
   end;
 
 implementation
@@ -559,6 +561,10 @@ begin
     Result := inherited OpenDirectory(Dir, PutDirs);
 end;
 
+procedure TNetDrive.DrvFindFile(FC: PFilesCollection);
+begin
+end;
+
 procedure TNetDrive.GetDirInfo(var B: TDiskInfoRec);
 begin
   if not RootState then
@@ -570,5 +576,9 @@ begin
   if not RootState then
     inherited GetDirLength(PF);
 end;
+
+procedure TNetDrive.ReadDescrptions(FilesC: PFilesCollection);
+  begin
+  end;
 
 end.

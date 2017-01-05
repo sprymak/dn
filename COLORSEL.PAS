@@ -57,7 +57,7 @@ interface
 
 uses
   Defines, Streams, Views, Dialogs, Scroller, ColorVGA, Messages, Memory,
-  Advance, Advance1, Advance2, Advance3, Drivers
+  Advance, Advance1, Advance2, Drivers
   ;
 
 const
@@ -212,15 +212,6 @@ function ColorItem(const Name: String; Index: Byte;
     Next: PColorItem): PColorItem;
 function ColorGroup(const Name: String; Items: PColorItem;
     Next: PColorGroup): PColorGroup;
-
-(*
-{ Standard color items functions }
-
-function DesktopColorItems(const Next: PColorItem): PColorItem;
-function MenuColorItems(const Next: PColorItem): PColorItem;
-function DialogColorItems(const Next: PColorItem): PColorItem;
-function WindowColorItems(const Next: PColorItem): PColorItem;
-*)
 
 implementation
 uses
@@ -397,11 +388,6 @@ constructor TMonoSelector.Init(var Bounds: TRect; AStrings: PSItem);
   begin
   Options := Options or (ofSelectable+ofFirstClick+ofFramed);
   inherited Init(Bounds, AStrings);
-  { NewSItem('Normal',
-    NewSItem('Bright',
-    NewSItem('Underlined',
-    NewSItem('Reverse', nil)))));}
-  { HelpCtx:=hcMonoList;}
   EventMask := EventMask or evBroadcast;
   end;
 
@@ -545,7 +531,7 @@ procedure TColorDisplay.Draw;
     C: Byte;
   begin
   C := Color^;
-
+  FillChar(B, Size.X * Size.Y * 2, 0);
   for I := 0 to Size.X div Length(Text^) do
     MoveStr(B[I*Length(Text^)], Text^, C);
   WriteLine(0, 0, Size.X, Size.Y, B);
@@ -1176,7 +1162,6 @@ procedure TColorDialog.SetAppColor;
     end
   else
     SystemColors[appPalette] := OldColors[appPalette]^;
-  SetSysColors(SystemColors[appPalette]);
   end;
 
 procedure TColorDialog.GetEvent(var Event: TEvent);
@@ -1333,12 +1318,8 @@ procedure TColorDialog.SwitchTypeSelector;
   end { TColorDialog.SwitchTypeSelector };
 
 procedure TColorDialog.SetData(var Rec);
-  {var
-  Item: PColorItem;
-  Index: byte;}
   begin
   Pal := String(Rec);
-
   SetIndexes(ColorIndexes);
   {  Display^.SetColor(Byte(Pal[Groups^.GetGroupIndex(GroupIndex)]));}
   {  Groups^.FocusItem(GroupIndex); } {PZ 2000.06.10}
@@ -1387,36 +1368,6 @@ procedure TColorDialog.GetIndexes(var Colors: PColorIndex);
     Colors^.ColorIndex[Index] := Groups^.GetGroupIndex(Index);
   end;
 
-{ Load and Store Palette routines }
-
-procedure LoadIndexes(var S: TStream);
-  var
-    ColorSize: Byte;
-  begin
-  S.Read(ColorSize, SizeOf(ColorSize));
-  if ColorSize > 0 then
-    begin
-    if ColorIndexes <> nil then
-      FreeMem(ColorIndexes, 2+ColorIndexes^.ColorSize);
-    GetMem(ColorIndexes, ColorSize);
-    S.Read(ColorIndexes^, ColorSize);
-    ColorIndexes^.ColorSize := (ColorSize-2);
-    end;
-  end;
-
-procedure StoreIndexes(var S: TStream);
-  var
-    ColorSize: Byte;
-  begin
-  if ColorIndexes <> nil then
-    ColorSize := 2+ColorIndexes^.ColorSize
-  else
-    ColorSize := 0;
-  S.Write(ColorSize, SizeOf(ColorSize));
-  if ColorSize > 0 then
-    S.Write(ColorIndexes^, ColorSize);
-  end;
-
 { -- Color list building routines -- }
 
 function ColorItem(const Name: String; Index: Byte;
@@ -1442,90 +1393,5 @@ function ColorGroup(const Name: String; Items: PColorItem;
   Group^.Next := Next;
   ColorGroup := Group;
   end;
-
-(*
-{ Standard color items functions }
-
-function DesktopColorItems(const Next: PColorItem): PColorItem;
-begin
-  DesktopColorItems :=
-    ColorItem('Color',             1,
-    Next);
-end;
-
-function MenuColorItems(const Next: PColorItem): PColorItem;
-begin
-  MenuColorItems :=
-    ColorItem('Normal',            2,
-    ColorItem('Disabled',          3,
-    ColorItem('Shortcut',          4,
-    ColorItem('Selected',          5,
-    ColorItem('Selected disabled', 6,
-    ColorItem('Shortcut selected', 7,
-    Next))))));
-end;
-
-
-function DialogColorItems(const Next: PColorItem): PColorItem;
-  var
-    Offset: Byte;
-begin
-  Offset := 32;
-  DialogColorItems :=
-    ColorItem('Frame/background',  Offset + 1,
-    ColorItem('Frame icons',       Offset + 2,
-    ColorItem('Scroll bar page',   Offset + 3,
-    ColorItem('Scroll bar icons',  Offset + 4,
-    ColorItem('Static text',       Offset + 5,
-
-    ColorItem('Label normal',      Offset + 6,
-    ColorItem('Label selected',    Offset + 7,
-    ColorItem('Label shortcut',    Offset + 8,
-
-    ColorItem('Button normal',     Offset + 9,
-    ColorItem('Button default',    Offset + 10,
-    ColorItem('Button selected',   Offset + 11,
-    ColorItem('Button disabled',   Offset + 12,
-    ColorItem('Button shortcut',   Offset + 13,
-    ColorItem('Shortcut selected', 178,
-    ColorItem('Shortcut default',  179,
-    ColorItem('Button shadow',     Offset + 14,
-
-    ColorItem('Cluster normal',    Offset + 15,
-    ColorItem('Cluster selected',  Offset + 16,
-    ColorItem('Cluster shortcut',  Offset + 17,
-
-    ColorItem('Input normal',      Offset + 18,
-    ColorItem('Input selected',    Offset + 19,
-    ColorItem('Input arrow',       Offset + 20,
-
-    ColorItem('History button',    Offset + 21,
-    ColorItem('History sides',     Offset + 22,
-    ColorItem('History bar page',  Offset + 23,
-    ColorItem('History bar icons', Offset + 24,
-
-    ColorItem('List normal',       Offset + 25,
-    ColorItem('List focused',      Offset + 26,
-    ColorItem('List selected',     Offset + 27,
-    ColorItem('List divider',      Offset + 28,
-
-    Next))))))))))))))))))))))))))))));
-end;
-
-function WindowColorItems;
-var
-   Offset: Word;
-begin
-  Offset := 1;
-  WindowColorItems :=
-    ColorItem('Frame passive',     Offset + 0,
-    ColorItem('Frame active',      Offset + 1,
-    ColorItem('Frame icons',       Offset + 2,
-    ColorItem('Scroll bar page',   Offset + 3,
-    ColorItem('Scroll bar icons',  Offset + 4,
-    ColorItem('Normal text',       Offset + 5,
-    Next))))));
-end;
-*)
 
 end.

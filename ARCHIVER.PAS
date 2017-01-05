@@ -114,8 +114,12 @@ type
     {AK155}
     PutDirs: Boolean; {Checkbox}
     {JO}
+    {$IFNDEF DPMI32}
     ShortCmdLine: Boolean; {Checkbox}
-    {JO}
+    {$ELSE}
+    SwapWhenExec: Boolean; {Checkbox}
+    {$ENDIF}
+    {/JO}
     {$IFNDEF OS2}
     UseLFN: Boolean; {Checkbox}
     {$ENDIF}
@@ -226,8 +230,11 @@ const
   PExtrListChar: PChar = 'ExtrListChar';
   PAllVersion: PChar = 'AllVersion';
   PPutDirs: PChar = 'PutDirs';
+  {$IFNDEF DPMI32}
   PShortCmdLine: PChar = 'ShortCmdLine';
-  PSwap: PChar = 'Swap';
+  {$ELSE}
+  PSwapWhenExec: PChar = 'SwapWhenExec';
+  {$ENDIF}
   PUseLFN: PChar = 'UseLFN';
 
   DefaultArchiver: AWord = arcRAR;
@@ -266,7 +273,7 @@ const
 implementation
 
 uses
-  Lfn, {DnUtil, }Advance, Advance1, Advance2, Advance3, DNApp, Commands,
+  Lfn, Advance, Advance1, Advance2, DNApp, Commands,
   Dialogs, FilesCol, FViewer, Startup, RStrings, {Memory, Messages,}
   ArcView, FileCopy, HistList, {FStorage,}Menus, ArchDet,
    {UserSavr,}DnIni, Messages,
@@ -415,11 +422,19 @@ procedure TARJArchive.Save;
     q := '0'#0;
   WritePrivateProfileString(@Sign[1], PPutDirs, @q[1], @FreeStr[1]);
 
+  {$IFNDEF DPMI32}
   if ShortCmdLine then
     q := '1'#0
   else
     q := '0'#0;
   WritePrivateProfileString(@Sign[1], PShortCmdLine, @q[1], @FreeStr[1]);
+  {$ELSE}
+  if SwapWhenExec then
+    q := '1'#0
+  else
+    q := '0'#0;
+  WritePrivateProfileString(@Sign[1], PSwapWhenExec, @q[1], @FreeStr[1]);
+  {$ENDIF}
   {$IFNDEF OS2}
   if UseLFN then
     q := '1'#0
@@ -607,8 +622,13 @@ constructor TARJArchive.Init;
   AllVersion := q <> '0';
   q := GetVal(@Sign[1], @FreeStr[1], PPutDirs, '0');
   PutDirs := q <> '0';
+  {$IFNDEF DPMI32}
   q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '0');
   ShortCmdLine := q <> '0';
+  {$ELSE}
+  q := GetVal(@Sign[1], @FreeStr[1], PSwapWhenExec, '0');
+  SwapWhenExec := q <> '0';
+  {$ENDIF}
   {$IFNDEF OS2}
   q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '1');
   UseLFN := q <> '0';
@@ -951,6 +971,14 @@ procedure MakeArchive;
       CmdLineLim, ListLineLim: AWord;
       CmdLineOK: Boolean;
       I, J: LongInt;
+      {$IFDEF DPMI32}
+      T: lText;
+      EX: String;
+      I1: Integer;
+      {$ENDIF}
+
+    const
+      NotAPath: Char = #22;
 
     procedure StdMsg8;
       var
@@ -974,43 +1002,90 @@ procedure MakeArchive;
     ArcExec := True;
     S := Prg+' '+Cmd;
     {$IFDEF DPMI32}
-    S := S + ' ' + Lst;
-    Message(Application, evCommand, cmExecString, @S);
+    if Arc^.SwapWhenExec then
+      begin
+      if B then
+        begin
+        CmdLineLim := 120;
+        ListLineLim := CmdLineLim-Length(Prg+Cmd)-7;
+        CmdLineOK := False;
+        SS1 := Lst; {для перестраховки}
+        I1 := 1;
+        repeat
+          ClrIO;
+          EX := SwpDir+'$DN'+ItoS(I1)+'$.BAT';
+          lAssignText(T, EX);
+          FileMode := $40;
+          lResetText(T);
+          if IOResult <> 0 then
+            Break;
+          Close(T.T);
+          if InOutRes = 0 then
+            Inc(I1);
+        until IOResult <> 0;
+        ClrIO;
+        lAssignText(T, EX);
+        lRewriteText(T);
+        repeat
+          if Length(Lst) >= ListLineLim then
+            begin
+            for I := ListLineLim downto 1 do
+              if Lst[I] = #$14 then
+                begin
+                SS1 := Copy(Lst, 1, I-1);
+                Delete(Lst, 1, I);
+                Break;
+                end;
+            end
+          else
+            begin
+            SS1 := Lst;
+            CmdLineOK := True;
+            end;
+          for J := 1 to Length(SS1) do
+            if SS1[J] = #$14 then
+              SS1[J] := #$20; {JO: заменяем временный символ на пробелы}
+          Writeln(T.T, '@'+S+' '+SS1);
+        until CmdLineOK;
+        Write(T.T, '@del '+EX);
+        Close(T.T);
+        S := EX;
+        end {if B}
+      else
+        S := S + ' ' + Lst;
+      Message(Application, evCommand, cmExecString, @S);
+      end
+    else {if Arc^.SwapWhenExec}
+    begin
     {$ENDIF}
     DoneSysError;
     DoneEvents;
     DoneVideo;
     DoneDOSMem;
     DoneMemory;
-    {$IFDEF DPMI32}
-    {AK155, дописано позже, чем комментарий к OS/2.
-  Под Win32 тоже не следует заниматься самодеятельностью.
-  Во-первых, мы отдаем консоль в каком-то не таком состоянии,
-  так что консольный rar не может вводить с клавиатуры.
-  Во-вторых, стОило ли работать с ansistring, чтобы потом вызвать
-  Dos.Exec?}
-    S := GetEnv('PATH');
-    S := FSearch(Prg, S);
-    SwapVectors;
-    if InFilter(S, '*.EXE;*.COM')
-    then
-      Dos.Exec(S, Cmd)
-    else
-      Dos.Exec(GetEnv('COMSPEC'), '/c '+S+' '+Cmd);
-    {$ELSE}
     {AK155 Под OS/2, во-первых, PATH обычно не умещается
       в 255 символов, во-вторых, нет проблем с памятью,
       в третьих архиватор может оказаться ДОСовым.
       Так что пускай PATH просматривает cmd.exe, а мы не
       будем заниматься самодеятельностью }
+    {AK155, дописано позже, чем комментарий к OS/2.
+      Под Win32 тоже не следует заниматься самодеятельностью.
+      Во-первых, мы отдаем консоль в каком-то не таком состоянии,
+      так что консольный rar не может вводить с клавиатуры.
+      Во-вторых, стОило ли работать с ansistring, чтобы потом вызвать
+      Dos.Exec?}
     if B then
       begin
       {JO: разбираем ту часть командной строки, которая содержит список файлов    }
       {    на куски удобоваримой для командного процессора длины                  }
+      {$IFNDEF DPMI32}
       if Arc^.ShortCmdLine then
         CmdLineLim := {$IFDEF OS2}95 {$ELSE}127 {$ENDIF}
       else
         CmdLineLim := {$IFDEF OS2}1000 {$ELSE}250 {$ENDIF};
+      {$ELSE}
+      CmdLineLim := 95;
+      {$ENDIF}
       ListLineLim := CmdLineLim-Length(Prg+Cmd)-7;
       CmdLineOK := False;
       SS1 := Lst; {для перестраховки}
@@ -1056,7 +1131,6 @@ procedure MakeArchive;
       SwapVectors;
       EraseFile(SwpDir+'$DN'+ItoS(DNNumber)+'$.LST'); {DataCompBoy}
       end;
-    {$ENDIF}
     InitDOSMem;
     InitMemory;
     InitVideo;
@@ -1070,8 +1144,14 @@ procedure MakeArchive;
       else {case}
         StdMsg8;
     end {case};
-    GlobalMessage(evCommand, cmPanelReread, nil);
+//JO: подсовываем в качестве InfoPtr заведомо несуществующий путь
+//    из одного символа #22, чтобы не перечитывались панели производные
+//    от TFindDrive, т.к. в них после этой процедуры ничего не изменится
+    GlobalMessage(evCommand, cmPanelReread, @NotAPath);
     GlobalMessage(evCommand, cmRereadInfo, nil);
+    {$IFDEF DPMI32}
+    end; {if Arc^.SwapWhenExec}
+    {$ENDIF}
     end { ArcExec };
 
   label Ex {$IFNDEF OS2}, TryAgain {$ENDIF};
@@ -1138,8 +1218,7 @@ TryAgain:
   lGetDir(0, CurDir);
   if Abort then
     goto Ex;
-  if CurDir[Length(CurDir)] <> '\' then
-    CurDir := CurDir+'\';
+  MakeSlash(CurDir);
   if D.Options and 2 = 2 then
     C := CnvString(Arc^.Move)
   else
@@ -1186,8 +1265,7 @@ TryAgain:
         SetLength(SIntern, Length(SIntern)-1);
       while (SIntern[1] = '\') do
         Delete(SIntern, 1, 1);
-      if  (SIntern[Length(SIntern)] = '\') then
-        SetLength(SIntern, Length(SIntern)-1);
+      MakeNoSlash(SIntern);
       SIntern := CnvString(Arc^.SetPathInside)+
         SquashesName(SIntern)+' ';
       end;
@@ -1347,7 +1425,6 @@ TryAgain:
         Break;
       end;
     ClrIO;
-    TempExtrDir := TempExtrDir+'\';
     TempDirUsed := True;
     end;
   Inhr := CreateDirInheritance(ExtrDir, True);
@@ -1409,9 +1486,42 @@ TryAgain:
   if Xt = '' then
     S := S+'.'; {piwamoto: extracting from extensionless archives}
   lGetDir(0, DirToChange);
-  Advance2.lChDir(TempExtrDir);
+  LFN.lChDir(TempExtrDir);
   DelDoubles('  ', S);
+  {$IFDEF DPMI32}
+  if AType^.SwapWhenExec then
+    begin
+    if TempDirUsed then
+      begin
+      DirToMoveContent := TempExtrDir + '|';
+      if DT.W and 4 <> 0 then
+        DirToMoveContent := '<'+ DirToMoveContent;
+      end;
+    ExecStringRR(S, '', False);
+    end
+  else
+//JO: поскольку в DPMI32 веpсии ExecStringRR выполняется
+//    с выгpузкой DN/2, то вместо неё делаем AnsiExec
+    begin
+    DoneSysError;
+    DoneEvents;
+    DoneVideo;
+    DoneDOSMem;
+    DoneMemory;
+    SwapVectors;
+    AnsiExec(GetEnv('COMSPEC'), '/c '+S);
+    ClrIO;
+    SwapVectors;
+    InitDOSMem;
+    InitMemory;
+    InitVideo;
+    InitEvents;
+    InitSysError;
+    Application^.Redraw;
+    end;
+  {$ELSE}
   ExecStringRR(S, '', False);
+  {$ENDIF}
   {JO}
   if not TempDirUsed then
     goto ex
@@ -1435,20 +1545,28 @@ TryAgain:
     FCT^.AtInsert(0, FRT);
     OldConfirms := Confirms;
     Confirms := 0;
-    Advance2.lChDir(S);
+    LFN.lChDir(S);
+    {$IFDEF DPMI32} {освобождаем каталог}
+    if ActiveDir[2] = ':' then
+      ChDir(Copy(ActiveDir, 1, 2) + '\');
+    {$ENDIF}
     Eraser.EraseFiles(FCT);
     Confirms := OldConfirms;
     FCT^.DeleteAll;
     Dispose(FCT, Done);
+    {$IFDEF DPMI32}
+    ChDir(StartDir);
+    {$ENDIF}
     end;
   {/JO}
 ex:
-  Advance2.lChDir(DirToChange);
+  LFN.lChDir(DirToChange);
   DirToChange := '';
   FreeObject(AType);
   if  (not TempDirUsed) or (Inhr > 0) then
     begin
-    GlobalMessage(evCommand, cmPanelReread, nil);
+    ExtrDir := '>' + ExtrDir; //признак перечитывания подкаталогов в ветви
+    GlobalMessage(evCommand, cmPanelReread, @ExtrDir);
     GlobalMessage(evCommand, cmRereadInfo, nil);
     end;
   end { UnarchiveFiles };
@@ -1522,6 +1640,7 @@ procedure Check4ArcId; {piwamoto}
   var
     ReEntrance: Byte;
     ArcId, ArcPosID: LongInt;
+    ArcIdArr: array[0..3] of Byte absolute ArcId;
   label
     Recurce;
   begin
@@ -1539,7 +1658,10 @@ Recurce:
        (ArcFile^.EOF) or
   {ZIP}(ArcId = $04034b50 {'PK'#3#4}) or
   {RAR}(ArcId = $21726152 {'Rar!'}) or
-  {ARJ}(((ArcId and $ffff) = $ea60) and (Byte(ArcId shr 24) < $b)) or
+  {ARJ}((ArcIdArr[0] = $60) and
+        (ArcIdArr[1] = $ea) and
+        (ArcIdArr[3] < $b)
+       ) or
 
   {$IFNDEF MINARCH}
   {IS3}(ArcId = $8c655d13 {#$13#$5D#$65#$8C}) or
@@ -1551,6 +1673,11 @@ Recurce:
   {LHA}(ArcId = $736F5920) or {' Yos' LHA/LZH .COM SFX}
 *)
   {7Z }(ArcId = $AFBC7A37) or {7-Zip}
+  {GZ }((ArcIdArr[0] = $1f) and
+        (ArcIdArr[1] in [$8b, $9d]) and
+        (ArcIdArr[2] = $08) and
+        (ArcIdArr[3] < $20)
+       ) or {GZip}
   {$ENDIF}
 
   {COFF}(ArcId = $0003014c {#$4c#$01#$03#$00}) or

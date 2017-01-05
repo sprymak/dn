@@ -135,7 +135,8 @@ type
     BufSize: LongInt;
     BufPtr: LongInt;
     BufEnd: LongInt;
-    LastMode: Byte;
+    ModBufStart: LongInt;
+    ModBufEnd: LongInt;
     end;
 
   PMemoryStream = ^TMemoryStream;
@@ -249,67 +250,28 @@ type
     EventMask: AWord;
     UpTmr: TEventTimer;
     UpdTicks: LongInt;
+    ClearPositionalEvents: Boolean;
     end;
 
   PFrame = ^TFrame;
   TFrame = packed record
-    VMT: PFrameVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     end;
 
   PScrollBar = ^TScrollBar;
   TScrollBar = packed record
-    VMT: PScrollBarVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Value: LongInt;
     Min: LongInt;
     Max: LongInt;
     PgStep: LongInt;
     ArStep: LongInt;
+    Step: Longint;
+    ForceScroll: Boolean;
     end;
 
   TGroup = packed record
-    VMT: PGroupVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Last: PView;
     Current: PView;
     Phase: TPhase;
@@ -321,21 +283,7 @@ type
 
   PWindow = ^TWindow;
   TWindow = packed record
-    VMT: PWindowVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Last: PView;
     Current: PView;
     Phase: TPhase;
@@ -354,132 +302,58 @@ type
 
   PMenuView = ^TMenuView;
   TMenuView = packed record
-    VMT: PViewVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     ParentMenu: PMenuView;
     Menu: PMenu;
     Current: PMenuItem;
+    HaveSubmenu: Boolean;
+    LastActionIsExpand: Boolean;
     end;
 
   PMenuBar = ^TMenuBar;
   TMenuBar = packed record
-    VMT: PViewVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     ParentMenu: PMenuView;
     Menu: PMenu;
     Current: PMenuItem;
+    HaveSubmenu: Boolean;
+    LastActionIsExpand: Boolean;
     end;
 
   PMenuBox = ^TMenuBox;
   TMenuBox = packed record
-    VMT: PViewVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     ParentMenu: PMenuView;
     Menu: PMenu;
     Current: PMenuItem;
+    HaveSubmenu: Boolean;
+    LastActionIsExpand: Boolean;
     TopItem: PMenuItem;
+    ComboBoxPal: Boolean;
     end;
 
   PMenuPopup = ^TMenuPopup;
   TMenuPopup = packed record
-    VMT: PViewVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     ParentMenu: PMenuView;
     Menu: PMenu;
     Current: PMenuItem;
+    HaveSubmenu: Boolean;
+    LastActionIsExpand: Boolean;
     TopItem: PMenuItem;
+    ComboBoxPal: Boolean;
     end;
 
   PStatusLine = ^TStatusLine;
   TStatusLine = packed record
-    VMT: PViewVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Items: PStatusItem;
     Defs: PStatusDef;
     end;
 
   PDialog = ^TDialog;
   TDialog = packed record
-    VMT: PDialogVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Last: PView;
     Current: PView;
     Phase: TPhase;
@@ -499,21 +373,7 @@ type
 
   PInputline = ^TInputLine;
   TInputLine = packed record
-    VMT: PInputLineVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Data: AnsiString;
     MaxLen: LongInt;
     CurPos: LongInt;
@@ -527,21 +387,7 @@ type
 
   PButton = ^TButton;
   TButton = packed record
-    VMT: PButtonVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Title: PString;
     Command: AWord;
     Flags: Byte;
@@ -550,21 +396,7 @@ type
 
   PCluster = ^TCluster;
   TCluster = packed record
-    VMT: PClusterVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Value: LongInt;
     Sel: AInt;
     EnableMask: LongInt;
@@ -573,21 +405,7 @@ type
 
   PRadioButtons = ^TRadioButtons;
   TRadioButtons = packed record
-    VMT: PRadioButtonsVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Value: LongInt;
     Sel: AInt;
     EnableMask: LongInt;
@@ -596,21 +414,7 @@ type
 
   PCheckBoxes = ^TCheckBoxes;
   TCheckBoxes = packed record
-    VMT: PCheckBoxesVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Value: LongInt;
     Sel: AInt;
     EnableMask: LongInt;
@@ -619,21 +423,7 @@ type
 
   PMultiCheckBoxes = ^TMultiCheckBoxes;
   TMultiCheckBoxes = packed record
-    VMT: PMultiCheckBoxesVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Value: LongInt;
     Sel: AInt;
     EnableMask: LongInt;
@@ -645,21 +435,7 @@ type
 
   PComboBox = ^TComboBox;
   TComboBox = packed record
-    VMT: PComboBoxVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Selected: Word;
     Count: Word;
     Menu: Pointer;
@@ -668,21 +444,7 @@ type
 
   PScroller = ^TScroller;
   TScroller = packed record
-    VMT: PScrollerVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     HScrollBar: PScrollBar;
     VScrollBar: PScrollBar;
     Delta: TPoint;
@@ -693,21 +455,7 @@ type
 
   PListViewer = ^TListViewer;
   TListViewer = packed record
-    VMT: PListViewerVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     HScrollBar: PScrollBar;
     VScrollBar: PScrollBar;
     NumCols: LongInt;
@@ -718,21 +466,7 @@ type
 
   PListBox = ^TListBox;
   TListBox = packed record
-    VMT: PListBoxVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     HScrollBar: PScrollBar;
     VScrollBar: PScrollBar;
     NumCols: LongInt;
@@ -744,41 +478,13 @@ type
 
   PStaticText = ^TStaticText;
   TStaticText = packed record
-    VMT: PStaticTextVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Text: PString;
     end;
 
   PParamText = ^TParamText;
   TParamText = packed record
-    VMT: PParamTextVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Text: PString;
     ParamCount: AInt;
     ParamList: Pointer;
@@ -786,21 +492,7 @@ type
 
   PLabel = ^TLabel;
   TLabel = packed record
-    VMT: PLabelVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Text: PString;
     Link: PView;
     Light: Boolean;
@@ -808,21 +500,7 @@ type
 
   PHistoryViewer = ^THistoryViewer;
   THistoryViewer = packed record
-    VMT: PHistoryViewerVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     HScrollBar: PScrollBar;
     VScrollBar: PScrollBar;
     NumCols: LongInt;
@@ -835,21 +513,7 @@ type
 
   PHistoryWindow = ^THistoryWindow;
   THistoryWindow = packed record
-    VMT: PHistoryWindowVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Last: PView;
     Current: PView;
     Phase: TPhase;
@@ -869,62 +533,20 @@ type
 
   PHistory = ^THistory;
   THistory = packed record
-    VMT: PHistoryVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Link: PInputline;
     HistoryId: AWord;
     end;
 
   PBackground = ^TBackground;
   TBackground = packed record
-    VMT: PBackgroundVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Pattern: Char;
     end;
 
   PDesktop = ^TDesktop;
   TDesktop = packed record
-    VMT: PDesktopVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Last: PView;
     Current: PView;
     Phase: TPhase;
@@ -938,21 +560,7 @@ type
 
   PProgram = ^TProgram;
   TProgram = packed record
-    VMT: PProgramVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Last: PView;
     Current: PView;
     Phase: TPhase;
@@ -966,21 +574,7 @@ type
 
   PApplication = ^TApplication;
   TApplication = packed record
-    VMT: PApplicationVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Last: PView;
     Current: PView;
     Phase: TPhase;
@@ -995,21 +589,7 @@ type
 
   PDNApplication = ^TDNApplication;
   TDNApplication = packed record
-    VMT: PApplicationVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Last: PView;
     Current: PView;
     Phase: TPhase;
@@ -1028,21 +608,7 @@ type
 
   PUniWindow = ^TUniWindow;
   TUniWindow = packed record
-    VMT: PUniWindowVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Last: PView;
     Current: PView;
     Phase: TPhase;
@@ -1061,21 +627,7 @@ type
 
   PXFileEditor = ^TXFileEditor;
   TXFileEditor = packed record
-    VMT: PViewVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     HScroll, VScroll: PScrollBar;
     ReplaceAll: Boolean;
     Delta: TPoint;
@@ -1116,21 +668,7 @@ type
 
   PEditWindow = ^TEditWindow;
   TEditWindow = packed record
-    VMT: PEditWindowVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Last: PView;
     Current: PView;
     Phase: TPhase;
@@ -1155,63 +693,21 @@ type
 
   PPercentGauge = ^TPercentGauge;
   TPercentGauge = packed record
-    VMT: PPercentGaugeVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     MaxValue: LongInt;
     CurValue: LongInt;
     end;
 
   PBarGauge = ^TBarGauge;
   TBarGauge = packed record
-    VMT: PBarGaugeVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     MaxValue: LongInt;
     CurValue: LongInt;
     end;
 
   PWhileView = ^TWhileView;
   TWhileView = packed record
-    VMT: PWhileViewVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     Last: PView;
     Current: PView;
     Phase: TPhase;
@@ -1228,41 +724,13 @@ type
 
   PViewScroll = ^TViewScroll;
   TViewScroll = packed record
-    VMT: PViewScrollVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     MaxV, Value: LongInt;
     end;
 
   PFileViewer = ^TFileViewer;
   TFileViewer = packed record
-    VMT: PFileViewerVMT;
-    ObjectIsInited: Boolean;
-    Owner: PGroup;
-    Next: PView;
-    Origin: TPoint;
-    Size: TPoint;
-    Cursor: TPoint;
-    GrowMode: Byte;
-    DragMode: Byte;
-    HelpCtx: AWord;
-    State: AWord;
-    Options: AWord;
-    EventMask: AWord;
-    UpTmr: TEventTimer;
-    UpdTicks: LongInt;
+    View: TView;
     OldSizeX: Integer;
     Filtr: Boolean;
     NoEdit: Boolean;

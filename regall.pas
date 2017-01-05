@@ -542,6 +542,31 @@ RParamText : TStreamRec = (
       VmtLink: (TypeOf(Dialogs.TParamText));
       Load: @Dialogs.TParamText.Load;
       Store: @Dialogs.TParamText.Store);
+RNotepad : TStreamRec = (
+      ObjType: otNotepad;
+      VmtLink: (TypeOf(Dialogs.TNotepad));
+      Load: @Dialogs.TNotepad.Load;
+      Store: @Dialogs.TNotepad.Store);
+RPage : TStreamRec = (
+      ObjType: otPage;
+      VmtLink: (TypeOf(Dialogs.TPage));
+      Load: @Dialogs.TPage.Load;
+      Store: @Dialogs.TPage.Store);
+RBookmark : TStreamRec = (
+      ObjType: otBookmark;
+      VmtLink: (TypeOf(Dialogs.TBookmark));
+      Load: @Dialogs.TBookmark.Load;
+      Store: @Dialogs.TBookmark.Store);
+RPageFrame : TStreamRec = (
+      ObjType: otPageFrame;
+      VmtLink: (TypeOf(Dialogs.TPageFrame));
+      Load: @Dialogs.TPageFrame.Load;
+      Store: @Dialogs.TPageFrame.Store);
+RNotepadFrame : TStreamRec = (
+      ObjType: otNotepadFrame;
+      VmtLink: (TypeOf(Dialogs.TNotepadFrame));
+      Load: @Dialogs.TNotepadFrame.Load;
+      Store: @Dialogs.TNotepadFrame.Store);
     {$IFNDEF RCP}
     { DiskInfo }
 RDiskInfo : TStreamRec = (
@@ -666,6 +691,11 @@ RDirView : TStreamRec = (
       VmtLink: (TypeOf(FlPanel.TDirView));
       Load: @FlPanel.TDirView.Load;
       Store: @FlPanel.TDirView.Store);
+RSortView : TStreamRec = (
+      ObjType: otSortView;
+      VmtLink: (TypeOf(TopView_.TSortView));
+      Load: @TopView_.TSortView.Load;
+      Store: @TopView_.TSortView.Store);
 RSeparator : TStreamRec = (
       ObjType: otSeparator;
       VmtLink: (TypeOf(DblWnd.TSeparator));

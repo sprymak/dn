@@ -8,6 +8,7 @@
    for %%i in (vpi lib bak lnk obj dll exe lng dlg hlp inc pas) do del EXE.W32\*.%%i
 >1 Очистить exe.d32
    for %%i in (vpi lib bak lnk obj dll exe lng dlg hlp inc pas) do del EXE.D32\*.%%i
+   del EXE.D32\dn.prg
 >1 ~C~ Перекомпилировать DN (OS/2)
  vpc dn /m /dDN /dDNPRG /q  /cO
 >1 Перекомпилировать DN (Win32)
@@ -37,6 +38,9 @@ EXE.%HostOS%\tvhc resource\ukrain\dnhelp.htx EXE.W32\ukrain.hlp EXE.W32\dnhelp.p
 >1 Создать автохелп
   I:\DN_Util\EXE.%HostOS%\autohelp *.pas *._vp *.inc LIB.OS2\*.pas LIB.W32\*.pas
   pause
-  hg autohelp.txt, dn2.vph
+  I:\DN_Util\EXE.%HostOS%\MK_H_IND.EXE < autohelp.txt | sort /+68  > dnprgh.ind
+  @echo ~DN_Comments DN_Comments > dnprgh.tit
+  hg  /p dnprgh.tit dnprgh.ind autohelp.txt , dn2.vph
+  pause
   copy dn2.vph I:\VP21\COMMON
-  del autohelp.txt dn2.vph
+  del autohelp.txt dn2.vph dnprgh.ind dnprgh.tit

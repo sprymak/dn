@@ -61,7 +61,7 @@ library Tetris;
 uses VpSysLow
   Defines, Streams, Drivers, Views, DNApp, Dialogs, Memory, Menus,
    Messages,
-  Commands, Advance, Advance1, Advance2, Advance3, RStrings,
+  Commands, Advance, Advance1, Advance2, RStrings,
   xTime, Startup, DNHelp,
   , Events
   ;
@@ -75,7 +75,7 @@ interface
 uses
   Defines, Streams, Drivers, Views, DNApp, Dialogs, Memory, Menus,
    Messages,
-  Commands, Advance, Advance1, Advance2, Advance3, RStrings
+  Commands, Advance, Advance1, Advance2, RStrings
   ;
 {$ENDIF}
 

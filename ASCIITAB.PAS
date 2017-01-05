@@ -51,7 +51,7 @@ unit ASCIITab;
 interface
 
 uses
-  Advance, Advance1, Advance2, Advance3, Defines, Streams, DNApp, Views,
+  Advance, Advance1, Advance2, Defines, Streams, DNApp, Views,
    Drivers,
   RStrings
   ;
@@ -84,9 +84,18 @@ type
   TASCIIChart = object(TWindow)
     constructor Init(var R: TRect);
     function Execute: Word; virtual;
+    destructor Done; virtual;
     end;
 
 procedure ASCIITable;
+
+var
+  fASCIITable: Boolean;
+    {` Признак того, что активна ASCIITable. Он используется для
+  того, чтобы символ вставлять в редактируемую строку, а не
+  обрабатывать каким-то иным образом. Например, код 27 (Esc), если
+  он введён с клавиатуры, завершает диалог, а если он сгенерирован
+  ASCIITable, он должен быть вставлен в строку ввода. `}
 
 implementation
 
@@ -362,6 +371,7 @@ constructor TASCIIChart.Init;
     end;
   Insert(Control);
   Control^.Select;
+  fASCIITable := True;
   end { TASCIIChart.Init };
 
 function TASCIIChart.Execute: Word;
@@ -373,20 +383,10 @@ function TASCIIChart.Execute: Word;
     case Event.What of
       evKeyDown:
         case Event.KeyCode of
-          kbESC:
-            begin
-            Event.What := evCommand;
-            Event.Command := cmCancel;
-            end;
-          kbEnter, kbCtrlB, kbCtrlP:
+          kbCtrlB, kbCtrlP:
             begin
             Event.What := evCommand;
             Event.Command := cmOK;
-            end;
-          kbCtrlEnter:
-            begin
-            Event.What := evCommand;
-            Event.Command := cmYes;
             end;
           else {case}
             if Event.CharCode > #0 then
@@ -399,6 +399,8 @@ function TASCIIChart.Execute: Word;
       evCommand:
         if Event.Command = cmClose then
           Event.Command := cmCancel;
+    else
+      TinySlice;
     end {case};
     if Event.What <> evNothing then
       HandleEvent(Event);
@@ -406,5 +408,11 @@ function TASCIIChart.Execute: Word;
       (Event.Command in [cmOK, cmCancel, cmYes]));
   Execute := Event.Command;
   end { TASCIIChart.Execute: };
+
+destructor TASCIIChart.Done;
+  begin
+  fASCIITable := False;
+  inherited Done;
+  end;
 
 end.

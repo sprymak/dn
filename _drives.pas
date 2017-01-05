@@ -36,7 +36,6 @@ type
     procedure KillUse; virtual;
     procedure lChDir(ADir: String); virtual;
     function GetDir: String; virtual;
-    procedure ReadDescrptions(FilesC: PFilesCollection);
     function GetDirectory(const FileMask: String;
         var TotalInfo: TSize): PFilesCollection; virtual;
     procedure CopyFiles(Files: PCollection; Own: PView; MoveMode: Boolean)
@@ -66,6 +65,8 @@ type
     destructor Done; virtual;
     function OpenDirectory(const Dir: String;
                                  PutDirs: Boolean): PDrive; virtual;
+    procedure DrvFindFile(FC: PFilesCollection); virtual;
+    procedure ReadDescrptions(FilesC: PFilesCollection); virtual;
     end;
 
   PFindDrive = ^TFindDrive;
@@ -408,6 +409,11 @@ asm
 end;
 
 function TDrive.OpenDirectory(const Dir: String; PutDirs: Boolean): PDrive;
+  assembler; {&Frame-}
+asm
+end;
+
+procedure DrvFindFile(FC: PFilesCollection);
   assembler; {&Frame-}
 asm
 end;

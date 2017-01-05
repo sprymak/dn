@@ -54,7 +54,7 @@ uses
   Files,
   FilesCol, Startup, Advance1, Advance2, Advance, Defines, Objects2,
    Lfn, Dos,
-  Messages, DNApp, Commands, Drives, Advance3
+  Messages, DNApp, Commands, Drives
 {$IFDEF DualName}
   , dnini
 {$ENDIF}
@@ -65,7 +65,7 @@ type
   TDizLineProc = procedure;
   TDizEndProc = function: Boolean;
 var
-  LastDizLine: string;
+  LastDizLine: LongString;
 
 function GetPossibleDizOwner(N: Integer): String;
 function GetDizPath(const Path: String; PreferedName: String): String;
@@ -96,6 +96,12 @@ procedure GetDiz(FR: PFileRec);
 procedure SetDescription(PF: PFileRec; DizOwner: String);
 function DizFirstLine(DIZ: PDiz): String;
   {` Вернуть первую строку текста описания.
+   Если DIZ=nil - результат пустой `}
+
+function DizMaxLine(DIZ: PDiz): String;
+  {` Вернуть строку текста описания максимально возможной длины.
+  Многострочное описание дочитывать, заменяя CRLF и начальные
+  пробелы строк одним пробелом.
    Если DIZ=nil - результат пустой `}
 
 function OpenFileList(const AConatainerPath: string): Boolean;
@@ -290,9 +296,9 @@ function OpenFileList(const AConatainerPath: string): Boolean;
 procedure ReadFileList(ProcessDizName: TDizNameProc;
     ProcessDizLine: TDizLineProc; ProcessDizEnd: TDizEndProc);
   var
-    LS: Byte;
+    LS: Longint;
     N: String;
-    I: CondInt;
+    I: LongInt;
     j: LongInt;
     NameEnd: LongInt;
   label
@@ -302,7 +308,7 @@ procedure ReadFileList(ProcessDizName: TDizNameProc;
   while True do
     begin
     { Обработка нового описания. LastDizLine уже прочитана.}
-    if  (LastDizLine[1] in [' ', #9, '>']) then
+    if (LastDizLine = '') or (LastDizLine[1] in [' ', #9, '>']) then
       goto ReadNextLine;
     { игнорируем остаток
          предыдущего многострочного описания }
@@ -391,7 +397,7 @@ function GetDizNameProc(const N: string; TextStart: Integer): Boolean;
     if (PGetDizName1^[F] = N) then
       begin
       GetDizFound := True;
-      GetDizText := Copy(LastDizLine, TextStart, 255);
+      GetDizText := Copy(LastDizLine, TextStart, MaxLongStringLength);
       end;
     end;
   end;
@@ -507,8 +513,7 @@ procedure ExportDiz(
   if PGetDizName2 <> nil then
     for F := Low(TUseLFN) to High(TUseLFN) do
       UpStr(PGetDizName2^[F]);
-  if TargetPath[Length(TargetPath)] <> '\' then
-    TargetPath := TargetPath + '\';
+  MakeSlash(TargetPath);
   ContainerFullName := '';
   if NewDiz^.Container <> nil then
     ContainerFullName := GetName(NewDiz^.Container^);
@@ -617,6 +622,37 @@ function DizFirstLine(DIZ: PDiz): String;
   l := PosChar(#13, Result);
   if l <> 0 then
     SetLength(Result, l-1);
+  end;
+
+function DizMaxLine(DIZ: PDiz): String;
+  var
+    lWrite, lRead: Integer;
+    D: AnsiString;
+  begin
+  Result := '';
+  if Diz = nil then
+    exit;
+  D := DIZ^.DIZText;
+  lWrite := 0; lRead := 1;
+  while lRead <= Length(D) do
+    begin
+    inc(lWrite);
+    if D[lRead] in [#13, #10] then
+      begin
+      Result[lWrite] := ' ';
+      repeat
+        Inc(lRead)
+      until (lRead > Length(D)) or not (D[lRead] in [#13, #10, ' ', #9]);
+      end
+    else
+      begin
+      Result[lWrite] := D[lRead];
+      inc(lRead);
+      end;
+    if lWrite = 254 then
+      Break;
+    end;
+  SetLength(Result, lWrite);
   end;
 
 end.

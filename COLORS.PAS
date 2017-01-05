@@ -135,13 +135,18 @@ procedure SetHighlightGroups;
     end;
   PrepareExtCollection;
   Message(Application, evCommand, cmUpdateConfig, nil);
-  GlobalMessage(evCommand, cmPanelReread, nil);
+ {JO: перечитываем группы для всех панелей}
+  GlobalMessage(evCommand, cmUpdateHighlight, nil);
   end { SetHighlightGroups };
 
 procedure ChangeColors;
+  var
+    CurPal: String;
   begin
-  if ExecResource(dlgColors, Application^.GetPalette^) <> cmCancel then
+  CurPal := Application^.GetPalette^;
+  if ExecResource(dlgColors, CurPal) <> cmCancel then
     begin
+    SystemColors[appPalette] := CurPal;
     DoneMemory; { Dispose all group buffers }
     Application^.Redraw; { Redraw application with new palette }
     end;

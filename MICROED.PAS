@@ -72,7 +72,7 @@ interface
 uses
   Dos, Lfn {DataCompBoy}, Defines, Streams, Drivers, Memory, Views,
    Messages, DNApp,
-  Advance, Advance1, Advance2, Advance3, Startup, Menus, DNStdDlg, Dialogs,
+  Advance, Advance1, Advance2, Startup, Menus, DNStdDlg, Dialogs,
   Commands, UniWin, RStrings, DNHelp, {SBlocks,}ObjType, U_KeyMap, Collect,
   {$IFDEF REGEXP}RegExp, {$ENDIF}
   ed2, highlite
@@ -817,7 +817,7 @@ function TFileEditor.GetPalette;
 constructor TFileEditor.Init;
   var
     { FileToView: Text; }
-    Line: LongString;
+    Line: String;
     { MaxWidth: Integer; }
     { p: PString; }
     { Nm: String; }
@@ -871,8 +871,7 @@ constructor TFileEditor.Init;
     Line := GetEnv('SMARTPAD');
     if  (Line = '') then
       Line := SourceDir;
-    if  (Line[Length(Line)] <> '\') then
-      Line := Line+'\';
+    MakeSlash(Line);
     FileName := Line+FileName+'.DN';
     end
   else if ClipBrd then
@@ -1397,7 +1396,6 @@ procedure OpenEditor;
   if S = '' then
     Exit;
   Desktop^.GetExtent(R);
-  S := lFExpand(GetPath(S))+GetName(lFExpand(S));
   Application^.InsertWindow(New(PEditWindow, Init(R, S)));
   end;
 {-DataCompBoy-}
@@ -2630,9 +2628,7 @@ procedure TFileEditor.HandleEvent;
     Dec(LastX);
     end;
 
-  procedure DeleteBlock(ChangePos: Boolean);
-    var
-      L: PCollection;
+  procedure DeleteBlock(ChangePos: Boolean; L: PCollection);
     label L1;
     begin
     if not BlockVisible then
@@ -2640,7 +2636,8 @@ procedure TFileEditor.HandleEvent;
     EnableMarking := False;
     Marking := False;
     ChangeLine;
-    L := GetSelection;
+    if L = nil then
+       L := GetSelection;
     if  (L = nil) then
       begin
       if MemEnough then
@@ -2736,15 +2733,49 @@ L1:
     end { MakeDel };
 
   procedure PasteBlock;
+    var
+      Block: PCollection;
+      i: Integer;
+      P1, P2: PLongString;
+      InUse: Boolean;
+    label
+      DelBlk, EndDel;
     begin
     if SystemData.Options and ossUseSysClip <> 0 then
       SyncClipOut {(true)};
     EnableMarking := False;
     Marking := False;
     ChangeLine;
-    if EditorDefaults.EdOpt and (ebfPBl+ebfObl) = ebfObl
-    then
-      DeleteBlock(True);
+    Block := GetSelection;
+    InUse := False;
+    if Block <> nil then
+      begin { Возможное удаление выделенного блока }
+      if EditorDefaults.EdOpt and (ebfPBl+ebfObl) = ebfObl
+      then
+        begin { Если блок и буфер идентичны, то блок НЕ удаляем }
+        if ClipBoard = nil then
+          goto DelBlk;
+        if Block^.Count <> ClipBoard^.Count then
+          goto DelBlk;
+        for i := 0 to Block^.Count-1 do
+          begin
+          P1 := Block^.Items^[i];
+          P2 := ClipBoard^.Items^[i];
+          if P1 = P2 then { в частности, оба nil }
+            Continue;
+          if (P1 = nil) or (P2 = nil) or (P1^ <> P2^) then
+            goto DelBlk;
+          end;
+        goto EndDel;
+DelBlk:
+        DeleteBlock(True, Block);
+        InUse := True; // Коллекция включена в Undo
+        end;
+EndDel:
+      if not InUse then
+        Dispose(Block, Done);
+      end;
+
     BlockOff;
     InsertBlock(ClipBoard, True);
     ChangeLine;
@@ -3336,7 +3367,7 @@ L1:
     EnableMarking := False;
     if EditorDefaults.EdOpt and (ebfPBl+ebfObl) = ebfObl
     then
-      DeleteBlock(True);
+      DeleteBlock(True, GetSelection);
     LastY := Delta.Y;
     LastX := Delta.X;
     BlockOff;
@@ -3402,7 +3433,7 @@ L1:
     ChangeLine;
     if EditorDefaults.EdOpt and (ebfPBl+ebfObl) = ebfObl
     then
-      DeleteBlock(True);
+      DeleteBlock(True, GetSelection);
     BlockOff;
 
     if GetWinClip(PLineCollection(ClipBoard) {, On}) then
@@ -3846,49 +3877,6 @@ Ex:
     ScrollTo(NewX, Delta.Y);
     end { WordEnd };
 
-  procedure ASCIITable;
-    var
-      P: PWindow;
-      W: Word;
-      E: TEvent;
-      R: TRect;
-      CR: PView;
-    function GetCH: Boolean;
-      begin
-      {    Desktop^.Insert(P);
-    Desktop^.UnLock;
-    W:=P^.Execute;
-    Desktop^.Lock;
-    Desktop^.Delete(P);}
-      W := Desktop^.ExecView(P);
-      P^.GetData(CharASCII);
-      GetCH := True;
-      if W in [cmOK, cmYes] then
-        begin
-        Event.What := evKeyDown;
-        Event.KeyCode := Byte(CharASCII);
-        PutEvent(E);
-        ClearEvent(E);
-        InputChar;
-        Desktop^.UnLock;
-        end;
-      GetCH := W = cmYes;
-      end;
-    begin { ASCIITable }
-    P := New(PASCIIChart, Init(R));
-    P^.MoveTo(boundsASCII.X, boundsASCII.Y);
-    P^.SetData(CharASCII);
-    CR := Desktop^.Current;
-    {  Desktop^.Lock;}
-    while GetCH do
-      ;
-    {  Desktop^.UnLock;}
-    boundsASCII := P^.Origin;
-    Dispose(P, Done);
-    if CR <> nil then
-      CR^.Select;
-    end { ASCIITable };
-
   procedure SelectAll;
     begin {AK155 выделить весь текст}
     with Sel, FileLines^ do
@@ -4209,13 +4197,13 @@ Ex:
           if PC = nil then
             begin
             Message(@Self, evCommand, cmCopy, nil);
-            DeleteBlock(False);
+            DeleteBlock(False, GetSelection);
             Message(@Self, evCommand, cmPaste, nil);
             end
           else
             begin
             ChangeLine;
-            DeleteBlock(False);
+            DeleteBlock(False, GetSelection);
             InsertBlock(PC, True);
             Dispose(PC, Done);
             end;
@@ -4342,7 +4330,7 @@ Ex:
           if  (EditorDefaults.EdOpt and (ebfPBl+ebfObl) = ebfObl)
             and ValidBlock
           then
-            DeleteBlock(True)
+            DeleteBlock(True, GetSelection)
           else
             MakeDel;
           CED
@@ -4411,7 +4399,7 @@ Ex:
           begin
           UnMark := True;
           if BlockVisible and ValidBlock then
-            DeleteBlock(True);
+            DeleteBlock(True, GetSelection);
           CE
           end;
         cmCopy:
@@ -4427,7 +4415,7 @@ Ex:
           if BlockVisible and ValidBlock then
             begin
             CopyBlock;
-            DeleteBlock(True)
+            DeleteBlock(True, GetSelection)
             end;
           CE
           end;
@@ -4658,6 +4646,12 @@ Ex:
               Event.KeyCode := UpDnKey[i xor 1];
               Break;
             end;
+
+      if fAsciiTable then
+        begin
+        InputChar;
+        Exit;
+        end;
       case Event.KeyCode of
 
         {JO: по Ctrl-Alt-Shift-цифра переходим к закладкам с пометкой текста}

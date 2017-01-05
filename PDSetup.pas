@@ -22,22 +22,16 @@ type
     TabulateExt: Word; {Combo}
     NoTabulateDirExt: Word; {Checkbox[1]}
     ShowCurFile: Word; {Checkbox[1]}
-{$IFDEF DualName}
     CurFileNameType: Word; {Combo}
-{$ENDIF}
     SelectedInfo: Word; {Combo}
     FilterInfo: Word; {Combo}
     PathDescrInfo: Word; {Combo}
     PackedSizeInfo: Word; {Combo}
     BriefPercentInfo: Word; {Combo}
     LFN_InFooter: Word; {Combo}
-    LFN_Wrap: Word; {Combo}
-    LFN_Cut: Word; {Combo}
-    LFN_Autohide: Word; {Checkbox[1]}
-    LFN_Difference: Word; {Combo}
     TotalsInfo: Word; {Combo}
     FreeSpaceInfo: Word; {Combo}
-    MiscOptions: Word; {Checkbox[2]: ZoomPanel, LFN_InColumns }{!}
+    MiscOptions: Word; {` Checkbox[2]: ZoomPanel, ShowTitles `}
     end;
   {`}
 
@@ -79,6 +73,18 @@ const
   dt2pc: array[TDriveType] of TPanelClass =
     (pcDisk, pcDisk, pcList, pcList, pcList, pcList,
      pcArc, pcDisk, pcDisk, pcArvid);
+
+const // Значения
+{$IFDEF DualName}
+  cfnTypeOther = 0;
+    {` Значение CurFileNameType "Не такое, как в панели" `}
+  cfnAlwaysLong = 1;
+{$ELSE}
+  cfnAlwaysLong = 0;
+    {` Значение CurFileNameType "Всегда длинное" `}
+{$ENDIF}
+  cfnHide = cfnAlwaysLong+1;
+    {` Значение CurFileNameType "Не показывать" `}
 
 type
   TFileColWidht = array[TFileColNumber] of ShortInt;
@@ -215,6 +221,8 @@ procedure DefaultInit;
            {$IFDEF DualName} or psLFN_InColumns {$ENDIF} ;
         Show.LFNLen := ColumnsDefaults[pc][i].LFNLen;
         Show.ExtLen := ColumnsDefaults[pc][i].ExtLen;
+        if Show.ColumnsMask <> 0 then
+          Show.MiscOptions := 2; { заголовки колонок }
 
         Show.TabulateExt := 3; {Всегда}
         Show.FilterInfo := fseInDivider;

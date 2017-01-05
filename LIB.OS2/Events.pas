@@ -20,12 +20,10 @@ function GetCurMSec: Longint;
 
 procedure LongWorkBegin;
   begin
-  Working := True;
   end;
 
 procedure LongWorkEnd;
   begin
-  Working := False;
   end;
 
 end.

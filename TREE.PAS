@@ -182,12 +182,30 @@ function ChangeDir(ATitle: TTitleStr; Drv: Byte): String; {DataCompBoy}
 procedure CheckMkDir(const Path: String);
  {` MkDir and check result AK155 `}
 procedure MakeDirectory;
+ {` Создать каталог(и) в диалоге. Фактически, это TDrive.MakeDir.
+  В введённой строке можнт быть несколько каталогов, разделённых
+  точками с запятой.
+  Имя первого созданного каталог с полным путём без слэша помещается в
+  переменную CreatedDir. Если каталог не создался - CreatedDir=''.
+  Переменная CreatedDir используется в ARVIDAVT.PAS, и подозреваю, что
+  в каком-то другом смысле. `}
 procedure FreeTree(C: Char);
 function GetDirLen(Dir: String): TSize; {DataCompBoy}
 function CreateDirInheritance(var S: String; Confirm: Boolean): Byte;
+  {` Создать каталог любой вложенности. S разворачивается при
+   помощи lFExpand и дополняется '\' в конце, и это значение
+   остаётся после вызова.
+     Результат - длина пути (то есть подстроки S) каталога, в
+   котором находится самый внешний созданный каталог (без слэша).
+   Например, если s='C:\TEMP\AAA\BBB' и каталог C:\TEMP существовал,
+   а C:\TEMP\AAA был создан, то результат - 7. Смысл этого в том,
+   что если C:\TEMP открыт на какой-то панели, то эту панель надо
+   перечитать, чтобы на ней появился AAA.
+     Если каталоги не создавались - результат 0. `}
 
 const
   CreatedDir: String = '';
+    {` Результат MakeDirectory `}
   TreeError: Boolean = False;
 
   CHTreeView = #15#16#17#18#19#20#21;
@@ -628,14 +646,18 @@ procedure MakeDirectory;
     B := CreateDirInheritance(S1, False);
     if Abort or (IOResult <> 0) then
       Exit;
+    SetLength(S1, Length(S1)-1); // удалить слэш
     if CreatedDir = '' then
       CreatedDir := S1;
-    lFSplit(S1, Dr, Nm, XT);
+    { определение каталога для перечитывания }
     if B > 0 then
-      SetLength(Dr, B)
-    else if (Length(Dr) > 3) and (Dr[Length(Dr)] = '\') then
-      SetLength(Dr, Length(Dr)-1);
-    RereadDirectory(Dr);
+      SetLength(S1, B)
+    else
+      begin
+      lFSplit(S1, S1, Nm, XT);
+      SetLength(S1, Length(S1)-1); // удалить слэш
+      end;
+    RereadDirectory(S1);
     GlobalMessage(evCommand, cmRereadTree, @Dr);
     GlobalMessage(evCommand, cmRereadInfo, nil);
     end;
@@ -2065,12 +2087,11 @@ function CreateDirInheritance;
     I, J: Integer;
     SR: lSearchRec;
     M: String;
-    BB {, DEr}: Boolean;
   begin
-  CreateDirInheritance := 0;
-  BB := True; {DEr := false;}
+  Result := 0;
   ClrIO;
   S := lFExpand(S);
+  MakeSlash(S);
   if Abort then
     Exit;
   I := GetRootStart(S);
@@ -2078,34 +2099,21 @@ function CreateDirInheritance;
     Exit;
   while I < Length(S) do
     begin
-    J := I;
+    J := I;  // указывает на '\' перед началом имени на очередном уровне
     repeat
       Inc(I);
-      if I > Length(S) then
-        Exit
-    until (S[I] = '\') or (I = Length(S));
-    M := Copy(S, 1, I-Byte(S[I] = '\'));
-    if M[Length(M)] = '.' then
-      SetLength(M, Length(M)-1);
+    until (S[I] = '\');
+     // I указывает на первый символ за концом имени
+    M := Copy(S, 1, I-1); // полный путь очередного уровня
     ClrIO;
     lFindFirst(M, AnyFileDir, SR); {JO}
-    {if DOSError <> 0 then DEr := true;}
     lFindClose(SR);
     if Abort then
       Exit;
-    if {DEr}DosError <> 0 then
-      begin
-      if BB and (S[I] = '\') then
-        begin
-        CreateDirInheritance := J-1;
-        BB := False
-        end;
+    if DosError <> 0 then
+      begin // каталог не найден, надо создавать
       if Confirm and (Confirms and cfCreateSubdir <> 0) then
         begin
-        if  (Length(S) > 3) and (S[Length(S)] = '\') then
-          SetLength(S, Length(S)-1);
-        if S[Length(S)] = '.' then
-          SetLength(S, Length(S)-1);
         if  (MessageBox(GetString(dlQueryCreateDir)+Cut(S, 40)+' ?',
                nil, mfYesNoConfirm) <> cmYes)
         then
@@ -2115,6 +2123,9 @@ function CreateDirInheritance;
       CheckMkDir(M);
       if Abort then
         Exit;
+      // Каталог создан успешно
+      if Result = 0 then // это был первый созданный каталог
+        Result := J-1;
       end;
     end;
   end { CreateDirInheritance };

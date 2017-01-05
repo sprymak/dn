@@ -90,7 +90,7 @@ const
 implementation
 uses
   Lfn, {DataCompBoy}
-  DNApp, Advance, Advance1, Advance2, Advance3, Startup, Messages, Menus,
+  DNApp, Advance, Advance1, Advance2, Startup, Messages, Menus,
   Commands, Microed, WinClp, DNHelp, Dos, Memory, Dialogs, Tree, RStrings
   , filediz
   ;
@@ -417,8 +417,7 @@ function MakeString(S: String; UserParams: PUserParams;
         ts := '' {KSNK}
       else
         with UserParams^.Active^, DA do
-          MakeDateFull(CountryInfo.DateFmt, Day, Month, Yr, Hour, Minute,
-             ts, True);
+          MakeDateFull(Day, Month, Yr, Hour, Minute, ts, True);
       SetLength(ts, 10);
       Replace(#5'D', ts, S);
       Replace(#5'd', ts, S);
@@ -531,8 +530,7 @@ function MakeString(S: String; UserParams: PUserParams;
         ts := '' {KSNK}
       else
         with UserParams^.Passive^, DP do
-          MakeDateFull(CountryInfo.DateFmt, Day, Month, Yr, Hour, Minute,
-             ts, True);
+          MakeDateFull(Day, Month, Yr, Hour, Minute, ts, True);
       SetLength(ts, 10);
       Replace(#6'D', ts, S);
       Replace(#6'd', ts, S);
@@ -650,7 +648,7 @@ function ExecUserMenu;
     Menu: PMenu;
     PV: PView;
     R: TRect;
-    NI, NW, LL: Word;
+    NI, NW: Word;
     EnterParms: Boolean;
     TitleStr: String[30];
     DefStr: String;
@@ -715,6 +713,7 @@ function ExecUserMenu;
         begin
         P1^.SubMenu := NewMenu(DoSubMenu(False));
         P1^.Command := 0;
+        P1^.Flags := miSubmenu;
         end
       else
         begin
@@ -870,11 +869,6 @@ function ExecUserMenu;
         I := I-1000;
         NW := I;
         UI := P^.At(I);
-        LL := UI^.Line;
-        if I >= P^.Count-1 then
-          LL := 65535
-        else
-          LL := PUserMenuItem(P^.At(I+1))^.Line-1;
         F := New(PTextReader, Init(S));
         lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$'+CmdExt);
         lRewriteText(F1);
@@ -1100,7 +1094,9 @@ function TGrabber.Execute;
   repeat
     GetEvent(E);
     if E.What <> evNothing then
-      HandleEvent(E);
+      HandleEvent(E)
+    else
+      TinySlice;
   until ModalEnd;
   end;
 

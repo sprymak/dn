@@ -43,7 +43,7 @@ EXE.%Host%\version.exe EXE.%Target%\version.inc %Target%  %rplugin%
 
 if exist EXE.%Host%\tvhc.exe goto comphelp
 Echo        Compiling TVHC.EXE for %Host%
-vpc tvhc /m  /q /c%H%
+vpc tvhc /b /q /c%H%
 @if errorlevel 1 goto Error
 
 :comphelp
@@ -96,7 +96,7 @@ vpc dn /dDN /dDNPRG -b -q -CW:d32:DPMI32
 vpc dn /dDN /dDNPRG -m -q -CW:d32:DPMI32
 @if errorlevel 1 goto Error
 :pe2LE
-PE2LE.EXE EXE.D32\DN.EXE EXE.D32\DN.PRG /S:LIB.D32\PMODEW.EXE /Q
+PE2LE.EXE EXE.D32\DN.EXE EXE.D32\DN.PRG /S:LIB.D32\dos32a.exe /Q
 @if errorlevel 1 goto Error
 del EXE.D32\dn.exe
 goto end_dn

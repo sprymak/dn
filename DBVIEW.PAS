@@ -205,7 +205,7 @@ const
 
 implementation
 uses
-  Advance, Advance1, Advance2, Advance3, Startup, DNHelp, DNApp, Messages,
+  Advance, Advance1, Advance2, Startup, DNHelp, DNApp, Messages,
   Histries, Gauge, xTime, DnIni
   , Events
   ;
@@ -1142,6 +1142,7 @@ redat:
     F: lFile; {DataCompBoy}
     P: TPoint;
     RD: Word;
+    TempPath: String;
 
   begin { TDBViewer.HandleEvent }
   inherited HandleEvent(Event);
@@ -1175,8 +1176,9 @@ redat:
               end;
             EraseTempFile(FileName^);
             KillAfterUse := False;
+            TempPath := GetPath(FileName^);
             if Event.Command = cmClose then
-              GlobalMessage(evCommand, cmPanelReread, nil);
+              GlobalMessage(evCommand, cmPanelReread, @TempPath);
             end;
         cmGetName:
           PString(Event.InfoPtr)^:= GetString(dlDBViewName)+' - '

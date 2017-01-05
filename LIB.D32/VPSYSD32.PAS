@@ -1391,13 +1391,51 @@ function SysDiskSizeLong(Drive: Byte): TQuad;assembler;
 
 {Cat: пока что просто заглушки, потом надо переделать для поддержки сетевых путей}
 function SysDiskFreeLongX(Path: PChar): TQuad;
+var
+  Regs: real_mode_call_structure_typ;
 begin
-  Result := SysDiskFreeLong(Byte(UpCase(Path^))-Byte('A')+1);
+  fillchar(Mem[segdossyslow32],
+           SizeOf(DriveData) + SizeOf(Path) + 1{#0}, #0);
+  move(Path^, Mem[segdossyslow32 + SizeOf(DriveData)], SizeOf(Path));
+  init_register(regs);
+  regs.ax_ := $7303;
+  regs.ds_ := segdossyslow16;
+  regs.dx_ := SizeOf(DriveData); //ds:dx=path
+  regs.es_ := segdossyslow16;
+//  regs.di_ := 0;
+  regs.cx_ := SizeOf(DriveData);
+  intr_realmode(Regs, $21);
+  move(Mem[segdossyslow32], DriveData.RecSize, SizeOf(DriveData));
+  if DriveData.RecSize <> 0
+  then begin
+       Result := DriveData.SectorsPerCluster * DriveData.BytesPerSector;
+       Result := Result * DriveData.AvailClusters;
+       end
+  else Result := SysDiskFreeLong(Byte(UpCase(Path^))-Byte('A')+1);
 end;
 
 function SysDiskSizeLongX(Path: PChar): TQuad;
+var
+  Regs: real_mode_call_structure_typ;
 begin
-  Result := SysDiskSizeLong(Byte(UpCase(Path^))-Byte('A')+1);
+  fillchar(Mem[segdossyslow32],
+           SizeOf(DriveData) + SizeOf(Path) + 1{#0}, #0);
+  move(Path^, Mem[segdossyslow32 + SizeOf(DriveData)], SizeOf(Path));
+  init_register(regs);
+  regs.ax_ := $7303;
+  regs.ds_ := segdossyslow16;
+  regs.dx_ := SizeOf(DriveData); //ds:dx=path
+  regs.es_ := segdossyslow16;
+//  regs.di_ := 0;
+  regs.cx_ := SizeOf(DriveData);
+  intr_realmode(Regs, $21);
+  move(Mem[segdossyslow32], DriveData.RecSize, SizeOf(DriveData));
+  if DriveData.RecSize <> 0
+  then begin
+       Result := DriveData.SectorsPerCluster * DriveData.BytesPerSector;
+       Result := Result * DriveData.TotalClusters;
+       end
+  else Result := SysDiskSizeLong(Byte(UpCase(Path^))-Byte('A')+1);
 end;
 {/Cat}
 
@@ -2434,7 +2472,10 @@ function SysGetVolumeLabel(Drive: Char): ShortString;
   const
     suchmaske=$0800  // must  volume
              +$0008  // allow volume
-             +$0020; // allow archive
+//             +$0020  // allow archive
+// 'allow archive' commented by piwamoto
+// it fixes searching on network drives
+             ;
   begin
     root:='@:\*.*'#0;
     root[0]:=drive;
@@ -3775,9 +3816,23 @@ procedure Detect_MdaCgaEgaVga;
     {$EndIf}
   end;
 
+const
+  wheel_supported: Boolean = false;
+
 function SysTVDetectMouse: Longint;
   {&Frame-}{&Uses ebx}
   asm
+
+    // test ctmouse driver wheel support presence
+    mov ax,$0011
+    int $33
+    cmp ax,'WM'
+    jne @end_test_wm
+    test cx,1
+    jz @end_test_wm
+    mov wheel_supported,true
+@end_test_wm:
+
     mov ax,$0021 // Software Reset
     sub ebx,ebx
     int $33
@@ -3825,6 +3880,13 @@ procedure mouse_eventhandler;
         // process it
         cmp mouse_event_avail,false
         jne @1
+
+        cmp wheel_supported,false
+        je @end_wheel
+        movsx eax,es:[edi+real_mode_call_structure_type.bh_]
+        imul eax,3 // 3 lines scroll
+        add wheel_counter,eax
+@end_wheel:
 
         mov mouse_event_avail,true
 

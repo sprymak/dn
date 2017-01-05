@@ -54,30 +54,34 @@ type
   SessionType = (stOS2SYS, stOS2FullScreen, stOS2Windowed, stPMSession,
     stVDMFullScreen, stWinFullScreen, stWinWindow, stVDMWindow);
 
-procedure RunOS2Command(Command: String; Bckg: Boolean;
+procedure RunSession(Command: String; Bckg: Boolean;
      Session: SessionType);
 
 implementation
 
 uses
-  Advance, Lfn, Advance1, Advance3, Drivers
-  , Dos, DnExec
+  Advance, Lfn, Advance1, Drivers
+  , Dos, DnExec, Startup
   ;
-{ ------------------------------------ OS/2 API --------------------------- }
 
 {-DataCompBoy-}
-procedure RunOS2Command;
+procedure RunSession;
   var
     T: lText;
     I: Integer;
     S, M, EX: String;
+    CmdExt1: String[4];
   begin
-  if not OS2exec then
+  if not (OS2exec or Win32exec) then
     Exit;
   I := 1;
   repeat
     ClrIO;
-    EX := SwpDir+'$DN'+ItoS(I)+'$.CMD';
+    CmdExt1 := CmdExt;
+   {$IFDEF DPMI32}
+    if OS2exec then CmdExt1 := '.CMD';
+   {$ENDIF}
+    EX := SwpDir+'$DN'+ItoS(I)+'$'+CmdExt1;
     lAssignText(T, EX);
     FileMode := $40;
     lResetText(T);
@@ -112,13 +116,33 @@ procedure RunOS2Command;
     Writeln(T.T, Command);
   if not Bckg and (ShiftState and $20 = 0) then
     Writeln(T.T, '@pause');
-  Write(T.T, '@del "'+EX+'" & exit'^Z);
+  if OS2exec or (opSys and opWNT <> 0) then
+    Write(T.T, '@del "'+EX+'" & exit'^Z)
+  else
+    Write(T.T, '@del "'+EX+'"'^Z);
   Close(T.T);
+ {$IFDEF OS2}
   if Session = stOS2FullScreen then
     M := 'START "'+Command+'" /FS '+EX
   else
     M := 'START "'+Command+'" /WIN '+EX;
+ {$ELSE}
+  if (opSys and opWNT <> 0) then
+    M := 'START "'+Command+'" '+EX
+  else
+    {$IFDEF DPMI32}
+    if OS2exec then
+      begin
+      if Session = stOS2FullScreen then
+        M := 'HSTART "'+Command+'" /C /FS '+EX
+      else
+        M := 'HSTART "'+Command+'" /C /WIN '+EX;
+      end
+    else
+    {$ENDIF}
+      M := 'START '+GetEnv('COMSPEC')+' /C '+EX;
+ {$ENDIF}
   ExecString(M, '');
-  end { RunOS2Command };
+  end { RunSession };
 {DataCompBoy}
 end.

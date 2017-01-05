@@ -81,7 +81,8 @@ uses
 
 {AK155 Мало проверить, что имя временного каталога непусто, надо
 еще проверить, что он существует, и что в нем можно создавать и
-уничтожать файлы }
+уничтожать файлы. Побочным эффектом этой функции является обязательное
+наличие '\' в конце s }
 function BadTemp(var s: String): Boolean;
   var
     f: file;
@@ -133,10 +134,9 @@ procedure InvalidateTempDir;
   TempDir := SourceDir;
   if not BadTemp(TempDir) then
     begin
-    if TempDir[Length(TempDir)] <> '\' then
-      TempDir := TempDir+'\';
-    TempDir := TempDir+'TEMP\';
-    MkDir(TempDir);
+    TempDir := TempDir+'TEMP';
+    MkDir(Copy(TempDir, 1, Length(TempDir)-1));
+    MakeSlash(TempDir);
     ClrIO;
     if not BadTemp(TempDir) then
       Exit;
@@ -150,6 +150,8 @@ procedure UpdateConfig;
     OldSecurity: Boolean;
     TempInteger: Integer; {DataCompBoy}
     R: TRect;
+    const
+      NotAPath: Char = #22;
   begin
   InvalidateTempDir;
   OldSecurity := Security;
@@ -173,7 +175,7 @@ procedure UpdateConfig;
   if OldSecurity xor Security then
     begin
     if Application <> nil then
-      GlobalMessage(evCommand, cmPanelReread, nil);
+      GlobalMessage(evCommand, cmPanelReread, @NotAPath);
     end;
 
   SetBlink(CurrentBlink);
@@ -183,10 +185,6 @@ procedure UpdateConfig;
 procedure DoStartup;
   var
     SavePos, SPos1: LongInt;
-{$IFDEF DPMI32}
-    lsr: lSearchRec;
-{$ENDIF}
-
     {JO}
   procedure ReadHighlite;
     var
@@ -495,6 +493,12 @@ procedure DoStartup;
         cfgComareDirsOptions:
           if SizeOf(ComareDirsOptions) = L then
             SRead(ComareDirsOptions) else SSkip;
+        cfgSortCurPanTypeOnly:
+          if SizeOf(SortCurPanTypeOnly) = L then
+            SRead(SortCurPanTypeOnly) else SSkip;
+        cfgFullMenuPanelSetup:
+          if SizeOf(FullMenuPanelSetup) = L then
+            SRead(FullMenuPanelSetup) else SSkip;
         else {case}
           S.Seek(S.GetPos+L);
       end {case};
@@ -531,10 +535,8 @@ procedure DoStartup;
       SwpDir := ''
     else
       SwpDir := TempDir;
-    {$IFDEF DPMI32}
     if RunFirst then
       EraseFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
-    {$ENDIF}
     end;
 
   procedure ReadIni;
@@ -564,13 +566,6 @@ procedure DoStartup;
   var
     i: Integer;
   begin { DoStartup }
-  {$IFDEF DPMI32}
-  //check LFN Api presence
-  lsr.FindFirstMode := lWIN95;
-  lWIN95FindFirst(ParamStr(0), AnyFileDir, lsr);
-  lFindClose(lsr);
-  if DosError <> 0 then lApi := lDOS;
-  {$ENDIF}
   {AK155 10.03.2005 }
   i := FindParam('/DNHIS=');
   if i <> 0 then
@@ -664,8 +659,16 @@ procedure RUN_IT;
 
   LSliceCnt := -3;
 
+  {$IFNDEF DPMI32}
+  if RestartOnExit then
+    RunFirst := False
+  else
+    RunFirst := True;
+  RestartOnExit := False;
+  TottalExit := False;
+  {$ELSE}
   RunFirst := True;
-  {$IFDEF DPMI32}
+
   //get info from Dn.Com
   LoaderSeg := 0;
   init_register(Regs);
@@ -729,10 +732,8 @@ procedure RUN_IT;
   if RunFirst then
     if  (StartupData.Load and osuKillHistory <> 0) then
       ClearHistories;
-  {$IFDEF DPMI32}
   if not RunFirst then
     EraseFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
-  {$ENDIF}
   if RunFirst then
     begin
     if  (Message(@MyApplication, evBroadcast, cmLookForPanels, nil) = nil)
@@ -787,7 +788,10 @@ procedure RUN_IT;
   {Cat}
   DoneHistories;
   if ColorIndexes <> nil then
+    begin
     FreeMem(ColorIndexes, 2+ColorIndexes^.ColorSize);
+    ColorIndexes := nil;
+    end;
   {/Cat}
   end { RUN_IT };
 

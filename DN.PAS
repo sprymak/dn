@@ -63,7 +63,7 @@ uses
   Drivers, Lfn, Files,
   DN1, Dos, DNApp,
   Menus, FlPanelX, FlPanel, FileCopy, Filediz, Filelst, Eraser,
-  DiskInfo, Advance, Advance1, Advance2, Advance3, Advance4, highlite,
+  DiskInfo, Advance, Advance1, Advance2, Advance4, highlite,
   Startup, Dialogs, Gauges, Memory, DblWnd, Messages, HistList,
   FileFind, Commands, Tree, FViewer, CmdLine, FBB, DNStdDlg,
   FilesCol, UserMenu, RStrings, Colors, Microed, Editor, Macro,
@@ -87,7 +87,7 @@ uses
   {$IFDEF LINEPOSIT}, SysUtils, VPUtils {$ENDIF}
   {$IFDEF OS2}, EAOper {$ENDIF}
   , VpSysLow
-//{$IFDEF DPMI32} , deb_link {$ENDIF}
+{$IFDEF DPMI32} , dpmi32 {$ENDIF}
   ;
 
 {$IFDEF LINEPOSIT}
@@ -112,7 +112,13 @@ try
   {Cat: проверяем на выходе, сколько памяти скушалось
       создаём лог, куда будут записываться все вызовы методов Load и Store}
   begin
+ {$IFNDEF DPMI32}
+  repeat
+ {$ENDIF}
   RUN_IT;
+ {$IFNDEF DPMI32}
+  until not RestartOnExit;
+ {$ENDIF}
   end
   {/Cat}
 except
@@ -136,15 +142,19 @@ except
     Writeln('Please report to RU.SHELL.DN'^M^J+
       '( file '+SourceDir+' )'^M^J^M^J+
       'Press any key...');
-    if IOResult <> 0 then
-      ;
+{$I-}
     Assign(DNErrFile, SourceDir);
-    Rewrite(DNErrFile);
+    ClrIO;
+    Append(DNErrFile);
+    if IOResult <> 0 then
+      Rewrite(DNErrFile);
     Writeln(DNErrFile, '');
-    Writeln(DNErrFile, 'Exception at addr '+Ptr2Hex(ExceptAddr));
+    Writeln(DNErrFile, 'DN/2 ' + VersionName + ' compiled '+VersionDate);
     Writeln(DNErrFile, E.Message);
     if GetLocationInfo(ExceptAddr, FileName, LineNo) <> nil then
-      Writeln(DNErrFile, 'Source location: '+FileName+' line ', LineNo);
+      Writeln(DNErrFile, 'Source location: '+FileName+' line ', LineNo)
+    else
+      Writeln(DNErrFile, 'Exception at addr '+Ptr2Hex(ExceptAddr));
     Close(DNErrFile);
     repeat
       SysCtrlSleep(1); {JO}
@@ -155,10 +165,20 @@ except
     SysTVInitCursor;
     end;
 end;
-{$ELSE}
+{$ELSE} {LINEPOSIT}
+ {$IFNDEF DPMI32}
+repeat
+ {$ENDIF}
 RUN_IT;
-{$ENDIF}
+ {$IFNDEF DPMI32}
+until not RestartOnExit;
+ {$ENDIF}
+{$ENDIF} {LINEPOSIT}
 
 (*{$ENDIF PLUGIN}*)
+{$IFDEF DPMI32}
+remove_i24;
+RemoveDpmi32Exceptionhandlers;
+{$ENDIF}
 
 end.

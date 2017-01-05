@@ -44,6 +44,8 @@ function GetDriveTypeNew(Drive: Char): TDrvTypeNew; {JO} {<fltl.001>}
 //    никогда к нему не обращаясь - используя DosDevIOCtl и не
 //    делая никаких проверок файловой системы
 
+function GetErrorText(ErrCode: Integer; var Msg: String): Boolean;
+
 implementation
 
 uses
@@ -399,6 +401,20 @@ begin
       Result := dtnUnknown;
   end;
 end;
+
+function GetErrorText(ErrCode: Integer; var Msg: String): Boolean;
+  var
+    Len: Integer;
+    RC: Integer;
+  begin
+  Result := False;
+  Len := FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM or
+      FORMAT_MESSAGE_ARGUMENT_ARRAY, nil, ErrCode, 0, @Msg[1], 255, nil);
+  SetLength(Msg, Len);
+  Result := Len <> 0;
+  if Result then
+    AnsiToOemBuff(@Msg[1], @Msg[1], Length(Msg));
+  end;
 
 begin
 end.

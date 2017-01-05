@@ -30,6 +30,19 @@ uses
 
 var
   Video_Adapter_Found : (mda_found, cga_found, ega_found, vga_found);
+  DriveData: Record
+          {00}RecSize:             SmallWord;
+          {02}StructVersion:       SmallWord;
+          {04}SectorsPerCluster:   LongInt;
+          {08}BytesPerSector:      Longint;
+          {0C}AvailClusters:       LongInt;
+          {10}TotalClusters:       LongInt;
+          {14}NumPhisSectorsAvail: LongInt;
+          {18}NumPhisSectorsTotal: LongInt;
+          {1C}AvailAllocUnits:     LongInt;
+          {20}TotalAllocUnits:     LongInt;
+          {24}Reserved:            Array[0..7] of byte;
+             end;
 {$ENDIF}
 
 {$IFDEF WIN32}
@@ -417,6 +430,11 @@ function SysClipPaste(var Size: Integer): Pointer;
 {$ENDIF}
 
 {$IFDEF DPMI32}
+const
+  wheel_counter: Longint = 0;
+   { число kbUp или kbDown, которые нужно сгененрировать как
+    результат вращения колеса мыши. На каждый щелчок колеса
+    надо генерировать 3 клавиатурных события. См. vpsysd32. }
 {$ENDIF}
 
 {$IFDEF LINUX}

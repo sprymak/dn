@@ -34,6 +34,7 @@ type
     EventMask: AWord;
     UpTmr: TEventTimer;
     UpdTicks: LongInt;
+    ClearPositionalEvents: Boolean;
     constructor Init(var Bounds: TRect);
     constructor Load(var S: TStream);
     {destructor Done; virtual;}
@@ -128,6 +129,8 @@ type
     Max: LongInt;
     PgStep: LongInt;
     ArStep: LongInt;
+    Step: Longint;
+    ForceScroll: Boolean;
     constructor Init(var Bounds: TRect);
     constructor Load(var S: TStream);
     {procedure Draw; virtual;}

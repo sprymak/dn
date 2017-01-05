@@ -82,13 +82,14 @@ uses
   {$IFDEF WIN32}
   Windows,
   {$ENDIF}
+  {$IFDEF DPMI32} dpmi32, {$ENDIF}
   DNUtil, Advance, DNApp, Advance1, Lfn,
-  Dos, Advance3, FlPanelX, CmdLine, Views, Advance2, Drivers, Advance4,
+  Dos, FlPanelX, CmdLine, Views, Advance2, Drivers, Advance4,
   VideoMan, Memory, VpSysLow, VPSysLo2, Events,
   {$IFDEF UserSaver}
   UserSavr,
   {$ENDIF}
-  Messages, Strings, filetype
+  Messages, Strings, filetype, lfnvp
   ;
 
 {JO}
@@ -99,6 +100,8 @@ procedure AnsiExec(const Path: String; const ComLine: AnsiString);
   var
     PathBuf: array[0..255] of Char;
     Ans1: AnsiString;
+    c: Longint;
+    S: String;
   begin
   Ans1 := ComLine+#0;
 
@@ -108,9 +111,18 @@ procedure AnsiExec(const Path: String; const ComLine: AnsiString);
   {    процессора или с "неправильным" командным процессором}
   {    (например, 4OS2) внешние программы не видят ввода с  }
   {    клавиатуры                                           }
-
+  S := ActiveDir;
+  MakeNoSlash(S);
+  ChDir(S);
+  c := IOResult;
   DosError := SysExecute(StrPCopy(PathBuf, Path), PChar(Ans1), nil,
       ExecFlags = efAsync, nil, -1, -1, -1);
+{$IFNDEF Win32}
+//  освобождаем каталог
+  if ActiveDir[2] = ':' then
+    ChDir(Copy(ActiveDir, 1, 2) + '\');
+{$ENDIF Win32}
+  ChDir(StartDir);
 
   SysTVKbdInit;
   {Cat: в OS/2: боремся с интерпретацией Ctrl-C как Ctrl-Break
@@ -159,6 +171,7 @@ function Win32Program(const S: String): SmallWord;
   RealName := S;
   if  (RealName[1] = '"') and ((RealName[Length(RealName)] = '"')) then
     RealName := Copy(RealName, 2, Length(RealName)-2);
+  RealName := lFExpand(RealName);
   DelRight(RealName);
   FSplit(RealName, Dir, Name, Ext);
   UpStr(Ext);
@@ -220,13 +233,15 @@ function GUIProgram(const S: String): Boolean;
 }
 function GUIProgram(SS: String): Boolean;
   var
+    S: String;
     Flags: LongInt;
     l: Integer;
   begin
   l := 0;
   while SS[1+l] = '"' do
     Inc(l);
-  SS := Copy(SS, 1+l, Length(SS)-2*l)+#0;
+  S := Copy(SS, 1+l, Length(SS)-2*l)+#0;
+  SS := lFExpand(S);  { проверяем в текущем каталоге }
   if DosQueryAppType(@SS[1], Flags) <> 0 then
     { Возможные особые случаи, приводящие к ошибке, и связанные с ними проблемы:
     2    Error_File_Not_Found
@@ -250,6 +265,11 @@ function GUIProgram(SS: String): Boolean;
       011   fapptyp_WindowApi
   }
     GUIProgram := (Flags and 3 = 3);
+  if not Result then
+    begin { проверяем по Path }
+    if DosQueryAppType(@S[1], Flags) = 0 then
+      GUIProgram := (Flags and 3 = 3);
+    end;
   end { GUIProgram };
 {/Cat}
 {$ENDIF}
@@ -264,6 +284,7 @@ procedure ExecStringRR(S: AnsiString; const WS: String; RR: Boolean); {JO}
     {$IFDEF DPMI32}
     DosRunString: String;
     {$ENDIF}
+    ActDir1: String;
 
   begin
   {$IFNDEF DPMI32}
@@ -285,7 +306,7 @@ procedure ExecStringRR(S: AnsiString; const WS: String; RR: Boolean); {JO}
   {$IFNDEF DPMI32}
   if GUIProgram(S) then
     {$IFDEF OS2}
-    S := 'start /PGM '+ S
+    S := 'start /f /PGM '+ S
   else
     case Win32Program(S) of
       2 {IMAGE_SUBSYSTEM_WINDOWS_GUI}:
@@ -309,10 +330,14 @@ procedure ExecStringRR(S: AnsiString; const WS: String; RR: Boolean); {JO}
   SaveDsk;
   Application^.Done;
   DosRunString:=' ' + S + #13;
-  Move(DosRunString, Pointer(LongInt(LoaderSeg)*$10+CommandOfs)^, Length(DosRunString) + 2);
+  if LoaderSeg <> 0 then
+    Move(DosRunString, Pointer(LongInt(LoaderSeg)*$10+CommandOfs)^,
+      Length(DosRunString) + 2);
   if TimerMark
     then DDTimer:=GetCurMSec
     else DDTimer:=0;
+  MakeNoSlash(ActiveDir);
+  ChDir(ActiveDir);
   asm
    mov ax, 9904h
    mov dx, word ptr DDTimer
@@ -327,6 +352,8 @@ procedure ExecStringRR(S: AnsiString; const WS: String; RR: Boolean); {JO}
    mov bx, LoaderSeg
    int 31h   {DPMI}
   end;
+  remove_i24;
+  RemoveDpmi32Exceptionhandlers;
   Halt(1);
   {$ENDIF}
   fExec := False;
@@ -355,6 +382,8 @@ procedure ExecStringRR(S: AnsiString; const WS: String; RR: Boolean); {JO}
   InitDOSMem;
   InitMemory;
   InitVideo;
+  SysTVDetectMouse; { AK155 Без этого под OS/2 может не появиться мышь,
+    если вызванная программа выполнила SysTVHideMouse }
   InitEvents;
   InitSysError;
   {$IFDEF OS2}
@@ -365,7 +394,8 @@ procedure ExecStringRR(S: AnsiString; const WS: String; RR: Boolean); {JO}
   {JO}
   if RR then
     begin
-    GlobalMessage(evCommand, cmPanelReread, nil);
+    ActDir1 := '>' + ActiveDir; //признак перечитывания подкаталогов в ветви
+    GlobalMessage(evCommand, cmPanelReread, @ActDir1);
     GlobalMessage(evCommand, cmRereadInfo, nil);
     end;
   {/JO}
@@ -611,8 +641,10 @@ RepeatLocal:
   then
     TempFile := MakeNormName(UserParams^.Active^.Owner^, FName);
   {if TempFile <> '' then SaveDsk;}
+ {$IFNDEF DPMI32}
   TempFileSWP := TempFile;
   TempFile := '';
+ {$ENDIF}
   if Abort then
     begin
     Exit;
@@ -642,9 +674,11 @@ RepeatLocal:
   {$IFDEF UserSaver}
   InsertUserSaver(False); {JO}
   {$ENDIF}
-  ExecString(S, '');
+  ExecStringRR(S, '', False);
+ {$IFNDEF DPMI32}
   if TempFileSWP <> '' then
     Message(Application, evCommand, cmRetrieveSwp, nil);
+ {$ENDIF}
   end { ExecExtFile };
 {-DataCompBoy-}
 
@@ -670,21 +704,19 @@ procedure ExecFile(const FileName: String);
       ST: SessionType;
       S: String; {//AK155}
     begin
-    {$IFNDEF Win32}
-    if  (PCommandLine(CommandLine)^.LineType in [ltOS2Window,
-         ltOS2FullScreen])
+    if  (PCommandLine(CommandLine)^.LineType in [ltWindow,
+         ltFullScreen])
     then
       begin
-      if PCommandLine(CommandLine)^.LineType = ltOS2FullScreen then
+      if PCommandLine(CommandLine)^.LineType = ltFullScreen then
         ST := stOS2FullScreen
       else
         ST := stOS2Windowed;
-      RunOS2Command(M, False, ST);
+      RunSession(M, False, ST);
       CmdLine.StrModified := True;
       Message(CommandLine, evKeyDown, kbDown, nil);
       Exit;
       end;
-    {$ENDIF}
     {AK155, см. dnutil.ExecCommandLine}
     S := '';
     CommandLine^.SetData(S);

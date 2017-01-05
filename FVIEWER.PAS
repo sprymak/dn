@@ -56,7 +56,7 @@ uses
   Defines, Streams, Views, Dos, Drivers, Commands, DNHelp,
   {SysUtils,} {AK155}
   Advance,
-  Advance1, Advance2, Advance3, highlite, U_KeyMap, Microed, xTime,
+  Advance1, Advance2, highlite, U_KeyMap, Microed, xTime,
   Collect, Macro, Advance6
   , FilesCol, XCode
   ;
@@ -2099,8 +2099,7 @@ procedure TFileViewer.SaveToFile(FN: String);
   S.Truncate; {AK155 на случай записи короткого файла поверх длинного}
   S.Done;
   FN := GetPath(FN);
-  if  (Length(FN) > 3) and (FN[Length(FN)] = '\') then
-    SetLength(FN, Length(FN)-1);
+  MakeNoSlash(FN);
   if not Startup.AutoRefreshPanels then
     GlobalMessage(evCommand, cmRereadDir, @FN);
   end { TFileViewer.SaveToFile };
@@ -2429,7 +2428,7 @@ procedure TFileViewer.HandleEvent;
             if  (PString(Event.InfoPtr)^ = FileName) or
                 (PString(Event.InfoPtr)^ = VFileName)
             then
-              if Owner <> nil then
+              if (Owner <> nil) and not QuickView then
                 begin
                 Owner^.Select;
                 ClearEvent(Event);

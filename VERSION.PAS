@@ -47,18 +47,33 @@
 {$I STDEFINE.INC}
 
 uses
-  Lfn, {DataCompBoy}
-  Dos,
-  Advance1, Advance, Defines
+  Dos, VPUtils, Defines
   ;
 
+//===============================
+
+function D2(N: Integer): string;
+  begin
+  Str(100+N, Result); Delete(Result, 1, 1);
+  end;
+
+function GetCurTime: String;
+  var
+    H, Mn, SS, S100: Word;
+  begin
+  GetTime(H, Mn, SS, S100);
+  Result := D2(H) + ':' + D2(Mn) + ':' + D2(SS);
+  end;
+
+//===============================
+
 const
-  VersionName: String = '2.10 beta';
+  VersionName: String = '2.11 beta';
   VersionDate: String = '';
   VersionWord: AWord = 15198;
 
 var
-  F: lText;
+  F: Text;
   Day, Month, Year, dow: Word;
 
 const
@@ -105,119 +120,118 @@ Writeln(' '#254' Creating ', ParamStr(1)+' '+VersionName);
 GetDate(Year, Month, Day, dow);
 Str(Year, VersionDate);
 VersionDate := DOWs[dow]+', '+Days[Day]+' '+Months[Month]+' '+
-  VersionDate+' at '+GetDateTime(True);
-lAssignText(F, ParamStr(1));
-ClrIO;
-lRewriteText(F);
-Writeln(F.T,
+  VersionDate+' at '+GetCurTime;
+Assign(F, ParamStr(1));
+Rewrite(F);
+Writeln(F,
   '{/////////////////////////////////////////////////////////////////////////'
   );
-Writeln(F.T, '//');
-Writeln(F.T, '//  Dos Navigator Open Source '+VersionName);
-Writeln(F.T,
+Writeln(F, '//');
+Writeln(F, '//  Dos Navigator Open Source '+VersionName);
+Writeln(F,
   '//  Based on Dos Navigator (C) 1991-99 RIT Research Labs');
-Writeln(F.T, '//');
-Writeln(F.T,
+Writeln(F, '//');
+Writeln(F,
   '//  This programs is free for commercial and non-commercial use as long as'
   );
-Writeln(F.T, '//  the following conditions are aheared to.');
-Writeln(F.T, '//');
-Writeln(F.T,
+Writeln(F, '//  the following conditions are aheared to.');
+Writeln(F, '//');
+Writeln(F,
   '//  Copyright remains RIT Research Labs, and as such any Copyright notices'
   );
-Writeln(F.T,
+Writeln(F,
   '//  in the code are not to be removed. If this package is used in a'
   );
-Writeln(F.T,
+Writeln(F,
   '//  product, RIT Research Labs should be given attribution as the RIT Research'
   );
-Writeln(F.T,
+Writeln(F,
   '//  Labs of the parts of the library used. This can be in the form of a textual'
   );
-Writeln(F.T,
+Writeln(F,
   '//  message at program startup or in documentation (online or textual)'
   );
-Writeln(F.T, '//  provided with the package.');
-Writeln(F.T, '//');
-Writeln(F.T,
+Writeln(F, '//  provided with the package.');
+Writeln(F, '//');
+Writeln(F,
   '//  Redistribution and use in source and binary forms, with or without'
   );
-Writeln(F.T,
+Writeln(F,
   '//  modification, are permitted provided that the following conditions are'
   );
-Writeln(F.T, '//  met:');
-Writeln(F.T, '//');
-Writeln(F.T,
+Writeln(F, '//  met:');
+Writeln(F, '//');
+Writeln(F,
   '//  1. Redistributions of source code must retain the copyright');
-Writeln(F.T,
+Writeln(F,
   '//     notice, this list of conditions and the following disclaimer.'
   );
-Writeln(F.T,
+Writeln(F,
   '//  2. Redistributions in binary form must reproduce the above copyright'
   );
-Writeln(F.T,
+Writeln(F,
   '//     notice, this list of conditions and the following disclaimer in the'
   );
-Writeln(F.T,
+Writeln(F,
   '//     documentation and/or other materials provided with the distribution.'
   );
-Writeln(F.T,
+Writeln(F,
   '//  3. All advertising materials mentioning features or use of this software'
   );
-Writeln(F.T, '//     must display the following acknowledgement:');
-Writeln(F.T,
+Writeln(F, '//     must display the following acknowledgement:');
+Writeln(F,
   '//     "Based on Dos Navigator by RIT Research Labs.');
-Writeln(F.T, '//');
-Writeln(F.T,
+Writeln(F, '//');
+Writeln(F,
   '//  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS'
   );
-Writeln(F.T,
+Writeln(F,
   '//  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED'
   );
-Writeln(F.T,
+Writeln(F,
   '//  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE'
   );
-Writeln(F.T,
+Writeln(F,
   '//  DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR'
   );
-Writeln(F.T,
+Writeln(F,
   '//  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL'
   );
-Writeln(F.T,
+Writeln(F,
   '//  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE'
   );
-Writeln(F.T,
+Writeln(F,
   '//  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS')
 ;
-Writeln(F.T,
+Writeln(F,
   '//  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER'
   );
-Writeln(F.T,
+Writeln(F,
   '//  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR'
   );
-Writeln(F.T,
+Writeln(F,
   '//  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF'
   );
-Writeln(F.T, '//  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.');
-Writeln(F.T, '//');
-Writeln(F.T,
+Writeln(F, '//  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.');
+Writeln(F, '//');
+Writeln(F,
   '//  The licence and distribution terms for any publically available'
   );
-Writeln(F.T,
+Writeln(F,
   '//  version or derivative of this code cannot be changed. i.e. this code'
   );
-Writeln(F.T,
+Writeln(F,
   '//  cannot simply be copied and put under another distribution licence'
   );
-Writeln(F.T, '//  (including the GNU Public Licence).');
-Writeln(F.T, '//');
-Writeln(F.T,
+Writeln(F, '//  (including the GNU Public Licence).');
+Writeln(F, '//');
+Writeln(F,
   '//////////////////////////////////////////////////////////////////////////}'
   );
-Writeln(F.T, '  Const');
-Writeln(F.T, '     VersionName =''', VersionName, ''';');
-Writeln(F.T, '     VersionDate =''', VersionDate, ''';');
-Writeln(F.T, '     VersionWord:AWord = $', Hex4(VersionWord), ';');
+Writeln(F, '  Const');
+Writeln(F, '     VersionName =''', VersionName, ''';');
+Writeln(F, '     VersionDate =''', VersionDate, ''';');
+Writeln(F, '     VersionWord:AWord = $', Int2Hex(VersionWord, 4), ';');
 
-Close(F.T);
+Close(F);
 end.

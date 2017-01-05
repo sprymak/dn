@@ -478,14 +478,9 @@ dlSI_OSVer                 ^M' Версия ОС : '
 dlSI_Ports                 'Прочее'
 dlSI_SectTrack             ' сект/ц'
 dlSI_Tracks                ' цилиндров, '
-dlSS1_0_minutes            '1~0~ минут'
 dlSSA_v_ailableSavers      'В~о~зможные'
 dlSSUse_M_ouse             'Управление ~м~ышью'
-dlSS_1_minute              '~1~ минута'
-dlSS_2_minutes             '~2~ минуты'
-dlSS_5_minutes             '~5~ минут'
 dlSS_A_dd                  '<─~Д~обавить'
-dlSS_N_ever                '~Н~е включать'
 dlSS_R_emove               '~У~далить──>'
 dlSS_S_electedSavers       '~А~ктивные'
 dlSS_T_ime                 '~В~ремя'
@@ -508,12 +503,15 @@ dlSortExt,                 '~Р~асширению'
 dlSortSize,                'Р~а~змеру'
 dlSortDate,                '~В~ремени'
 dlSortCrDate,              'Времени ~с~оздания'
-dlSortLADate,              'Времени ~п~осл. доступа'
+dlSortLADate,              'Времени посл. ~д~оступа'
 dlSortDIZ                  '~О~писанию'
 dlSortUnsorted,            '~Н~е сортировать'
-dlSortOwner,               'Сортировать по п~у~ти'
+dlSortOwner,               'Сортировать по ~п~ути'
 dlSortGroup,               'Сортировать по ~г~руппе'
 dlSortInverted,            'О~б~ратный порядок'
+dlSortDirsByName,          'Ка~т~алоги по имени'
+
+dlSortTag,            'иравсдон'
 
 dlStartingCluster,         '~Н~ачальный кластер'
 dlStartingSector,          '~Н~ачальный сектор'
@@ -1038,7 +1036,7 @@ dlArvidNoReal           '~Каталог Диска~'
 
 dlAnonymous             'Инкогнито'
 
-dlMenuItemOn            'Да'
+dlMenuItemOn            ' Да'
 dlMenuItemOff           'Нет'
 
 ;DataCompBoy
@@ -1196,11 +1194,6 @@ dl_Failed_to_store_EA        'Не могу сохранить EA'
 dl_Critical_EA_Copy_Fail     'Не могу сохранить критические EA на диск назначения для файла:'^M
 dlEditEALongname             'Изменить логическое имя (Расширенный атрибут .LONGNAME )'
 dl_EALongname                'Логическое имя:'
-dlChangeLngWarning           ^C'Язык интерфейса будет изменён после перезапуска'^M+
-                             ^C'Дос Навигатора'^M+
-                             ^C' '^M+
-                             ^C'Interface language will be changed after restart' ^M+
-                             ^C'Dos Navigator'
 dl_Failed_to_set_volume_label  'Извините, не могу задать метку тома'
 ;JO-
 
@@ -1315,4 +1308,15 @@ dlCodetablesErr 'Ошибка в строке "Добавочные кодировки"'
 dlCoutrySetupErr 'Ошибка в настройках страны (Настройки - Конфигурация - Страна...)'
 dlOtherPanel 'Другая панель'
 dlUndoPanelSetup 'Откат настроек'
+dlAllPanelTypes 'Все типы панелей'
+dlCurPanelType 'Текущий тип панели'
+dlAppearanceOnly 'Только вид'
+dlFullPanelSetup  'Все настройки'
 ;/AK155
+;JO+
+dlInBranch 'ветви'
+dlInFound 'найденном'
+dlInBranchOfArchive 'ветви аpхива'
+dlInFoundInArchive 'найденном в аpхиве'
+dlInList 'списке'
+;JO-

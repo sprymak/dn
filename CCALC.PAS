@@ -51,7 +51,7 @@ unit CCalc;
 interface
 
 uses
-  Advance, Advance1, Advance2, Advance3, Calculat, RStrings, DNApp,
+  Advance, Advance1, Advance2, Calculat, RStrings, DNApp,
   Dialogs, Views, Defines, Drivers, Commands, HistList, DNHelp
   ;
 

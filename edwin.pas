@@ -70,7 +70,12 @@ type
     constructor Load(var S: TStream);
     //    procedure ChangeBounds(var R: TRect); virtual;
     procedure Store(var S: TStream);
+{AK155 04/04/2006
+  Execute нигде не используется, и зачем он нужен - непонятно.
+  Вероятно, введён на случай модального окна редактора, только
+  вряд ли такое может понадобиться кому-то.
     function Execute: Word; virtual;
+}
     procedure SetState(AState: Word; Enable: Boolean); virtual;
     end;
 
@@ -181,6 +186,7 @@ begin
     end;
 end;
 }
+(*
 function TEditWindow.Execute;
   var
     Event: TEvent;
@@ -189,10 +195,12 @@ function TEditWindow.Execute;
   repeat
     GetEvent(Event);
     if Event.What <> evNothing then
-      HandleEvent(Event);
+      HandleEvent(Event)
+    else
+      TinySlice;
   until ModalEnd;
   end;
-
+*)
 procedure TEditWindow.Store(var S: TStream);
   begin
   inherited Store(S);

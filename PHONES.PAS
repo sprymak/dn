@@ -54,7 +54,7 @@ interface
 uses
   xTime, Defines, Objects2, Streams, DNApp, Drivers, Dialogs, Menus,
    Views, DNStdDlg, RStrings,
-  DNHelp, Advance, Advance1, Advance2, Advance3, Messages, ObjType,
+  DNHelp, Advance, Advance1, Advance2, Messages, ObjType,
    Collect,
   StrView
   ;
@@ -275,7 +275,7 @@ procedure TPhoneBox.SetList;
     procedure InsertPhone(P: PPhone);
       var
         PP: PPhoneDir;
-        I: CondInt;
+        I: LongInt;
       begin
       if P <> nil then
         begin

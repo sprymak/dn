@@ -54,8 +54,7 @@ uses
   Lfn, Files, FlTl,
   fnotify,
   Dos, Defines, Objects2, Streams, Memory, Views, Drivers, DnIni,
-   FilesCol, DiskInfo, {FStorage,}
-  Advance, Advance1, Advance2, Advance3, Collect
+  FilesCol, DiskInfo, Advance, Advance1, Advance2, Collect
   , PDSetup
   ;
 
@@ -96,7 +95,6 @@ type
     procedure KillUse; virtual;
     procedure lChDir(ADir: String); virtual; {DataCompBoy}
     function GetDir: String; virtual; {DataCompBoy}
-    procedure ReadDescrptions(FilesC: PFilesCollection);
     function GetDirectory(
          const FileMask: String;
         var TotalInfo: TSize): PFilesCollection; virtual;
@@ -140,6 +138,8 @@ type
     destructor Done; virtual;
     function OpenDirectory(const Dir: String;
                                  PutDirs: Boolean): PDrive; virtual;
+    procedure DrvFindFile(FC: PFilesCollection); virtual;
+    procedure ReadDescrptions(FilesC: PFilesCollection); virtual;
     end;
 
 procedure RereadDirectory(Dir: String);
@@ -154,6 +154,7 @@ uses
   Startup, Tree, DNApp, RStrings, FileCopy, Eraser, FlPanel, Commands,
   Dialogs, FileFind, FlPanelX, Filediz, CmdLine
   , xTime, Messages, Events
+  , Gauge {для PWhileView}
   ;
 
 const
@@ -431,14 +432,14 @@ procedure TDrive.GetFull;
     X: Word;
     Flags: Word;
 
-  procedure FormatDateTime(DateFlag, TimeFlag: Word; DT: Longint);
+  procedure FormatDateTime(DateFlag, TimeFlag: Word; DT: Longint; Yr: Word);
     var
       S1: String;
     begin
     if Flags and (DateFlag or TimeFlag) <> 0 then
       begin
       with TDate4(DT) do
-        MakeDate(DateMode, Day, Month, P^.Yr, Hour, Minute, S1);
+        MakeDate(Day, Month, Yr, Hour, Minute, S1);
       if DT = 0 then
         FillChar(S1[1], Length(S1), ' ');
       if Flags and DateFlag <> 0 then
@@ -531,9 +532,9 @@ procedure TDrive.GetFull;
     TAWordArray(B)[X-1] := Sc;
     end;
 
-  FormatDateTime(psShowDate, psShowTime, P^.FDate);
-  FormatDateTime(psShowCrDate, psShowCrTime, P^.FDateCreat);
-  FormatDateTime(psShowLADate, psShowLATime, P^.FDateLAcc);
+  FormatDateTime(psShowDate, psShowTime, P^.FDate, P^.Yr);
+  FormatDateTime(psShowCrDate, psShowCrTime, P^.FDateCreat, P^.YrCreat);
+  FormatDateTime(psShowLADate, psShowLATime, P^.FDateLAcc, P^.YrLAcc);
 
   if PFilePanelRoot(Panel)^.LFNLonger250 then
     begin { длинное имя в конце подавляет вывод комментария и пути }
@@ -545,8 +546,7 @@ procedure TDrive.GetFull;
     begin
     S := ' ';
     if P^.DIZ <> nil then
-      S := Copy(P^.DIZ^.DIZText, 1, MaxViewWidth-X-1);
-        {Первую строку не выделяем}
+      S := DizMaxLine(P^.DIZ);
     S := AddSpace(S, MaxViewWidth-X-1);
     MoveStr(TAWordArray(B)[X], S, C);
     Exit;
@@ -604,11 +604,11 @@ procedure TDrive.lChDir;
     I: Word;
     S: String;
 
-  function AskRetry(Drive: Char): Boolean;
+  function AskRetry(Drive: Char; RC: Integer): Boolean;
     begin
     ClrIO;
     NeedAbort := False;
-    SysErrorFunc(21, Byte(Drive)-65);
+    SysErrorFunc(RC, Byte(Drive)-65);
     AskRetry := not Abort;
     end;
 
@@ -623,8 +623,6 @@ procedure TDrive.lChDir;
     ClrIO;
     NeedAbort := True;
     ATestDir := lFExpand(ATestDir);
-    if  (Length(ATestDir) <> 3) and (ADir[Length(ATestDir)] = '\') then
-      SetLength(ATestDir, Length(ATestDir)-1);
     {Cat: проверяем на сетевой путь}
     if  (Length(ATestDir) > 2) and (ATestDir[1] = '\')
          and (ATestDir[2] = '\')
@@ -654,7 +652,7 @@ procedure TDrive.lChDir;
         Abort := Abort or (I <> 0);
         if Abort then
           begin
-          if Ask and AskRetry(Drive) then
+          if Ask and AskRetry(Drive, I) then
             Continue;
           end
         else
@@ -672,8 +670,7 @@ procedure TDrive.lChDir;
         if Abort then
           begin
           S := GetPath(ATestDir);
-          if  (Length(S) <> 3) and (S[Length(S)] = '\') then
-            SetLength(S, Length(S)-1);
+          MakeNoSlash(S);
           if S <> ATestDir then
             begin
             ATestDir := S;
@@ -780,7 +777,7 @@ function DizNameProc(const N: string; TextStart: Integer): Boolean;
     begin
     New(PD);
     PD^.Name := N;
-    PD^.DizText := Copy(LastDizLine, TextStart, 255);
+    PD^.DizText := Copy(LastDizLine, TextStart, MaxLongStringLength);
     Descriptions^.AtInsert(I, PD);
     end;
   end;
@@ -789,7 +786,7 @@ procedure DizLineProc;
   { Для ReadFileList. Добавление очередной строки прямо в элемент
     коллекции}
   const
-    CrLf: array[0..1] of char = #13#10;
+    CrLf: string[2] = #13#10;
   begin
   if not IgnoreDiz then
     PD^.DizText := PD^.DizText + CrLf + LastDizLine;
@@ -823,7 +820,7 @@ procedure TossDescriptions(
     PDizContainer: Pointer;
     FilesC: PFilesCollection);
   var
-    I, J: CondInt;
+    I, J: LongInt;
     P: PFileRec;
     FName: String;
     PD: PDesc;
@@ -957,57 +954,55 @@ procedure TDrive.KillUse;
     Prev^.KillUse;
   end;
 
-{-DataCompBoy-}
 procedure TDrive.GetDown;
   var
     S, S1, S2, SCreat, SLAcc: String;
+    w, NameWidht: Word;
   begin
   if P = nil then
     Exit;
-  S := FormatSizeCol(P);
+  w := PFilePanelRoot(Panel)^.PanSetup^.Show.CurFileNameType;
+  if w = cfnHide then
+    S2 := ''
+  else
+    begin
+    NameWidht := 13 + CountryInfo.TimeFmt; // уместить 12-часовое время
+    {$IFDEF DualName}
+    uLfn := PFilePanelRoot(Panel)^.PanSetup^.Show.
+      ColumnsMask and psLFN_InColumns <> 0;
+    if w = cfnTypeOther then
+      S2 := P^.FlName[uLfn xor InvLFN]
+    else
+      {$ENDIF}
+      S2 := P^.FlName[True];
+    if Length(S2) > NameWidht then
+      begin
+      SetLength(S2, NameWidht);
+      S2[NameWidht] := FMSetup.RestChar[1];
+      end
+    else
+      S2 := AddSpace(S2, NameWidht);
+    end;
+  LFN_inCurFileLine := UpStrg(P^.FlName[True]) = UpStrg(S2);
+  {$IFDEF RecodeWhenDraw}S2 := CharToOemStr(S2); {$ENDIF}
+
   with TDate4(P^.FDate) do
-    MakeDate(DateMode, Day, Month, P^.Yr, Hour, Minute, S1);
+    MakeDate(Day, Month, P^.Yr, Hour, Minute, S1);
+  S2 := S2 + FormatSizeCol(P) + ' ' + S1;
   if P^.YrCreat <> 0 then
     with TDate4(P^.FDateCreat) do
       begin
-      MakeDate(DateMode, Day, Month, P^.YrCreat, Hour, Minute, SCreat);
-      SCreat := GetString(dlCre)+SCreat;
-      end
-  else
-    SCreat := AddSpace('', 19-CountryInfo.TimeFmt);
+      MakeDate(Day, Month, P^.YrCreat, Hour, Minute, SCreat);
+      S2 := S2 + ' ' + GetString(dlCre)+SCreat;
+      end;
   if P^.YrLAcc <> 0 then
     with TDate4(P^.FDateLAcc) do
       begin
-      MakeDate(DateMode, Day, Month, P^.YrLAcc, Hour, Minute, SLAcc);
-      {???}
-      SLAcc := GetString(dlLac)+SLAcc;
-      end
-  else
-    SLAcc := '';
-  {$IFDEF DualName}
-  uLfn := PFilePanelRoot(Panel)^.PanSetup^.Show.
-    ColumnsMask and psLFN_InColumns <> 0;
-  if PFilePanelRoot(Panel)^.PanSetup^.Show.CurFileNameType = 0 then
-    S2 := P^.FlName[uLfn xor InvLFN]
-  else
-    {$ENDIF}
-    S2 := P^.FlName[True];
-  if Length(S2) > 13 then
-    begin
-    SetLength(S2, 14);
-    S2[14] := FMSetup.RestChar[1];
-    end;
-  LFN_inCurFileLine := UpStrg(P^.FlName[True]) = UpStrg(S2);
-  MoveStr(B, {$IFDEF RecodeWhenDraw}CharToOemStr {$ENDIF}(S2), C);
-
-  MoveStr(TAWordArray(B)[22-Length(S)+CountryInfo.TimeFmt], S, C);
-  MoveStr(TAWordArray(B)[23+CountryInfo.TimeFmt], S1, C);
-  MoveStr(TAWordArray(B)[25+Length(S1)+CountryInfo.TimeFmt], SCreat, C);
-  MoveStr
-    (TAWordArray(B)[27+Length(S1)+Length(SCreat)+CountryInfo.TimeFmt],
-     SLAcc, C);
+      MakeDate(Day, Month, P^.YrLAcc, Hour, Minute, SLAcc);
+      S2 := S2 + ' ' + GetString(dlLac)+SLAcc;
+      end;
+  MoveStr(TAWordArray(B)[0], S2, C);
   end { TDrive.GetDown };
-{-DataCompBoy-}
 
 function TDrive.GetRealName;
   begin
@@ -1043,7 +1038,7 @@ function TDrive.GetRealDir;
       if Abort then
         S := CurrentDirectory;
       NeedAbort := True;
-      Advance2.lChDir(CurDir);
+      LFN.lChDir(CurDir);
       repeat
         Abort := False;
         NeedAbort := True;
@@ -1064,21 +1059,18 @@ function TDrive.GetRealDir;
               end;
             UpStr(MM.S);
             if ValidDrive(MM.S[1]) then
-              begin
-              SetCurDrive(MM.S[1]);
               Break;
-              end;
           until False;
           Abort := True;
           end;
       until not Abort;
       NeedAbort := False;
       lGetDir(0, CurDir);
-      Advance2.lChDir(S);
+      LFN.lChDir(S);
       end
     else
       begin
-      Advance2.lChDir(CurDir);
+      LFN.lChDir(CurDir);
       if not Abort then
         repeat
           Abort := False;
@@ -1100,15 +1092,11 @@ function TDrive.GetRealDir;
                 end;
               UpStr(MM.S);
               if ValidDrive(MM.S[1]) then
-                begin
-                SetCurDrive(MM.S[1]);
                 Break;
-                end;
             until False;
             Abort := True;
             end;
         until not Abort;
-      SetCurDrive(C);
       end;
     GetRealDir := CurDir;
     end
@@ -1176,8 +1164,7 @@ function TDrive.OpenDirectory(const Dir: String;
     begin
     if MAvail <= MemReq then
       Exit;
-    if S[Length(S)] <> '\' then
-      AddStr(S, '\');
+    MakeSlash(S);
     DirsToProcess^.Insert(NewStr(S));
     Inc(MemReq, SizeOf(ShortString)); //почему 255, а не что-то+length(S)?
     end;
@@ -1271,11 +1258,68 @@ function TDrive.OpenDirectory(const Dir: String;
   // JO: здесь сортировка не нужна, т.к. она делается в TFindDrive.GetDirectory
   //     и в результате мы получаем сортировку дважды
   {Files^.Sort;}
-  PDrv := New(PFindDrive, Init(GetString(dlBranch)+Dir, Dirs, Files));
+//используем '><' в качестве пpизнака ветви
+  PDrv := New(PFindDrive, Init('><'+Dir, Dirs, Files));
   PDrv^.NoMemory := MAvail <= MemReq;
   OpenDirectory := PDrv;
   LongWorkEnd;
   end { TDrive.OpenDirectory };
+
+{-DataCompBoy-} {JO - 31-03-2006 - сделал виртуальным методом TDrive}
+procedure TDrive.DrvFindFile(FC: PFilesCollection);
+  var
+    PInfo: PWhileView;
+    Files: PFilesCollection;
+    Directories: PCollection;
+    BB: Byte; {-$VOL}
+    R: TRect;
+  begin
+  FindRec.AddChar := '';
+
+  if ExecResource(dlgFileFind, FindRec) = cmCancel then
+    Exit;
+  ConfigModified := True; {AK155 Не понял. При чём тут конфиг?!!}
+  DelLeft(FindRec.Mask);
+  DelRight(FindRec.Mask);
+  if FindRec.Mask = '' then
+    FindRec.Mask := x_x;
+  if  (Pos('*', FindRec.Mask) = 0) and
+      (Pos('.', FindRec.Mask) = 0) and
+      (Pos(';', FindRec.Mask) = 0) and
+      (Pos('?', FindRec.Mask) = 0)
+  then
+    FindRec.AddChar := '*.*'
+  else
+    FindRec.AddChar := '';
+  New(Files, Init($10, $10));
+  Files^.SortMode := psmLongName;
+  Directories := New(PStringCollection, Init(30, 30, False));
+  R.Assign(1, 1, 40, 10);
+  Inc(SkyEnabled);
+  New(PInfo, Init(R));
+  PInfo^.Options := PInfo^.Options or ofSelectable or ofCentered;
+  if FindRec.What = ''
+  then
+    PInfo^.Top := GetString(dlDBViewSearch)+Cut(FindRec.Mask, 50)
+  else
+    PInfo^.Top := GetString(dlDBViewSearch)+Cut(FindRec.Mask, 30)
+      +' | '+Cut(FindRec.What, 17);
+  PInfo^.Bottom := GetString(dlNoFilesFound);
+  PInfo^.Write(1, GetString(dlDBViewSearchingIn));
+  Desktop^.Insert(PInfo);
+  LongWorkBegin;
+  BB := FindFiles(Files, Directories, FindRec, PInfo, FC, False);
+  LongWorkEnd;
+  Desktop^.Delete(PInfo);
+  Dec(SkyEnabled);
+  Dispose(PInfo, Done);
+  if  (BB and ffSeD2Lng) <> 0 then
+    MessageBox(GetString(dlSE_Dir2Long), nil, mfWarning+mfOKButton);
+  if  (BB and ffSeNotFnd) = BB then
+    MessageBox(^C+GetString(dlNoFilesFound), nil,
+       mfInformation+mfOKButton);
+  end; { TDrive.DrvFindFile }
+{-DataCompBoy-}
 
 procedure RereadDirectory;
   var

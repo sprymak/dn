@@ -74,17 +74,14 @@ function FileNewer(FileA, FileB: String): Boolean;
 function CalcTmpFName(Id: LongInt; const AExt: String; ANew: Boolean)
   : String; {DataCompBoy}
 function CalcTmpId: LongInt;
-procedure lChDir(S: String); {DataCompBoy}
 procedure EraseByName(const FName: String); {DataCompBoy}
 procedure EraseFile(const N: String); {DataCompBoy}
 procedure EraseTempFile(S: String); {piwamoto}
 {JO}
 function ValidDrive(dr: Char): Boolean;
 function GetDrive: Byte;
-procedure SetDrive(a: Byte);
 procedure GetMask(var m: String);
 function GetCurDrive: Char;
-procedure SetCurDrive(C: Char);
 
 function GetExt(const s: String): String;
   {` s - имя файла, возможно, с путём. Результат - расширение,
@@ -127,9 +124,11 @@ function IsDir(const s: String): Boolean; {is this a directory? }
 function MkName(const Nm, Mask: String): String;
 {modifies name to fit Mask}
 function GetPath(const S: String): String;
+  {` Часть S, предшествующая имени `}
 function GetName(const S: String): String;
+  {` Имя с расширением `}
 function GetSName(const S: String): String;
-function GetIName(const S: String): String;
+  {` Имя без расширения `}
 function GetAttrStr(Attr: Word): Str6;
 {$IFDEF DualName}
 function GetShortRelPath(Path: String): String;
@@ -143,11 +142,17 @@ function GetFileAttr(const S: String): Word;
 function SetFileAttr(const S: String; Attr: Word): Word;
 function CorrectFile(const N: String): Boolean;
 function PathExist(s: String): Boolean; {Is path exist}
+{` Проверка существования каталога s (путь относительный).
+  Параметр допускается как со слешем на конце, так и без него.
+  Джокеры не допускаются. `}
 
 function PathFoundInArc(S: String): Boolean; {JO}
 
 {-DataCompBoy-}
 procedure GetFTimeSizeAttr(const A: String; var ATime: LongInt;
+{` Чтение через DosFileFirst данных о файле. Если файл не найден,
+будет DOSError <> 0, так что эту функцию можно использовать и для
+проверки наличия файла `}
     var ASize: TSize; var AAttr: Word);
 {-DataCompBoy-}
 
@@ -181,11 +186,16 @@ type
 
 function CompareFiles(const N1, N2: String): Boolean;
 
+procedure MakeSlash(var S: String);
+  {` Обеспечить '\' в конце S. Пустая строка остаётся пустой `}
+procedure MakeNoSlash(var S: String);
+  {` Обеспечить отсутствие '\' в конце S, кроме путей типа 'C:\' `}
+
 implementation
 uses
   Drivers, Dos, Lfn,
   {$IFNDEF DPMI32}Streams,{$ENDIF}
-  Advance1, Advance3, Strings,
+  Advance1, Strings,
   Commands, DNApp, DnIni, Memory, FlPanelX, dnHelp
   , VpSysLow, U_KeyMap
   ;
@@ -335,20 +345,6 @@ function CalcTmpId: LongInt;
   end;
 
 {-DataCompBoy-}
-procedure lChDir;
-  begin
-  if  (Length(S) > 3) and (S[Length(S)] in ['\', '/']) then
-    SetLength(S, Length(S)-1);
-  if PosChar(':', S) > 2 then
-    begin
-    InOutRes := 666;
-    Exit;
-    end;
-  Lfn.lChDir(S);
-  end;
-{-DataCompBoy-}
-
-{-DataCompBoy-}
 procedure EraseByName;
   var
     F: lFile;
@@ -394,9 +390,6 @@ procedure EraseTempFile;
   begin
   {JO: проверочка файла на нахождение во временном каталоге не помешает}
   Dir := GetPath(S);
-  if  (TempDir[Length(TempDir)] <> '\') and (Dir[Length(Dir)] = '\')
-  then
-    SetLength(Dir, Length(Dir)-1);
   if UpStrg(Dir) = UpStrg(TempDir) then
     begin
     ClrIO;
@@ -428,16 +421,6 @@ function GetDrive: Byte;
   begin
   GetDir(0, S);
   GetDrive := Byte(S[1])-Byte('A');
-  end;
-
-procedure SetDrive(a: Byte);
-  {var S: String;}
-  begin
-  {Cat: здесь ничего, кроме глюков, не делается}
-  (*
-  GetDir(0, S);
-  ChDir(S);
-*)
   end;
 
 procedure GetMask(var m: String);
@@ -487,11 +470,6 @@ procedure GetMask(var m: String);
 function GetCurDrive;
   begin
   GetCurDrive := Char(GetDrive+65)
-  end;
-
-procedure SetCurDrive;
-  begin
-  SetDrive(Byte(C)-65)
   end;
 
 function GetExt;
@@ -1017,36 +995,20 @@ function MkName(const Nm, Mask: String): String;
   end { MkName };
 {-DataCompBoy-}
 
-{-DataCompBoy-}
 function GetPath;
   var
-    B: Byte;
+    Name, ext: String;
   begin
-  B := Length(S);
-  while (B > 0) and not (S[B] in ['\', '/']) do
-    Dec(B);
-  if B = 0 then
-    GetPath := S
-  else
-    GetPath := Copy(S, 1, B)
+  lFSplit(S, Result, Name, Ext);
   end;
-{-DataCompBoy-}
 
-{-DataCompBoy-}
 function GetName;
   var
-    B: Byte;
+    Name, ext: String;
   begin
-  for B := Length(S) downto 1 do
-    if S[B] in ['\', '/']
-    then
-      begin
-      GetName := Copy(S, B+1, MaxStringLength);
-      Exit
-      end;
-  GetName := S;
+  lFSplit(S, Result, Name, Ext);
+  Result := Name+Ext;
   end;
-{-DataCompBoy-}
 
 {-DataCompBoy-}
 function GetSName;
@@ -1067,13 +1029,6 @@ function GetSName;
   else
     Pe := Pe-1; {JO}
   GetSName := Copy(S, B, Pe-B);
-  end;
-{-DataCompBoy-}
-
-{-DataCompBoy-}
-function GetIName;
-  begin
-  GetIName := SquashesName(GetName(S));
   end;
 {-DataCompBoy-}
 
@@ -1199,46 +1154,49 @@ function GetFileAttr(const S: String): Word;
 {-DataCompBoy-}
 
 function PathExist(s: String): Boolean;
-{ Проверка существования каталога s (путь относительный).
-Никаких специальных усилий по проверке на корень диска или
-шары не делается, что, возможно, и неправильно.
-  Параметр допускается как со слешем на конце, так и без него.
-}
   var
     SR: lSearchRec;
-    l: Integer;
     Attr: Longint;
+    IsRoot: Boolean;
+  label
+    FClose;
   begin
-  if s = '' then
+  if (s = '') or (Pos('?', s) <> 0) or (Pos('*', s) <> 0) then
     Result := false
   else
     begin
-    l := Length(s);
-    if S[l] = '\' then
-      begin
-      Dec(l);
-      SetLength(S, l);
-      end;
-    if (l = 2) and (S[2] = ':') then
-      begin
-      Result := ValidDrive(S[1]);
-      exit;
-      end;
+    S := lFExpand(S);
+    IsRoot := S[Length(s)] = '\';
+
     Attr := AnyFileDir or (Directory shl 8);
     lFindFirst(S, Attr, SR);
-    if DosError <> 0 then
-      begin { Бывает, что каталог есть, а SysFindFirst даёт ошибку.
-       Так бывает, например, в корне шары, а также при каких-то
-       невыясненных обстоятельствах под OS/2 на FAT16. Поэтому, если
-       сам каталог в лоб не нашни, то попытаемся найти что-то внутри
-       каталога. Ограничиваться только этом тоже нельзя, так как бывает,
-       что каталог совсем-совсем пустой, даже без '.' и '..' внутри.
-       Так бывает, например, под Win на DirectCD CDRW.}
-      Attr := AnyFileDir;
-      S := S + '\*';
-      lFindFirst(S, Attr, SR);
+    Result := True;
+    if (DosError = 0) then
+      goto FClose;
+
+    { Под виндой (NT - точно, 98 - не знаю) в корне получается
+      RC=2, если сам этот корень существует. Для несуществующей
+      шары, несуществующего диска или невставленного сменного
+      носителя RC другой }
+    if IsRoot and (DosError = 2) then
+      goto FClose; {}
+
+    { Бывает, что каталог есть, а SysFindFirst даёт ошибку.
+      Так бывает, например, в корне шары, а также при каких-то
+      невыясненных обстоятельствах под OS/2 на FAT16. Поэтому, если
+      сам каталог в лоб не нашли, то попытаемся найти что-то внутри
+      каталога. Ограничиваться только этим тоже нельзя, так как бывает,
+      что каталог совсем-совсем пустой, даже без '.' и '..' внутри.
+      Так бывает, например, под Win на DirectCD CDRW.}
+    Attr := AnyFileDir;
+    if IsRoot then
+      begin { корень диска }
+      delete(S, Length(s), 1);
       end;
-    Result := (DosError = 0);
+    S := S + '\*.*';
+    lFindFirst(S, Attr, SR);
+    Result := DosError in [0, 2, 18];
+FClose:
     lFindClose(SR);
     end;
   end;
@@ -1265,7 +1223,6 @@ procedure GetFTimeSizeAttr(const A: String; var ATime: LongInt;
   ASize := SR.FullSize;
   AAttr := SR.SR.Attr;
   lFindClose(SR);
-  ClrIO;
   end;
 {-DataCompBoy-}
 
@@ -1310,8 +1267,6 @@ procedure DoQuickSearch(Key: Word);
     kbBack:
       begin
       if QSMask <> '' then
-        Delete(QSMask, Length(QSMask), 1);
-      if (QSMask <> '') and (QSMask[Length(QSMask)] = '*') then
         Delete(QSMask, Length(QSMask), 1);
       end
     else
@@ -1445,5 +1400,19 @@ Finish:
   S1.Done;
   S2.Done;
   end { CompareFiles };
+
+procedure MakeSlash(var S: String);
+  begin
+  if (S <> '') and (S[Length(S)] <> '\') then
+    S := S + '\';
+  end;
+
+procedure MakeNoSlash(var S: String);
+  begin
+  if (Length(S) > 1) and (S[Length(S)] in ['\', '/']) and
+     (S[Length(S)-1] <> ':')
+  then
+    SetLength(S, Length(S)-1);
+  end;
 
 end.

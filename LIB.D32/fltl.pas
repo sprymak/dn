@@ -34,14 +34,52 @@ function GetFSString(Drive: Char): String; {AK155}
 function GetShare(Drive: Char): String; {AK155}
 function GetDriveTypeNew(Drive: Char): TDrvTypeNew; {JO} {<fltl.001>}
 
+function GetErrorText(ErrCode: Integer; var Msg: String): Boolean;
+  inline;
+  begin
+  Result := False;
+  end;
+
 implementation
 
 uses
-  dpmi32df, dpmi32, Dos, VpSysLow, VPUtils, Strings;
+  dpmi32df, dpmi32, Dos, VpSysLow, VPUtils, Strings, advance1;
+
+var
+  DiskInfo: record
+    InfoLevel: SmallWord;
+    SerialNo: LongInt;
+    VolumeLabel: array[0..10] of Char;
+    FileSystem: array[0..7] of Char;
+  end;
 
 function GetBytesPerCluster(Path: PChar): LongInt;
+var
+  regs: real_mode_call_structure_typ;
 begin
-result := 0;
+  fillchar(Mem[segdossyslow32],
+           SizeOf(DriveData) + SizeOf(Path) + 1{#0}, #0);
+  move(Path^, Mem[segdossyslow32 + SizeOf(DriveData)], SizeOf(Path));
+  init_register(regs);
+  regs.ax_ := $7303;
+  regs.ds_ := segdossyslow16;
+  regs.dx_ := SizeOf(DriveData); //ds:dx=path
+  regs.es_ := segdossyslow16;
+//  regs.di_ := 0;
+  regs.cx_ := SizeOf(DriveData);
+  intr_realmode(Regs, $21);
+  move(Mem[segdossyslow32], DriveData.RecSize, SizeOf(DriveData));
+  if DriveData.RecSize <> 0
+  then begin
+       Result := DriveData.SectorsPerCluster * DriveData.BytesPerSector;
+       end
+  else begin
+       init_register(regs);
+       regs.ah_ := $36;
+       regs.dl_ := Byte(UpCase(Path[0])) - Byte('A') + 1;
+       intr_realmode(Regs, $21);
+       result := regs.ax_ * 512;
+       end;
 end;
 
 {JO}
@@ -70,20 +108,15 @@ begin
 end;
 {/JO}
 
-var
-  DiskInfo: record
-    InfoLevel: SmallWord;
-    SerialNo: LongInt;
-    VolumeLabel: array[0..10] of Char;
-    FileSystem: array[0..7] of Char;
-  end;
-
 procedure GetSerFileSys(Drive: Char; var SerialNo: Longint;
     var VolLab, FileSys: String);
   begin
   FileSys := GetFSString(Drive);
   SerialNo := DiskInfo.SerialNo;
   VolLab := StrPas(DiskInfo.VolumeLabel);
+  DelRight(VolLab);
+  if (VolLab = '') or (VolLab = 'NO NAME')
+    then VolLab := SysGetVolumeLabel(Drive);
   end;
 
 function GetFSString(Drive: Char): String; {AK155}
@@ -96,23 +129,17 @@ function GetFSString(Drive: Char): String; {AK155}
   with Regs do
     begin
     AX_ := $6900;
-    BX_ := Byte(Drive) - (Byte('A') - 1);
+    BX_ := Byte(Drive) - Byte('A') + 1;
     DS_ := segdossyslow16;
-    DX_ := 0;  {DS:DX -> buffer for returned info}
+//    DX_ := 0;  {DS:DX -> buffer for returned info}
     end;
   intr_realmode(Regs, $21);
   //we don't check errors for Novell compatibility
   //Mem[segdossyslow32] filled with zeros for catching errors
   move(Mem[segdossyslow32], DiskInfo.InfoLevel, SizeOf(DiskInfo));
-  Result := StrPas(DiskInfo.FileSystem);
   {В ДОС-сессиях OS/2 и WinNT поле FS дополняется #0, а в голом ДОС
   (PC DOS 7, MS DOS 7.*) - пробелами. }
-  for i := 1 to 8 do
-    if Result[i] in [#0, ' '] then
-      begin
-      SetLength(Result, i);
-      Break;
-      end;
+  Result := fDelRight(fReplace(#0, ' ', StrPas(DiskInfo.FileSystem)));
   end;
 
 function GetShare(Drive: Char): String; {AK155}

@@ -127,7 +127,6 @@ procedure MISaveFileAs(AED: PFileEditor);
     if FileName <> '' then
       begin
       MIUnLockFile(AED);
-      FileName := lFExpand(GetPath(FileName))+GetName(lFExpand(FileName));
       S := CheckForOver(FileName);
       if S = nil then
         begin
@@ -257,7 +256,7 @@ procedure MISaveFile(AED: PFileEditor);
         MILockFile(AED);
         Exit;
         end;
-      if FileExist then
+      if FileExist then  {<MicroEd2.001>}
         begin
         TempEAContainerName := SwpDir+'DN'+ItoS(DNNumber)+'.EA_';
         lAssignFile(TempEAContainer, TempEAContainerName);

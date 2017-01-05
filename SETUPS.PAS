@@ -141,7 +141,7 @@ const
 
 implementation
 uses
-  Tree, Drives, Advance, Advance1, Advance2, Advance3, Messages, DNHelp,
+  Tree, Drives, Advance, Advance1, Advance2, Messages, DNHelp,
   Advance6, DnIni, Country_, U_KeyMap, fnotify
   ;
 
@@ -149,13 +149,7 @@ procedure ConfirmSetup;
   var
     D: Word;
   begin
-  Confirms := Confirms and $7F+
-      (Confirms and cfFmtOs2Warning) shr 1+
-      (Confirms and cfExitConfirm) shl 1;
   D := ExecResource(dlgConfirmations, Confirms);
-  Confirms := Confirms and $7F+
-      (Confirms and cfFmtOs2Warning) shr 1+
-      (Confirms and cfExitConfirm) shl 1;
   if D <> cmOK then
     Exit;
   ConfigModified := True;

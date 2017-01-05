@@ -73,7 +73,7 @@ type
     BufSize: LongInt;
     BufPtr: LongInt;
     BufEnd: LongInt;
-    LastMode: Byte;
+    ModBufStart, ModBufEnd: LongInt;
     constructor Init(FileName: String; Mode: Word; Size: LongInt);
     {destructor Done; virtual;}
     {procedure Flush; virtual;}

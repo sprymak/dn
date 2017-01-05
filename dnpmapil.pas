@@ -51,6 +51,11 @@ function WinOpenObjectSh(hObject: lHandle; ulView: ULong; Flag: Boolean)
   : Boolean;
   begin
   WinOpenObjectSh := WinOpenObject(hObject, ulView, Flag);
+  if Result then
+    WinSetActiveWindow(hwndDeskTop, WinQueryWindow(SwData.HWND, QW_NEXTTOP));
+      { WinOpenObject открывает папку не на переднем плане, а подкладывает
+      её под окошко DN, что неудобно. Активизация следующего за DN окна -
+      это как раз активизация только что открытой папки. }
   end;
 
 function WinCreateObjectSh(pszClassName: PChar; pszTitle: PChar;

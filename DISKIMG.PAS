@@ -61,7 +61,7 @@ implementation
 uses
   Dos, Lfn, Messages, Views, Commands, Defines, Streams, DNApp, Drivers,
    Advance,
-  Advance1, Advance2, Advance3, FileCopy, {DiskTool,}Gauge, xTime
+  Advance1, Advance2, FileCopy, Gauge, xTime
   , Files
   ;
 
@@ -493,8 +493,10 @@ function UnpackImage(const FName, DestDir: String; PInfo: PWhileView)
 {-DataCompBoy-}
 
 procedure RereadGlobal(const OutputDir: String);
+  var OD1 :String;
   begin
-  GlobalMessage(evCommand, cmPanelReread, @OutputDir);
+  OD1 := '>' + OutputDir; //признак перечитывания подкаталогов в ветви
+  GlobalMessage(evCommand, cmPanelReread, @OD1);
   GlobalMessage(evCommand, cmRereadTree, @OutputDir);
   end;
 

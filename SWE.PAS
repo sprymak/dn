@@ -77,7 +77,7 @@ type
 implementation
 
 uses
-  Commands, DNApp
+  Advance, Commands, DNApp
   ;
 
 function TInputFName.Execute: Word;
@@ -87,6 +87,8 @@ function TInputFName.Execute: Word;
   EndView := 0;
   repeat
     Owner^.GetEvent(Event);
+    if Event.What = evNothing then
+      TinySlice;
     HandleEvent(Event);
   until EndView <> 0;
   Result := EndView;

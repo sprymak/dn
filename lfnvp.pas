@@ -64,8 +64,7 @@ unit LFNVP;
 interface
 
 uses
-  VpSysLow, VPSysLo2,
-  Dos, DnIni
+  VPSysLo2, Dos
   ;
 
 type
@@ -171,6 +170,7 @@ procedure lWIN95FindFirst(const Path: String; Attr: Word; var R: lSearchRec);
 
 { Name correction routine }
 procedure lTrueName(const Name: String; var S: String);
+procedure NameToNameZ(const Name: String; var NameZ: TNameZ);
 
 function GetShareEnd(const S: String): Integer;
 {` AK155 22-11-2003 Найти конец шары в пути. 0 - если это не UNC-путь `}
@@ -229,11 +229,19 @@ procedure lSetTAttr(var T: lText; Attr: Word);
 { Directory manipulation }
 procedure lMkDir(const Path: String);
 procedure lRmDir(const Path: String);
-procedure lChDir(const Path: String);
+procedure lChDir(Path: String);
+  {` Если указанный каталог существует, то перейти на него, то есть
+  присвоить его ActiveDir. Код ошибки реально формируется в FindFirst,
+  то есть находится в DosError. Для совместимости со стандартной
+  ChDir он дублируется также в InOutRes. `}
 procedure lGetDir(D: Byte; var Path: String);
 
 { Name expansion and splitting }
-function lFExpand(const Path: String): String;
+function lFExpand(Path: String): String;
+  {` расширить Path относительно ActiveDir. Если в Path были
+  '/', то в результате им будут соответствовать '\'.
+  Всякие . и .. коректно удаляются, скажем, вместо C:\TEMP\$$$\..
+  будет C:\TEMP. '\' на конце - только в корне диска.`}
 procedure lFSplit(const Path: String; var Dir, Name, ext: String);
 
 {$IFDEF DualName}
@@ -257,13 +265,23 @@ const
 }
   {$ENDIF}
 
+{Cat: Windows запоминает текущий каталог только для текущего диска;
+запоминание остальных текущих каталогов приходится брать на себя}
+var
+  CurrentPaths: array[1..1+Byte('Z')-Byte('A')] of PathStr;
+  ActiveDir: String; // всегда с '\' в конце
+  CurrentRoot: String; // без '\' в конце; может быть шара
+  StartDir: String;
+
 implementation
 
 uses
   {$IFDEF WIN32}Windows, {$ENDIF}
+  VpSysLow,
   Strings, Commands {Cat}
-  , Advance
+  , Advance, Advance1, Advance2
   {$IFDEF DPMI32} ,Startup ,Dpmi32 ,Dpmi32df {$ENDIF}
+  , fnotify
   ;
 
 function StrPas_(S: array of Char): String;
@@ -281,13 +299,11 @@ function StrPas_(S: array of Char): String;
   StrPas_ := ss;
   end;
 
-{$IFNDEF OS2}
 procedure NameToNameZ(const Name: String; var NameZ: TNameZ);
   begin
   Move(Name[1], NameZ, Length(Name));
   NameZ[Length(Name)] := #0;
   end;
-{$ENDIF}
 
 (*
  Offset  Size    Description
@@ -356,6 +372,12 @@ procedure CorrectSearchRec(var R: lSearchRec);
       R.SR.Name := NoShortName;
     end;
   {$ENDIF}
+  {$IFDEF DPMI32}
+  {JO: CorrectSearchRec вызывается только в отсутствие Win32 LFN API}
+  R.SR.CreationTime := 0;
+  R.SR.LastAccessTime := 0;
+  {/JO}
+  {$ENDIF}
   (*R.LoCreationTime:= R.SR.Time;
   R.HiCreationTime:= 0;
   R.LoLastAccessTime:= R.SR.Time;
@@ -410,9 +432,13 @@ end;
 procedure FindDataToSearchRec(var FindData: lFindDataRec; var R: lSearchRec);
 begin
   R.SR.Attr := FindData.LoAttr;
-  if LFNTimes = ltCre then R.SR.Time := FindData.LoCreationTime
+{ if LFNTimes = ltCre then R.SR.Time := FindData.LoCreationTime
    else if LFNTimes = ltAcc then R.SR.Time := FindData.LoLastAccessTime
-    else R.SR.Time := FindData.LoLastModificationTime;
+    else} R.SR.Time := FindData.LoLastModificationTime;
+{JO}
+  R.SR.CreationTime := FindData.LoCreationTime;
+  R.SR.LastAccessTime := FindData.LoLastAccessTime;
+{/JO}
   R.SR.Name := StrPas(FindData.ShortName);
   R.FullName := StrPas(FindData.FullName);
   if R.SR.Name = '' then R.SR.Name := R.FullName;
@@ -1061,9 +1087,11 @@ function lfGetLongFileName(const Name: String): String;
 procedure lTrueName(const Name: String; var S: String);
   begin
   {$IFDEF DPMI32}
-  if lApi = lWin95 then WIN95TrueName(Name, S) else
+  if lApi = lWin95 then
+    WIN95TrueName(Name, S)
+  else
   {$ENDIF}
-  S := FExpand(Name);
+  S := Name;
   end;
 
 {AK155 22-11-2003 Найти конец шары в пути. 0 - если это не UNC-путь
@@ -1159,6 +1187,11 @@ procedure lFSplit(const Path: String; var Dir, Name, ext: String);
 
 function lFileNameOf(var lF: lFile): String;
   begin
+{$IFDEF DPMI32}
+  if lF.AssignFileMode <> lDos then
+    lFileNameOf := StrPas_(lF.FullName)
+  else
+{$ENDIF}
   lFileNameOf := StrPas_(FileRec(lF.F).Name);
   end;
 
@@ -1214,27 +1247,35 @@ procedure lRewriteText(var F: lText);
 { crased on compiling 8(                                                     }
 
 procedure lAssignFile(var F: lFile; const Name: String);
+  var
+    FName: String;
   begin
+  FName := lFExpand(Name);
+    { текущий каталог панели - это не такущий каталог ОС, поэтому
+     надо развернуть имя до полного пути.}
 {$IFDEF DPMI32}
   if lAPI = lDOS then
   begin
     F.AssignFileMode := lDOS;
-    Assign(F.F, Name);
+    Assign(F.F, FName);
   end else
   begin
     F.AssignFileMode := lWIN95;
     FileRec(F.F).Handle := 0;
     FileRec(F.F).Mode := fmClosed;
-    NameToNameZ(Name, F.FullName);
+    NameToNameZ(FName, F.FullName);
   end;
 {$ELSE}
-  Assign(F.F, Name);
+  Assign(F.F, FName);
 {$ENDIF}
   end;
+
 procedure lAssignText(var T: lText; const Name: String);
   begin
-  Assign(T.T, Name);
+  Assign(T.T, lFExpand(Name));
+    { см. комментарий к lAssignFile }
   end;
+
 procedure lResetFile(var F: lFile; RecSize: Word);
   begin
 {$IFDEF DPMI32}
@@ -1321,70 +1362,116 @@ procedure lRmDir(const Path: String);
   if lAPI = lWin95
   then lWIN95DirFunc(Path, $713A) else
 {$ENDIF}
+  NotifyDeleteWatcher(Path);
   RmDir(Path);
   end;
 {/AK155}
 
-{Cat: Windows запоминает текущий каталог только для текущего диска;
-запоминание остальных текущих каталогов приходится брать на себя}
-{$IFDEF WIN32}
-var
-  CurrentPaths: array[1..1+Byte('Z')-Byte('A')] of PathStr;
-  {$ENDIF}
 
-function lFExpand(const Path: String): String;
+function lFExpand(Path: String): String;
   var
     D: Byte;
+    i, j: Integer;
   begin
-  {$IFDEF WIN32}
-  if  (Length(Path) = 2) and (Path[2] = ':') then
-    begin
+  for i := 1 to length(Path) do
+    if Path[i] = '/' then
+      Path[i] := '\';
+  if Path = '' then
+    Result := ActiveDir
+  else if (Copy(Path, 2, 2) = ':\') or (Copy(Path, 1, 2) = '\\') then
+    Result := Path // полный путь
+  else if Path[1] = '\' then
+    Result := CurrentRoot + Path // от корня текущего диска/шары
+  else if  (Length(Path) >= 2) and (Path[2] = ':') then
+    begin // относительный путь указанного диска
     D := Byte(UpCase(Path[1]))-Byte('A')+1;
-    if CurrentPaths[D] = '' then
-      lFExpand := Path[1]+':\' {GetDir(D, Path)}
-    else
-      lFExpand := CurrentPaths[D]
+    Result := CurrentPaths[D] + Copy(Path, 3, 255);
     end
   else
-    {$ENDIF}
-    lFExpand := FExpand(Path);
+    Result := ActiveDir + Path; // относительный путь
+  MakeNoSlash(Result);
+  { Удаление '\..' }
+  while True do
+    begin
+    j := Pos('\..', Result);
+    if j = 0 then
+      Break;
+    i := j-1;
+    while (i <> 0) and (Result[i] <> '\') do
+      Dec(i);
+    Delete(Result, i+1, j-i+2);
+    end;
+  Replace('.\', '', Result);
+  if Result[Length(Result)] = '.' then
+    SetLength(Result, Length(Result)-1);
   end;
 
-procedure lChDir(const Path: String);
+procedure lChDir(Path: String);
+  var
+    i: Longint;
   begin
-  {$IFDEF DPMI32}
-  if lApi = lWin95 then lWIN95ChDir(Path) else
-  {$ENDIF}
-  ChDir(Path);
-  {$IFDEF WIN32}
-  if  (InOutRes = 0) and (Length(Path) > 2) and (Path[2] = ':') then
-    CurrentPaths[Byte(UpCase(Path[1]))-Byte('A')+1] := Path;
-  {$ENDIF}
+  Path := lFExpand(Path);
+  if PathExist(Path) then
+    begin
+    ActiveDir := Path;
+    MakeSlash(ActiveDir);
+    i := GetShareEnd(Path);
+    if i = 0 then
+      i := 2;
+    CurrentRoot := Copy(ActiveDir, 1, i);
+    if  (InOutRes = 0) and (Length(Path) > 2) and (Path[2] = ':') then
+      CurrentPaths[Byte(UpCase(Path[1]))-Byte('A')+1] := ActiveDir;
+    end
+  else
+    InOutRes := DosError;
   end;
 
 procedure lGetDir(D: Byte; var Path: String);
+  label
+    DelDlash;
   begin
-  {$IFDEF WIN32}
   if D = 0 then
     begin
-    GetDir(0, Path);
+    Path := ActiveDir;
     if Path[1] = '\' then
-      Exit;
+      goto DelDlash;
     D := Byte(UpCase(Path[1]))-Byte('A')+1;
     end;
   if CurrentPaths[D] = '' then
     Path := Char(D+Byte('A')-1)+':\' {GetDir(D, Path)}
   else
     Path := CurrentPaths[D];
-  {$ELSE}
-  {$IFDEF DPMI32}
-  if (D <> 0) and (lApi = lWin95)
-  then lWIN95GetDir(D, Path)
-  else
-  {$ENDIF}
-  GetDir(D, Path);
-  {$ENDIF}
+DelDlash:
+  MakeNoSlash(Path);
   end;
 {/Cat}
 
+procedure InitPath;
+  var
+    D: Integer;
+    P: String[3];
+{$IFDEF DPMI32}
+    lsr: lSearchRec;
+{$ENDIF}
+  begin
+{$IFDEF DPMI32}
+  //check LFN Api presence
+  lsr.FindFirstMode := lWIN95;
+  lWIN95FindFirst(ParamStr(0), AnyFileDir, lsr);
+  lFindClose(lsr);
+  if DosError <> 0 then
+    lApi := lDOS;
+{$ENDIF}
+  P := 'A:\';
+  for D := 1 to High(CurrentPaths) do
+    begin
+    CurrentPaths[D] := P;
+    Inc(P[1]);
+    end;
+  GetDir(0, StartDir);
+  lChDir(StartDir);
+  end;
+
+begin
+InitPath;
 end.

@@ -62,7 +62,7 @@ type
     Dir: String;
     DeltaX, CurX: LongInt;
     Overwrite: Boolean;
-    LineType: (ltNormal, ltOS2FullScreen, ltOS2Window, ltTimer);
+    LineType: (ltNormal, ltFullScreen, ltWindow, ltTimer);
     constructor Init(R: TRect);
     procedure Draw; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
@@ -104,7 +104,7 @@ const
 implementation
 uses
   Dos, Commands, DNApp, Dialogs, Advance, Advance1, Advance2,
-  Advance3, Startup, RStrings, xTime, Messages
+  Startup, RStrings, xTime, Messages
   , Microed, Histries, FViewer, FlPanelX
   {$IFDEF SS}, Idlers {$ENDIF}
   , VpSysLow
@@ -177,19 +177,14 @@ procedure TCommandLine.GetDir;
           end;
         UpStr(MM.S);
         if ValidDrive(MM.S[1]) then
-          begin
-          SetCurDrive(MM.S[1]);
           Break;
-          end;
       until False;
       Abort := True;
       end;
   until not Abort;
   Dec(SkyEnabled);
   NeedAbort := False;
-  if  (Length(Dir) > 3) and (Dir[Length(Dir)] = '\') then
-    SetLength(Dir, Length(Dir)-1);
-  ActiveDir := Dir;
+  MakeNoSlash(Dir);
   SetDirShape;
   end { TCommandLine.GetDir };
 
@@ -201,9 +196,9 @@ procedure TCommandLine.SetDirShape;
   else if Dir[Length(Dir)] = '>' then
     SetLength(Dir, Length(Dir)-1);
   case LineType of
-    ltOS2FullScreen:
+    ltFullScreen:
       Dir := '['+Dir+']';
-    ltOS2Window:
+    ltWindow:
       Dir := '('+Dir+')';
     ltTimer:
       Dir := '{'+Dir+'}';
@@ -592,40 +587,34 @@ EndLFN:
                 CE2;
                 end;
               kbAltSlash,
-              kbAltShiftSlash:
+              kbAltShiftSlash
+             {$IFDEF Win32}
+              , kbAltGraySlash
+              , kbAltShiftGraySlash
+             {$ENDIF}
+              :
                 begin
-                if Event.KeyCode = kbAltShiftSlash then
+                if (Event.KeyCode = kbAltShiftSlash)
+                 {$IFDEF Win32}
+                  or (Event.KeyCode = kbAltShiftGraySlash)
+                 {$ENDIF}
+                   then
                   Dec(LineType)
                 else
                   Inc(LineType);
-                if not OS2exec and (LineType in [ltOS2Window,
-                     ltOS2FullScreen])
-                then
-                  if Event.KeyCode = kbAltShiftSlash then
+                while (not (OS2exec or Win32exec)
+                       and (LineType in [ltWindow, ltFullScreen]))
+                     //под виндой в F/S из комстpоки не запустишь
+                     or (Win32exec and (LineType = ltFullScreen))
+                do
+                if (Event.KeyCode = kbAltShiftSlash)
+                 {$IFDEF Win32}
+                  or (Event.KeyCode = kbAltShiftGraySlash)
+                 {$ENDIF}
+                  then
                     Dec(LineType)
                   else
                     Inc(LineType);
-                if not OS2exec and (LineType in [ltOS2Window,
-                     ltOS2FullScreen])
-                then
-                  if Event.KeyCode = kbAltShiftSlash then
-                    Dec(LineType)
-                  else
-                    Inc(LineType);
-
-                (*                              if not (OS2exec or (CmdLineFSPrefix = '')) and (LineType = ltOS2FullScreen) then
-                                   if Event.KeyCode = kbAltShiftSlash then Dec(LineType)
-                                                                      else Inc(LineType);
-                                 if not (OS2exec or (CmdLineFSPrefix = '')) and (LineType = ltOS2FullScreen) then
-                                   if Event.KeyCode = kbAltShiftSlash then Dec(LineType)
-                                                                      else Inc(LineType);
-
-                                if not (OS2exec or (CmdLineWINPrefix = '')) and (LineType = ltOS2Window) then
-                                   if Event.KeyCode = kbAltShiftSlash then Dec(LineType)
-                                                                      else Inc(LineType);
-                                 if not (OS2exec or (CmdLineWINPrefix = '')) and (LineType = ltOS2Window) then
-                                   if Event.KeyCode = kbAltShiftSlash then Dec(LineType)
-                                                                      else Inc(LineType); *)
 
                 if LineType > ltTimer then
                   LineType := ltNormal;

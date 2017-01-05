@@ -92,6 +92,9 @@ uses
   ;
 
 const
+ {$IFNDEF DPMI32}
+  RestartOnExit: Boolean = False; {Restart after exit}
+ {$ENDIF}
   {$IFDEF TrashCan}TrashCan: PTrashCan = nil; {$ENDIF}
   HelpWnd: PHelpWindow = nil;
   HelpInUse: Boolean = False;
@@ -141,13 +144,14 @@ type
     procedure ChgColors;
     procedure EventError(var Event: TEvent); virtual;
     procedure HandleCommand(var Event: TEvent);
+  private
+    procedure ProcessTempFile(TFStr: String);
     end;
 
 function CheckExit: Boolean;
 function PresentFile(Name: String): PStream; {DataCompBoy}
 procedure WriteConfig;
 procedure ShowTimeInfo;
-procedure SetSysColors(var Pal);
 procedure LoadPalFromFile(const FN: String); {DataCompBoy}
 {$IFDEF DPMI32}
 procedure w95QuitInit; {Gimly}
@@ -227,6 +231,8 @@ const
   cfgAppPalette = 64; {JO}
   cfgComareDirsOptions = 65; {JO}
   cfgPanSetupPreset = 66;
+  cfgSortCurPanTypeOnly = 67; {JO}
+  cfgFullMenuPanelSetup = 68; {JO}
 
   dlAbout = #13#3'DN/2 Open Source'+
   #13#3'Version %s, %s'+
@@ -506,9 +512,7 @@ procedure ClearSwap;
   PackTime(DT, L);
   SetFileAttr(SwpDir+'DN.FLG', 0);
   ClrIO;
-  {$IFDEF DPMI32}
   ClearFiles('DN*.SWP');
-  {$ENDIF}
   ClearFiles('$DN*.*');
   ClearFiles('$$DN*.*');
   ClearFiles('$$$DN*.*');
@@ -570,10 +574,8 @@ constructor TDNApplication.Init;
     NewArchiveName:='';
    end;
 *)
-  {$IFDEF DPMI32}
   LoadStream := PresentFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
   if LoadStream = nil then
-    {$ENDIF}
     LoadStream := PresentFile(SourceDir+'DN'+GetEnv('DNDSK')+'.DSK');
   if LoadStream <> nil then
     RetrieveDesktop('', LoadStream, True);
@@ -617,10 +619,8 @@ constructor TDNApplication.Init;
     Event.Command := cmUserMenu;
     PutEvent(Event);
     end;
-  {$IFDEF DPMI32}
   if ExistFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP') then
     EraseByName(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
-  {$ENDIF}
   end { TDNApplication.Init };
 {-DataCompBoy-}
 
@@ -655,17 +655,20 @@ procedure SaveRealDsk;
   end;
 {-DataCompBoy-}
 
-{$IFDEF DPMI32}
 procedure SaveDsk;
   begin
   ClrIO;
-  if  ( (opSys <> opDOS) or (StartupData.Unload and osuAutosave = 0))
-    and not (TottalExit)
+  if not TottalExit
   then
+    begin
+   {$IFDEF DPMI32}
+    if StartDir <> '' then
+      StartDir := '<' + StartDir; {помечаем, что StartDir нужно сохpанить}
+   {$ENDIF}
     PDNApplication(Application)^.SaveDesktop
       (SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
+    end;
   end;
-{$ENDIF}
 
 {-DataCompBoy-}
 destructor TDNApplication.Done;
@@ -860,6 +863,10 @@ procedure WriteConfig;
   StoreBlock(cfgAppPalette, appPalette, SizeOf(appPalette));
   StoreBlock(cfgComareDirsOptions, ComareDirsOptions,
        SizeOf(ComareDirsOptions));
+  StoreBlock(cfgSortCurPanTypeOnly, SortCurPanTypeOnly,
+       SizeOf(SortCurPanTypeOnly));
+  StoreBlock(cfgFullMenuPanelSetup, FullMenuPanelSetup,
+       SizeOf(FullMenuPanelSetup));
 
   StoreBlock(0, I, 0);
   S.Done;
@@ -876,7 +883,6 @@ procedure TDNApplication.LoadDesktop(var S: TStream);
     Pal: PString;
     SaveState: AWord;
   begin
-  lGetDir(0, ActiveDir);
   if Desktop^.Valid(cmClose) then
     begin
     Desktop^.Clear;
@@ -957,23 +963,13 @@ function CacheLngId: String;
   {$ENDIF}
   end;
 
-{-DataCompBoy-}
-procedure TDNApplication.RetrieveDesktop;
+procedure TDNApplication.ProcessTempFile(TFStr: String);
   var
-    S: PStream;
-    Sign: String[MaxSignLen];
-    B, BB: Boolean;
-    SM: Word;
-    CC: Word;
-    R: TRect;
-    SaveBounds: TRect;
-    PS: PString;
-    PJ: PString;
-    Event: TEvent;
     F: lFile;
-    OldAppSize, OldDskSize: TPoint;
     Q: String;
     QQ: Integer;
+    CC: Word;
+    Event: TEvent;
 
   function GetGLUKName(s: String): String;
     begin
@@ -989,10 +985,91 @@ procedure TDNApplication.RetrieveDesktop;
     GetfURZ2 := a+Copy(aa, 1, 8)+'.'+Copy(aaa, 9, 3);
     end;
 
+  begin
+  if PosChar(TFStr[1], '+-=<>|[!') = 0 then
+    begin
+    lAssignFile(F, TFStr);
+    lSetFAttr(F, $20);
+    lEraseFile(F);
+    end
+  else
+    begin
+    CC := 0;
+    TempFile := Copy(TFStr, 2, MaxStringLength);
+    QQ := Pos('|', TempFile);
+    Dec(QQ);
+    if QQ > 0 then
+      Q := Copy(TempFile, QQ+2, MaxStringLength)
+    else
+      Q := '';
+    QQ := QQ and 255; {BP bugfix by piwamoto}
+    if not ExistFile(TempFile) then
+      TempFile := GetfURZ(Copy(TFStr, 2, QQ));
+    if not ExistFile(TempFile) then
+      TempFile := GetfURZ2(Copy(TFStr, 2, QQ));
+    if not ExistFile(TempFile) then
+      TempFile := GetGLUKName(Copy(TFStr, 2, QQ));
+    if not ExistFile(TempFile) then
+      TempFile := Copy(TFStr, 2, QQ);
+    case TFStr[1] of
+      '-':
+        CC := cmIntFileView;
+      '=':
+        CC := cmDBFView;
+      '>':
+        CC := cmWKZView;
+      '<':
+        CC := cmTextView;
+      '|':
+        CC := cmHexView;
+      '[':
+        CC := cmReadArchive;
+      '!':
+        CC := cmViewFilter;
+      else {case}
+        CC := cmFileView;
+    end {case};
+    if CC <> 0 then
+      begin
+      if Q <> '' then
+        TempFile := TempFile+'|'+Q;
+      Event.What := evCommand;
+      Event.Command := CC;
+      Event.InfoPtr := @TempFile;
+      PutEvent(Event);
+      end;
+{AK155 27-10-2004 Убрал очистку RunMenu, поскольку единственный
+её результат - это глюк, заключающийся в том, что автовыпадение
+меню перестаёт работать после просмотра файла из архива
+    RunMenu := False;
+}
+    end;
+  end;
+
+{-DataCompBoy-}
+procedure TDNApplication.RetrieveDesktop;
+  var
+    S: PStream;
+    Sign: String[MaxSignLen];
+    B, BB: Boolean;
+    SM: Word;
+    R: TRect;
+    SaveBounds: TRect;
+    PS: PString;
+    OldAppSize, OldDskSize: TPoint;
+   {$IFDEF DPMI32}
+    PJ: PString;
+    FCT: PFilesCollection;
+    FRT: PFileRec;
+    OldConfirms: Word;
+    PV: PView;
+    TempExtrDir, SCurDir, Str1: String;
+    ForceMod: Boolean;
+   {$ENDIF}
+
   label
     Err;
   begin { TDNApplication.RetrieveDesktop }
-  CC := 0;
   HideCommandLine := (CommandLine <> nil)
          and (not CommandLine^.GetState(sfVisible));
   SetState(sfActive, True);
@@ -1020,74 +1097,70 @@ Err:
     if PS <> nil then
       lChDir(PS^);
     DisposeStr(PS);
-    PJ := S^.ReadStr;
-{AK155 27-10-2004 По-моему, читаемый и обрабатыфваемый тут PJ имеет
-смысл только в ДОСе, когда на время выполнения внешней программы
-DN завершается. Так что я поставил весь этот кусок под IFDEF. При этом
-S^.ReadStr тоже втаскивать под ifdef нельзя: десктоп читается криво,
-хотя строка и пуста. Так что при окончательном искоренении OS_DOS
-надо будет убрать и запись этой пустой строки где-то, и чтение здесь. }
 {$IFDEF DPMI32}
+    PJ := S^.ReadStr;
     if  (PJ <> nil) and (PJ^ <> '') then
-      if PosChar(PJ^[1], '+-=<>|[!') = 0 then
+      ProcessTempFile(PJ^);
+    DisposeStr(PJ);
+
+//JO: 31-05-2006 - процедура перекидывания файлов из временного
+//                 подкаталога после запуска архиватора
+    PJ := S^.ReadStr;
+    if  (PJ <> nil) and (PJ^ <> '') and (Pos('|', PJ^) > 0)  then
+      begin
+      ForceMod := False;
+      if PJ^[1] = '<' then
         begin
-        lAssignFile(F, PJ^);
-        lSetFAttr(F, $20);
-        lEraseFile(F);
+        ForceMod := True;
+        TempExtrDir := Copy(PJ^, 2, MaxStringLength);
         end
       else
-        begin
-        TempFile := Copy(PJ^, 2, MaxStringLength);
-        QQ := Pos('|', TempFile);
-        Dec(QQ);
-        if QQ > 0 then
-          Q := Copy(TempFile, QQ+2, MaxStringLength)
-        else
-          Q := '';
-        QQ := QQ and 255; {BP bugfix by piwamoto}
-        if not ExistFile(TempFile) then
-          TempFile := GetfURZ(Copy(PJ^, 2, QQ));
-        if not ExistFile(TempFile) then
-          TempFile := GetfURZ2(Copy(PJ^, 2, QQ));
-        if not ExistFile(TempFile) then
-          TempFile := GetGLUKName(Copy(PJ^, 2, QQ));
-        if not ExistFile(TempFile) then
-          TempFile := Copy(PJ^, 2, QQ);
-        case PJ^[1] of
-          '-':
-            CC := cmIntFileView;
-          '=':
-            CC := cmDBFView;
-          '>':
-            CC := cmWKZView;
-          '<':
-            CC := cmTextView;
-          '|':
-            CC := cmHexView;
-          '[':
-            CC := cmReadArchive;
-          '!':
-            CC := cmViewFilter;
-          else {case}
-            CC := cmFileView;
-        end {case};
-        if CC <> 0 then
-          begin
-          if Q <> '' then
-            TempFile := TempFile+'|'+Q;
-          Event.What := evCommand;
-          Event.Command := CC;
-          Event.InfoPtr := @TempFile;
-          PutEvent(Event);
-          end;
-        RunMenu := False;
-        end;
-{$ENDIF}
+        TempExtrDir := PJ^;
+      SCurDir := Copy(TempExtrDir, Pos('|', TempExtrDir)+1,
+                      MaxStringLength);
+      TempExtrDir := Copy(TempExtrDir, 1, Pos('|', TempExtrDir)-1);
+    { перекидываем файлы из временного подкаталога в каталог назначения}
+      PV := New(PUserWindow, Init);
+      Desktop^.Insert(PV);
+      SetLength(TempExtrDir, Length(TempExtrDir)-1);
+      Str1 := GetPath(TempExtrDir);
+      CopyDirContent(TempExtrDir+'\'+SCurDir, Str1, True, ForceMod);
+      PV^.Free;
+    { удаляем временный каталог со всем, что в нём осталось}
+      FRT := NewFileRec(GetName(TempExtrDir),
+        GetName(TempExtrDir),
+        0, 0, 0, 0, Directory,
+        @Str1);
+      New(FCT, Init(1, 1));
+      FCT^.AtInsert(0, FRT);
+      OldConfirms := Confirms;
+      Confirms := 0;
+      lGetDir(0, DirToChange);
+      LFN.lChDir(Str1);
+      if ActiveDir[2] = ':' then {освобождаем каталог}
+        ChDir(Copy(ActiveDir, 1, 2) + '\');
+      Eraser.EraseFiles(FCT);
+      LFN.lChDir(DirToChange);
+      DirToChange := '';
+      Confirms := OldConfirms;
+      FCT^.DeleteAll;
+      Dispose(FCT, Done);
+      end;
     DisposeStr(PJ);
+
+//JO: 8-06-2006 - восстанавливаем стаpтовый каталог
+    PJ := S^.ReadStr;
+    if  (PJ <> nil) and (PJ^ <> '') then
+      begin
+      StartDir := PJ^;
+      ChDir(StartDir);
+      end;
+    DisposeStr(PJ);
+{$ELSE} {DPMI32}
     S^.ReadStrV(FreeStr);
-    {S^.Read(FreeStr,1); S^.Read(FreeStr[1],length(FreeStr));} {Cat}
     S^.ReadStrV(FreeStr);
-    {S^.Read(FreeStr,1); S^.Read(FreeStr[1],length(FreeStr));} {Cat}
+    S^.ReadStrV(FreeStr);
+{$ENDIF}
     S^.Read(SM, SizeOf(SM));
     S^.Read(OldAppSize, SizeOf(Size));
     S^.Read(OldDskSize, SizeOf(Size));
@@ -1173,9 +1246,22 @@ procedure TDNApplication.SaveDesktop(const FileName: String);
     begin
     S^.Write(DskSign.Sign[1], DskSign.SignLen);
     S^.WriteStr(@DirToChange);
+   {$IFDEF DPMI32}
     S^.WriteStr(@TempFile);
+    S^.WriteStr(@DirToMoveContent); //каталог назначения пpи pазаpхивиpовании
+                                    //чеpез вpеменный подкаталог
+    if StartDir[1] = '<' then
+      begin
+      System.Delete(StartDir, 1, 1);
+      S^.WriteStr(@StartDir); //каталог, из котоpого DN/2 был запущен
+      end
+    else
+      S^.WriteStr(@NullStr);
+   {$ELSE}
     S^.WriteStr(@NullStr);
     S^.WriteStr(@NullStr);
+    S^.WriteStr(@NullStr);
+   {$ENDIF}
     S^.Write(ScreenMode, SizeOf(Word));
     S^.Write(Size, SizeOf(Size));
     S^.Write(Desktop^.Size, SizeOf(Size));
@@ -1673,7 +1759,6 @@ procedure LoadPalFromFile(const FN: String);
       while Length(St) < Length(CColor) do
         St := St+#$3F;
       Application^.GetPalette^:= Copy(St, 1, Length(CColor));
-      SetSysColors(Application^.GetPalette^);
       LoadPalette := True;
       end;
     LoadIndexes(S);
@@ -1718,14 +1803,8 @@ procedure TDNApplication.HandleCommand;
     P, P1: PView;
     ST: String;
     FileIsDBF: Boolean;
-
     HFile: PHelpFile;
     HelpStrm: PDosStream;
-    T: TEvent;
-    CC: Word;
-    F: lFile;
-    PJ, Q: String;
-    QQ: Integer;
   procedure OpenWindow(ChDrive: Boolean);
     var
       S: String;
@@ -1969,21 +2048,20 @@ procedure TDNApplication.HandleCommand;
     LoadPalFromFile(FN);
     end; {JO}
 
-  {$IFNDEF Win32}
-  function TryRunOS2(S: PString): Boolean;
+  function TryRunSession(S: PString): Boolean;
     var
       B: Boolean;
       ST: SessionType;
     begin
-    TryRunOS2 := True;
+    TryRunSession := True;
     DelLeft(S^);
     DelRight(S^);
     if S^ = '' then
       Exit;
     if S^ = '' then
       Exit;
-    TryRunOS2 := False;
-    if not OS2exec then
+    TryRunSession := False;
+    if not (OS2exec or Win32exec) then
       Exit;
     case S^[1] of
       '>':
@@ -2008,13 +2086,13 @@ procedure TDNApplication.HandleCommand;
         end;
       else {case}
         if  (CmdLine.Str <> '')
-             and (PCommandLine(CommandLine)^.LineType in [ltOS2Window,
-             ltOS2FullScreen])
+             and (PCommandLine(CommandLine)^.LineType in [ltWindow,
+             ltFullScreen])
         then
           begin
           S^:= ' '+S^;
           B := ShiftState and 3 <> 0;
-          if PCommandLine(CommandLine)^.LineType = ltOS2Window then
+          if PCommandLine(CommandLine)^.LineType = ltWindow then
             ST := stOS2Windowed
           else
             ST := stOS2FullScreen
@@ -2022,18 +2100,18 @@ procedure TDNApplication.HandleCommand;
         else
           Exit;
     end {case};
-    TryRunOS2 := True;
-    RunOS2Command(Copy(S^, 2, MaxStringLength), B, ST);
+    TryRunSession := True;
+    RunSession(Copy(S^, 2, MaxStringLength), B, ST);
     CmdLine.StrModified := True;
     Message(CommandLine, evKeyDown, kbDown, nil);
     ClearEvent(Event);
-    end { TryRunOS2 };
-  {$ENDIF}
+    end { TryRunSession };
 
   function ExecCommandLine: Boolean;
     var
       S, {$IFDEF RecodeWhenDraw}S1, {$ENDIF}SD: String; {AK155}
       up: tUserParams;
+      i: Integer;
     begin
     ExecCommandLine := False;
     {S := '';}
@@ -2072,6 +2150,13 @@ procedure TDNApplication.HandleCommand;
         System.Delete(S, 1, 3); {DelFC(S); DelFC(S);}
         DelLeft(S);
         S := DelSquashes(S);
+        S := lFExpand(S);
+        repeat
+          SD := S;
+          if S[Length(S)] = '.' then
+            SetLength(S, Length(S)-1);
+          MakeNoSlash(S);
+        until SD = S;
         if PathExist(S) then
           begin
           S[1] := UpCase(S[1]); {Cat}
@@ -2079,7 +2164,7 @@ procedure TDNApplication.HandleCommand;
               после чего в комстроке тоже индицируется маленькая буква,
               что смешно, и начинает глючить перемещение по полосе дисков,
               что уже не смешно. }
-          Message(Application, evBroadcast, cmChangeDirectory, @S);
+          Message(ActivePanel, evCommand, cmChangeDirectory, @S);
           end;
         SD := '';
         CommandLine^.SetData(SD);
@@ -2095,16 +2180,15 @@ procedure TDNApplication.HandleCommand;
       Exit
       end;
     {$ENDIF}
-    {$IFNDEF Win32}
-    if TryRunOS2(@S) then
+    if TryRunSession(@S) then
       Exit;
-    {$ENDIF}
     {AK155 очистка комстроки нужна всегда, поэтому она вынесена в общую         }
     {      часть. Очищать лучше перед выполнением, а не после, так как в        }
     {      ExecString она запоминается и восстанавливается. Аналогичная вставка }
     {      сделана в dnexec.ExecFile.RunCommand                                 }
-    {JO:  перенёс очистку комстроки после TryRunOS2, так как иначе оно но срабатывает, и при }
-    {     запуске набранного в коммандлайне не получается запустить в отдельной сессии       }
+    {JO:  перенёс очистку комстроки после TryRunSession, так как иначе оно      }
+    {     не срабатывает, и при запуске набранного в коммандлайне не            }
+    {     получается запустить в отдельной сессии                               }
     SD := '';
     CommandLine^.SetData(SD);
     CommandLine^.DrawView;
@@ -2133,10 +2217,8 @@ procedure TDNApplication.HandleCommand;
          ST, 128, hsExecDOSCmd) <> cmOK
     then
       Exit;
-    {$IFNDEF Win32}
-    if not TryRunOS2(@ST) {$IFDEF DPMI32} and CheckExit {$ENDIF} {JO}
+    if not TryRunSession(@ST) {$IFDEF DPMI32} and CheckExit {$ENDIF} {JO}
       then
-      {$ENDIF}
       ExecString(St, #13#10+ActiveDir+'>'+ST);
     end { ExecDOSCmd };
 
@@ -2151,11 +2233,6 @@ procedure TDNApplication.HandleCommand;
       PP^.Select
     else
       Desktop^.Insert(New(PUserWindow, Init));
-    end;
-
-  procedure Denie;
-    begin
-    ExecResource(dlgDenie, FreeStr);
     end;
 
   procedure Rebound;
@@ -2330,11 +2407,9 @@ procedure TDNApplication.HandleCommand;
   procedure DoExecFile;
     begin
     if
-      {$IFNDEF Win32}
-      not TryRunOS2(PString(Event.InfoPtr))
+      not TryRunSession(PString(Event.InfoPtr))
        {$IFDEF DPMI32} and CheckExit {$ENDIF} {JO}
       and
-      {$ENDIF}
       not ExecCommandLine
     then
       ExecFile(PString(Event.InfoPtr)^);
@@ -2343,11 +2418,9 @@ procedure TDNApplication.HandleCommand;
 
   procedure DoExecString;
     begin
-    {$IFNDEF Win32}
-    if not TryRunOS2(PString(Event.InfoPtr))
+    if not TryRunSession(PString(Event.InfoPtr))
        {$IFDEF DPMI32} and CheckExit {$ENDIF} {JO}
       then
-      {$ENDIF}
       ExecString(PString(Event.InfoPtr)^, '');
     CE;
     end;
@@ -2379,12 +2452,9 @@ procedure TDNApplication.HandleCommand;
       LngMixCase := P
       end;
     begin { ChLngId }
-    if  (Confirms and cfChaneLngWarning <> 0) then
-      Msg(dlChangeLngWarning, nil, mfWarning or mfOKButton);
     L.Init(5, 5, False);
     S := SourceDir;
-    if S[Length(S)] <> '\' then
-      S := S+'\';
+    MakeSlash(S);
     lFindFirst(S+'*.LNG', AnyFileDir, SR);
     while DosError = 0 do
       begin
@@ -2402,8 +2472,7 @@ procedure TDNApplication.HandleCommand;
       end;
     lFindClose(SR);
     S := StartupDir;
-    if S[Length(S)] <> '\' then
-      S := S+'\';
+    MakeSlash(S);
     lFindFirst(S+'*.LNG', AnyFileDir, SR);
     while DosError = 0 do
       begin
@@ -2467,8 +2536,7 @@ procedure TDNApplication.HandleCommand;
       else
         CurIdx := (CurIdx+1) mod L.Count;
       if  (CurIdx >= 0) and (PString(L.At(CurIdx))^ <>
-          LngMixCase(ActiveLanguage)) {$IFDEF DPMI32} and CheckExit
-        {$ENDIF} {JO}
+          LngMixCase(ActiveLanguage)) and CheckExit
       then
         begin
         ActiveLanguage := PString(L.At(CurIdx))^;
@@ -2477,25 +2545,23 @@ procedure TDNApplication.HandleCommand;
           ActiveLanguage := '';
         SaveDnIniSettings(@ActiveLanguage);
         DoneIniEngine;
+       {$IFNDEF DPMI32}
+        RestartOnExit := True;
+       {$ELSE}
+        ExecString('', '');
+       {$ENDIF}
         end;
       end;
     L.FreeAll;
     L.Done;
+   {$IFNDEF DPMI32}
+    if RestartOnExit then
+      begin
+      SaveDsk;
+      Message(Application, evCommand, cmQuit, nil);
+      end;
+   {$ENDIF}
     end { ChLngId };
-
-  function GetGLUKName(s: String): String;
-    begin
-    GetGLUKName := GetPath(s)+Copy(GetName(s), 1, 12);
-    end;
-
-  function GetfURZ2(const s: String): String;
-    var
-      a, aa, aaa: String;
-    begin
-    lFSplit(s, a, aa, aaa);
-    aa := aa+aaa;
-    GetfURZ2 := a+Copy(aa, 1, 8)+'.'+Copy(aaa, 9, 3);
-    end;
 
   begin { TDNApplication.HandleCommand }
   case Event.Command of
@@ -2760,8 +2826,6 @@ procedure TDNApplication.HandleCommand;
       OpenTreeWindow;
     cmFormatDisk:
       AddFormat;
-    cmFindFile:
-      FindFile;
     cmShowOutput:
       GetUserScreen;
     cmHistoryList:
@@ -2769,70 +2833,7 @@ procedure TDNApplication.HandleCommand;
     cmLoadDesk:
       RetrieveDesktop(SourceDir+'DN'+GetEnv('DNDSK')+'.DSK', nil, True);
     cmRetrieveSwp:
-      {begin
-                     LoadStream := PresentFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
-                     if LoadStream <> nil then RetrieveDesktop('', LoadStream, True);
-                     If ExistFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP') then EraseByName(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
-                    end;}
-      if PosChar(TempFileSWP[1], '+-=<>|[!') = 0 then
-        begin
-        lAssignFile(F, TempFileSWP);
-        lSetFAttr(F, $20);
-        lEraseFile(F);
-        end
-      else
-        begin
-        CC := 0;
-        PJ := TempFileSWP;
-        TempFile := Copy(PJ, 2, MaxStringLength);
-        QQ := Pos('|', TempFile);
-        Dec(QQ);
-        if QQ > 0 then
-          Q := Copy(TempFile, QQ+2, MaxStringLength)
-        else
-          Q := '';
-        QQ := QQ and 255; {BP bugfix by piwamoto}
-        if not ExistFile(TempFile) then
-          TempFile := GetfURZ(Copy(PJ, 2, QQ));
-        if not ExistFile(TempFile) then
-          TempFile := GetfURZ2(Copy(PJ, 2, QQ));
-        if not ExistFile(TempFile) then
-          TempFile := GetGLUKName(Copy(PJ, 2, QQ));
-        if not ExistFile(TempFile) then
-          TempFile := Copy(PJ, 2, QQ);
-        case PJ[1] of
-          '-':
-            CC := cmIntFileView;
-          '=':
-            CC := cmDBFView;
-          '>':
-            CC := cmWKZView;
-          '<':
-            CC := cmTextView;
-          '|':
-            CC := cmHexView;
-          '[':
-            CC := cmReadArchive;
-          '!':
-            CC := cmViewFilter;
-          else {case}
-            CC := cmFileView;
-        end {case};
-        if CC <> 0 then
-          begin
-          if Q <> '' then
-            TempFile := TempFile+'|'+Q;
-          Event.What := evCommand;
-          Event.Command := CC;
-          Event.InfoPtr := @TempFile;
-          PutEvent(Event);
-          end;
-(*AK155 27-10-2004 Убрал очистку RunMenu, поскольку единственный
-её результат - это глюк, заключающийся в том, что автовыпадение
-меню перестаёт работать после просмотра файла из архива
-        RunMenu := False;
-*)
-        end;
+      ProcessTempFile(TempFileSWP);
     cmSaveDesk:
       SaveRealDsk;
     cmExecFile:
@@ -3015,17 +3016,6 @@ procedure ShowTimeInfo;
   S := SecToStr(DDTimer div 1000) + '.' + Dec2(DDTimer mod 1000);
   DDTimer := 0; {JO}
   MessageBox(GetString(dlElapsedTime)+S, nil, mfOKButton+mfInformation);
-  end;
-
-procedure SetSysColors(var Pal);
-  type
-    PLL = array[0..255] of Byte;
-  begin
-  {!!!
-       move(Pll(Pal)[224],ShadowAttr,1);
-       move(Pll(Pal)[225],SysColorAttr,2);
-       move(Pll(Pal)[227],SysColorButtonAttr,2);
-     }
   end;
 
 {$IFDEF DPMI32}

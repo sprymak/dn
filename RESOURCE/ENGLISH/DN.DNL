@@ -311,16 +311,19 @@ dlFilesFound,         ' files found'
 dlChangeDir,          'Change directory'
 dlSetAttr,            ' Setting Attributes '
 dlSortName,           '~N~ame'
-dlSortExt,            '~E~xtension'
+dlSortExt,            'E~x~tension'
+dlSortSize,           '~S~ize'
 dlSortDate,           '~T~ime'
 dlSortCrDate,         '~C~reation time'
 dlSortLADate,         'Last ~a~ccess time'
 dlSortDIZ,            '~D~escription'
-dlSortSize,           '~S~ize'
 dlSortUnsorted,       '~U~nsorted'
 dlSortOwner,          'Sort by ~p~ath'
 dlSortGroup,          'Sort by ~g~roup'
 dlSortInverted,       'In~v~erted order'
+dlSortDirsByName,     'D~i~rectories by name'
+
+dlSortTag,            'nxstcadu'
 
 dlViewQuery,          ^C'Information was modified. Save changes?'
 dlViewSearchFor,      '~S~earch for'
@@ -502,11 +505,6 @@ dlSS_A_dd                   '<───── ~A~dd'
 dlSS_R_emove                '~R~emove ──>'
 dlSSA_v_ailableSavers       'A~v~ailable savers'
 
-dlSS_N_ever                 '~N~ever'
-dlSS_1_minute               '~1~ minute'
-dlSS_2_minutes              '~2~ minutes'
-dlSS_5_minutes              '~5~ minutes'
-dlSS1_0_minutes             '1~0~ minutes'
 dlSS_T_ime                  '~T~ime'
 dlSSUse_M_ouse              'Use ~m~ouse to call saver'
 
@@ -1098,7 +1096,7 @@ dlArvidNoReal           '~Disk Catalog~'
 
 dlAnonymous             'Anonymous'
 
-dlMenuItemOn            'On'
+dlMenuItemOn            ' On'
 dlMenuItemOff           'Off'
 
 ;DataCompBoy
@@ -1256,11 +1254,6 @@ dl_Failed_to_store_EA        'Failed to store EA'
 dl_Critical_EA_Copy_Fail     'Can''t store critical EA to destination drive for file:'^M
 dlEditEALongname             'Edit file logical name (.LONGNAME Extended attribute)'
 dl_EALongname                'Logical name:'
-dlChangeLngWarning           ^C'Interface language will be changed after restart' ^M+
-                             ^C'Dos Navigator'^M+
-                             ^C' '^M+
-                             ^C'Язык интерфейса будет изменён после перезапуска'^M+
-                             ^C'Дос Навигатора'
 dl_Failed_to_set_volume_label  'Sorry, can''t set volume label'
 ;JO-
 
@@ -1375,4 +1368,15 @@ dlCodetablesErr 'Error in "Additional codetables" field'
 dlCoutrySetupErr 'Error in country setups (Options - Configuration - Country support...)'
 dlOtherPanel 'Other Panel'
 dlUndoPanelSetup 'Undo panel setup'
+dlAllPanelTypes 'All panel types'
+dlCurPanelType 'Current panel type'
+dlAppearanceOnly 'Appearance only'
+dlFullPanelSetup 'Full panel setup'
 ;/AK155
+;JO+
+dlInBranch 'Branch'
+dlInFound 'Found'
+dlInBranchOfArchive 'Branch of Archive'
+dlInFoundInArchive 'Found in Archive'
+dlInList 'List'
+;JO-

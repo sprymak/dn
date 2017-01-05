@@ -139,6 +139,9 @@ function StoI(const s: String): LongInt;
 function SStr(a: LongInt; B: Byte; C: Char): String;
 function SSt2(a: LongInt; B: Byte; C: Char): String;
 function FStr(a: TSize): String;
+  {` Строковое представление размера.
+    Длина результата - не более 12 символов, ведущих пробелов нет.
+    Триады разделяются в соответствии с настройками страны `}
 function FileSizeStr(X: TSize): String;
   {` Строковое представление длины файла.
     Длина результата - 9 символов, прижим вправо.
@@ -169,9 +172,9 @@ function ToHex(I: Word): String;
 procedure DelDoubles(const St: String; var Source: String);
 procedure AnsiDelDoubles(const St: String; var Source: AnsiString);
 procedure LongDelDoubles(const St: LongString; var Source: LongString);
-procedure MakeDate(const Mode, Day, Month, Year, Hour, Min: Word;
+procedure MakeDate(const Day, Month, Year, Hour, Min: Word;
      var S: String);
-procedure MakeDateFull(const Mode, Day, Month: Word; {-$VOL moidfied}
+procedure MakeDateFull(const Day, Month: Word; {-$VOL moidfied}
     Year, Hour: Word;
     const Min: Word;
     var S: String;
@@ -244,7 +247,7 @@ function SPos(SubStr, S: String; Start: Integer): Integer;
 implementation
 
 uses
-  Advance2, Advance3, DnIni, Startup {Cat}
+  DnIni, Startup
   ;
 
 function Dec2(w: Word): Str2;
@@ -817,123 +820,50 @@ function SSt2(a: LongInt; B: Byte; C: Char): String;
   SSt2 := s;
   end;
 
-function FStr(a: TSize): String;
+const
+  Magnif: string[4] = 'KMGT';
+
+function SizeStr(a: TSize; MaxVal: TSize): String;
   var
-    s, s1: String[40];
-    s1l: Byte absolute s1;
-    i: Integer;
-    {$IFNDEF NOASM}C: Char; {$ENDIF}
+    i, j, b: Integer;
   begin
-  Str(a: 0: 0, s);
-  if CountryInfo.ThouSep[0] > #0 then
+  if a >= 0 then
     begin
-    s1 := '';
-    {$IFNDEF NOASM}
-    C := CountryInfo.ThouSep[1];
-    asm
-       push esi
-       push edi
-       push ebx
-       push ecx
-       push edx
-       lea esi, s
-       lea edi, s1
-       mov ebx, edi
-       xor eax, eax
-       mov al, [esi]
-       mov ecx, 3
-       div cl
-       mov byte ptr [ebx], 0
-       mov cl, [esi]
-       mov dl, ah
-       Mov al, C
-       or  dl, dl
-       jnz @@1
-       mov dl, 3
-      @@1:
-       or  cl, cl
-       jz  @@3
-      @@2:
-       mov ah, [esi+1]
-       mov byte ptr [edi+1], ah
-       inc byte ptr [ebx]
-       inc edi
-       inc esi
-       dec cl
-       jz  @@3
-       dec dl
-       jnz @@2
-       mov dl, 3
-       mov byte ptr [edi+1], al
-       inc edi
-       inc byte ptr [ebx]
-       jmp @@2
-      @@3:
-       pop edx
-       pop ecx
-       pop ebx
-       pop edi
-       pop esi
-      end;
-    {$ELSE}
-    for i := Length(s) downto 1 do
+    i := 0;
+    if a >= MaxVal then
+      MaxVal := MaxVal / 10; // место для буквы множителя
+    while a >= MaxVal do
       begin
-      s1 := s[i]+s1;
-      if  (i > 1) and ((Byte(s[0])-i+1) mod 3 = 0) then
-        s1 := CountryInfo.ThouSep[1]+s1;
+      a := a/1024;
+      inc(i);
       end;
-    {$ENDIF}
+    Str(a: 0: 0, Result);
+    if CountryInfo.ThouSep[0] > #0 then
+      begin
+      b := 2 + (Length(Result)-1) mod 3;
+      for j := (Length(Result)-1) div 3 downto 1 do
+        Insert(CountryInfo.ThouSep[1], Result, b + 3*(j-1));
+      end;
+    if i <> 0 then
+      Result := Result + Magnif[i];
     end
   else
-    s1 := s;
-  if Length(s1) > 12 then
-    begin
-    s1 := FStr(a/1024);
-    if s1[s1l] = 'K'
-    then
-      s1[s1l] := 'M'
-    else
-      begin
-      Inc(s1l);
-      s1[s1l] := 'K';
-      end;
-    end;
-  if a = MaxLongInt then
-    FStr := '>='+s1
-  else
-    FStr := s1;
-  end { FStr };
+    Result := '?';
+  end { SizeStr };
+
+function FStr(a: TSize): String;
+  begin
+  Result := SizeStr(a, 1000000000);
+  end;
 
 function FileSizeStr;
-  var
-    J: TSize;
-  label K;
   begin
-  if X >= 0 then
-    begin
-    if X < 10000000 then
-      begin
-      Result := FStr(X);
-      goto K;
-      end;
-    J := X/1024;
-    if J < 10000000 then
-      begin
-      Result := FStr(J)+'K';
-      goto K;
-      end;
-    J := J/1024;
-    Result := FStr(J)+'M';
-    if X >= MaxLongInt then
-      Result := '>='+Result;
-    end
-  else
-    FileSizeStr := '?';
-K:
-  Result := PredSpace(Result, 9);
+  Result := SizeStr(X, 10000000);
   if Length(Result) > 9 then
-    Delete(Result, 2, 1); { удаляем первый разделитель}
-  end { FileSizeStr };
+    Delete(Result, 2, 1) { удаляем первый разделитель}
+  else
+    Result := PredSpace(Result, 9);
+  end;
 
 function Hex2;
   begin
@@ -1095,7 +1025,7 @@ function GetDateTime(Time: Boolean): String;
   begin
   GetDate(Y, M, D, DW);
   GetTime(H, Mn, SS, S100);
-  MakeDateFull(0, D, M, Y, H, Mn, S, not Time); {-$VOL modified}
+  MakeDateFull(D, M, Y, H, Mn, S, not Time); {-$VOL modified}
   if Time then
     S := FormatTimeStr(H, Mn, SS)
   else
@@ -1302,7 +1232,7 @@ procedure LongDelDoubles;
 
 procedure MakeDate;
   begin
-  MakeDateFull(Mode, Day, Month, Year, Hour, Min, S, False);
+  MakeDateFull(Day, Month, Year, Hour, Min, S, False);
   end;
 
 procedure MakeDateFull; {-$VOL modified}

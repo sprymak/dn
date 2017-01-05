@@ -101,7 +101,7 @@ implementation
 uses
   fnotify,
   Lfn, Files, Collect, xTime, DnIni, HistList,
-  Advance, Advance1, Advance2, Advance3, Dos, Defines, Dialogs,
+  Advance, Advance1, Advance2, Dos, Defines, Dialogs,
   Views, DNApp, Commands, Drivers, FlPanel, Drives, FileCopy,
   Gauge, Gauges, Archiver, Startup, SWE, Validate, Messages, Menus, DNHelp,
   FileFind, Tree, FBB, DNUtil, Filediz, Filelst, FlTl, DblWnd,
@@ -359,6 +359,8 @@ procedure TSaveSetupButton.Press;
     PC: TPanelClass;
     TargetPanel: PFilePanelRoot;
     TargetBlock: Word;
+    Cmd: Word;
+    SaveTaggedDataOnly: Boolean;
   begin
   PresetNum := ActivePanel^.PresetNum;
   PanelClass := Ord(dt2pc[ActivePanel^.Drive^.DriveType]);
@@ -366,7 +368,11 @@ procedure TSaveSetupButton.Press;
   SavePresetData.ForClass := PanelClass;
   SavePresetData.Target := 1 shl (PresetNum-1);
   @PreExecuteDialog := @PrepareSaveSetupDialog;
-  if ExecResource(dlgSavePanelSetup, SavePresetData) = cmOK then
+  SaveTaggedDataOnly := TaggedDataOnly;
+  TaggedDataOnly := False; // для самого диалога сохранения
+  Cmd := ExecResource(dlgSavePanelSetup, SavePresetData);
+  TaggedDataOnly := SaveTaggedDataOnly;
+  if Cmd = cmOK then
     begin
     for TargetBlock := 0 to 11 do
       if ((1 shl TargetBlock) and SavePresetData.Target) <> 0 then
@@ -418,6 +424,7 @@ procedure TShowDialog.HandleEvent(var Event: TEvent);
   var
     N: Integer;
     P: PFilePanelRoot;
+    Cmd: Word;
   procedure LoadData(N: Integer; NewSetupSet: PPanelSetupSet);
     var
       PC: TPanelClass;
@@ -426,6 +433,10 @@ procedure TShowDialog.HandleEvent(var Event: TEvent);
     PresetNum := N;
     SetData(OwnDataAddress(@NewSetupSet^[PC])^);
     ClearEvent(Event);
+    end;
+  procedure TagUntagAll(P: PView);
+    begin
+    Message(P, evCommand, Cmd, nil);
     end;
   begin
   inherited HandleEvent(Event);
@@ -441,6 +452,21 @@ procedure TShowDialog.HandleEvent(var Event: TEvent);
           begin
           P := OtherFilePanel(ActivePanel);
           LoadData(P^.PresetNum, @P^.PanelSetupSet);
+          end;
+      end {case};
+    evCommand:
+      case Event.Command of
+        cmSelectAll:
+          begin
+          if TaggedDataOnly then
+            begin
+            if TaggedDataCount = 0 then
+              Cmd := cmForceTagData
+            else
+              Cmd := cmForceUntagData;
+            ForEach(@TagUntagAll);
+            DrawView;
+            end;
           end;
       end {case};
   end {case};
@@ -815,7 +841,6 @@ function GetSelection(P: PFilePanelRoot; Single: Boolean):
         FC^.AtInsert(FC^.Count, FileI);
       end;
     end;
-  //  FC^.SortMode := 200; {вроде, это не нужно}
   end { GetSelection };
 
 {-DataCompBoy-}
@@ -890,12 +915,7 @@ function SelectFiles;
         end;
       end;
     {JO}
-    if PF^.Selected then
-      begin
-      P^.PackedLen := P^.PackedLen+PF^.PSize;
-      P^.SelectedLen := P^.SelectedLen+PF^.Size;
-      Inc(P^.SelNum);
-      end;
+    P^.AddSelected(PF);
     end;
   DrawViews(P);
   end { SelectFiles };
@@ -973,13 +993,7 @@ procedure InvertSelection;
         end;
       end;
     {JO}
-
-    if PF^.Selected then
-      begin
-      P^.SelectedLen := P^.SelectedLen+PF^.Size;
-      P^.PackedLen := P^.PackedLen+PF^.PSize;
-      Inc(P^.SelNum);
-      end;
+    P^.AddSelected(PF);
     end;
   DrawViews(P);
   end { InvertSelection };
@@ -1524,9 +1538,43 @@ CurTime:
         UnpackTime(DTT1, DT);
         UnpackTime(DTT1_Cr, DT_Cr);
         UnpackTime(DTT1_LAc, DT_LAc);
-        SetFileAges(S, DTT1, DTT1_Cr, DTT1_LAc);
+        if SetFileAges(S, DTT1, DTT1_Cr, DTT1_LAc) = 0 then
+{JO: чтобы обновлялась инфоpмация в панелях поиска/ветви}
+          begin
+          PF^.Yr := DT.Year;
+          PF^.YrCreat := DT_Cr.Year;
+          PF^.YrLAcc := DT_LAc.Year;
+          PF^.Second := DT.Sec;
+          PF^.SecondCreat := DT_Cr.Sec;
+          PF^.SecondLAcc  := DT_LAc.Sec;
+          with TDate4(PF^.FDate) do
+            begin
+            Month := DT.Month;
+            Day := DT.Day;
+            Hour := DT.Hour;
+            Minute := DT.Min;
+            end;
+          with TDate4(PF^.FDateCreat) do
+            begin
+            Month := DT_Cr.Month;
+            Day := DT_Cr.Day;
+            Hour := DT_Cr.Hour;
+            Minute := DT_Cr.Min;
+            end;
+          with TDate4(PF^.FDateLAcc) do
+            begin
+            Month := DT_LAc.Month;
+            Day := DT_LAc.Day;
+            Hour := DT_LAc.Hour;
+            Minute := DT_LAc.Min;
+            end;
+          end;
+{/JO}
         end;
-      SetFileAttr(S, K and not Directory and not VolumeID);
+      if SetFileAttr(S, K and not Directory
+                     and not VolumeID) = 0 then
+        {JO: чтобы обновлялась инфоpмация в панелях поиска/ветви}
+         PF^.Attr := GetFileAttr(S);
       if not Single then
         PF^.Selected := False;
       end;
@@ -1554,11 +1602,11 @@ procedure PrepareShowDialog(P: PDialog);
     { Подменяем диалогу тип, чтобы подсунуть свой HandleEvent}
   ObjChangeType(P^.DirectLink[4], TypeOf(TSaveSetupButton));
     { Подменяем тип кнопки "Записать", чтобы подсунуть свой Press }
-  PComboBox(P^.DirectLink[2])^.Items[1].Disabled := True;
+  PComboBox(P^.DirectLink[2])^.Items[1].Flags := miDisabled;
     { Сделали недоступным "Не показывать" для выделенных }
   with PComboBox(P^.DirectLink[3])^ do
     for i := 2 to 6 do
-      Items[i].Disabled := True;
+      Items[i].Flags := miDisabled;
     { Сделали недоступным "В подвале" и "На разделителе" % упаковки }
   end;
 
@@ -1572,7 +1620,11 @@ procedure CM_SetShowParms(AFP: Pointer);
   @PreExecuteDialog := @PrepareShowDialog;
   with P^ do
     begin
+    TaggedDataOnly := True;
+    TaggedDataCount := 0;
     J := ExecResource(dlgPanelShowSetup, PanSetup^.Show);
+    TaggedDataOnly := False;
+    TaggedDataCount := 0;
     case J of
       cmOK:
         begin
@@ -1853,6 +1905,7 @@ procedure CM_Dropped;
     I, J, K: LongInt;
     Ev: TEvent;
     S: String;
+    ColumnTitles: Boolean;
   begin
   if ReflectCopyDirection
   then
@@ -1861,12 +1914,13 @@ procedure CM_Dropped;
     RevertBar := False;
   MPos := PCopyRec(EI)^.Where;
   P^.MakeLocal(MPos, MPos);
+  ColumnTitles := (P^.Pansetup^.Show.MiscOptions and 2) <> 0;
   I := P^.Delta+(MPos.X div P^.LineLength)
-        *(P^.Size.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0))
-    +MPos.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0);
+        *(P^.Size.Y-Byte(ColumnTitles))
+    +MPos.Y-Byte(ColumnTitles);
   if  (PCopyRec(EI)^.Owner = AFP) and
       ( (MPos.Y < 0) or (I < 0) or (I >= P^.Files^.Count) or
-        ( (MPos.Y = 0) and (FMSetup.Show and fmsColumnTitles > 0)) or
+        ( (MPos.Y = 0) and ColumnTitles) or
         (PFileRec(P^.Files^.At(I))^.Attr and Directory = 0))
   then
     Exit;
@@ -1901,7 +1955,7 @@ procedure CM_Dropped;
   if  (I < P^.Files^.Count) and (I >= 0) then
     begin
     S := P^.DirectoryName;
-    if  ( (MPos.Y > 0) or ((FMSetup.Show and fmsColumnTitles = 0) and
+    if  ( (MPos.Y > 0) or (not ColumnTitles and
              (MPos.Y = 0)))
       and (PFileRec(P^.Files^.At(I))^.Attr and Directory <> 0)
     then
@@ -1912,8 +1966,7 @@ procedure CM_Dropped;
   if SkipCopyDialog then
     begin
     S := CopyDirName;
-    if  (Length(S) > 3) and (S[Length(S)] = '\') then
-      SetLength(S, Length(S)-1);
+    MakeNoSlash(S);
     UpStr(S);
     for J := 0 to PCopyRec(EI)^.FC^.Count-1 do
       with PFileRec(PCopyRec(EI)^.FC^.At(J))^ do
@@ -1943,8 +1996,7 @@ procedure DoRenameSingle(PF: PFileRec; const S, S2: String; DlgRes: Word);
     end;
   ClrIO;
   SSS := PF^.Owner^;
-  if SSS[Length(SSS)] <> '\' then
-    SSS := SSS + '\';
+  MakeSlash(SSS);
   lChangeFileName(SSS+S2, SSS+S);
   DosE := IOResult;
   if DosE <> 0 then
@@ -2174,47 +2226,66 @@ procedure CM_SortBy;
     R: TRect;
     PV: PView;
     P: PFilePanelRoot absolute AFP;
-    OwnerOnOff, GrpOnOff, InvOnOff: String[5]; {JO}
     Idx: TStrIdx;
     i: Word;
+    Mode: Word;
+    wFlags: Word;
+    OnOff: array[Boolean] of String[5];
+    FlagMask: Word;
+    ToggleItem: array[0..3] of PMenuItem;
+    PC: TPanelClass;
+    CurrentOnly: Boolean;
+    OldSortCurPanTypeOnly: Boolean; {JO}
+    ActionMenu: PMenu;
+  const
+    ItemFlags =
+      miSubmenu or
+      miExecDefault or
+      miDoNotDisposeSubmenu or
+      miAllowChangeDefault;
+
   begin
+  ActionMenu := NewMenu(
+      NewItem(GetString(dlAllPanelTypes), '', kbNoKey, cmYes, 0,
+      NewItem(GetString(dlCurPanelType), '', kbNoKey, cmNo, 0,
+      nil)));
+  if SortCurPanTypeOnly then
+    ActionMenu^.Default := ActionMenu^.Items^.Next;
 
-  {JO: 31-01-2004}
-  if P^.PanSetup^.Sort.SortFlags and psfOwnerFirst <> 0 then
-    OwnerOnOff := GetString(dlMenuItemOn)
-  else
-    OwnerOnOff := GetString(dlMenuItemOff);
-  if P^.PanSetup^.Sort.SortFlags and psfSortByType <> 0 then
-    GrpOnOff := GetString(dlMenuItemOn)
-  else
-    GrpOnOff := GetString(dlMenuItemOff);
-  if P^.PanSetup^.Sort.SortFlags and psfInverted <> 0 then
-    InvOnOff := GetString(dlMenuItemOn)
-  else
-    InvOnOff := GetString(dlMenuItemOff);
-  {/JO}
+  OnOff[False] := GetString(dlMenuItemOff);
+  OnOff[True] := GetString(dlMenuItemOn);
 
-  PM :=  NewLine(
-       NewItem(GetString(dlSortOwner), OwnerOnOff,
-          kbNoKey, cmSortOwnerToggle, 0,
-         NewItem(GetString(dlSortGroup), GrpOnOff,
-            kbNoKey, cmSortGrpToggle, 0,
-           NewItem(GetString(dlSortInverted), InvOnOff,
-              kbNoKey, cmSortInvToggle, 0,
-             nil))));
+  PM := nil;
+  wFlags := P^.PanSetup^.Sort.SortFlags;
+  Idx := dlSortDirsByName;
+  FlagMask := 1 shl 3;
+  for i := 3 downto 0 do
+    begin
+    PM := NewSubmenu(GetString(Idx), 0, ActionMenu, PM);
+    PM^.Flags := ItemFlags or miParam;
+    PM^.Param := NewStr(OnOff[(wFlags and FlagMask) <> 0]);
+    PM.Command := cmSortOwnerToggle+i;
+    FlagMask := FlagMask shr 1;
+    ToggleItem[i] := PM;
+    Dec(Idx);
+    end;
+  PM := NewLine(PM);
 
+  Mode := P^.PanSetup^.Sort.SortMode;
   Idx := dlSortUnsorted;
   for i := NumSortModes-1 downto 0 do
     begin
-    PM := NewItem(GetString(Idx), '', kbNoKey, cmSortName + i, 0, PM);
-    if i = P^.PanSetup^.Sort.SortMode then
+    PM := NewSubmenu(GetString(Idx), 0, ActionMenu, PM);
+    PM^.Flags := ItemFlags;
+    PM.Command := cmSortName + i;
+    if i = Mode then
       DefPM := PM;
     Dec(Idx);
     end;
   Menu := NewMenu(PM);
   Menu^.Default := DefPM;
 
-  W := 15;
+  W := 16;
   Desktop^.GetExtent(R);
   R.A := P^.Origin;
   P^.Owner^.MakeGlobal(R.A, R.A);
@@ -2231,20 +2302,60 @@ procedure CM_SortBy;
   R.B.Y := R.A.Y+100; {R.B := R.A;}
   PV := New(PMenuBox, Init(R, Menu, nil));
   PV^.HelpCtx := hcSortBy;
-  N := Desktop^.ExecView(PV);
-  Dispose(PV, Done);
-  DisposeMenu(Menu);
-  if N <> 0 then
+  while true do
+    begin
+    N := Desktop^.ExecView(PV);
+    if N = 0 then
+      Break;
+
+    CurrentOnly := (N = cmNo);
+    N := ParentItem^.Command;
     with P^ do
       begin
       if N < cmSortOwnerToggle then
-        PanSetup^.Sort.SortMode := N - cmSortName
+        begin
+        Mode := N - cmSortName;
+        if CurrentOnly then
+          PanSetup.Sort.SortMode := Mode
+        else
+          for PC := Low(TPanelClass) to High(TPanelClass) do
+            PanelSetupSet[PC].Sort.SortMode := Mode;
+        Reorder;
+        RedrawPanelInfoDir;
+        Break;
+        end;
+      end;
+
+    { При переключении режимов не закрываем меню }
+    i := N-cmSortOwnerToggle;
+    wFlags := wFlags xor (1 shl i);
+    i := N-cmSortOwnerToggle;
+    Menu^.Default := ToggleItem[i];
+    with ToggleItem[i] do
+      begin
+      DisposeStr(Param);
+      Param := NewStr(OnOff[(wFlags and (1 shl i)) <> 0]);
+      end;
+    with P^ do
+      begin
+      if CurrentOnly then
+        PanSetup.Sort.SortFlags := wFlags
       else
-        PanSetup^.Sort.SortFlags :=
-          PanSetup^.Sort.SortFlags xor (1 shl (N-cmSortOwnerToggle));
+        for PC := Low(TPanelClass) to High(TPanelClass) do
+          PanelSetupSet[PC].Sort.SortFlags := wFlags;
       Reorder;
       RedrawPanelInfoDir;
       end;
+    end;
+  Dispose(PV, Done);
+  DisposeMenu(Menu);
+ {JO}
+  OldSortCurPanTypeOnly := SortCurPanTypeOnly;
+  SortCurPanTypeOnly := (ActionMenu^.Default = ActionMenu^.Items^.Next);
+  if SortCurPanTypeOnly <> OldSortCurPanTypeOnly then
+    ConfigModified := True;
+ {/JO}
+  DisposeMenu(ActionMenu);
   end { CM_SortBy };
 
 
@@ -2265,16 +2376,21 @@ procedure PrepareSortDialog(P: PDialog);
     { Подменяем диалогу тип, чтобы подсунуть свой HandleEvent}
   ObjChangeType(P^.DirectLink[1], TypeOf(TSaveSetupButton));
     { Подменяем тип кнопки "Записать", чтобы подсунуть свой Press }
-//  PRadioButtons(P^.DirectLink[2])^.EnableMask := not 1;
-    {!!Временно! Алфавитная сортировка недоступна }
   end;
 
 procedure CM_PanelSortSetup;
+  var
+    J: Word;
   begin
   with ActivePanel^ do
     begin
+    TaggedDataOnly := True;
+    TaggedDataCount := 0;
     @PreExecuteDialog := @PrepareSortDialog;
-    if ExecResource(dlgPanelSortSetup, PanSetup^.Sort) = cmOK then
+    J := ExecResource(dlgPanelSortSetup, PanSetup^.Sort);
+    TaggedDataOnly := False;
+    TaggedDataCount := 0;
+    if J = cmOK then
       begin
       Reorder;
       RedrawPanelInfoDir;
@@ -2318,8 +2434,7 @@ procedure CM_MakeDir;
   if CreatedDir = '' then
     Exit;
   lFSplit(CreatedDir, Dr, Nm, Xt);
-  if  (Length(Dr) > 3) and (Dr[Length(Dr)] = '\') then
-    SetLength(Dr, Length(Dr)-1);
+  MakeNoSlash(Dr);
   if Dr <> P^.DirectoryName then
     Exit;
   J := -1;
@@ -2472,11 +2587,11 @@ procedure CM_ChangeCase(AFP: Pointer);
       i := 0
     else
       begin
-      lGetDir(0, SSS);
-      lChDir(PF^.Owner^);
+      SSS := PF^.Owner^;
+      MakeSlash(SSS);
+      S := SSS + S;
       lChangeFileName(S, S);
       i := IOResult;
-      lChDir(SSS);
       end;
     if i <> 0 then
       begin
@@ -2627,18 +2742,43 @@ procedure CM_SelectColumn(AFP: Pointer); {JO}
     PSetup: PPanelSetup;
     NameI: String;
     PC: TPanelClass;
-    SS: Word;
+    OldFullMenuPanelSetup: Boolean; {JO}
+    ActionMenu: PMenu;
+  const
+    ItemFlags =
+      miSubmenu or
+      miExecDefault or
+      miDoNotDisposeSubmenu or
+      miAllowChangeDefault;
+
   begin
-  Items := NewItem('~=~ ' + GetString(dlOtherPanel),
-      '', kbNoKey, 16000+11, 0,
-           NewItem('~-~ ' + GetString(dlUndoPanelSetup),
-      '', kbNoKey, 16000+12, 0, nil));
+  ActionMenu := NewMenu(
+      NewItem(GetString(dlAppearanceOnly), '', kbNoKey, cmYes, 0,
+      NewItem(GetString(dlFullPanelSetup), '', kbNoKey, cmNo, 0,
+      nil)));
+ {JO}
+  if FullMenuPanelSetup then
+    ActionMenu^.Default := ActionMenu^.Items^.Next;
+ {/JO}
+
   PC := dt2pc[P^.Drive^.DriveType];
+  Items := NewSubmenu('~-~ ' + GetString(dlUndoPanelSetup),
+      0, ActionMenu, nil);
+  Items^.Flags := ItemFlags;
+  Items^.Command := 16000 + 12;
+
+  Items := NewSubmenu('~=~ ' + GetString(dlOtherPanel),
+      0, ActionMenu, Items);
+  Items^.Flags := ItemFlags;
+  Items^.Command := 16000 + 11;
+
   for I := 10 downto 1 do
     begin
     NameI := PanelSetupTag(PanSetupPreset[i], PC);
-    Items := NewItem('~'+Char(I mod 10 + Byte('0'))+'~ ' + NameI,
-      '', kbNoKey, 16000+I, 0, Items);
+    Items := NewSubmenu('~'+Char(I mod 10 + Byte('0'))+'~ ' + NameI,
+      0, ActionMenu, Items);
+    Items^.Flags := ItemFlags;
+    Items^.Command := 16000 + i;
     if i = P^.PresetNum then
       SelectedItem := Items;
     end;
@@ -2661,19 +2801,24 @@ procedure CM_SelectColumn(AFP: Pointer); {JO}
   R.B.X := R.A.X+100;
   R.B.Y := R.A.Y+100; {R.B := R.A;}
   PV := New(PMenuBox, Init(R, Menu, nil));
+  PV^.HelpCtx := hcSelectPreset;
   Menu^.Default := SelectedItem;
   N := Desktop^.ExecView(PV);
   Dispose(PV, Done);
   DisposeMenu(Menu);
-  SS := ShiftState;
-  if N >= 16001 then
-    begin
-    if (ShiftState and (kbRightShift or kbLeftShift) <> 0) or
-      (DownButtons = mbRightButton)
-    then
-      inc(N, $10000); {см. GetParam }
-    P^.GetParam(N-16000);
-    end;
+ {JO}
+  OldFullMenuPanelSetup := FullMenuPanelSetup;
+  FullMenuPanelSetup := (ActionMenu^.Default = ActionMenu^.Items^.Next);
+  if FullMenuPanelSetup <> OldFullMenuPanelSetup then
+    ConfigModified := True;
+ {/JO}
+  DisposeMenu(ActionMenu);
+  if N = 0 then
+    Exit;
+  W := ParentItem^.Command;
+  if N <> cmYes then
+    Inc(W, $10000{см. GetParam});
+  P^.GetParam(W-16000);
   end { CM_SelectColumn }; {JO}
 
 {$IFDEF OS2}

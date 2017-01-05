@@ -988,7 +988,7 @@ procedure TCalendarView.CurDate;
 
 function TCalendarView.GetDateText: String;
   begin
-  MakeDateFull(0, FDay, Month, Year, 0, 0, Result, True);
+  MakeDateFull(FDay, Month, Year, 0, 0, Result, True);
   SetLength(Result, 10);
   end;
 

@@ -61,7 +61,7 @@ function ValidErase(Files: PCollection): Boolean;
 implementation
 uses
   Dos, Lfn {DataCompBoy}, FilesCol, Commands, Advance, Advance1, Advance2,
-  Advance3, Startup, Messages, xTime, Drivers, Tree, Memory,
+  Startup, Messages, xTime, Drivers, Tree, Memory,
   DNApp, Gauge, Views, RStrings, Dialogs, Drives, FileCopy
   , fnotify, Events
   {JO} {$IFDEF OS2}, VPUtils {$ENDIF}, FlTl
@@ -388,6 +388,7 @@ TryDel:
     iLfn: TUseLFN;
     SkipAll: Boolean;
     D: PDialog;
+    PStr1: PString;
   label LLL, DeleteDirDIZ;
 
   begin { EraseFiles }
@@ -549,7 +550,15 @@ DeleteDirDIZ:
   RereadCollection := New(PStringCollection, Init(32, 32, False));
   {сортированная, без повторов}
   for I := 0 to Files^.Count-1 do
+    begin
     RereadCollection^.Insert(PFileRec(Files^.At(I))^.Owner);
+    if PFileRec(Files^.At(I))^.Attr and Directory <> 0 then
+      begin
+      PStr1 := NewStr('>'+MakeNormName(PFileRec(Files^.At(I))^.Owner^,
+            PFileRec(Files^.At(I))^.FlName[True])+'\');
+      RereadCollection^.Insert(PStr1);
+      end;
+    end;
   S := #0;
   for I := 0 to RereadCollection^.Count-1 do
     begin
@@ -558,7 +567,8 @@ DeleteDirDIZ:
       {если уже перечитали вышележащий каталог, то этот перечитывать не надо}
       begin
       S := PS^;
-      GlobalMessage(evCommand, cmRereadTree, PS);
+      if S[1] <> '>' then
+        GlobalMessage(evCommand, cmRereadTree, PS);
       RereadDirectory(S);
       end;
     end;

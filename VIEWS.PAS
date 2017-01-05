@@ -77,6 +77,7 @@ const
   sfModal = $0200;
   sfDefault = $0400;
   sfExposed = $0800;
+  sfTagged = $1000; {<Views.004>}
 
   { TView Option masks }
 
@@ -320,13 +321,14 @@ type
   PFrame = ^TFrame;
   TFrame = object(TView)
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
+    FrameMode: Word;
     constructor Init(var Bounds: TRect);
     procedure Draw; virtual;
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure SetState(AState: Word; Enable: Boolean); virtual;
-  private
-    procedure FrameLine(var FrameBuf; Y, N: Integer; Color: Byte);
+    procedure FrameLine(var FrameBuf; Y, N: Integer; Color: Byte); virtual;
+    function GetTitleWidth: integer; virtual;
     end;
 
   { ScrollBar characters }
@@ -404,6 +406,7 @@ type
     Phase: (phFocused, phPreProcess, phPostProcess);
     Buffer: PVideoBuf;
     Clip: TRect;
+    TaggedSubviewCount: Longint; {<Views.004>}
     constructor Init(var Bounds: TRect);
     constructor Load(var S: TStream);
     destructor Done; virtual;
@@ -574,9 +577,12 @@ var
     {` счётчик модальных окон, открытых друг над другом. Влияет на
     способ открытия окна хелпа `}
 
+  TaggedDataCount: Longint; {<Views.004>}
+  TaggedDataOnly: Boolean;
+
 implementation
 uses
-  Startup, DNApp, Advance, Advance1, Advance2, Advance3, DnIni,
+  Startup, DNApp, Advance, Advance1, Advance2, DnIni,
   VpSysLow,
   Lfn, TitleSet, {DataCompBoy} {AK155 -}VideoMan
   ;
@@ -1158,7 +1164,9 @@ procedure TView.HideCursor;
 procedure TView.KeyEvent(var Event: TEvent);
   begin
   repeat
-    GetEvent(Event)
+    GetEvent(Event);
+    if Event.What = evNothing then
+      TinySlice;
   until Event.What = evKeyDown;
   end;
 
@@ -1250,7 +1258,9 @@ function TView.MouseEvent(var Event: TEvent; Mask: Word): Boolean;
     jz  Ex
   end;}
   repeat
-    GetEvent(Event)
+    GetEvent(Event);
+    if Event.What = evNothing then
+      TinySlice;
   until Event.What and (Mask or evMouseUp) <> 0;
   MouseEvent := Event.What <> evMouseUp;
 Ex:
@@ -1569,6 +1579,11 @@ procedure TFrame.FrameLine(var FrameBuf; Y, N: Integer;
     TVideoBuf(FrameBuf)[i] := Ord(FrameChars[FrameMask[i]]) or ColorMask;
   end { TFrame.FrameLine };
 
+function TFrame.GetTitleWidth: integer;
+  begin
+  GetTitleWidth := Size.X;
+  end;
+
 procedure TFrame.Draw;
   var
     CFrame, CTitle: Word;
@@ -1597,7 +1612,7 @@ procedure TFrame.Draw;
     end;
   CFrame := GetColor(CFrame);
   CTitle := GetColor(CTitle);
-  Width := Size.X;
+  Width := GetTitleWidth;
   L := Width-10;
   if PWindow(Owner)^.Flags and (wfClose+wfZoom) <> 0 then
     Dec(L, 6);
@@ -1618,6 +1633,7 @@ procedure TFrame.Draw;
     MoveBuf(B[I], Title[1], CTitle, L);
     MoveChar(B[I+L], ' ', CTitle, 1);
     end;
+  Width := Size.X;
   if State and sfActive <> 0 then
     begin
     if PWindow(Owner)^.Flags and wfClose <> 0 then
@@ -1901,7 +1917,6 @@ procedure TScrollBar.HandleEvent(var Event: TEvent);
     evMouseDown:
       begin
       Clicked;
-      ForceScroll := True;
       MakeLocal(Event.Where, Mouse);
       GetExtent(Extent);
       Extent.Grow(1, 1);
@@ -2094,9 +2109,9 @@ constructor TGroup.Load(var S: TStream);
       InsertView(V, nil);
     end;
   GetSubViewPtr(S, Cur);
-  if Cur = nil then
+//  if Cur = nil then
     {Cat}
-    Fail;
+//    Fail;
   V := Last;
   for I := 1 to Count do
     begin
@@ -2526,7 +2541,10 @@ end; {/AK155}
         begin
         V := Last;
         repeat
-          V^.GetData(Bytes(Rec)[I]);
+          if not TaggedDataOnly or (TaggedDataCount = 0) or
+             (V^.State and sfTagged <> 0)
+          then
+            V^.GetData(Bytes(Rec)[I]);
           Inc(I, V^.DataSize);
           V := V^.Prev;
         until V = Last;
@@ -2645,6 +2663,28 @@ end;
           Exit;
         Phase := phPostProcess;
         FirstThat(@DoHandleEvent);
+        end
+      else if (Event.What = evCommand) and (Event.Command = cmTagData)
+      then
+        begin
+        if TaggedSubviewCount = 0 then
+          begin
+          State := State or sfTagged;
+          Message(Owner, evCommand, cmTagData, nil);
+          end;
+        Inc(TaggedSubviewCount);
+        ClearEvent(Event);
+        end
+      else if (Event.What = evCommand) and (Event.Command = cmUntagData)
+      then
+        begin
+        Dec(TaggedSubviewCount);
+        if TaggedSubviewCount = 0 then
+          begin
+          State := State and not sfTagged;
+          Message(Owner, evCommand, cmUntagData, nil);
+          end;
+        ClearEvent(Event);
         end
       else
         begin

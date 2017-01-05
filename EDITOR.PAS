@@ -64,7 +64,7 @@ type
 implementation
 
 uses
-  Advance, Advance1, Advance2, Advance3, Dos, Dialogs, DNApp, RStrings,
+  Advance, Advance1, Advance2, Dos, Dialogs, DNApp, RStrings,
   {SBlocks,}Memory, Gauge, Startup, WinClp, Messages, Commands, Macro,
   EdWin, xTime, DnIni, DNUtil, Advance6, Calculat, FViewer {AK155}
   {$IFDEF REGEXP}, RegExp {$ENDIF}

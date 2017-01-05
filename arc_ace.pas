@@ -152,8 +152,13 @@ constructor TACEArchive.Init;
   AllVersion := q <> '0';
   q := GetVal(@Sign[1], @FreeStr[1], PPutDirs, '1');
   PutDirs := q <> '0';
+  {$IFNDEF DPMI32}
   q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '0');
   ShortCmdLine := q <> '0';
+  {$ELSE}
+  q := GetVal(@Sign[1], @FreeStr[1], PSwapWhenExec, '1');
+  SwapWhenExec := q <> '0';
+  {$ENDIF}
   {$IFNDEF OS2}
   q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '1');
   UseLFN := q <> '0';

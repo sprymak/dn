@@ -65,6 +65,9 @@ function GetDriveTypeNew(Drive: Char): TDrvTypeNew; {JO} {<fltl.001>}
 //    никогда к нему не обращаясь - используя DosDevIOCtl и не
 //    делая никаких проверок файловой системы
 
+function GetErrorText(ErrCode: Integer; var Msg: String): Boolean;
+  {` Дать текст расшифровки кода ошибки `}
+
 implementation
 
 uses
@@ -594,6 +597,21 @@ begin
       end;
 end;
 {/JO}
+
+function GetErrorText(ErrCode: Integer; var Msg: String): Boolean;
+  var
+    Len: Integer;
+    RC: Integer;
+  begin
+  Result := False;
+  RC := DosGetMessage(nil, 0, @Msg[1], 255, ErrCode, 'OSO001.MSG', Len);
+  if RC <> 0 then
+    Exit;
+  while (Len <> 0) and (Msg[Len] in [#10, #13]) do
+    Dec(Len);
+  SetLength(Msg, Len);
+  Result := Len <> 0;
+  end;
 
 begin
 DosLoadModule(nil, 0, 'NETAPI32.DLL', hNetapi32);

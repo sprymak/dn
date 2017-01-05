@@ -123,7 +123,7 @@ procedure PrintFiles(Files: PCollection; Own: PView);
 
 implementation
 uses
-  Memory, Tree, Messages, DNApp, Advance, Advance1, Advance2, Advance3,
+  Memory, Tree, Messages, DNApp, Advance, Advance1, Advance2,
   {$IFDEF OS2}Dn2PmApi, {$ENDIF} {AK155}
   {SysUtils,}
   FilesCol, RStrings, Startup, DnIni
@@ -286,6 +286,7 @@ procedure TClockView.HandleEvent;
     if Event.Double then
       begin
       InsertCalendar;
+      ClearEvent(Event);
       Exit
       end;
     {$ENDIF}
@@ -327,7 +328,7 @@ procedure TClockView.Update;
         TimeStr := ' '+FStr(MemAvail)+' '
       else
         begin
-        MakeDateFull(0, d, mn, y, 0, 0, SS, ShowCentury);
+        MakeDateFull(d, mn, y, 0, 0, SS, ShowCentury);
         if ShowCentury then
           TimeStr := Copy(SS, 1, 10)+' '
         else

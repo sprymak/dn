@@ -304,6 +304,8 @@ const
   kbCtrlAltDown = $0CA000;
   kbCtrlAltShiftDown = $0FA000;
 
+  kb2 = $000332;
+
   kbCtrl1 = $040200;
   kbAlt1 = $087800;
   kbCtrl2 = $040300;
@@ -931,7 +933,7 @@ const
   fmiDescriptionInBottom = $0200;
 
   { Common panel interior, same for all instances }
-  fmsColumnTitles = $0001;
+  fmsSortIndicator = $0001;
   fmsDriveLine = $0002;
   fmsShowScrollBar = $0004;
   fmsHiliteFiles = $0008;
@@ -986,11 +988,8 @@ const
   cfEraseSubDir = $0004;
   cfEraseReadonly = $0008;
   cfCreateSubdir = $0010;
-  cfExitCDconfirm = $0020;
-  cfMouseConfirm = $0040;
-  cfExitConfirm = $0080;
-  cfFmtOs2Warning = $0100;
-  cfChaneLngWarning = $0100;
+  cfMouseConfirm = $0020;
+  cfExitConfirm = $0040;
 
   { Column data items. See also PDSetup.FixColWidht}
 
@@ -1539,15 +1538,18 @@ const
   cmSetupPrinter = 3055;
   cmFilePrint = 3056;
   cmNavyLink = 3057;
-  cmColumnDefaultsDisk = 3058; {DataCompBoy}
+//  cmColumnDefaultsDisk = 3058; {DataCompBoy}
   cmEditQuickRun = 3060;
   cmRestart = 3061; {DataCompBoy}
-  cmColumnDefaultsFind = 3062; {DataCompBoy}
-  cmColumnDefaultsTemp = 3063; {DataCompBoy}
-  cmColumnDefaultsArch = 3064; {DataCompBoy}
-  cmColumnDefaultsArvd = 3065; {DataCompBoy}
+  cmTagData = 3062;
+  cmUntagData = 3063;
+  cmToggleTagData = 3064;
+//  cmColumnDefaultsArvd = 3065; {DataCompBoy}
   cmASCIITable = 3066;
   cmSystemInfo = 3067;
+  cmUpdateHighlight = 3068; {JO}
+  cmForceTagData = 3069;
+  cmForceUntagData = 3070;
 
   cmLoConfigArchiver = 3101;
 
@@ -1746,6 +1748,7 @@ const
   cmSortOwnerToggle = 13257; {JO}
   cmSortGrpToggle = 13258;
   cmSortInvToggle = 13259; {JO}
+  cmSortDirsByNameToggle = 13260; {AK155}
 
   { Panel sort mode }
   psmLongName = 0;
@@ -1756,6 +1759,15 @@ const
   psmLATime = 5;
   psmDIZ = 6;
   psmUnsorted = 7;
+
+{//JO: ниже идут специальные значения, которые TFilesCollection.SortMode
+ //    принимает перед использованием метода TFilesCollection.FileCompare}
+  fcmCompSize = 1; {сравнить размер файлов}
+  fcmCompTime = 2; {сравнить дату и время файлов}
+  fcmCompAttr = 4; {сравнить атрибуты файлов}
+  fcmCompContent = 8; {сравнить содержимое файлов}
+  fcmCaseSensitive = 16; {регистрочувствительное сравнение имён файлов}
+  fcmPreciseCompare = 32; {сравнение всего сразу для групповых операций}
 
   psfOwnerFirst = 1; {JO: сортировать сначала пути к файлам}
   psfSortByType = 2; {JO: сортировать сначала по группе}
@@ -2112,6 +2124,8 @@ type
     dlSortOwner, {JO}
     dlSortGroup, {JO}
     dlSortInverted, {JO}
+    dlSortDirsByName,{AK155}
+    dlSortTag, {AK155}
     dlViewQuery,
     dlViewSearchFor,
     dlViewCase,
@@ -2271,11 +2285,6 @@ type
     dlSS_A_dd,
     dlSS_R_emove,
     dlSSA_v_ailableSavers,
-    dlSS_N_ever,
-    dlSS_1_minute,
-    dlSS_2_minutes,
-    dlSS_5_minutes,
-    dlSS1_0_minutes,
     dlSS_T_ime,
     dlSSUse_M_ouse,
     dlCalculator,
@@ -2968,7 +2977,6 @@ type
     dl_Critical_EA_Copy_Fail,
     dlEditEALongname,
     dl_EALongname, {/JO}
-    dlChangeLngWarning, {JO}
     dl_Failed_to_set_volume_label, {JO}
 
     sdtError, {X-Man >>>}
@@ -3042,7 +3050,18 @@ type
     dlCodetablesErr,
     dlCoutrySetupErr,
     dlOtherPanel,
-    dlUndoPanelSetup
+    dlUndoPanelSetup,
+    dlAllPanelTypes,
+    dlCurPanelType,
+    dlAppearanceOnly,
+    dlFullPanelSetup,
+    {JO}
+    dlInBranch,
+    dlInFound,
+    dlInBranchOfArchive,
+    dlInFoundInArchive,
+    dlInList
+    {/JO}
     );
 
   TDlgIdx = (
@@ -3068,6 +3087,8 @@ type
     dlgMkDir,
     dlgFileFind,
     dlgArcFileFind,
+    dlgFoundFileFind,
+    dlgFoundArcFileFind,
     dlgEditorReplace,
     dlgEditorFind,
     dlgEditorFormat,
@@ -3106,9 +3127,7 @@ type
     dlgEditorCommands,
     dlgEditorMenu,
     dlgGotoAddress,
-    dlgCDOptions,
     dlgPhoneBook,
-    dlgDenie,
     dlgManualDial,
     dlgCalculator,
     dlgWindowManager,

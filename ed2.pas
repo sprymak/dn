@@ -443,7 +443,7 @@ destructor TAttrBufStream.Done;
   end;
 
 {-DataCompBoy-}
-function CheckForOver(Name: String): PStream;
+function CheckForOver(Name: String): PStream; {<Microed2.001>}
   var
     S: PAttrBufStream;
     F: lFile;
@@ -543,6 +543,17 @@ function CheckForOver(Name: String): PStream;
   S := nil;
   if Abort then
     Exit;
+{AK155 13/03/2006
+  Полезность CreateBackup очень сомнительна. Сюда можно попасть
+только если при открытии с stOpen получился Status <> 0, что, скорее
+всего, обозначает, что файла нет, то есть Backup не нужен. Из других
+причин Status <> 0 приходит в голову только нехватка памяти на буфер.
+Так в этом случае надо не бэкап создавать, а что-то с памятью
+придумывать, поскольку при открытии с stCreate памяти опять таки
+не хватит, но пользователю мы этого не скажем, и, более того,
+можно, наверно, упасть в CantWrite или не выдать никакого сообщения.
+  Так что лучше бы проанализировать причину Status <> 0 и сделать
+что-то более осмысленное, чем то, что тут имеется сейчас. }
   if EditorDefaults.EdOpt and ebfCBF <> 0 then
     CreateBackup;
   New(S, Init(Name, stCreate, 4096));

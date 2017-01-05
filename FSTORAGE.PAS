@@ -52,7 +52,7 @@ interface
 
 uses
   Lfn, Files,
-  Objects2, Streams, Advance, Advance1, Advance2, Advance3, Dos, FilesCol
+  Objects2, Streams, Advance, Advance1, Advance2, Dos, FilesCol
   ;
 
 type
@@ -103,7 +103,6 @@ type
     procedure ResetPointer(const Dir: String);
     function GetNextFile: Boolean;
     procedure UpdateRecord;
-    procedure DosReread;
     procedure DeleteFile(P: PFileRec);
     procedure InitStream(X, E, M: LongInt);
     procedure Truncate(N: LongInt);
@@ -241,8 +240,7 @@ procedure TDirStorage.AddFile;
   if  (FName <> #0) and (FName <> '') then
     begin
     lFSplit(FName, Dr, Nm, Xt);
-    if Dr[Length(Dr)] <> '\' then
-      AddStr(Dr, '\');
+    MakeSlash(Dr);
     if  (UpStrg(CurDir) <> UpStrg(Dr)) then
       begin
       CurDir := Dr;
@@ -296,8 +294,7 @@ procedure TDirStorage.ResetPointer;
   FillChar(CurFile, SizeOf(CurFile), 0);
   CurDir := Dir;
   LastDir := '';
-  if  (CurDir <> '') and (CurDir[Length(CurDir)] <> '\') then
-    AddStr(CurDir, '\');
+  MakeSlash(CurDir);
   end;
 
 {-DataCompBoy-}
@@ -405,72 +402,13 @@ procedure TDirStorage.Store;
   end;
 
 {-DataCompBoy-}
-procedure TDirStorage.DosReread;
-  var
-    SF: TStoredFile;
-    ST: TStored absolute SF;
-    Dr: String;
-    L, B: LongInt;
-    SR: lSearchRec;
-  begin
-  Last := False;
-  Dr := '';
-  Stream^.Status := stOK;
-  vSeek(0);
-  while Stream^.Status = stOK do
-    begin
-    L := vSavePos;
-    vRead(SF, TStoredFixLength);
-    if ST.len > TStoredFixLength then
-      vRead(SF.Name, ST.len-TStoredFixLength);
-    case ST.Id of
-      siDirectory:
-        Dr := SF.Name;
-      siEnd:
-        Break;
-      siFile, siFileDir:
-        begin
-        Abort := False;
-        DosError := 0;
-        lFindFirst(Dr+SF.Name, AnyFileDir, SR); {JO}
-        lFindClose(SR);
-        TotalLength := TotalLength-SF.Size;
-        if  (DosError <> 0) or Abort then
-          begin
-          Dec(Files);
-          if ST.Id = siFileDir then
-            Dec(Dirs);
-          ST.Id := siEmpty;
-          vSeek(L);
-          vWrite(SF, ST.len);
-          end
-        else if (SR.FullSize <> SF.Size) or (SR.SR.Time <> SF.Date)
-             or (SR.SR.Attr <> SF.Attr)
-        then
-          begin
-          TotalLength := TotalCLength-SR.FullSize;
-          SF.Size := SR.FullSize;
-          SF.CSize := SR.FullSize;
-          SF.Date := SR.SR.Time;
-          SF.Attr := SR.SR.Attr;
-          vSeek(L);
-          vWrite(SF, ST.len);
-          end;
-        end;
-    end {case};
-    end;
-  end { TDirStorage.DosReread };
-{-DataCompBoy-}
-
-{-DataCompBoy-}
 procedure TDirStorage.DeleteFile;
   var
     Dr: String;
     Nm: String;
   begin
   Dr := P^.Owner^;
-  if Dr[Length(Dr)] <> '\' then
-    AddStr(Dr, '\');
+  MakeSlash(Dr);
   ResetPointer('');
   Nm := UpStrg(P^.FlName[True]);
   while not Last and GetNextFile do

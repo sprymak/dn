@@ -107,7 +107,7 @@ procedure DispatchEvents(InfoView: PWhileView; var CancelParam: Boolean);
 
 implementation
 uses
-  DNApp, RStrings, Commands, Advance, Advance1, Advance2, Advance3
+  DNApp, RStrings, Commands, Advance, Advance1, Advance2
   ;
 
 constructor TPercentGauge.Init(var Bounds: TRect; AMaxValue: LongInt);

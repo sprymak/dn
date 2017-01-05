@@ -353,7 +353,6 @@ type
     SelectDrive: function (X, Y: Integer; Default: Char;
        IncludeTemp: Boolean): String;
     GetFileType: function (const S: String; Attr: Byte): Integer;
-    DosReread: procedure (Files: PFilesCollection);
 
     SearchFileStr: function (F: PStream; var XLAT: TXlat;
        const What: String; Pos: LongInt;
@@ -611,7 +610,6 @@ const
 
     SelectDrive: FilesCol.SelectDrive;
     GetFileType: FileType.GetFileType;
-    DosReread: FilesCol.DosReread;
 
     SearchFileStr: FViewer.SearchFileStr;
     MakeListFile: Filelst.MakeListFile;

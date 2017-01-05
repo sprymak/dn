@@ -68,18 +68,18 @@ const
 
   CGrayDialog = #32#33#34#35#36#37#38#39#40#41#42#43#44#45#46#47+
   #48#49#50#51#52#53#54#55#56#57#58#59#60#61#62#63+
-  #178#179#128#129;
+  #178#179#128#129#132;
   CRedDialog = #32#214#214#35#36#215#38#39#40#216#216#217#218#219#220#47+
   #48#49#50#51#52#53#54#55#56#57#58#59#60#61#62#63+
-  #221#219#128#129;
+  #221#219#128#129#132;
   CCyanDialog = #96#97#98#99#100#101#102#103#104#105#106#107#108+
   #109#110#111#112#113#114#115#116#117#118#119#120+
-  #121#122#123#124#125#126#127#126#127#128#129;
+  #121#122#123#124#125#126#127#126#127#128#129#132;
 
   CDialog = CGrayDialog;
 
   CStaticText = #6;
-  CLabel = #7#8#9#9;
+  CLabel = #7#8#9#9#37;
   CButton = #10#11#12#13#14#34#33#15;
   CCluster = #16#17#18#18#31;
   CInputLine = #19#19#20#21;
@@ -87,6 +87,11 @@ const
   CHistoryWindow = #19#19#21#24#25#19#20;
   CHistoryViewer = #6#6#7#6#6;
   CComboBox = #35#36;
+  COwner: String[Length(CDialog)] = #1#2#3#4#5#6#7#8#9#10 +
+           #11#12#13#14#15#16#17#18#19#20 +
+           #21#22#23#24#25#26#27#28#29#30+
+           #31#32#33#34#35#36#37;
+    { Все цвета - как у Owner. Размер палитры как у CDialog }
 
   { TDialog palette entires }
 
@@ -472,6 +477,7 @@ type
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure Store(var S: TStream);
+    procedure FocusLink; virtual;
     end;
 
   { THistoryViewer }
@@ -544,9 +550,9 @@ type
   {`2 Комбобкс с выбором только из списка, без возможности редактирования.
         Допускается до 10 вариантов. Они соответствуют командам
     1601..1610 строго согласно позиции в выпадающем меню.
-        Способа задизейблить некоторые из этих команд пока нет. Если
-    понадобится - надо будет разбираться с UpdateMenu в модуле Menus.
-    Можно попробовать виртуализировать TView.MenuEnabled. }
+        Способа задизейблить сами команды команд нет, но пункты меню
+    можно сделать неактивными непосредственно: установить бит miDisabled
+    в соответствующих TMenuItem.Flags) }
   TComboBox = object(TView)
     Selected: Word; // текущий номер варианта (нумерация от 1)
     Count: Word; { не отрывать от Selected! См. Load,Store}
@@ -567,6 +573,66 @@ type
     end;
   {`}
 
+type
+  PBookmark = ^TBookmark;
+    {` см. TBookmark `}
+
+  PPage = ^TPage;
+    {`2 Cтраница блокнота со страницами TNotepas }
+  TPage = object(TDialog)
+    Bookmark: PBookmark;
+    PrevPage: PPage;
+      { циклический список }
+    procedure InitFrame; virtual;
+    procedure HandleEvent(var Event: TEvent); virtual;
+    function GetPalette: PPalette; virtual;
+    constructor Load(var S: TStream);
+    procedure Store(var S: TStream);
+    end;
+    {`}
+
+  TBookmark = Object(TLabel)
+    {` Закладка страницы блокнота со страницами TNotepas }
+    constructor Init(var Bounds: TRect; AText: String; ALink: PView);
+    procedure Draw; virtual;
+    procedure FocusLink; virtual;
+    end;
+    {`}
+
+  PPageFrame = ^TPageFrame;
+    {`2 Полотно страницы блокнота со страницами TNotepas }
+  TPageFrame = object(TView)
+    function GetPalette: PPalette; virtual;
+    procedure Draw; virtual;
+    end;
+    {`}
+
+  PNotepad = ^TNotepad;  {<dialogs.001>}
+    {`2 Диалог-блокнот со страницами }
+  TNotepad = object(TDialog)
+    Page: array[0..9] of PPage;
+    BookmarkStart: integer; { X-коррдината левой линии закладок }
+    ActivePage: Integer;
+    NumPages: Integer;
+    constructor Init(var Bounds: TRect; ATitle: TTitleStr;
+      ABookmarkStart: integer);
+    function NewPage(const ATitle: String): PPage;
+    procedure InitFrame; virtual;
+    constructor Load(var S: TStream);
+    procedure Store(var S: TStream);
+    procedure GetData(var Rec); virtual;
+    procedure SetData(var Rec); virtual;
+    end;
+    {`}
+
+  PNotepadFrame = ^TNotepadFrame;
+    {`2 Полотно и рамка блокнота со страницами }
+  TNotepadFrame = object(TFrame)
+    procedure FrameLine(var FrameBuf; Y, N: Integer; Color: Byte); virtual;
+    function GetTitleWidth: integer; virtual;
+    end;
+    {`}
+
   { SItem routines }
 
 function NewSItem(const Str: String; ANext: PSItem): PSItem;
@@ -574,7 +640,7 @@ function NewSItem(const Str: String; ANext: PSItem): PSItem;
 implementation
 
 uses
-  ASCIITab, HistList, Advance, Advance1, Advance2, Advance3, Commands,
+  ASCIITab, HistList, Advance, Advance1, Advance2, Commands,
   Startup, xTime, FlPanelX, DNApp, Objects2
   {, Crt}, VpSysLow
   ;
@@ -1093,6 +1159,12 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
           end
         else
           ExtendBlock := False;
+        if fASCIITable then
+          begin
+          InsChar(Event.CharCode);
+          ClearEvent(Event);
+          Exit;
+          end;
         case Event.KeyCode of
           kbAltF12:
             Encode(LayoutConvXlat);
@@ -1269,24 +1341,21 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
             end;
           kbIns:
             SetState(sfCursorIns, State and sfCursorIns = 0);
+          kbCtrlP, kbCtrlB:
+            begin
+            ASCIITable;
+            ClearEvent(Event);
+            end;
+          kbCtrlY:
+            begin
+            Data:= '';
+            CurPos := 0;
+            end;
           else {case}
-            case Event.CharCode of
-              ' '..#254:
-                InsChar(Event.CharCode);
-              ^P, ^B:
-                begin
-                ASCIITable;
-                ClearEvent(Event);
-                end;
-              ^Y:
-                begin
-                Data:= '';
-                CurPos := 0;
-                end;
-              else {case}
-                Exit;
-            end
-
+            if Event.CharCode >= ' ' then
+              InsChar(Event.CharCode)
+            else
+              Exit;
         end {case};
         if ExtendBlock then
           AdjustSelectBlock
@@ -2437,7 +2506,7 @@ constructor TLabel.Init(var Bounds: TRect; const AText: String;
   TStaticText.Init(Bounds, AText);
   Link := ALink;
   Options := Options or (ofPreProcess+ofPostProcess);
-  EventMask := EventMask or evBroadcast;
+  EventMask := EventMask or evBroadcast or evCommand;
   end;
 
 constructor TLabel.Load(var S: TStream);
@@ -2448,9 +2517,10 @@ constructor TLabel.Load(var S: TStream);
 
 procedure TLabel.Draw;
   var
-    Color: Word;
+    Color, Color1: Word;
     B: TDrawBuffer;
     SCOff: Byte;
+    C: Char;
   begin
   if Light then
     begin
@@ -2462,7 +2532,15 @@ procedure TLabel.Draw;
     Color := GetColor($0301);
     SCOff := 4;
     end;
-  MoveChar(B[0], ' ', Byte(Color), Size.X);
+
+  C := ' '; Color1 := Color;
+  if (Link <> nil) and (Link^.State and sfTagged <> 0) then
+    begin
+    C := '■';
+    Color1 := GetColor(5);
+    end;
+  MoveChar(B[0], C, Byte(Color1), 1);
+  MoveChar(B[1], ' ', Byte(Color), Size.X-1);
   if Text <> nil then
     MoveCStr(B[1], Text^, Color);
   if ShowMarkers then
@@ -2477,21 +2555,63 @@ function TLabel.GetPalette: PPalette;
   GetPalette := @P;
   end;
 
+procedure TLabel.FocusLink;
+  begin
+  if  (Link <> nil) and (Link^.Options and ofSelectable <> 0) then
+    Link^.Focus;
+  end;
+
 procedure TLabel.HandleEvent(var Event: TEvent);
   var
     C: Char;
 
-  procedure FocusLink;
+  procedure ToggleTag;
     begin
-    if  (Link <> nil) and (Link^.Options and ofSelectable <> 0) then
-      Link^.Focus;
-    ClearEvent(Event);
+    Link^.State := Link^.State xor sfTagged;
+    if Link^.State and sfTagged <> 0 then
+      begin
+      Message(Link^.Owner, evCommand, cmTagData, nil);
+      Inc(TaggedDataCount);
+      end
+    else
+      begin
+      Message(Link^.Owner, evCommand, cmUntagData, nil);
+      Dec(TaggedDataCount);
+      end;
+    Draw;
     end;
 
   begin
   TStaticText.HandleEvent(Event);
   if Event.What = evMouseDown then
-    FocusLink
+    begin
+    if Link <> nil then
+      begin
+      if (Event.Buttons and mbRightButton <> 0) and TaggedDataOnly then
+        ToggleTag
+      else
+        FocusLink;
+      end;
+    ClearEvent(Event);
+    end
+  else if (Link <> nil) and (Event.What = evCommand) then
+    case Event.Command of
+      cmToggleTagData:
+        begin
+        if Light then
+          begin
+          ToggleTag;
+          ClearEvent(Event);
+          end;
+        end;
+      cmForceTagData, cmForceUntagData:
+        begin
+        if (Link^.State and sfTagged <> 0) <> (Event.Command = cmForceTagData)
+        then
+          ToggleTag;
+        ClearEvent(Event);
+        end;
+    end {case}
   else if Event.What = evKeyDown then
     begin
     if Text <> nil then
@@ -2505,7 +2625,10 @@ procedure TLabel.HandleEvent(var Event: TEvent);
               (UpCaseArray[GetAltChar(Event.KeyCode and $FFFF00)] = C)
             )))
     then
-      FocusLink
+      begin
+      FocusLink;
+      ClearEvent(Event);
+      end
     end
   else if Event.What = evBroadcast then
     if  ( (Event.Command = cmReceivedFocus) or
@@ -3224,6 +3347,7 @@ procedure TComboBox.HandleEvent(var Event: TEvent);
       end;
     New(MB, Init(R, Menu, nil));
     MB^.Menu^.Default := Items[Selected];
+    MB^.ComboBoxPal := True;
     C := Application^.ExecView(MB);
     if C <> 0 then
       begin
@@ -3247,7 +3371,7 @@ procedure TComboBox.HandleEvent(var Event: TEvent);
           begin
           repeat
             Selected := Selected mod Count + 1;
-          until not Items[Selected]^.Disabled;
+          until (Items[Selected]^.Flags and miDisabled) = 0;
           ClearEvent(Event);
           Draw;
           end;
@@ -3257,7 +3381,7 @@ procedure TComboBox.HandleEvent(var Event: TEvent);
             if Selected <= 1
               then Selected := Count
                 else Selected := Selected - 1;
-          until not Items[Selected]^.Disabled;
+          until (Items[Selected]^.Flags and miDisabled) = 0;
           ClearEvent(Event);
           Draw;
           end;
@@ -3332,4 +3456,274 @@ procedure TComboBox.Store(var S: TStream);
 
 { \------------------ TComboBox ----------------/ }
 
+{ /------------------ TNotepad -----------------\ }
+
+procedure TPage.InitFrame;
+  var
+    R: TRect;
+  begin
+  GetExtent(R);
+  Frame := PFrame(New(PPageFrame, Init(R)));
+  end;
+
+function TPage.GetPalette: PPalette;
+  begin
+  Result := @COwner;
+  end;
+
+procedure TPage.HandleEvent(var Event: TEvent);
+  var
+    i: Integer;
+  label
+    SelectPage;
+  begin
+  if (Event.What = evKeyDown) then
+    begin
+    case Event.KeyCode of
+      kbCtrlShiftTab:
+       begin
+       with PNotepad(Owner)^ do
+         i := ActivePage + NumPages - 1;
+       goto SelectPage;
+       end;
+      kbCtrlTab:
+       begin
+       with PNotepad(Owner)^ do
+         i := ActivePage + 1;
+SelectPage:
+       with PNotepad(Owner)^ do
+         begin
+         i := i mod NumPages;
+         ActivePage := i;
+         with Page[i]^ do
+           begin
+           Bookmark^.MakeFirst;
+           Show;
+           Select;
+           end;
+         end;
+       ClearEvent(Event);
+       Exit;
+       end;
+    end;
+    end {case};
+  inherited HandleEvent(Event);
+  end {TPage.HandleEvent};
+
+constructor TPage.Load(var S: TStream);
+  begin
+  inherited Load(S);
+  GetPeerViewPtr(S, Bookmark);
+  GetPeerViewPtr(S, PrevPage);
+  end;
+
+procedure TPage.Store(var S: TStream);
+  begin
+  inherited Store(S);
+  PutPeerViewPtr(S, Bookmark);
+  PutPeerViewPtr(S, PrevPage);
+  end;
+
+constructor TBookmark.Init(var Bounds: TRect; AText: String; ALink: PView);
+  begin
+  inherited Init(Bounds, AText, ALink);
+  PPage(ALink)^.Bookmark := @Self;
+  end;
+
+procedure TBookmark.FocusLink;
+  var
+   i: integer;
+   P: PPage;
+  begin
+  Owner^.Lock;
+  Link^.Focus;
+  MakeFirst;
+  with PNotepad(Owner)^ do
+    begin
+    ActivePage := 0;
+    while Page[ActivePage] <> Link do
+      Inc(ActivePage);
+    end;
+  Owner^.UnLock;
+  end;
+
+constructor TNotepad.Init(var Bounds: TRect; ATitle: TTitleStr;
+     ABookmarkStart: integer);
+  begin
+  inherited Init(Bounds, ATitle);
+  BookmarkStart := ABookmarkStart;
+  end;
+
+procedure TNotepad.InitFrame;
+  var
+    R: TRect;
+  begin
+  GetExtent(R);
+  Frame := PFrame(New(PNotepadFrame, Init(R)));
+  end;
+
+function TNotepad.NewPage(const ATitle: String): PPage;
+  var
+    R: TRect;
+  begin
+  GetExtent(R);
+  R.Grow(-1, -1);
+  R.B.X := BookmarkStart;
+  New(Result, Init(R, ''));
+  Result.Flags := 0;
+  Result.State := Result.State and not sfShadow;
+  Page[NumPages] := Result;
+  Inc(NumPages);
+  Insert(Result);
+  R.A.X := BookmarkStart;
+  R.B.X := Size.X-1;
+  R.A.Y := 2*NumPages - 1;
+  R.B.Y := R.A.Y + 3;
+  Insert(New(PBookmark, Init(R, ATitle, Result)));
+  end {TNotepad.NewPage};
+
+constructor TNotepad.Load(var S: TStream);
+  var
+    i: Integer;
+  const
+    L = SizeOf(BookmarkStart) + SizeOf(ActivePage) + SizeOf(NumPages);
+  begin
+  inherited Load(S);
+  S.Read(BookmarkStart, L);
+  for i := 0 to NumPages-1 do
+    GetSubViewPtr(S, Page[i]);
+  Page[0]^.Bookmark^.FocusLink;
+  end;
+
+procedure TNotepad.Store(var S: TStream);
+  var
+    i: Integer;
+  const
+    L = SizeOf(BookmarkStart) + SizeOf(ActivePage) + SizeOf(NumPages);
+  begin
+  inherited Store(S);
+  S.Write(BookmarkStart, L);
+  for i := 0 to NumPages-1 do
+    PutSubViewPtr(S, Page[i]);
+  S.Write(BookmarkStart, L);
+  end;
+
+procedure TNotepad.GetData(var Rec);
+  type
+    Bytes = array[0..65534] of Byte;
+  var
+    i, l: Integer;
+  begin
+  l := 0;
+  for i := 0 to NumPages-1 do
+    begin
+    Page[i]^.GetData(Bytes(Rec)[l]);
+    Inc(l, Page[i]^.DataSize);
+    end;
+  end;
+
+procedure TNotepad.SetData(var Rec);
+  type
+    Bytes = array[0..65534] of Byte;
+  var
+    i, l: Integer;
+  begin
+  l := 0;
+  for i := 0 to NumPages-1 do
+    begin
+    Page[i]^.SetData(Bytes(Rec)[l]);
+    Inc(l, Page[i]^.DataSize);
+    end;
+  end;
+
+function TNotepadFrame.GetTitleWidth: integer;
+  begin
+  Result := PNotepad(Owner)^.BookmarkStart;
+  end;
+
+procedure TNotepadFrame.FrameLine(var FrameBuf; Y, N: Integer; Color: Byte);
+  var
+    B: array[0..512] of Char absolute FrameBuf;
+    i: integer;
+    BMStart: integer;
+    C: Char;
+  begin
+  inherited FrameLine(FrameBuf, Y, N, Color);
+  BMStart := PNotepad(Owner)^.BookmarkStart;
+  if Y = 0 then
+    C :=  '╗'
+  else if Y = Size.Y-1 then
+    C :=  '╝'
+  else
+    C :=  '║';
+  B[2*BMStart] := C;
+  for i := BMStart+1 to Size.X-1 do
+    B[2*i] := ' ';
+  end;
+
+const
+  FrameC: array[boolean] of record
+       H: Char; // горизонтальная линия
+       C0,  // верхние углы (слева и справа)
+       C1,  // вертикальные линии
+       C2:  // нижние углы
+         array[1..2] of char;
+       end =
+    ((H: '─'; C0: ('╟', '┤'); C1: ('║', '│'); C2: ('╟', '┘') ),
+     (H: '═'; C0: ('╚', '╗'); C1: (' ', '║'); C2: ('╔', '╝') )
+    );
+
+procedure TBookmark.Draw;
+  var
+    B: TDrawBuffer;
+    LineColor: Byte;
+    TextColor: Word;
+    C: Char;
+  begin
+  TextColor := GetColor($0301);
+  LineColor := Owner^.GetColor(2);
+  with FrameC[Light] do
+    begin
+    { Снять заусенец на правом верхнем углу верхней неактивной закладки }
+    if not Light and (Origin.Y = 1) then
+      C := '┐'
+    else
+      C := C0[2];
+
+    MoveChar(B[0], C0[1], LineColor, 1);
+    MoveChar(B[1], H, LineColor, Size.X-2);
+    MoveChar(B[Size.X-1], C, LineColor, 1);
+    WriteLine(0, 0, Size.X, 1, B);
+
+    MoveChar(B[0], C2[1], LineColor, 1);
+    MoveChar(B[1], H, LineColor, Size.X-2);
+    MoveChar(B[Size.X-1], C2[2], LineColor, 1);
+    WriteLine(0, Size.Y-1, Size.X, 1, B);
+
+    MoveChar(B[1], ' ', TextColor, Size.X-2);
+    MoveChar(B[Size.X-1], C1[2], LineColor, 1);
+    if Light then
+      TextColor := GetColor($0402);
+    MoveChar(B[0], C1[1], LineColor, 1);
+    MoveCStr(B[1], Text^, TextColor);
+    WriteLine(0, 1, Size.X, 1, B);
+    end;
+  end;
+
+function TPageFrame.GetPalette: PPalette;
+  begin
+  Result := @COwner;
+  end;
+
+procedure TPageFrame.Draw;
+  var
+    i: integer;
+    B: TDrawBuffer;
+  begin
+  MoveChar(B[0], ' ', GetColor(1), Size.X);
+  for i := 0 to Size.Y-1 do
+    WriteLine(0, i, Size.X, 1, B);
+  end;
+
+{ \------------------ TNotepad -----------------/ }
 end.

@@ -130,10 +130,7 @@ procedure TdrSeekDirectory;
       if  (DD.Level < Lv) or (DD.Level = 0) then
         Break;
       Insert('.', SS, 9);
-      if  (CurDir[Length(CurDir)] <> '\') and
-          (CurDir <> '')
-      then
-        AddStr(CurDir, '\');
+      MakeSlash(CurDir);
       CurDir := CurDir+TdrMakeFileName(SS);
       CurDirPos := Stream^.GetPos;
       CurLevel := Lv;

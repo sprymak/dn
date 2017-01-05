@@ -153,7 +153,7 @@ implementation
 
 uses
   Views, Dialogs, DNApp, DNHelp, Advance, Advance1, Advance2,
-  Advance3, {Tree, }Drives, Startup
+  Drives, Startup
   ;
 
 procedure ErrMsg(Index: TStrIdx);
@@ -417,7 +417,7 @@ function MessageBox2Rect;
   end { MessageBox2Rect };
 
 function SysErrorMessageBoxRect(var R: TRect; Msg: String;
-    {Params: Pointer;}
+    {Params: Pointer;} ErrCode: Integer;
     AOptions: Word): Word;
   const
     Cmds: array[0..2] of Word =
@@ -430,6 +430,7 @@ function SysErrorMessageBoxRect(var R: TRect; Msg: String;
     ButtonList: array[0..4] of PView;
     PP: TPoint;
     Event: TEvent;
+    TitleString, S: string;
 
   procedure AddButton;
     var
@@ -451,7 +452,13 @@ function SysErrorMessageBoxRect(var R: TRect; Msg: String;
     end;
 
   begin { SysErrorMessageBoxRect }
-  Dialog := New(PDialog, Init(R, GetString(dlCE_ErrWndTitle)));
+  TitleString := GetString(dlCE_ErrWndTitle);
+  if ErrCode <> 0 then
+    begin
+    Str(ErrCode, S);
+    TitleString := TitleString + ' ' + S;
+    end;
+  Dialog := New(PDialog, Init(R, TitleString));
   Dialog^.HelpCtx := hcNoContext;
   Dialog^.Palette := dpRedDialog;
   with Dialog^ do
@@ -517,7 +524,7 @@ function MessageBox;
   R.Assign(0, 0, l+6, i+7);
   R.Move((Desktop^.Size.X-R.B.X) div 2, (Desktop^.Size.Y-R.B.Y) div 2);
   if  (AOptions and $7) = mfSysError then
-    MessageBox := SysErrorMessageBoxRect(R, Msg, AOptions)
+    MessageBox := SysErrorMessageBoxRect(R, Msg, Integer(Params), AOptions)
   else
     MessageBox := MessageBoxRect(R, Msg, Params, AOptions);
   end { MessageBox };

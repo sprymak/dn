@@ -147,10 +147,11 @@ const
   #102#103+ { 23,24  Disk info (NT, HT)       }
   #119#120#121#122+
   #123#124#125+ { 25-31  File Info                }
-  #165+ { 32-38  File Panel               }
-  #172#173#174#175#176#177#180#181+
-  #186#187#188+#192#193#194#195#196 { Drive Line };
-  {JO - 5 additional highlight groups}
+  #165+ { 32  File Panel               }
+  #172#173#174#175#176#177#180#181+ { 33-40 Highlight groups}
+  #186#187#188+ { 41-43 Drive Line }
+  #192#193#194#195#196+ { 44-48 JO - 5 additional highlight groups}
+  #130#131; { 49,50 JO - File Info (LFN in footer)}
 
 const
   dtPanel = 1;
@@ -165,7 +166,7 @@ const
 implementation
 uses
   DiskInfo, Commands, FileCopy, FilesCol, Advance, Advance1, Advance2,
-  Advance3, Startup, DNApp, RStrings, {DataCompBoy}Messages
+  Startup, DNApp, RStrings, TopView_
   {$IFDEF NETINFO}, NetInfo {-$VIV} {$ENDIF}
   , Dos
   ;
@@ -211,6 +212,7 @@ procedure TDoubleWindow.InitPanel(N: TPanelNum; R: TRect);
     P: PFilePanel;
     P1: PInfoView;
     P2: PDirView;
+    P3: PSortView;
     PD: PDriveLine;
     B: TRect;
   begin
@@ -240,12 +242,18 @@ procedure TDoubleWindow.InitPanel(N: TPanelNum; R: TRect);
   P^.DirView := P2;
   P2^.EventMask := $FFFF;
 
+  New(P3, Init(R));
+  P3^.Panel := P;
+  P^.SortView := P3;
+  P3^.EventMask := evMouseDown;
+
   New(PD, Init(R, P));
   P^.DriveLine := PD;
 
   P^.ChangeBounds(R);
 
   Insert(PV);
+  Insert(P3);
   Insert(P2);
   Insert(P1);
   Insert(P);

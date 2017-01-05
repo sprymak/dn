@@ -185,7 +185,7 @@ procedure TDefCollection.ProceedFile;
 
 function TDefCollection.IsDef(Name: String): Boolean;
   var
-    I: CondInt;
+    I: LongInt;
   begin
   UpStr(Name);
   IsDef := Search(@Name, I);
@@ -193,7 +193,7 @@ function TDefCollection.IsDef(Name: String): Boolean;
 
 procedure TDefCollection.Def(Name: String);
   var
-    I: CondInt;
+    I: LongInt;
   begin
   UpStr(Name);
   if not Search(@Name, I) then
@@ -202,7 +202,7 @@ procedure TDefCollection.Def(Name: String);
 
 procedure TDefCollection.Undef(Name: String);
   var
-    I: CondInt;
+    I: LongInt;
   begin
   UpStr(Name);
   if Search(@Name, I) then

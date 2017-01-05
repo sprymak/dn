@@ -142,7 +142,7 @@ type
 const
   CPanel = #6#7#8#9#10#32#33#34#35#36#37#38#39#40#44#45#46#47#48; {JO}
   CTopView = #11#12;
-  CInfoView = #25#26#27#28#29#30#31;
+  CInfoView = #25#26#27#28#29#30#31#49#50;
   CDriveLine = #41#42#43;
 
 (* AK155 16.05.05
@@ -168,7 +168,7 @@ uses
   Lfn, DNUtil, DNApp, Advance, Advance1, Advance2, Advance3, Startup,
   Memory, FileCopy, Messages, Menus, DiskInfo, Dialogs, Commands,
   HistList, Tree, FBB, RStrings, ArcView, CmdLine, Histries, Archiver,
-  Gauges, Gauge, FileFind, FLTools, DnIni, XDblWnd, DblWnd
+  Gauges, Gauge, FileFind, FLTools, DnIni, XDblWnd, DblWnd, Filediz
   {$IFDEF UUENCODE}
   , UUCode
   {$ELSE}
@@ -339,7 +339,7 @@ procedure TDriveLine.HandleEvent;
       Manager: PDoubleWindow;
     const
       HideCommand: array[TPanelNum] of Word =
-	 (cmHideLeft, cmHideRight);
+         (cmHideLeft, cmHideRight);
     begin
     Manager := PDoubleWindow(Panel^.Owner);
     { Если панель распахнута, то операция применяется к ней, независимо
@@ -351,11 +351,11 @@ procedure TDriveLine.HandleEvent;
     if (Event.Buttons and mbLeftButton <> 0) or
       not TargetPanel^.GetState(sfVisible)
     then { левая кнопка мыши или операция со скрытой панелью:
-	   скрытие/показ, как Ctrl-F1/F2}
+           скрытие/показ, как Ctrl-F1/F2}
       Message(Owner, evCommand, HideCommand[T], nil)
     else
       begin { правая кнопка мыши: активизация и
-	  распахивание/восстановление (как Alt-Ctrl-Z) }
+          распахивание/восстановление (как Alt-Ctrl-Z) }
       TargetPanel^.Select;
       Message(TargetPanel^.Owner, evCommand, cmMaxi, nil);
       end;
@@ -426,14 +426,11 @@ procedure TDriveLine.HandleEvent;
         begin
         case ViewLine[P.X+1] of
           'A'..'Z':
-            begin
-            FreeStr := ViewLine[P.X+1]+':\';
-            Message(Panel, evCommand, cmChangeDirectory, @FreeStr);
-            end;
+            Panel^.ChDir(ViewLine[P.X+1]+':\');
           '}':
-	     Scroll(+1); // без этого быстрые клики на скобке не работают
+             Scroll(+1); // без этого быстрые клики на скобке не работают
           '{':
-	     Scroll(-1); // аналогично
+             Scroll(-1); // аналогично
         end {case};
         end
       else if ViewLine[P.X+1] = Panel^.DirectoryName[1]
@@ -459,13 +456,13 @@ procedure TDriveLine.HandleEvent;
             Message(Panel, evCommand, cmChangeDrv, @FreeStr);
             end;
           '[':
-	     BracketClick(pLeft);
+             BracketClick(pLeft);
           ']':
-	     BracketClick(pRight);
+             BracketClick(pRight);
           '}':
-	     Scroll(+1);
+             Scroll(+1);
           '{':
-	     Scroll(-1);
+             Scroll(-1);
         end {case};
       ClearEvent(Event);
       end;
@@ -508,8 +505,8 @@ function TFilePanel.GetPalette;
 
 var
   Idx, CurPos, i, j: LongInt;
-  C, C1, C2, C3, C4, C5, C6, C7: Byte;
-  C2_3: AWord;
+  C, C1, C2, C3, C4, C5, C6, C7, C8, C9: Byte;
+  C2_3, C8_9: AWord;
   B: array[0..300] of AWord;
   B1: array[0..200] of record
     C: Char;
@@ -790,9 +787,12 @@ Scroll:
     else
       begin
       MoveChar(B[JJ], ' ', C1, LineLength);
-      GetEmpty(B[JJ], Cs);
+      GetEmpty(B[JJ], Cs, False);
       end;
     end { DrawAtIdx };
+
+  var
+    ColumnTitles: Boolean;
 
   begin { TFilePanel.Draw }
   if DrawDisableLvl > 0 then
@@ -845,10 +845,12 @@ Scroll:
       HLC[i] := C1; {JO}
   CS := 179+C2 shl 8;
   CW := 32+C2 shl 8;
-  PgS := (Size.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0))
+
+  ColumnTitles := (Pansetup^.Show.MiscOptions and 2) <> 0;
+  PgS := (Size.Y-Byte(ColumnTitles))
         *((Size.X+1) div LineLength);
   if PgS = 0 then
-    PgS := (Size.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0));
+    PgS := (Size.Y-Byte(ColumnTitles));
   ScrollBar^.PgStep := PgS;
   if Delta < 0 then
     Delta := 0;
@@ -880,12 +882,12 @@ Scroll:
     begin
     if CurPos <> OldPos then
       begin
-      for i := Byte(FMSetup.Show and fmsColumnTitles <> 0) to Size.Y-1
+      for i := Byte(ColumnTitles) to Size.Y-1
       do
         for j := 0 to Size.X div LineLength do
           begin
-          Idx := i-Byte(FMSetup.Show and fmsColumnTitles <> 0)+
-            j*(Size.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0))+Delta;
+          Idx := i-Byte(ColumnTitles)+
+            j*(Size.Y-Byte(ColumnTitles))+Delta;
           if  (Idx = CurPos) or (Idx = OldPos) then
             begin
             MoveChar(B, ' ', C1, Size.X);
@@ -911,20 +913,20 @@ Scroll:
   OldDelta := Delta;
   OldPos := CurPos;
   PosChanged := False;
-  if  (FMSetup.Show and fmsColumnTitles <> 0) then
+  if ColumnTitles then
     begin
     DrawTop(B);
     if WordRec(B[Size.X-1]).Lo = 179 then
       WordRec(B[Size.X-1]).Lo := 32;
     WriteLine(0, 0, Size.X, 1, B[DeltaX]);
     end;
-  for i := Byte(FMSetup.Show and fmsColumnTitles <> 0) to Size.Y-1 do
+  for i := Byte(ColumnTitles) to Size.Y-1 do
     begin
     MoveChar(B, ' ', C1, Size.X);
     for j := 0 to Size.X div LineLength do
       begin
-      Idx := i-Byte(FMSetup.Show and fmsColumnTitles <> 0)+
-        j*(Size.Y-Byte(FMSetup.Show and fmsColumnTitles <> 0))+Delta;
+      Idx := i-Byte(ColumnTitles)+
+        j*(Size.Y-Byte(ColumnTitles))+Delta;
       DrawAtIdx;
       Idx := (j+1)*LineLength;
       if Idx < Size.X then
@@ -1112,11 +1114,11 @@ function MakeDivider(IV: PInfoView): Boolean;
     MoveChar(B, #196, CDivdier, IV^.Size.X+Panel^.DeltaX);
     I := 0;
     C := (CDivdier shl 8) or 193;
-    while I < Size.X+Panel^.DeltaX do
+    while I < Size.X do
       begin
-      Panel^.GetEmpty(B[I], C);
+      Panel^.GetEmpty(B[I], C, True);
       Inc(I, Panel^.LineLength);
-      if I = Size.X+Panel^.DeltaX then
+      if I = Size.X then
         B[I-1] := (C and $FF00)+196;
       end;
     end;
@@ -1336,7 +1338,7 @@ function MakePathDecr(IV: PInfoView): Boolean;
       if  (PF <> nil) and (PF^.DIZ <> nil) and (PF^.DIZ^.DIZText <> '')
       then
         begin
-        S2 := PF^.DIZ^.DIZText; {Первую строку не выделяем}
+        S2 := DizMaxLine(PF^.DIZ); {Первую строку не выделяем}
         Replace('~', #0'~', S2); {тильды показывать}
         Mask := psShowDescript;
         end;
@@ -1356,16 +1358,6 @@ function MakePathDecr(IV: PInfoView): Boolean;
       begin
       SetLength(S2, Size.X);
       S2[Size.X] := FMSetup.RestChar[1];
-      end;
-    if S2 <> '' then
-      begin
-      for J := 1 to Length(S2) do
-        if S2[J] = #13 then
-          { #13#10 - это разделитель строк многострочного описания }
-          begin
-          System.Delete(S2, J, 1);
-          S2[J] := ' ';
-          end;
       end;
     Result := S2 <> '';
     if Result then
@@ -1455,7 +1447,7 @@ procedure PrepareLongName(IV: PInfoView; var S: String; var I: Integer);
   with IV^ do
     begin
     if LFN_inCurFileLine and
-       (Panel^.PanSetup^.Show.LFN_Autohide <> 0)
+       (FMSetup.LFN_Autohide <> 0)
     then
       begin
       S := '';
@@ -1503,7 +1495,7 @@ procedure PrepareLongName(IV: PInfoView; var S: String; var I: Integer);
     { Окончательно:
       отличия в S с Dif1Start по ExtPos-1 и с Dif2Start до конца }
 
-    if Panel^.PanSetup^.Show.LFN_Autohide <> 0 then
+    if FMSetup.LFN_Autohide <> 0 then
       begin
       if (Dif1Start >= ExtPos-1) and (Dif2Start > Length(S)) then
         begin
@@ -1512,9 +1504,10 @@ procedure PrepareLongName(IV: PInfoView; var S: String; var I: Integer);
         end;
       end;
 
-    ShowLFN_Difference := Panel^.Pansetup^.Show.LFN_Difference;
-    if (S <> '..') and (ShowLFN_Difference <> 0) then
+    ShowLFN_Difference := 0;
+    if PF^.TType <> ttUpDir then
       begin
+      ShowLFN_Difference := FMSetup.LFN_Difference;
       if ShowLFN_Difference = 2 then
         begin { общую часть слева отбрасываем без символа обрезки }
         if (Dif1Start < ExtPos) then { Есть отличие в имени }
@@ -1532,7 +1525,7 @@ procedure PrepareLongName(IV: PInfoView; var S: String; var I: Integer);
  ├─ .......... │      По центру      │ 1
  └─ .......... │       Справа        │ 2
                └─────────────────────┘ }
-        case Panel^.Pansetup^.Show.LFN_Wrap of
+        case FMSetup.LFN_Wrap of
           0:
             I := 0;
           1:
@@ -1549,7 +1542,7 @@ procedure PrepareLongName(IV: PInfoView; var S: String; var I: Integer);
  ├─ Показывать │    Правую часть     │ 1
  └─ .......... │     Левую часть     │ 2
                └─────────────────────┘}
-      case Panel^.Pansetup^.Show.LFN_Cut of
+      case FMSetup.LFN_Cut of
         0:
           begin
           if Length(S)-ExtPos > Size.X-3 then
@@ -1571,22 +1564,24 @@ ShowRight:
           end;
       end {case};
       end;
-{  Вставляем тильды }
+{  Вставляем тильды, не забывая, что в имени могли быть настоящие тильды }
 {Длинное имя    ┌─────────────────────┐
-  ├─ .......... │     Не выделять     │0
-  ├─ .......... │  Показывать бледно  │1
-  └─ Общую часть│    Не показывать    │2
+  ├─ .......... │    Не выделять      │0
+  ├─ .......... │  Выделить цветом    │1
+  └─ Общую часть│   Не показывать     │2
                 └─────────────────────┘}
     if ShowLFN_Difference <> 0 then
       begin
       if Dif2Start <= Length(S) then
-        System.Insert('~', S, Dif2Start);
+        Insert(#1, S, Dif2Start);
       if (ExtPos > Dif1Start) then
         begin
-        Insert('~', S, ExtPos);
-        Insert('~', S, Dif1Start);
+        Insert(#1, S, ExtPos);
+        Insert(#1, S, Dif1Start);
         end;
       end;
+    Replace('~', #0'~', S);
+    Replace(#1, '~', S);
     DnD.CurrentY2 := Y;
     end;
   end { PrepareLongName };
@@ -1604,10 +1599,10 @@ function MakeLongName(IV: PInfoView): Boolean;
     Exit;
   Result := True;
   if Y <> 0 then
-    MoveChar(B, ' ', C3, IV^.Size.X+IV^.Panel^.DeltaX);
+    MoveChar(B, ' ', C9, IV^.Size.X+IV^.Panel^.DeltaX);
   if I < 0 then
     I := Max(0, (IV^.Size.X-CStrLen(S)) div 2);
-  MoveCStr(B[I], S, Swap(C2_3));
+  MoveCStr(B[I], S, Swap(C8_9));
   end;
 
 function Terminate(IV: PInfoView): Boolean;
@@ -1714,8 +1709,8 @@ procedure TInfoView.Draw;
         Break;
       inc(I);
       end;
-    WriteLine(0, Y, Size.X, 1, B[Panel^.DeltaX]);
-    MoveChar(B, ' ', C1, Size.X+Panel^.DeltaX);
+    WriteLine(0, Y, Size.X, 1, B);
+    MoveChar(B, ' ', C1, Size.X);
     end;
 
   procedure FindCurFileLine;
@@ -1747,6 +1742,9 @@ procedure TInfoView.Draw;
   C2_3 := GetColor($0203);
   C3 := Lo(C2_3);
   C2 := Hi(C2_3);
+  C8_9 := GetColor($0809);
+  C8 := Lo(C8_9);
+  C9 := Hi(C8_9);
   CDivdier := Panel^.GetColor(2);
   DnD := NoDnD;
   with Panel^ do
@@ -1754,14 +1752,20 @@ procedure TInfoView.Draw;
     TotalInfoInDividerMin := 1; TotalInfoInDividerMax := 0;
     SelectedInfoInDividerMin := 1; SelectedInfoInDividerMax := 0;
     end;
-  PF := Panel^.Files^.At(Panel^.ScrollBar^.Value);
-  LFN_inCurFileLine := False;
-  FindCurFileLine;
-  if YCurFileLine >= 0 then
-    DrawAtY;
-  for Y := 0 to Size.Y-1 do
-    if Y <> YCurFileLine then
+  if Panel^.Files <> nil then
+      {AK155 nil бывает при запуске DN с сохранённым десктопом,
+       когда размер окна не соответствует тому, при котором
+       десктоп был сохранён.}
+    begin
+    PF := Panel^.Files^.At(Panel^.ScrollBar^.Value);
+    LFN_inCurFileLine := False;
+    FindCurFileLine;
+    if YCurFileLine >= 0 then
       DrawAtY;
+    for Y := 0 to Size.Y-1 do
+      if Y <> YCurFileLine then
+        DrawAtY;
+    end;
   end { TInfoView.Draw };
 
 function TInfoView.GetPalette;
@@ -1841,15 +1845,13 @@ procedure TFilePanel.HandleEvent;
     if  (Files^.Count = 0) or (Event.InfoPtr = nil) then
       Exit;
     OSM := PFilesCollection(Files)^.SortMode;
-    PFilesCollection(Files)^.SortMode := 100;
+    PFilesCollection(Files)^.SortMode := fcmPreciseCompare;
     for I := 0 to Files^.Count-1 do
-      if Files^.Compare(Files^.At(I), Event.InfoPtr) = 0 then
+      if Files^.FileCompare(Files^.At(I), Event.InfoPtr) = 0 then
         goto 1; {-$VOL}
     PFilesCollection(Files)^.SortMode := OSM;
     Exit;
 1:
-    {PFilesCollection(Files)^.SortMode := 100;}
-    {JO: это явный баг Ритлабсов}
     PFilesCollection(Files)^.SortMode := OSM;
     PF := {Event.InfoPtr}Files^.At(I);
     with PF^ do

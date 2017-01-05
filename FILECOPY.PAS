@@ -54,7 +54,7 @@ uses
   Lfn, Files, TitleSet, UserMenu, {DataCompBoy}Collect,
   FilesCol, Dos, DnIni, Filediz, {$IFDEF ARVID}ArvidAvt, {$ENDIF}
   FlTl,
-  Advance, Advance1, Advance2, Advance3, Defines, Objects2, Streams,
+  Advance, Advance1, Advance2, Defines, Objects2, Streams,
    Views, Dialogs, Drivers
   ;
 
@@ -83,6 +83,8 @@ function CopyDialog(var CopyDir: String; var Mask: String;
     var CopyPrn: Boolean; {var Inheread: Byte;}
     MoveMode: Boolean; Files: PCollection;
     FromTemp: Byte; SourcePanel: PView; Link: Boolean): Boolean;
+  { Если диалог завершился удачно и not CopyPrn, то CopyDir
+   заведомо не пуста, притом в конце обязательно есть '\'.}
 
 procedure CopyDirContent(Source, Destination: String;
     MoveMode, Forced: Boolean); {JO}
@@ -143,7 +145,6 @@ const
 
   cpoFromTemp = $800;
   cpoCopyDesc = $400;
-  cpoDirEmpty = $200;
   cpoFitAll = $100;
 
 var
@@ -519,7 +520,6 @@ procedure FilesCopy(Files: PCollection; SourcePanel: PView;
     CopyStartTime, CopyElapsedTime: LongInt; {John_SW 30-06-2005}
     CopyQueue, Dirs: PCollection;
     Info: PWhileView;
-    SoftMode: Boolean;
     R: TRect;
     Drv, InhR: Byte;
     ReD: set of Char;
@@ -527,7 +527,7 @@ procedure FilesCopy(Files: PCollection; SourcePanel: PView;
     SS: String[1];
     Timer: TEventTimer;
     CD_Drives: set of Char;
-    AdvCopy, Use40: Boolean;
+    AdvCopy: Boolean;
     _Tmr: TEventTimer;
     IOR: Integer;
     SSS: String;
@@ -588,7 +588,7 @@ procedure FilesCopy(Files: PCollection; SourcePanel: PView;
 
   procedure RemoveFromTemp(P: PFileRec);
     var
-      I: CondInt;
+      I: LongInt;
     begin
     I := 0;
     if  (P <> nil) and (TempFiles <> nil) and TempFiles^.Search(P, I)
@@ -614,11 +614,11 @@ procedure FilesCopy(Files: PCollection; SourcePanel: PView;
     AcceptAll := 0;
     Overwrite := cmSkip;
     UnpackTime(OldT, DT);
-    MakeDate(DateMode, DT.Day, DT.Month, DT.Year mod 100, DT.Hour,
+    MakeDate(DT.Day, DT.Month, DT.Year mod 100, DT.Hour,
        DT.Min, D2);
     L2 := FStr(OldS);
     UnpackTime(NewT, DT);
-    MakeDate(DateMode, DT.Day, DT.Month, DT.Year mod 100, DT.Hour,
+    MakeDate(DT.Day, DT.Month, DT.Year mod 100, DT.Hour,
        DT.Min, D1);
     L1 := FStr(NewS);
     if Length(L1) < Length(L2)
@@ -866,7 +866,6 @@ procedure FilesCopy(Files: PCollection; SourcePanel: PView;
       begin
       if  (ExAttr and (ReadOnly+SysFile+Hidden) <> 0) then
         begin
-        {$IFDEF DPMI32}DisableAppend; {$ENDIF}
         lSetFAttr(WriteStream, Archive);
         ClrIO;
         end;
@@ -914,8 +913,7 @@ procedure FilesCopy(Files: PCollection; SourcePanel: PView;
         if P^.Attr and Directory <> 0 then
           begin
           SSS := CnvString(P^.OldName);
-          if SSS[Length(SSS)] = '\' then
-            SetLength(SSS, Length(SSS)-1);
+          MakeNoSlash(SSS);
           ClrIO;
           if CopyOptions and cpoMove <> 0 then
             begin
@@ -1008,12 +1006,11 @@ procedure FilesCopy(Files: PCollection; SourcePanel: PView;
 
           if P^.Eof and eoCheck <> 0 then
             begin
-            {$IFDEF DPMI32}DisableAppend; {$ENDIF}
-            if DOS40 and Use40 then
+            if AdvCopy then
               begin
 lRetryToReset:
               TryToReset;
-              if not Use40 then
+              if not AdvCopy then
                 goto DoNotUse40;
               case Opened of
                 0:
@@ -1180,7 +1177,6 @@ lbStartCheck:
           if P^.Eof and eoAppend <> 0 then
             begin
 DoAppend:
-            {$IFDEF DPMI32}DisableAppend; {$ENDIF}
             FileMode := $42;
             lResetFile(WriteStream, 1);
             J := IOResult;
@@ -1197,7 +1193,6 @@ DoAppend:
                 if ExAttr = $FFFF then
                   begin
                   ClrIO;
-                  {$IFDEF DPMI32}DisableAppend; {$ENDIF}
                   lGetFAttr(WriteStream, ExAttr);
                   if DosError = 0 then
                     TrySetArch
@@ -1207,7 +1202,6 @@ DoAppend:
                 if CheckI24Abort then
                   Break;
                 ExAttr := ExAttr or $FE00;
-                {$IFDEF DPMI32}DisableAppend; {$ENDIF}
                 lResetFile(WriteStream, 1);
                 if IOResult = 0 then
                   Seek(WriteStream.F, FileSize(WriteStream.F));
@@ -1218,7 +1212,6 @@ DoAppend:
             begin
 DoRewrite:
             ClrIO;
-            {$IFDEF DPMI32}DisableAppend; {$ENDIF}
             lReWriteFile(WriteStream, 1);
             if CheckI24Abort then
               Break;
@@ -1227,7 +1220,6 @@ DoRewrite:
               ClrIO;
               if ExAttr = $FFFF then
                 begin
-                {$IFDEF DPMI32}DisableAppend; {$ENDIF}
                 lGetFAttr(WriteStream, ExAttr);
                 if DosError = 0 then
                   TrySetArch;
@@ -1236,7 +1228,6 @@ DoRewrite:
                 TrySetArch;
               if CheckI24Abort then
                 Break;
-              {$IFDEF DPMI32}DisableAppend; {$ENDIF}
               lReWriteFile(WriteStream, 1);
               end;
             end;
@@ -1380,7 +1371,6 @@ lbStartWrite:
           WriteProgress;
           WPWas := False;
           Close(WriteStream.F);
-          {$IFDEF DPMI32}DisableAppend; {$ENDIF}
           case ExAttr shr 8 of
             $FF: { Set Source Attribute, if Necessary }
               if P^.Attr <> Archive then
@@ -1486,11 +1476,22 @@ lbStartWrite:
       begin
       DosErrorCode := 0;
       RnFl(S1, S2);
-      {$IFDEF Win32}
-      if DosErrorCode in [5, 183] then
-      {$ELSE}
-      if DosErrorCode = 5 then
-        {$ENDIF}
+      if DosErrorCode = 17 {NOT_SAME_DEVICE} then
+        Exit;  { AK155 14.03.2006 фактически код 17
+          я сумел получить только под OS/2 }
+      if DosErrorCode in [5, 80, 183] then
+          { AK155 14.03.2006
+            Код 80 (FILE_EXISTS) бывает, например, под NT 4 при
+          "переименовании" между фактически разными сетевыми путями,
+          когда на целевом устройстве файл есть. Если его удалить,
+          то "переименование" проходит, хотя фактически это копирование
+          и удаление. Хорошо ли это - непонятно, так как выполняется
+          системная функция независимо от настроек DN.
+            А при "переименовании" между каталогами одного диска под NT
+          получается код 183 (ALREADY_EXISTS). Интересно, в чём
+          глубокая разница между FILE_EXISTS и ALREADY_EXISTS?
+            Под OS/2 кода 183 как бы нет, но при совпадении имени на
+          сетевом виндовом диске получается 183 даже под OS/2. }
         begin
         lAssignFile(F, S2);
         ClrIO;
@@ -1499,12 +1500,8 @@ lbStartWrite:
         lEraseFile(F);
         RnFl(S1, S2);
         end;
-      {$IFDEF Win32}
       if DosErrorCode in [5, 183] then
-      {$ELSE}
-      if DosErrorCode = 5 then
-        {$ENDIF}
-        begin
+        begin {AK155 Смысл этого блока мне непонятен }
         lAssignFile(F, S1);
         lGetFAttr(F, W);
         lSetFAttr(F, Archive);
@@ -1537,6 +1534,8 @@ lbStartWrite:
       //Dispatch;
       if not CopyCancel then
         RenameFile;
+      if DosErrorCode = 17 {NOT_SAME_DEVICE} then
+        Exit;
       if not CopyCancel and (Own <> nil) then
         begin
         Own^.Attr := Own^.Attr or Copied;
@@ -1614,9 +1613,7 @@ lbStartWrite:
       end
     else
       begin
-      if SoftMode then
-        NName := MakeNormName(GetPath(FName), MkName(GetName(FName)))
-      else if AddDir = '' then
+      if AddDir = '' then
         NName := MkName(GetName(FName))
       else
         NName := MakeNormName(AddDir, GetName(FName));
@@ -1656,7 +1653,6 @@ lbStartWrite:
       Attr := Attr and not ReadOnly;
 
     FileMode := $40;
-    {$IFDEF DPMI32}DisableAppend; {$ENDIF}
     lResetFile(ReadStream, 1);
     ReadPos := 0;
 
@@ -1788,13 +1784,19 @@ NoRename:
     {       end;} {Eugeny Zvyagintzev}
     if  (CopyOptions and cpoMove <> 0) and (EOF and eoAppend = 0) and
         (S1[1] = S2[1])
+          {AK155: для сетевых путей '\'='\'. Но, может, это и хорошо.}
     then
       begin
       ClrIO;
       Close(ReadStream.F);
       ClrIO;
       DoRename;
-      Exit
+      if DosErrorCode <> 17 {NOT_SAME_DEVICE} then
+        Exit;
+      { То, что казалось одним устройством, оказалось разными, и move
+       не прошло. Пробуем по-другому: скопировать и удалить.}
+      CopyCancel := False;
+      lResetFile(ReadStream, 1);
       end;
     if B = nil then
       MakeBuffer;
@@ -2048,7 +2050,7 @@ FileRead:
         goto 2;
       ClrIO;
       SSS := Source;
-      SSS := SSS+Copy('\', 1, Byte(SSS[Length(SSS)] <> '\'));
+      MakeSlash(SSS);
       if SSS = Copy(S, 1, Length(SSS)) then
         begin
         ForceDispatch;
@@ -2077,10 +2079,9 @@ FileRead:
         if DosErrorCode = 5 then
           {$ENDIF}
           begin
-          lGetDir(0, ActiveDir);
-          Advance2.lChDir(GetPath(SSS));
+          LFN.lChDir(GetPath(SSS));
           RnFl(GetName(SSS), Name);
-          Advance2.lChDir(ActiveDir);
+          LFN.lChDir(ActiveDir);
           end;
         if Abort then
           begin
@@ -2436,7 +2437,7 @@ TryGetInfo:
 
     procedure DoReread(P: PString);
       begin
-      RereadDirectory(P^);
+      RereadDirectory('>'+P^); //'>' - признак перечитывания подкаталогов
       end;
 
     begin { __Remove }
@@ -2470,16 +2471,18 @@ TryGetInfo:
     { ***************** }
   label qqqq;
   begin { FilesCopy }
-  Strings.StrPCopy(@PathBuffer, CopyDir);
+  SSS := CopyDir;
+  MakeNoSlash(SSS);
+  Strings.StrPCopy(@PathBuffer, SSS);
   BytesPerCluster := GetBytesPerCluster(@PathBuffer);
   if BytesPerCluster = 0 then
-    BytesPerCluster := 1;
+    BytesPerCluster := 512;
   {$IFDEF DualName}
   CondLfn := (FMSetup.Options and fmoDescrByShortNames) = 0;
   {$ELSE}
   CondLfn := True;
   {$ENDIF}
-  (* AK155 Этот специальный способ переименования одиночного кталога
+  (* AK155 Этот специальный способ переименования одиночного каталога
 почему-то не применялся к нескольким каталогам.
   if (CopyOptions and cpoMove <> 0) And
      (Files^.Count=1) And
@@ -2505,9 +2508,6 @@ qqqq:
   Dirs := nil;
   AdvCopy := (not CopyPrn)
        and ((SystemData.Options shl 3) and ossAdvCopy <> 0);
-  Use40 := DOS40 and AdvCopy;
-  SoftMode := (CopyOptions and cpoDirEmpty <> 0) and
-      (CopyOptions and (cpoMove+cpoFromTemp) = (cpoMove+cpoFromTemp));
   NewTimer(Timer, 0);
   NewTimer(_Tmr, 0);
   GrdClick := True;
@@ -2595,16 +2595,6 @@ qqqq:
     {$ENDIF}
     Dispose(Info, Done);
 
-  {$IFDEF DPMI32}
-  if AppendInstalled then
-    asm
-      mov ax, $B708
-      mov bx, AppendState
-      push bp
-      int  $2F
-      pop  bp
-    end;
-  {$ENDIF}
   if Dirs <> nil then
     Dispose(Dirs, Done);
   Dirs := nil;
@@ -2618,7 +2608,7 @@ qqqq:
       end;
   SSS := Copy(lFExpand(CopyDir), 1, InhR);
   if  (InhR <> 0) and RR then
-    RereadDirectory(SSS);
+    RereadDirectory('>'+SSS); //'>' - признак перечитывания подкаталогов
   if SourcePanel <> nil then
     begin
     { Nil бывает, например, в случае разархивирования по F4 из панели
@@ -2776,12 +2766,14 @@ function CopyDialog;
     Message(SourcePanel^.Owner, evCommand, cmPushFirstName, @S4);
   if CopyDirName <> '' then
     S4 := CopyDirName;
+  if MoveMode and (S4 = cTEMP_) then
+    S4 := ''; // Move на TEMP: не бывает
   CopyDirName := '';
   if S4 <> '' then
     begin
-    if  (Files^.Count = 1) and (S4[2] = ':') and (Length(S4) > 2) and
-      {Cat:warn могут быть проблемы с сетевыми путями}
-        (PFileRec(Files^.At(0))^.Attr and Directory = 0)
+    if  (Files^.Count = 1) and
+      ((S4[2] = ':') and (Length(S4) > 2) or (Copy(S4, 1, 2) = '\\'))
+        and (PFileRec(Files^.At(0))^.Attr and Directory = 0)
     then
       S4 := MakeNormName(S4, PFileRec(Files^.At(0))^.FlName[True]);
     {$IFDEF RecodeWhenDraw}
@@ -2892,7 +2884,7 @@ AK155. При этом то восстанавливалось зацикливание, то становилось
 
   lFSplit(S, CopyDir, Nm, Xt);
   if S = '' then
-    Exit;
+    Exit;             {<filecopy.001>}
   if not Link then
     begin
     if ArchiveFiles(S, Files, MoveMode, SourcePanel) then
@@ -3008,11 +3000,8 @@ AK155. При этом то восстанавливалось зацикливание, то становилось
     end
   else
     begin
-    if  (CopyDir = '') then
-      CopyOpt := CopyOpt or cpoDirEmpty;
     CopyDir := lFExpand(CopyDir);
-    if  (CopyDir = '') or (CopyDir[Length(CopyDir)] <> '\') then
-      CopyDir := CopyDir+'\'; {AddStr(CopyDir, '\');}
+    MakeSlash(CopyDir);
     CopyPrn := False;
     end;
   CopyDialog := True;
@@ -3040,13 +3029,9 @@ procedure CopyFiles;
       MoveMode, Files, FromTemp, SourcePanel, False)
   then
     Exit;
-  if  (CopyDir[Length(CopyDir)] <> '\') and (CopyDir <> '') then
-    CopyDir := CopyDir+'\';
   if  (FromTemp > 0) and MoveMode then
     begin
     CopyOpt := CopyOpt or cpoFromTemp;
-    if CopyOpt and cpoDirEmpty <> 0 then
-      CopyDir := '';
     end;
   {$IFDEF COPYTIMER}
   DDTimer := GetCurMSec;
@@ -3076,8 +3061,7 @@ procedure CopyDirContent(Source, Destination: String;
     FC: PFilesCollection;
     FR: PFileRec;
   begin
-  if  (Source[Length(Source)] <> '\') and (Source <> '') then
-    Source := Source+'\';
+  MakeSlash(Source);
   New(FC, Init($10, $10));
   ClrIO;
   lFindFirst(Source+x_x, AnyFileDir, SR);
@@ -3105,9 +3089,7 @@ procedure CopyDirContent(Source, Destination: String;
     Exit;
     end;
 
-  if  (Destination[Length(Destination)] <> '\') and (Destination <> '')
-  then
-    Destination := Destination+'\';
+  MakeSlash(Destination);
   Inc(SkyEnabled);
   LongWorkBegin;
   NotifySuspend;

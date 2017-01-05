@@ -158,8 +158,13 @@ constructor TRARArchive.Init;
   AllVersion := q <> '0';
   q := GetVal(@Sign[1], @FreeStr[1], PPutDirs, '0');
   PutDirs := q <> '0';
+  {$IFNDEF DPMI32}
   q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '0');
   ShortCmdLine := q <> '0';
+  {$ELSE}
+  q := GetVal(@Sign[1], @FreeStr[1], PSwapWhenExec, '1');
+  SwapWhenExec := q <> '0';
+  {$ENDIF}
   {$IFNDEF OS2}
   q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '1');
   UseLFN := q <> '0';
@@ -272,8 +277,8 @@ procedure TRARArchive.GetFile;
       end;
     {piwamoto}
     {we must skip garbage (digital sign as example) at the end of archive}
-    {check for valid HeadType: $72 can't be valid here, $7a..7f reserved for future RAR versions}
-    if not (P2.HeadType in [$73..$7f]) then
+    {check for valid HeadType: $72 can't be valid here, $7c..7f reserved for future RAR versions}
+    if not (P2.HeadType in [$73..$7a, $7c..$7f]) then
       begin
       FileInfo.Last := 1;
       Exit;

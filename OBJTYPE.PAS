@@ -158,6 +158,11 @@ const
   otMultiCheckBoxes = 27;
   otHexLine = 29;
   otComboBox = 34;
+  otNotepad = 35;
+  otPage = 36;
+  otBookmark = 37;
+  otPageFrame = 38;
+  otNotepadFrame = 39;
 
   { --- DiskInfo }
 
@@ -209,6 +214,7 @@ const
   otSeparator = 3353;
   otSpecScroll = 3354;
   otDriveLine = 14354;
+  otSortView = 14355;
 
   { --- FStorage }
 

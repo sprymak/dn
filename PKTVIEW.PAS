@@ -247,8 +247,7 @@ function rpad(ch: String; Num: Integer): String;
 
 function DLS(S: String): String;
   begin
-  if  (S[Length(S)] = '\') then
-    SetLength(S, Length(S)-1);
+  MakeNoSlash(S);
   DLS := S;
   end;
 

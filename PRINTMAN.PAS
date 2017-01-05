@@ -53,7 +53,7 @@ interface
 {$IFDEF PrintManager}
 uses
   Lfn, {DataCompBoy}
-  Objects2, Views, Drivers, DNApp, Advance, Advance1, Advance2, Advance3,
+  Objects2, Views, Drivers, DNApp, Advance, Advance1, Advance2,
   Dialogs, Dos, Messages, Commands, Collect
   ;
 

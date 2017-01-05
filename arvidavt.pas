@@ -764,8 +764,7 @@ function AvtDelFile(AvtDr: PArvidDrive; AName: String): Boolean;
     if  (filetype <> avdAvt) or (Length(AName) = 0) then
       goto 1;
     CurDir2 := CurDir;
-    if  (CurDir2[Length(CurDir2)] <> '\') then
-      CurDir2 := CurDir2+'\';
+    MakeSlash(CurDir2);
     if AName[1] <> '\' then
       begin
       AName := CurDir2+AName;
@@ -778,8 +777,7 @@ function AvtDelFile(AvtDr: PArvidDrive; AName: String): Boolean;
       CurDir := Dr;
       SeekDirectory;
       CurDir2 := CurDir;
-      if  (CurDir2[Length(CurDir2)] <> '\') then
-        CurDir2 := CurDir2+'\';
+      MakeSlash(CurDir2);
       if CurDir <> Dr then
         goto 1;
       end;
@@ -1199,10 +1197,7 @@ function AvtNewFile(
           end;
         if CreatedCellIsDir then
           begin
-          if  (CurDir[Length(CurDir)] <> '\') and
-              (CurDir <> '')
-          then
-            AddStr(CurDir, '\');
+          MakeSlash(CurDir);
           CurDir := CurDir+SS;
           CurLevel := Lv;
           Inc(Lv);
@@ -1223,8 +1218,7 @@ function AvtNewFile(
       Exit;
     NewCell := 0;
     CurDir2 := CurDir;
-    if  (CurDir2[Length(CurDir2)] <> '\') then
-      CurDir2 := CurDir2+'\';
+    MakeSlash(CurDir2);
     SaveCurDir := CurDir2;
     if AName[1] <> '\' then
       begin
@@ -1239,8 +1233,7 @@ function AvtNewFile(
       CurDir := Dr;
       SeekDirectory;
       CurDir2 := CurDir;
-      if  (CurDir2[Length(CurDir2)] <> '\') then
-        CurDir2 := CurDir2+'\';
+      MakeSlash(CurDir2);
       end;
     if CurDir2 <> '\' then
       Dr := Copy(Dr, Length(CurDir2)+1, Length(Dr));
@@ -1361,10 +1354,7 @@ procedure AvtSeekDirectory(AvtDr: PArvidDrive);
         CurDirPos := SavedCurDirPos;
         Break;
         end;
-      if  (CurDir[Length(CurDir)] <> '\') and
-          (CurDir <> '')
-      then
-        AddStr(CurDir, '\');
+      MakeSlash(CurDir);
       {      CurDir:=CurDir + Ansi_Ascii(SS);}
       CurDir := CurDir+SS;
       CurLevel := Lv;
@@ -1513,7 +1503,8 @@ procedure AvtCopyFilesInto(AvtDr: PArvidDrive; AFiles: PCollection;
       begin
       PD^.lChDir(S2);
       PC := PFilesCollection(PD^.GetDirectory(x_x, Dummy));
-      PC^.SortMode := 141; PC^.Sort;
+      PC^.SortMode := psmLongName;  {<sort141.001>}
+      PC^.Sort;
       for I := 0 to PC^.Count-1 do
         begin
         PF := PC^.At(I);
@@ -1748,8 +1739,7 @@ procedure AvtMakeDir(AvtDr: PArvidDrive);
     DelRight(S);
     if S = '' then
       Exit;
-    if  (S[Length(S)] <> '\') then
-      S := S+'\';
+    MakeSlash(S);
     AvtNewFile(AvtDr, S, '', True, 0, 0, 0, 0);
     { AvtCheckTree(AvtDr); }
     Stream^.Seek(0);

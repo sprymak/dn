@@ -134,7 +134,7 @@ program TVHC;
 uses
   Lfn, {DataCompBoy}
   Drivers, Defines, Streams, Objects2, Dos, Strings,
-  HelpKern, Advance, Advance1, Advance2, Advance3, Collect, ObjType
+  HelpKern, Advance, Advance1, Advance2, Collect, ObjType
   , Commands {Cat}
   ;
 {$I Version.Inc}
@@ -519,7 +519,7 @@ procedure TRefTable.FreeItem(Item: Pointer);
 function TRefTable.GetReference(var Topic: String): PReference;
   var
     Ref: PReference;
-    I: CondInt;
+    I: LongInt;
   begin
   if Search(@Topic, I) then
     Ref := At(I)

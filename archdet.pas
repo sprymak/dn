@@ -130,7 +130,7 @@ function LHADetect: Boolean;
   ArcFile^.Read(P, SizeOf(P)-SizeOf(P.Name));
   LHADetect := ((Pos(P.MethodID,
           '-lh0--lh1--lh2--lh3--lh4--lh5--lh6--lh7--lzs--lz5--lz4--lhd-')+
-        4) mod 5 = 0);
+        4) mod 5 = 0) and (P.Level < 3);
   ArcFile^.Seek(ArcPos);
   end;
 

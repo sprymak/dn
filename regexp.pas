@@ -271,7 +271,7 @@ implementation
 
 uses
   Strings,
-  Memory
+  Memory, Advance
   ;
 
 (*****************************************************************

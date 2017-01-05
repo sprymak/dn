@@ -144,6 +144,7 @@ function TSSaver.Execute;
   W := ShiftState shl 8+ShiftState2;
   NewTimer(T, 60*60*1000);
   repeat
+    TinySlice;
     GetEvent(Event);
     Update;
     HideCursor;

@@ -87,9 +87,11 @@ Sorry, no help available for this context.
    ³ {Navigator Windows:NavigatorsWindows}               Û
    ³ ÍÍÍÍÍÍÍÍ Interface ÍÍÍÍÍÍÍÍÍÍÍÍ Û
    ³ {Hotkey Overview:HotOverview}                 Û
+   ³ {Mouse Overview:MouseOverview}                 Û
    ³ {Interface overview:Interface}              Û
    ³ {Main menu:MainMenu}                       Û
    ³ {Customizing your system:OptionsMenu}         Û
+   ³ {Dialog box elements:DialogItems}             Û
    ³ ÍÍÍÍÍÍÍÍ Utilities ÍÍÍÍÍÍÍÍÍÍÍÍ Û
    ³ {Working with files:Files}              Û
    ³ {Working with disks:DiskOperations}              Û
@@ -262,6 +264,9 @@ border line).
    The main feature is file operations, you can read about them below.
 
    File tagging is done by right-clicking on a file name.
+
+   Mouse click on a sorting indicator (panel upper left corner) open
+the {"Sort by..." menu:SortBy}, as by pressing of the Alt-B hotkey.
 
    Mouse click on a panel's name (path line) can cause two actions. If you
 click on a line before the first backslash or on the first backslash itself,
@@ -1230,9 +1235,9 @@ and "ARVID".
 differences of other types will be described according to the following view.
 An example of this type
 
-³     1              2                 4
-³                                3   
-³  ÉÍ[1]ÍÍÍÍÍÍÍÍÍÍÍ E:\DN ÍÍÍÍÍÍÍÍÍÍÍ[]Í»
+³  1  4a             2                 4b
+³                               3   
+³  eÍ[1]ÍÍÍÍÍÍÍÍÍÍÍ E:\DN ÍÍÍÍÍÍÍÍÍÍÍ[]Í»
 ³  º    Name    ³    Name    ³    Name    5
 ³  º..          ³            ³            ±6
 ³  ºColors      ³            ³            ±
@@ -1256,10 +1261,11 @@ An example of this type
 ³14Recode tabels                         º
 ³15[ A C D E F G H I * ]ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
 
-  1 - Global window number (left panel)
+  1 - Sorting scheme indicator
   2 - Path to current directory
   3 - Column name
-  4 - Maximize button (rigth panel)
+  4a - Global window number (left panel)
+  4b - Maximize button (rigth panel)
   5 Ä Scroll up button
   6 Ä Scroll bar
   7 - Scroll bar marker
@@ -1279,7 +1285,7 @@ lists, as well as for the "TEMP:" panel. The main difference between them is
 the elements being displayed.
 An example of this type
 
-³ÉÍ[1]ÍÍÍÍÍÍÍÍÍ Find: *.* ÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+³eÍ[1]ÍÍÍÍÍÍÍÍÍ Find: *.* ÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
 ³º    Name    ³  Path                   
 ³º..          ³E:\(0)                   ±
 ³ºColorsû     ³E:\(0)\                  ş
@@ -1314,7 +1320,7 @@ full paths to the files.
 
 An example of this type
 
-³ÉÍ[1]ÍÍÍÍÍÍÍÍ RAR:(0).rar ÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+³eÍ[1]ÍÍÍÍÍÍÍÍ RAR:(0).rar ÍÍÍÍÍÍÍÍÍÍÍÍÍ»
 ³º    Name    ³    Name    ³    Name    
 ³º..          ³russian  lng³            ±
 ³ºColorsû     ³            ³            ±
@@ -1348,9 +1354,9 @@ See also Options->Panel->{Setup appearance:PanelShowSetup}
 .title Sorting in file panel
 {Sort by...:_}
    This block is used to choose basic sorting scheme for filenames in a panel.
-(Note for Windows users. Sorting by name sorts by names of the files shown in
-the panel. So, if the panel displays short names, sorting would be done by
-short names.)
+(Note for Windows- and DPMI32-version users. Sorting by name sorts by that
+names of the files, which are shown in the panel. So, if the panel displays
+short names, sorting would be done by short names.)
    Creation date and last access date can be useful if you need to find a
 file created at a certain time (it can be modified afterwards) or a file which
 was accessed most recently.
@@ -1409,8 +1415,12 @@ you want files starting with the "_" symbol to be before files, starting
 with letter, select Lower case (and Upper case otherwise).
    Alphabetic sorting is used for national alphabets, where the machine code
 comparsion results may be incorrect for national symbols.
+   The possibility to mark and store individual elements is available
+in this dialog.
 
 See also {File panel setup:PanelSetup}
+         {Select a type of sort:SortBy}
+         {Dialog box elements:DialogItems}
 
 .topic PanelHotKeys=11003
 .title File panel Hot keys
@@ -2056,45 +2066,182 @@ created/modified since you last backed up.
 .topic FileFind=21003
 .title Find File
 
-This command searches the current or specified directory for
-files not only by name, but by contents, date, size and {attributes:FileAttr}.
+This command searches for files in current or specified directory
+by name, as well as by contents, date, size and {attributes:FileAttr}.
 Type the {file mask or filter:Wildcards} you wish to locate in the
 File mask text box.
 
-To find files by Text to find type a partial word or
+To find files by Text in their contents type a partial word or
 short phrase (or any fragment of text) in the Containing box
-that you know to be contained in the required file.
+that you know to be contained in the required file. You also
+can type hexadecimal codes of any symbols in Hex string.
 
 The result of file search is a list which is displayed like as
 disk directory in file panel and you can do with files from this
 list all operations accessible in {File:FileMenu} and {Panel:PanelMenu}.
 
-   ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍÍÍÍ Find File ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
-   º                                                º
-   º     File mask ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±Şİ º
-   º                                                º
-   º  Text to find ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±Şİ º
-   º                                                º
-   º  Options                Destination            º
- ÚÄ×ÄÄ[ ] Case sensitive     () Entire diskÄÄÄÄÄÄÄÄ×ÄÄÄ¿
- ³Ú×ÄÄ[X] Recursive search   ( ) Current directoryÄÄ×ÄÄ¿³
- ³³º  [ ] {Advanced search:AdvanceSearch}    ( ) All drivesÄÄÄÄÄÄÄÄÄ×Ä¿³³
- ³³º                                                º ³³³
- ³³º   ±±±Ok±±±Ü ±Advanced...±Ü ±Cancel±Ü ±±Help±±Ü º ³³³
- ³³º    ßßßßßßßß  ßßßßßßßßßßßßß  ßßßßßßßß  ßßßßßßßß º ³³³
- ³³ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼ ³³³
- ³³                                                   ³³³
- ÀÅÄÄ if turned off, Navigator will ignore case of searching text
-  ³                                                   ³³³
-  ÀÄÄ if this check box is turned on (default)        ³³³
-      will search in all subdirectories existing      ³³³
-      on destination.                                 ³³³
-                                                      ³³³
-                    Search files on current disk onlyÄÅÅÙ
-                                                      ³³
-                    Search files in current directoryÄÅÙ
-                                                      ³
-   Search files on all accessible disks from C: to Z:ÄÙ
+
+       ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ Find File ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+       º                                                    º
+       º     File mask ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±Şİ º
+       º                                                    º
+       º  Text to find ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±Şİ º
+       º    Hex string ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±    º
+       º   Options                                          º
+       º   [ ] {Advanced search:AdvanceSearch}     [ ] Case sensitive ÄÄÄÄÄÄ×ÄÄ¿
+   ÚÄÄÄ×ÄÄÄ[ ] Do not sort result  [ ] Whole words ÄÄÄÄÄÄÄÄÄ×Ä¿³
+   ³ÚÄÄ×ÄÄÄ[X] Recursive search    [ ] All code pages ÄÄÄÄÄÄ×¿³³
+   ³³ÚÄ×ÄÄÄ[ ] Search in archives                           º³³³
+   ³³³ º                                                    º³³³
+   ³³³ º   Scope                                            º³³³
+  ÚÅÅÅÄ×ÄÄÄ() Current directory  ( ) Entire disk ÄÄÄÄÄÄÄÄÄÄ×ÅÅÅ¿
+ ÚÅÅÅÅÄ×ÄÄÄ( ) Selected           ( ) All drives ÄÄÄÄÄÄÄÄÄÄÄ×ÅÅÅÅ¿
+ ³³³³³ º                                                    º³³³³³
+ ³³³³³ º     OK  Ü   Advanced... Ü   Cancel Ü    Help  Ü  º³³³³³
+ ³³³³³ º    ßßßßßßßß   ßßßßßßßßßßßßß   ßßßßßßßß   ßßßßßßßß  º³³³³³
+ ³³³³³ ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼³³³³³
+ ³³³³³                                                       ³³³³³
+ ³³³³ÀÄÄÄÄ Check this box if you like to search files inside ³³³³³
+ ³³³³      archives                                          ³³³³³
+ ³³³ÀÄÄÄÄÄ If this check box is turned on (default),         ³³³³³
+ ³³³       searching will proceed in all subdirectories      ³³³³³
+ ³³³       existing in current search scope                  ³³³³³
+ ³³ÀÄÄÄÄÄÄ Check this box if you don't want the search       ³³³³³
+ ³³        results to be sorted                              ³³³³³
+ ³³                                                          ³³³³³
+ ³³      Text searching options:                             ³³³³³
+ ³³If turned off, the case of searched text will be ignored ÄÙ³³³³
+ ³³Check, if you like to search for whole words only ÄÄÄÄÄÄÄÄÄÙ³³³
+ ³³When turbed on, the text will be searched in all code ÄÄÄÄÄÄÙ³³
+ ³³pages known to DN                                            ³³
+ ³³                                                             ³³
+ ³³      Scope of file search:                                  ³³
+ ³ÀÄÄÄÄÄÄ Search files in current directory                     ³³
+ ÀÄÄÄÄÄÄÄ Search files among the selected and inside selected   ³³
+          directories                                           ³³
+          Search files on entire current disk ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ³
+          Search files on all accessible disks from C: to Z:     ³
+          except non-current slow drive media (CD etc.) ÄÄÄÄÄÄÄÄÄÙ
+
+
+.topic ArcFileFind=21006
+.title Find File in Archive
+
+This command searches for files in current archive
+by name, as well as by date, size and {attributes:FileAttr}.
+Type the {file mask or filter:Wildcards} you wish to locate in the
+File mask text box.
+
+The result of file search is a list which is displayed like as
+disk directory in file panel and you can do with files from this
+list all operations accessible in {File:FileMenu} and {Panel:PanelMenu}.
+
+
+       ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍ Find File in Archive ÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+       º                                                  º
+       º     File mask ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±Şİ º
+       º                                                  º
+       º   Options                                        º
+       º   [ ] {Advanced search:AdvanceSearch}     [X] Recursive search ÄÄ×Ä¿
+     ÚÄ×ÄÄÄ[ ] Do not sort result                         º ³
+     ³ º                                                  º ³
+     ³ º     OK  Ü  Advanced... Ü  Cancel Ü   Help  Ü   º ³
+     ³ º    ßßßßßßßß  ßßßßßßßßßßßßß  ßßßßßßßß  ßßßßßßßß   º ³
+     ³ ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼ ³
+     ³                                                      ³
+     ³     If this check box is turned on (default), ÄÄÄÄÄÄÄÙ
+     ³     searching will proceed in all subdirectories
+     ³     existing in current directory in archive
+     ³
+     ÀÄÄÄÄ Check this box if you don't want the search
+           results to be sorted
+
+
+.topic FoundFileFind=21007
+.title Find File in Found, Branch, TEMP: and List panels
+
+This command searches for files in current or specified directory
+by name, as well as by contents, date, size and {attributes:FileAttr}.
+Type the {file mask or filter:Wildcards} you wish to locate in the
+File mask text box.
+
+To find files by Text in their contents type a partial word or
+short phrase (or any fragment of text) in the Containing box
+that you know to be contained in the required file. You also
+can type hexadecimal codes of any symbols in Hex string.
+
+The result of file search is a list which is displayed like as
+disk directory in file panel and you can do with files from this
+list all operations accessible in {File:FileMenu} and {Panel:PanelMenu}.
+
+
+      ÉÍ[ş]ÍÍÍÍÍÍÍÍÍ Find File in Found/Branch ÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+      º                                                      º
+      º     File mask ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±Şİ º
+      º                                                      º
+      º  Text to find ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±Şİ º
+      º    Hex string ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±    º
+      º   Options                                            º
+      º   [ ] {Advanced search:AdvanceSearch}        [ ] Case sensitive ÄÄÄÄÄ×¿
+  ÚÄÄÄ×ÄÄÄ[ ] Do not sort result     [ ] Whole words ÄÄÄÄÄÄÄÄ×Å¿
+  ³ÚÄÄ×ÄÄÄ[X] Search in directories  [ ] All code pages ÄÄÄÄÄ×ÅÅ¿
+  ³³ÚÄ×ÄÄÄ[ ] Search in archives                             º³³³
+  ³³³ º                                                      º³³³
+  ³³³ º   Scope                                              º³³³
+ ÚÅÅÅÄ×ÄÄÄ() Entire panel  ( ) Selected ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ×ÅÅÅ¿
+ ³³³³ º                                                      º³³³³
+ ³³³³ º     OK  Ü   Advanced... Ü   Cancel Ü    Help  Ü    º³³³³
+ ³³³³ º    ßßßßßßßß   ßßßßßßßßßßßßß   ßßßßßßßß   ßßßßßßßß    º³³³³
+ ³³³³ ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼³³³³
+ ³³³³                                                         ³³³³
+ ³³³ÀÄÄÄÄ Check this box if you like to search files inside   ³³³³
+ ³³³      archives                                            ³³³³
+ ³³ÀÄÄÄÄÄ If this check box is turned on (default),           ³³³³
+ ³³       searching will proceed in all directories           ³³³³
+ ³³       present in File Search panel                        ³³³³
+ ³ÀÄÄÄÄÄÄ Check this box if you don't want the search         ³³³³
+ ³        results to be sorted                                ³³³³
+ ³                                                            ³³³³
+ ³      Text searching options:                               ³³³³
+ ³If turned off, the case of searched text will be ignored ÄÄÄÙ³³³
+ ³Check, if you like to search for whole words only ÄÄÄÄÄÄÄÄÄÄÄÙ³³
+ ³When turbed on, the text will be searched in all code ÄÄÄÄÄÄÄÄÙ³
+ ³pages known to DN                                              ³
+ ³                                                               ³
+ ³      Scope of file search:                                    ³
+ ÀÄÄÄÄÄÄ Search files in entire File Search panel                ³
+         Search files among the selected and inside selected ÄÄÄÄÙ
+         directories
+
+
+.topic FoundArcFileFind=21008
+.title Find File in Found in Archive or Branch of Archive
+
+This command searches for files in current archive
+by name, as well as by date, size and {attributes:FileAttr}.
+Type the {file mask or filter:Wildcards} you wish to locate in the
+File mask text box.
+
+The result of file search is a list which is displayed like as
+disk directory in file panel and you can do with files from this
+list all operations accessible in {File:FileMenu} and {Panel:PanelMenu}.
+
+
+       ÉÍ[ş]ÍÍ Find File in Found/Branch in Archive ÍÍÍÍÍÍ»
+       º                                                  º
+       º     File mask ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±Şİ º
+       º                                                  º
+       º   Options                                        º
+       º   [ ] {Advanced search:AdvanceSearch}                            º
+     ÚÄ×ÄÄÄ[ ] Do not sort result                         º
+     ³ º                                                  º
+     ³ º     OK  Ü  Advanced... Ü  Cancel Ü   Help  Ü   º
+     ³ º    ßßßßßßßß  ßßßßßßßßßßßßß  ßßßßßßßß  ßßßßßßßß   º
+     ³ ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+     ³
+     ÀÄÄÄÄ Check this box if you don't want the search
+           results to be sorted
+
 
 .topic WinMan=21004
 .title Windows Manager
@@ -2713,8 +2860,11 @@ Press {ESC:_} to cancel the operation or {ENTER:_} to repeat it.
 files displayed in {panel columns:PanelShowSetup1}, whereas the right part
 is for additional information in {footer:PanelShowSetup2} (and on the divider
 line between the footer and columns).
+   The possibility to mark and store individual elements is available
+in this dialog.
 
 See also {File panel setup:PanelSetup}
+         {Dialog box elements:DialogItems}
 
 .topic PanelShowSetup1=16601
 .title File panel setup - files in columns
@@ -2727,11 +2877,11 @@ useful in the "List" panel.
 panels; the column "Path" is only for the "List" panels. However, this block
 has all colums and all of them are available for selection. This can be
 useful for storing all setups ("Store" - "All").
-   The Windows version of DN has also a "Show LFN" option. Unlike other
-options, it does not turn the column on (it is always on). It sets, which type
-of names (long or short) should be displayed in the "Name" column. If file
-system does not support short file names, squares . will be shown
-as a placeholder.
+   The Windows and DPMI32 versions of DN also have an "Show LFN" option.
+Unlike other options, it does not turn the column on (it is always on).
+It sets, which type of names (long or short) should be displayed in the
+"Name" column. If file system does not support short file names,
+squares . will be shown as a placeholder.
 
    Case of names in panels {Directories, Files:_}.
    These options set the case of filenames and directory names in panels.
@@ -2899,10 +3049,13 @@ for searching long names that differ from short names: the footer for 8.3 names
 will be empty (all name is the common part), and for really long names the
 footer will show something.
 
-   At the very bottom of the dialog is the {"Zoomed panel":_} option affecting
-not only the footer, but also the panel itself. It makes the panel maximized
+   At the very bottom of the dialog is the {"Misc. options:_}" block
+affecting not only the footer, but also the panel itself.
+   [X] Zoomed panel makes the panel maximized
 over the entire window horizontally. This regime may be useful for showing
 many columns or very long columns ("Name", "Description").
+   [X] Column titles - When turned on, the column titles will be displayed
+(Name, Directory, Size, etc.).
 
    See also {Files in columns:PanelShowSetup1}
 
@@ -2965,47 +3118,79 @@ in the dialog. Then press {"Store":SavePanelSetup} button and the settings
 will be stored in the same preset (if you load preset [5], that preset [5]
 will be saved).
 
+   Sometimes it is desirable to store not all items shown in settings dialog,
+but just some of them, and often one needs to store them in several places
+at once. For exanple, if you initially had set case filter for all presets
+working in such way, that directories are shown in upper case and files in
+lower one, and suddenly you would decide to change it to "aS Is", but you
+want to keep all another settings for panels.
+   In such cases it is enough to mark those dialog item, which you would like
+to store (i.e. to change), and all another items will be kept without changes.
+If there is no marked items, then the data from dialog will be stored
+completely. Marking is valid both for saving settings for current panel
+by "OK" button and for storing in different places (i.e. presets) by pressing
+"Store" button.
+   Marking could be done by clicking on the item label by the right mouse
+button or by pressing Ctrl-S hotkey on the current item (you need to make
+current the item which you desire to mark before marking by Tab key or
+hotkey). Marked item will have a rectangular mark at left side of its label.
+If you will make right mouse button or press Ctrl-S again on the item already
+marked, then it will be unmarked.
+   There is also Ctrl-A hotkey, allowing to select all items in dialog
+(if there was no items selected) or to unselect all selected items (if
+there was at least one item selected). It can be useful if you like to store
+all settings except some ones. In this case you can select all items by
+Ctrl-A and then unselect some of them by Strl-S.
+
 .topic PanelPresets=16596
 .title Numbered presets
-
    Full settings preset includes settings for the four types of panel (Disk,
 Archive, List, ARVID) and in each type there are three groups of settings:
-{view:PanelShowSetup}, {sorting:PanelSortSetup}, and {filter:AdvancedFilter}.
-Each panel has its own preset.
-   DN allows you to keep 10 presets independent with the panel prersets.
-These presets are numbered by 1, 2,..., 8, 9, 0. Settings from a numbered
-preset can be loaded into a certain panel and the panel settings can be
-stored to a numbered preset.
+{appearance:PanelShowSetup}, {sorting:PanelSortSetup}, and
+{filter:AdvancedFilter}. Each panel has its own preset.
 
-   You can load not only all settings of a preset, but of a certin group,
-too. For example, one can load only sorting for the List panel.
+   DN allows you to store 10 presets independently from the curret panel
+settings. These presets are numbered by 1, 2,..., 8, 9, 0. Settings from a
+numbered preset can be loaded into certain panel, and the panel settings can
+be stored to a numbered preset.
 
-   Full loading is done via the menu for view loading (Alt-"-"). You
-should choose preset you need in the menu, and press Shift-Enter, not Enter,
-or right-click on that menu item.
+   The settings of the panel could be loaded from preset (or from another
+panel) in various scope. You can perform either complete loading of all
+settings of a preset, or just load panel appearance settings for all panel
+types, and also you can load the concrete group of settings for the concrete
+type of panel (for example, one can load only sorting for the List panel).
 
-   Loading of the view settings can be done using the same menu, but you
-should press Enter, or left mouse click. Another way of such loading is to
-press Ctrl-digit (the digit is the number of a preset to load).
-   When you load a view settings, the previous settings are saved. If you want
-to undo the settings, you can press Ctrl-"-" or select a point to restore from
-the Alt-"-" menu. This is useful for temporary settings. For example, suppose
-a preset 2 has settings for the maximum detail view. If usually you work
-without such a view and need that view, you simply press Ctrl-2, later when
-you want your previous settings back, press Ctrl-"-".
+   Complete loading of all settings of a preset or loading of panel
+appearance settings both could be done via the menu of preset loading (called
+with {Alt-"-":_}). For more detailed information see:
+{Select panel settings preset:SelectPreset}.
+   Another way to load appearance settings is to press {Ctrl-number:_} hotkey
+with number of desired preset (or {Ctrl-=:_} to load appearance settings from
+opposite panel). There is optional possibility to load with Ctrl-number
+not only appearance settings, but also complete set of all settings of a
+preset. For more detailed information see:
+{Select panel settings preset:SelectPreset}.
 
-   When trying to load view preset identical to current by number
+   When you load an appearance settings, the previous settings will be saved.
+If you want to undo the settings, you can press Ctrl-"-" or select a point to
+restore from the Alt-"-" menu. This is useful for temporary settings. For
+example, preset 2 has settings for the most detailed view. If you got use to
+work without such view and you want to call it for a while, you simply could
+press Ctrl-2. Later when you want to turn your previous settings back,
+press Ctrl-"-".
+
+   When trying to load appearance preset identical to current by number
 and contents (which has no sense) with hot key or Alt-minus menu,
 the preset menu is called, like on Alt-minus. This behavious can be changed
 by setting MenuOnError=0 in dn.ini. In this case the second loading
 of already loaded preset is simply ignored.
 
-   Loading certain groups of settings for a certain panel type is done in the
-panel settings dialog. For example, to load from a preset 6 sorting
-preferences for the list panel, you open any list panel (for instance, go to
-TEMP:), call the {sorting dialog:PanelSortSetup} and press Ctrl-6. Loaded
-settings will be shown in the dialog items. To store them in the panel
-settings just press "OK" button.
+   Loading of certain groups of settings for a certain panel type could be
+done in the panel settings dialog. For example, to load sorting preferences
+for the list panel from the preset number 6, you should open any list panel
+(for instance, go to TEMP:), call the {sorting dialog:PanelSortSetup} and
+press Ctrl-6. Loaded settings will be shown in the dialog items. To store
+them in the panel settings just press "OK" button.
 
    There is no way of editing the numbered presets directly. There is no way
 to look at all presets and even one preset too, because even one preset has
@@ -3197,10 +3382,43 @@ your system. You should use semicolon to do that. For example, if you enter
 'Dir1;Dir2;D:\Dir3', Navigator will create directories Dir1 and Dir2 in the
 current directory and Dir3 - in the root directory of D: drive.
 
-
 .topic SortBy=48018
-.title Files sort
-Select a type of sort
+.title Sort files in panel by...
+ In this menu you can change the criterion of files sorting in the panel.
+If the item "Unsorted" was choosen, then the order of files will be the
+same as in the listing of directory content by {DIR:_} command line
+command.
+ Also you can set additional sorting features: sort by path, by group,
+inverted order and sorting of directories always by name (more detailed
+description of sortin modes see in help chapter for dialog of sorting
+options {Sorting in file panel :PanelSortSetup}).
+ When the criterion of files sorting was choosen through this menu, the
+changes will be set for all panel types by default (unlike the dialog of
+sorting options). Thus, if yo had set some sort mode in Drive panel, you
+will get the same sort mode in the File Find, Archive panels etc. However,
+the possibility to change the files sorting criterion only for current panel
+type still exists. For this purpose you have to press either {Shift-Enter:_}
+or {Right arrow:_} on desired menu item or make mouse click on the
+submenu opening symbol enclosed in square brackets: {[]:_}. In this case the
+submenu will be opened allowing to choose between changing of sort mode for
+current panel type only or for
+all panel types:
+
+ ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+ ³All panel types    ³
+ ³ Current panel type ³
+ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+ The item marked by diamond symbol in this submenu is the default action
+for items of the basic Files Sort menu. You can change the default value
+by choosing of another menu item and pressing Space bar on it. As soon as it
+was done the choosing of file sorting from the basic menu will always change
+the sort mode only for current panel type. Such behaviour will be kept for
+following DN launching. If you like to bring back an old behaviour, you need
+to call this submenu again, choose the item "All panel types" and press
+the Space bar. Of course, this submenu allows to perform action different
+from default one just for one time, without storing it anywhere: you need
+just choose the desired menu item and press Enter.
 
 .topic QuickDirs=48019
 .title Quick Dirs
@@ -3564,8 +3782,8 @@ and the right Ctrl - in the right one).
 
 These are the elements that are shown in file panels
 
-   {[X] Column titles:_} - When turned on, the column titles will be displayed
-(Name, Directory, Size, etc.).
+   {[X] Sort type indicator:_} - When turned on, at the left top corner
+of the panel sorting scheme indicator will be displayed.
 
    {[X] Drive line:_} - When turned on, the drive line will be shown at the
 bottom of the panel. Then you can quickly select disks with Ctrl-/
@@ -3603,6 +3821,8 @@ with a selected number will be used for its panels.
 
    {Left panel:_} - Here you select the left panel type for a new manager. The
 right panel type is always "Drive".
+
+See also {Dialog box elements:DialogItems}
 
 .topic SystemSetup=48037
 .title System Setup
@@ -4388,3 +4608,200 @@ to files with 'txt' extension. So, you activate a quick search and enter
 '>txt'. But usually only '>t' is quite enough. If you want to continue quick
 search by the name of file, you can clear the mask by pressing BackSpaáe and
 start entering a name.
+
+.topic SelectPreset=48104
+.title Select panel settings preset
+  This menu allows to load {panel settings preset:PanelPresets} for the
+current file panel.
+  By default only panel appearance settings will be loaded through this menu.
+To perform complete loading of preset settings one have to choose desired
+menu item and press either {Shift-Enter:_} or {Right arrow:_} on it, or make
+mouse click on the submenu opening symbol enclosed in square brackets:
+{[]:_}. In this case the submenu will be opened allowing to choose between
+loading of appearance settings only or loading of complete set of settings
+from chosen preset (including {appearance:PanelShowSetup},
+{sorting:PanelSortSetup}, and {filter:AdvancedFilter} settings):
+
+ ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+ ³Appearance only  ³
+ ³ Full panel setup ³
+ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+  The item marked by diamond symbol in this submenu is the default action
+for items of the basic Select Panel Settings Preset menu. You can change the
+default value by choosing of another submenu item and pressing Space bar on
+it. As soon as it was done the choosing of certain preset loading from the
+basic menu will always load the complete set of settings from this preset.
+Such behaviour will be kept for following DN launching. If you like to bring
+back an old behaviour, you need to call this submenu again, choose the item
+"Appearance only" and press the Space bar. Of course, this submenu allows to
+perform action different from default one just for one time, without storing
+it anywhere: you need just choose the desired submenu item and press Enter.
+  Changing of default action for basic menu items through this submenu also
+changes the action of {Ctrl-number:_} hotkeys responsible for quick preset
+loading. By default pressing of these hotkeys causes loading of appearance
+settings set, however after changing of default action for items of the
+basic Select Panel Settings Preset menu to the complete preset loading, the
+{Ctrl-number:_} pressing also will cause complete loading of the preset.
+
+.topic DialogItems=48105
+.title Dialog box elements
+
+   Dialog box opens, if dots pl.(...) is indicated after a menu command. The
+dialog box grants a convenient method of viewing of the information and
+setting of parameters.
+   Dialog box contains a number of items, allowing to set certain kind of
+settings. Most of these items have a labels, which change color when the
+item becomes active.
+   To use the keyboard for an element activisation it is possible to press
+the letter highlighted in this element's label together with {Alt:_}.
+   Pressing of {Tab:_} or {Shift-Tab:_} results in moving in a dialog box
+forward or backward from one managing element to another. When the element
+becomes active, it is highlighted.
+   To select an element also it is enough to click on it by the mouse.
+
+³   ÉÍÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ Title ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+³   º ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿                  º
+³   º ³ Input line ±±±±±±±±±±±±±±±±±±Şİ ³                  º
+³   º ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÉÍ[ş]Í History ÍÍÍÍ»           º
+³   º                       º input1                      º
+³   º                     ±  º input2           ş           º
+³   º   Scroll Bars       ş  ºÛinput3ÛÛÛÛÛÛÛÛÛÛÛ±           º
+³   º                     ±  º input4                      º
+³   º                     ±  È±±±ş±±±±±±±±±±±Í¼           º
+³   º  ±±±ş±±±±±±±±±±±                                   º
+³   º                                                       º
+³   º   Radio buttons    Check boxes       Combo box        º
+³   º    ( ) Case1        [ ] Option1       [Case1]         º
+³   º    () Case2        [X] Option2                       º
+³   º    ( ) Case3        [X] Option3                       º
+³   º                                                       º
+³   º                          Button Ü      Button   Ü   º
+³   º                         ßßßßßßßßßßß    ßßßßßßßßßßßß   º
+³   ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+  The main elements of dialog box will be described below.
+
+  Input Line
+  ~~~~~~~~~~
+  The element for input and editing of lines is named Input Line. You enter
+from the keyboard that or other information in it: the letters, numbers,
+etc..
+  The text in a Input Line can be marked. For this purpose is necessary,
+keep pressed a key Shift and to move the cursor with arrow keys. Other
+method of marking: press the button of the Mouse and, keeping it pressed,
+move the Mouse.
+  It is possible to use the majority of main keys of editing in Input Lines,
+for example, arrow keys, Home, End and Ins. If you continue to type the text
+at achievement of the end of a Input Line, its contents will be
+automatically scrolled.
+  If there is more text in an element than shown in Input Line, it's ends
+are marked by big arrows ("" and ""). You can scroll text by mouse clicking
+on these arrows.
+  All Input Lines support the information exchange through common Clipboard.
+
+ When option:
+
+³  Options => Configuration => System Setup... =>
+³          [X] Use system clipboard
+
+ is switched on, then the Clipboard shared with operating system is used.
+
+  History
+  ~~~~~~~
+   The history - it the list, which is connected with Input Line. Pressing an
+arrow downwards in a Input or clicking by Mouse on icon at the right side of
+Input line (Şİ), it is possible to call the list of the previous values
+of the Input line and to choose one from them.
+
+  Button
+  ~~~~~~
+   The rectangles with shadows are referred to as buttons, because they are
+similar with buttons of electronic devices. Each button has a label, which
+specifies what would happen, if this button is pressed.
+   It is possible to press the button by mouse or to make it current and then
+press {Enter:_}. When you press button, the action related with this button
+is executed. If the current element of a dialog box is not the button, one of
+buttons is "selected" automatically. It refers to as default button. As a
+rule, it is marked by the special color. It is possible simply to press
+{Enter:_} to activate this button.
+
+  Check Boxes and Radio Buttons
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Clusters for choice and setting of the standard parameters.
+
+³      Radio buttons                Check boxes
+³       ( ) Case 1                   [ ] Option1
+³       () Case 2                   [X] Option2
+³       ( ) Case 3                   [X] Option3
+³
+³      Choice of a single           Setting of various
+³      possible option among        independent parameters
+³      proposed variants
+
+   Moving between parameters is possible by cursor keys or by the mouse.
+Setting of Check boxes values is possible by pressing Space bar.
+
+  Combo Boxes
+  ~~~~~~~~~~~
+   Combo Boxes look like inscriptions enclosed into square brackets:
+
+³             Combo box
+³              [Case 1]
+
+   Like Radio Buttons, the Combo box allows to make a choice of a single
+possible option among a number of proposed variants. The selection among all
+possible variants can be made with {PageUp:_} and {PageDown:_} keys.
+   The list of all available variants could be opened (if one desires to do
+it) by pressing of {Ctrl-Down:_} hotkey. After that one can choose desired
+item in opened list by cursor moving keys and press {Enter:_}, as if it was
+usual menu.
+
+  ScrollBar
+  ~~~~~~~~~
+     It is a vertical or horizontal bar, which looks as follows:
+
+³                                       ÚÄÄÄ¿
+³                   Runner ÄÄÄ¿         ³  ³ Less
+³                    ³        ³         ³ ± ³
+³                            ÀÄÄÄÄÄÄÄ ³ ş ³
+³ ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿     ³ ± ³
+³ ³ ±±±±±±±±±±±±±±±±ş±±±±±±±±±± ³     ³ ± ³
+³ ³  Less                   More  ³     ³  ³ More
+³ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ     ÀÄÄÄÙ
+
+
+   These strips can be used by work with Mouse for scrolling the contents of
+the window of the editor or moving of the file manager.
+
+ * Click of the mouse button at the end of a scroll bar results to
+   moving to the next item (similarly to pressing of cursor arrows
+   {Up:_} or {Down:_}).
+ * If you will press the button without releasing, scrolling will continue.
+ * Pressing of the mouse button on the dark area at the end of a
+   scroll bar will result to page scrolling (similarly to pressing
+   {PageUp:_} or {PageDown:_}).
+ * If you will move the sliding marker (Runner) on the  scroll bar by mouse,
+   the contents of the window will be scrolled according to the relative
+   item on the scroll bar.
+
+   Note: Scroll bars let any user (using mouse or keyboard) to see,
+   as far one has advanced in the editor or in the list of files.
+
+  List Box
+  ~~~~~~~~
+   The list of parameters for choice can be used to choose a single item
+among a number of listed items in Dialog box or to choose an item in a
+history of Input Lines and has the cursor-bar and the scroll bar for
+scrolling.
+
+³     ÚÄ ListÄÄÄÄÄÄÄ¿
+³     ³  Item 1    ³
+³     ³  Item 2    ş³
+³     ³ÛÛItem 3ÛÛÛÛ±³
+³     ³  Item 4    ±³
+³     ³  Item 5    ³
+³     ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+   You just need to choose required item from list (by cursor moving keys)
+and press {Enter:_}.

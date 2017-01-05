@@ -241,7 +241,7 @@ procedure MyApp.GetEvent;
         begin
         if MacroRecord and (CurrentMacro <> nil) then
           CurrentMacro^.PutKey(Event.KeyCode);
-        if  (StatusLine <> nil) and not SkyVisible then
+        if  (StatusLine <> nil) then
           StatusLine^.HandleEvent(Event);
         end;
       end;
@@ -288,10 +288,6 @@ procedure MyApp.Idle;
     Event: TEvent;
 
   begin
-
-  if not Working then
-    TinySlice;
-
   {  Put IdleEvt after IdleClick Expired  }
   with IdleEvt do
     if What <> evNothing then
@@ -306,10 +302,7 @@ procedure MyApp.Idle;
         ClearEvent(IdleEvt);
         end;
 
-  if not SkyVisible then
-    begin
-    TApplication.Idle;
-    end;
+  TApplication.Idle;
   {Cat}
   if Startup.AutoRefreshPanels
     and xTime.TimerExpired(NotifyTmr)

@@ -126,8 +126,12 @@ procedure SetupArchive;
       {AK155}
       PutDirs: Word; {Checkbox}
       {JO}
+      {$IFNDEF DPMI32}
       ShortCmdLine: Word; {Checkbox}
-      {JO}
+      {$ELSE}
+      SwapWhenExec: Word; {Checkbox}
+      {$ENDIF}
+      {/JO}
       {$IFNDEF OS2}
       UseLFN: Word; {Checkbox}
       {нужен в DOS и W32-версиях}
@@ -193,7 +197,11 @@ procedure SetupArchive;
     DT.EList := CnvString(ExtrListChar);
     DT.AllVersion := Word(AllVersion);
     DT.PutDirs := Word(PutDirs);
+    {$IFNDEF DPMI32}
     DT.ShortCmdLine := Word(ShortCmdLine);
+    {$ELSE}
+    DT.SwapWhenExec := Word(SwapWhenExec);
+    {$ENDIF}
     {$IFNDEF OS2}
     DT.UseLFN := Word(UseLFN);
     {$ENDIF}
@@ -242,7 +250,11 @@ procedure SetupArchive;
     {if DT.List <> '' then ListChar := DT.List[1] else ListChar := ' ';}
     AllVersion := (DT.AllVersion and 1) <> 0;
     PutDirs := (DT.PutDirs and 1) <> 0;
+    {$IFNDEF DPMI32}
     ShortCmdLine := (DT.ShortCmdLine and 1) <> 0;
+    {$ELSE}
+    SwapWhenExec := (DT.SwapWhenExec and 1) <> 0;
+    {$ENDIF}
     {$IFNDEF OS2}
     UseLFN := (DT.UseLFN and 1) <> 0;
     {$ENDIF}

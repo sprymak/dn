@@ -358,7 +358,6 @@ type
     SelectDrive: function (X, Y: Integer; Default: Char;
        IncludeTemp: Boolean): String;
     GetFileType: function (const S: String; Attr: Byte): Integer;
-    DosReread: procedure (Files: PFilesCollection);
 
     SearchFileStr: function (F: PStream; var XLAT: TXlat;
        const What: String; Pos: LongInt;

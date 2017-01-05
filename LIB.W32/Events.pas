@@ -26,7 +26,6 @@ procedure LongWorkBegin;
     {Win9x}
     SetPriorityClass(GetCurrentProcess, Normal_Priority_Class);
   {$ENDIF}
-  Working := True;
   end;
 
 procedure LongWorkEnd;
@@ -36,7 +35,6 @@ procedure LongWorkEnd;
     {Win9x}
     SetPriorityClass(GetCurrentProcess, High_Priority_Class);
   {$ENDIF}
-  Working := False;
   end;
 
 end.

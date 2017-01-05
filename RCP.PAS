@@ -66,7 +66,7 @@ program RCP;
 
 uses
   Lfn, Collect, Drivers, Dos, Defines, Objects2, Streams, Advance,
-   Advance1, Advance2, Advance3,
+  Advance1, Advance2,
   RStrings, GetConst, Menus, Commands, Setups, DNHelp, Views, DNApp,
    Startup,
   Dialogs, Validate, IniFiles, Scroller, ListMakr, ObjType, RegAll,
@@ -364,6 +364,8 @@ const
   idCheckBoxes = 'CHECKBOXES ';
   idRadioButtons = 'RADIOBUTTONS ';
   idComboBox = 'COMBOBOX ';
+  idNotepad = 'NOTEPAD ';
+  idPage = 'PAGE ';
   idHistory = 'HISTORY ';
   idItem = 'ITEM ';
   idHelpCtx = 'HELPCTX ';
@@ -458,7 +460,7 @@ procedure StoreResource(P: PObject; Id: TDlgIdx);
 function GetID(const S: String): LongInt;
   var
     T: TLngWord;
-    I: CondInt; {???}
+    I: LongInt;
     L: LongInt;
     k: Integer;
   begin
@@ -665,7 +667,7 @@ procedure ProcessDLGs;
     var
       T: TLngWord;
       I: Integer;
-      L: CondInt;
+      L: LongInt;
     begin
     FreeStr := S;
     DelRight(FreeStr);
@@ -848,7 +850,7 @@ procedure ProcessDLGs;
       R: TRect;
       D: PMenuBar;
       I: LongInt;
-      J: CondInt; {???}
+      J: LongInt;
     begin
     I := Length(idMenu);
     FreeStr := Token(S, I);
@@ -862,15 +864,18 @@ procedure ProcessDLGs;
     Dispose(D, Done);
     end;
 
-  procedure CompileDialog(S: String);
+  procedure CompileDialog(S: String; IdToken: String);
     var
       D: PDialog;
+      Notepad: PNotepad;
+      Page: PPage;
       R: TRect;
       I: LongInt;
-      J: CondInt;
+      J: LongInt;
       PV: PView;
       LastSB: PScrollBar;
       nDirectLink: Byte;
+      InPage: Boolean;
 
     function IsThis(const S: String): Boolean;
       begin
@@ -1039,6 +1044,13 @@ procedure ProcessDLGs;
       D^.Insert(PV);
       end;
 
+    procedure MakePage;
+      begin
+      if InPage then
+        Page^.SelectNext(False);
+      Page := Notepad^.NewPage((Token(S, i)));
+      end;
+
     procedure MakeButton;
       var
         B, K: String;
@@ -1140,9 +1152,10 @@ procedure ProcessDLGs;
 
       {-DataCompBoy-}
     begin { CompileDialog }
-    I := Length(idDialog);
+    I := Length(idToken);
     PV := nil;
     LastSB := nil;
+    InPage := False;
     FreeStr := Token(S, I);
     T.Init(0, FreeStr);
     if not DLGs^.Search(@T, J) then
@@ -1154,7 +1167,12 @@ procedure ProcessDLGs;
       D := New(PSysDialog, Init(R, Token(S, I)));
       D^.Awaken;
       end
-    else
+    else if IdToken = idNotepad then
+      begin
+      Notepad := New(PNotepad, Init(R, Token(S, I), GetID(Token(S, I))));
+      PNotepad(D) := Notepad; // всё будет вставляться в диалог
+      end
+    else {idDialog}
       New(D, Init(R, Token(S, I)));
     D^.Options := D^.Options or ofCentered;
     while not Eof(F.T) do
@@ -1212,6 +1230,12 @@ procedure ProcessDLGs;
           MakeRadioButtons
         else if IsThis(idComboBox) then
           MakeComboBox
+        else if IsThis(idPage) then
+          begin
+          MakePage;
+          inPage := True;
+          PPage(D) := Page;
+          end
         else if IsThis(idButton) then
           MakeButton
         else if IsThis(idHistory) then
@@ -1219,7 +1243,13 @@ procedure ProcessDLGs;
         else if IsThis(idColorPoint) then
           MakeColorPoint
         else if IsThis(idEND) then
-          Break
+          begin
+          if not inPage then
+            Break;
+          inPage := False;
+          Page^.SelectNext(False);
+          PNotepad(D) := Notepad;
+          end
         else if (S <> '') and (S[1] <> ';') then
           Error('Unknown identifier in line '+ItoS(Line));
         if nDirectLink <> 0 then
@@ -1306,7 +1336,9 @@ procedure ProcessDLGs;
       if Copy(FreeStr, 1, Length(idColorDialog)) = idColorDialog then
         MakeColorDialog
       else if Copy(FreeStr, 1, Length(idDialog)) = idDialog then
-        CompileDialog(S)
+        CompileDialog(S, idDialog)
+      else if Copy(FreeStr, 1, Length(idNotepad)) = idNotepad then
+        CompileDialog(S, idNotepad)
       else if Copy(FreeStr, 1, Length(idMenu)) = idMenu then
         MakeMenu(S)
       else if Copy(FreeStr, 1, Length(idStatusLine)) = idStatusLine then

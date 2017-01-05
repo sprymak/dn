@@ -165,8 +165,6 @@ const
   hcUnselect             = 16590;
   hcMemoryInfo           = 16591;
   hcSystemInfo           = 16592;
-  hcDirectDiskAccess     = 16593;
-  hcDirectAccessDenied   = 16594;
   hcAsciiChart           = 16595;
   hcPanelShowSetup1      = 16601;
   hcPanelShowSetup2      = 16602;
@@ -176,6 +174,9 @@ const
   hcFileFind             = 21003;
   hcWinMan               = 21004;
   hcGame                 = 21005;
+  hcArcFileFind          = 21006;
+  hcFoundFileFind        = 21007;
+  hcFoundArcFileFind     = 21008;
   hcAllContainingDialog  = 48000;
   hcYesNoDialog          = 48001;
   hcYesNoCancelDialog    = 48002;
@@ -280,6 +281,8 @@ const
   hcDBFGoto              = 48101;
   hcMiscToggleCase       = 48102;
   hcMiscKbdLayout        = 48103;
+  hcSelectPreset         = 48104;
+  hcDialogItems          = 48105;
   hcSkipBadFile          = 49009;
   hc_                    = 65535;
 

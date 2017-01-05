@@ -309,8 +309,7 @@ AddrError:
     K := ZZ;
     ParseAddress(Copy(S.FileName, 2, MaxStringLength), ZZ, NN, ND, PT);
     Delete(SS, 1, I);
-    if SS[Length(SS)] = '\' then
-      SetLength(SS, Length(SS)-1);
+    MakeNoSlash(SS);
     lFSplit(SS, Dr, Nm, Xt);
     if K <> ZZ then
       Xt := '.'+Copy(Hex4(ZZ), 2, 3);
@@ -417,8 +416,7 @@ AddrError:
     BB := False;
     SR := P^.Owner^;
     Replace('!', #0, SR);
-    if SR[Length(SR)] <> '\' then
-      SR := SR+'\';
+    MakeSlash(SR);
     SS := S.Action;
     Replace(';;', #1, SS);
     while SS <> '' do

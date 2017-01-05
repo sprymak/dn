@@ -4,5 +4,5 @@ FileName = 'ak' || Substr(DATE('S'), 4, 5) || '.dif'
 Parse Arg Rest
 do while \(Rest='')
   Parse Var Rest Name Rest
-  "diff.exe -uN I:\dn22s06\"Name Name"  >> "FileName
+  "diff.exe -uN I:\dn2s\"Name Name"  >> "FileName
 end

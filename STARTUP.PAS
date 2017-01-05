@@ -52,7 +52,7 @@ interface
 
 uses
   Defines, Dos, Commands, Advance,
-  Advance1, Advance2, Advance3, Drivers, Collect
+  Advance1, Advance2, Drivers, Collect
   ;
 
 procedure FatalError(const S: String);
@@ -100,7 +100,6 @@ const
   {Desktop for 1.51.08}
   Security: Boolean = True;
   ConfigModified: Boolean = False;
-  DateMode: Byte = 0;
   SkyDelay: Byte = 1;
   CmdExt: String[4] = '.CMD'; {расширение командных файлов}
 
@@ -208,6 +207,10 @@ type
     Quick: Word;
     LRCtrlInDriveLine: Word;
     Show: Word;    // Внешний вид
+    LFN_Wrap: Word; {Combo}
+    LFN_Cut: Word; {Combo}
+    LFN_Autohide: Word; {Checkbox[1]}
+    LFN_Difference: Word; {Combo}
     TagChar: String[1]; // Если не нужен, то TagChar[1]= ' ';
     RestChar: String[1]; // RestChar[1] всегда корректен
     DIZ: String[250];
@@ -298,7 +301,7 @@ const
     );
 
   Confirms: Word = cfSingleErase+cfMultiErase+cfEraseReadonly+
-  cfEraseSubDir+cfMouseConfirm+cfExitConfirm+cfChaneLngWarning;
+  cfEraseSubDir+cfMouseConfirm+cfExitConfirm;
 
   TerminalDefaults: TTerminalDefaults = (Emulation: emANSIBBS;
      Options: toCTRLCLS+toAutoZModem);
@@ -335,10 +338,14 @@ const
       fmoAlwaysCopyDesc;
     Quick: pqsAlt;
     LRCtrlInDriveLine: fdlPassive;
-    Show: fmsColumnTitles+
+    Show: fmsSortIndicator+
       fmsDriveLine+
       fmsShowScrollBar+
       fmsHiliteFiles;
+    LFN_Wrap: 0; {Combo}
+    LFN_Cut: 0; {Combo}
+    LFN_Autohide: 0; {Checkbox[1]}
+    LFN_Difference: 0; {Combo}
     TagChar: #251;
     RestChar: #16;
     DIZ: 'descript.ion;files.bbs';
@@ -411,6 +418,9 @@ const
   rfArchives = $0020;
   rfAdvFind = $0040;
 
+  SortCurPanTypeOnly: Boolean = False;
+  FullMenuPanelSetup: Boolean = False;
+
 implementation
 uses
   VpSysLow,
@@ -478,8 +488,7 @@ if (SourceDir <> '') and not PathExist(SourceDir) then
 
 if SourceDir = '' then
   SourceDir := StartupDir;
-if SourceDir[Length(SourceDir)] <> '\' then
-  AddStr(SourceDir, '\');
+MakeSlash(SourceDir);
 
 {$IFDEF DPMI32}
 StartupDir := lfGetLongFileName(StartupDir);

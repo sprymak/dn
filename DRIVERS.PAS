@@ -266,18 +266,18 @@ procedure EndFatalError;
 
 implementation
 uses
+  {$IFDEF DPMI32} dpmi32df, dpmi32, {$ENDIF}
   Drivers2,
   VideoMan,
   Dos,
   Advance,
   Advance1,
   Advance2,
-  Advance3,
   Views,
   Startup,
   DNApp,
   DNUtil,
-  VPUtils, VpSysLow, VPSysLo2, {Crt,}Messages,
+  VPUtils, VpSysLow, VPSysLo2, {Crt,}Messages, Fltl,
   FlPanelX
   ;
 
@@ -466,10 +466,11 @@ end;
 function SystemError(ErrorCode: Integer; Drive: Byte): Integer;
   var
     Res: LongInt;
-    S: String[63];
+    S: String;
     I: Byte;
     AOptions: Word;
     MsgCode: Word;
+    SysMsg: String;
   begin
   if NeedAbort then
     begin
@@ -512,10 +513,7 @@ function SystemError(ErrorCode: Integer; Drive: Byte): Integer;
     begin
     MsgCode := 12;
     end;
-  // S := CE_Messages[MsgCode]^ + ' (' + S + ')';
-  Str(ErrorCode, S);
-  S := 'RC='+S+' '+CE_Messages[MsgCode]^;
-  {/AK155}
+  S := CE_Messages[MsgCode]^;
 
   I := Pos('%', S);
   {Cat:warn если ошибка для сети, то будет выводиться "ошибка на диске :"}
@@ -524,11 +522,20 @@ function SystemError(ErrorCode: Integer; Drive: Byte): Integer;
     S[I] := Char(Drive+65);
     S[I+1] := ':'
     end;
-  if  (NumButtons[ErrorCode] = 3) then
+
+  { Тут мы используем свою функцию, а не SysGetSystemError, так как
+   та только с виду единая, а фактически она работает по-разному
+   под разными операционками. Под OS/2 после неё надо удалять CtrLf
+   в конце, под Win32 надо перекодировать из ANSI в OEM, а под DPMI
+   она формирует бессодержательные строки наподобие System Error #21,
+   которые ничем не лучше того, что у нас в заголовке }
+  if GetErrorText(ErrorCode, SysMsg) then
+    S := SysMsg + ^M^C + S;
+  if  (NumButtons[MsgCode] = 3) then
     AOptions := mfYesButton+mfOKButton+mfNoButton+mfSysError
   else
     AOptions := mfYesButton+mfOKButton+mfSysError;
-  Res := MessageBox(#03+S, nil, AOptions);
+  Res := MessageBox(#03+S, Ptr(ErrorCode), AOptions);
   case Res of
     cmYes:
       begin

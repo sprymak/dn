@@ -50,7 +50,7 @@ unit Advance7;
 interface
 
 uses
-  Advance3, Advance, Advance2, DnIni
+  Advance, Advance2, DnIni
   ;
 
 function ValidLngId(LI: String; CheckForHelp: Boolean): Boolean;

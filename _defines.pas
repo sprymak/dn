@@ -434,12 +434,11 @@ type
     Next: PMenuItem;
     Name: PString;
     Command: Word;
-    Disabled: Boolean;
+    Flags: Byte;
     KeyCode: Word;
     HelpCtx: Word;
-    case Integer of
-      0: (Param: PString);
-      1: (SubMenu: PMenu);
+    Param: PString;
+    SubMenu: PMenu;
     end;
 
   TMenu = packed record
@@ -531,13 +530,11 @@ type
     Time: LongInt;
     Size: TSize;
     Name: ShortString;
-    CreationTime: LongInt;
-    LastAccessTime: LongInt;
     Filler: packed array[0..3] of Char;
     {$IFDEF OS2}
     //JO: Внимание! размер FindBuf должен быть согласован с размером аналогичной
     //    переменной в VpSysLo2.TOSSearchRecNew
-    FindBuf: array[0..2*1024-1] of Byte;
+    FindBuf: array[0..8*1024-1] of Byte;
     FindCount: Integer;
     FindPtr: Pointer;
     {$ENDIF}
@@ -561,6 +558,8 @@ type
     FindName: ShortString;
     FindAttr: LongInt;
     {$ENDIF}
+    CreationTime: LongInt;
+    LastAccessTime: LongInt;
     FullSize: TSize;
     FullName: ShortString;
     {$IFDEF OS2}
@@ -680,7 +679,7 @@ type
   TDriveType = (dtUndefined, dtDisk, dtFind, dtTemp, dtList, dtArcFind,
      dtArc, dtNet, dtLink, dtArvid);
   TAvdType = (avdTdr, avdAvt);
-  TLineType = (ltNormal, ltOS2FullScreen, ltOS2Window, ltTimer);
+  TLineType = (ltNormal, ltFullScreen, ltWindow, ltTimer);
 
   TTdrHeader = packed record
     FileTableOfs: LongInt;

@@ -71,7 +71,7 @@ interface
 
 uses
   Lfn, Collect, Objects2, Streams, Defines, Dos,
-  Advance, Advance1, Advance2, Advance3, use16
+  Advance, Advance1, Advance2, use16
   ;
 
 type

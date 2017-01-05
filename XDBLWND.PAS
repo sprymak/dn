@@ -64,7 +64,7 @@ type
 
 implementation
 uses
-  Commands, Advance, Advance1, Advance2, Advance3, DNApp, DNUtil
+  Commands, Advance, Advance1, Advance2, DNApp, DNUtil
   ;
 
 function TXDoubleWindow.GetPalette;
@@ -151,7 +151,7 @@ procedure TXDoubleWindow.HandleEvent;
     evBroadcast:
       case Event.Command of
         cmLookForPanels, cmGetUserParams, cmGetUserParamsWL,
-        cmChangeDirectory, cmChangeDrv,
+        cmChangeDrv,
         cmIsRightPanel:
           begin
           HandleCommand(Event);
@@ -161,7 +161,11 @@ procedure TXDoubleWindow.HandleEvent;
     evCommand:
       case Event.Command of
         cmChangeDirectory:
-          begin
+          begin {AK155 Это сообщение реально можно получить ТОЛЬКО
+            от дерева, поэтому сравнение с dtTree, мягко говоря,
+            неожиданное, работает правильно. Но, конечно, надо
+            вместо этого трюкачества организовать в дереве прямой
+            вызов ChDir панели }
           Panel[Selected[NonFilePanelType <> dtTree]].
             FilePanel^.HandleEvent(Event);
           Exit;
@@ -183,6 +187,7 @@ procedure TXDoubleWindow.HandleEvent;
         cmMakeForced,
         cmRereadForced,
         cmTotalReread,
+        cmUpdateHighlight,
         cmReboundPanel,
         cmRereadDir:
           begin

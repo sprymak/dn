@@ -213,7 +213,6 @@ type
     procedure EraseFiles(AFiles: PCollection); virtual;
     function GetRealName: String; virtual;
     function GetInternalName: String; virtual;
-    procedure HandleCommand(Command: Word; InfoPtr: Pointer); virtual;
     procedure MakeDir; virtual;
     function isUp: Boolean; virtual;
     procedure ChangeUp(var S: String); virtual;
@@ -226,6 +225,8 @@ type
     procedure SeekDirectory;
     function OpenDirectory(const Dir: String;
                                  PutDirs: Boolean): PDrive; virtual;
+    procedure DrvFindFile(FC: PFilesCollection); virtual;
+    procedure ReadDescrptions(FilesC: PFilesCollection); virtual;
   private
     procedure Kill;
     end;
@@ -239,7 +240,7 @@ var
 
 implementation
 uses
-  Advance, Advance2, Advance1, Advance3, FlPanel, Commands, Startup, DNApp,
+  Advance, Advance2, Advance1, FlPanel, Commands, Startup, DNApp,
   Drivers, Messages, Dialogs, Memory, FileFind, DNUtil, FileCopy, U_KeyMap,
   ArvidAvt, ArvidTdr
   , PDSetup
@@ -592,8 +593,6 @@ procedure TArvidDrive.CopyFiles;
   then
     Exit;
 
-  if CopyDir[Length(CopyDir)] <> '\' then
-    CopyDir := CopyDir+'\';
   if Pos(S1, CopyDir) = 1 then
     begin
     if filetype = avdTdr then
@@ -1023,7 +1022,7 @@ procedure TArvidDrive.EditDescription;
   GlobalMessage(evCommand, cmPanelReread, nil);
   end { TArvidDrive.EditDescription };
 
-procedure TArvidDrive.HandleCommand;
+procedure TArvidDrive.DrvFindFile(FC: PFilesCollection);
   var
     DT: record
       Mask: String;
@@ -1407,62 +1406,59 @@ procedure TArvidDrive.HandleCommand;
 
     end { ExecuteFindDialog };
 
-  begin { TArvidDrive.HandleCommand }
+  begin { TArvidDrive.DrvFindFile }
   OOM := False;
-  if Command = cmFindFile then
+  DT.Mask := '';
+  DT.Text := '';
+  DT.o := 0;
+  if ExecResource(dlgArvidFileFind, DT) <> cmOK then
+    goto 1;
+  if DT.o and 1 <> 0 then
     begin
-    DT.Mask := '';
-    DT.Text := '';
-    DT.o := 0;
-    if ExecResource(dlgArvidFileFind, DT) <> cmOK then
-      goto 1;
-    if DT.o and 1 <> 0 then
-      begin
-      DateAfter := ParseTime(AdvanceSearchData.After);
-      DateBefore := ParseTime(AdvanceSearchData.Before);
-      if DateBefore = 0 then
-        DateBefore := $7FFFFFFF;
-      SizeGreat := StoI(AdvanceSearchData.Greater);
-      SizeLess := StoI(AdvanceSearchData.Less);
-      if SizeLess = 0 then
-        SizeLess := $7FFFFFFF;
-      Attr := 0;
-      if AdvanceSearchData.Attr and 1 <> 0 then
-        Attr := Archive;
-      if AdvanceSearchData.Attr and 2 <> 0 then
-        Attr := Attr or SysFile;
-      if AdvanceSearchData.Attr and 4 <> 0 then
-        Attr := Attr or Hidden;
-      if AdvanceSearchData.Attr and 8 <> 0 then
-        Attr := Attr or ReadOnly;
-      end;
-    if DT.Mask = '' then
-      DT.Mask := x_x;
-    SDesc := DT.Text <> '';
-    UpStr(DT.Text);
-    if FindList <> nil then
-      Dispose(FindList, Done);
-    FindList := nil;
-    P := WriteMsg(GetString(dlPleaseStandBy));
-    if DT.o and 2 <> 0 then
-      SearchInAllFiles
-    else
-      SearchInStream(Stream, GetName(Name^));
-    P^.Free;
-    if FindList = nil then
-      begin
-      MessageBox(^C+GetString(dlNoFilesFound), nil,
-        mfInformation+mfOKButton);
-      Exit;
-      end;
-1:
-    if FindList <> nil then
-      ExecuteFindDialog;
+    DateAfter := ParseTime(AdvanceSearchData.After);
+    DateBefore := ParseTime(AdvanceSearchData.Before);
+    if DateBefore = 0 then
+      DateBefore := $7FFFFFFF;
+    SizeGreat := StoI(AdvanceSearchData.Greater);
+    SizeLess := StoI(AdvanceSearchData.Less);
+    if SizeLess = 0 then
+      SizeLess := $7FFFFFFF;
+    Attr := 0;
+    if AdvanceSearchData.Attr and 1 <> 0 then
+      Attr := Archive;
+    if AdvanceSearchData.Attr and 2 <> 0 then
+      Attr := Attr or SysFile;
+    if AdvanceSearchData.Attr and 4 <> 0 then
+      Attr := Attr or Hidden;
+    if AdvanceSearchData.Attr and 8 <> 0 then
+      Attr := Attr or ReadOnly;
     end;
+  if DT.Mask = '' then
+    DT.Mask := x_x;
+  SDesc := DT.Text <> '';
+  UpStr(DT.Text);
   if FindList <> nil then
     Dispose(FindList, Done);
   FindList := nil;
-  end { TArvidDrive.HandleCommand };
+  P := WriteMsg(GetString(dlPleaseStandBy));
+  if DT.o and 2 <> 0 then
+    SearchInAllFiles
+  else
+    SearchInStream(Stream, GetName(Name^));
+  P^.Free;
+  if FindList = nil then
+    begin
+    MessageBox(^C+GetString(dlNoFilesFound), nil,
+      mfInformation+mfOKButton);
+    Exit;
+    end;
+1:
+  if FindList <> nil then
+    ExecuteFindDialog;
+  if FindList <> nil then
+    Dispose(FindList, Done);
+  FindList := nil;
+  end { TArvidDrive.DrvFindFile };
 
 procedure TArvidDrive.GetDirLength(PF: PFileRec);
   var
@@ -1492,6 +1488,10 @@ function TArvidDrive.OpenDirectory(const Dir: String;
                                          PutDirs: Boolean): PDrive;
   begin
   OpenDirectory := nil;
+  end;
+
+procedure TArvidDrive.ReadDescrptions(FilesC: PFilesCollection);
+  begin
   end;
 
 end.

@@ -91,7 +91,7 @@ implementation
 uses
   VPUtils
   , Dos, Lfn {DataCompBoy}
-  , Advance, Advance1, Advance2, Advance3, Views, Startup, Dialogs,
+  , Advance, Advance1, Advance2, Views, Startup, Dialogs,
   xTime, FilesCol, DNApp, Drivers, Gauge, Messages, Commands, RStrings,
   FileCopy, HistList, DNUtil
   , Events
@@ -1791,12 +1791,6 @@ end;
       if UUDecodeOptions <> Dr.OPT then
         ConfigModified := True;
       UUDecodeOptions := Dr.OPT;
-      if Dr.S = '' then
-        Dr.S := '.\'
-      else if Dr.S[Length(Dr.S)] <> '\' then
-        if not ((Length(Dr.S) = 2) and (Dr.S[2] = ':')) then
-          Dr.S := Dr.S+'\';
-      {Cat:warn могут быть проблемы с сетевыми путями}
       CreateDirInheritance(Dr.S, False);
       NewTimer(Timer, 0);
       BeepDisabled := UU_Decode(AFileCollection, Dr.S, Dr.OPT and 1 <> 0,

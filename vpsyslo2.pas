@@ -42,16 +42,19 @@ type
     Size: Longint;
 {$ENDIF}
     Name: ShortString;
-    CreationTime: LongInt;
-    LastAccessTime: LongInt;
     Filler: array[0..3] of Char;
     {$IFDEF OS2}
     {AK155 Читаем по DosFindNext по много файлов за раз.
-   Буфер на 2k при именах средней длины позволяет прочитать
-   штук по 40 записей каталога}
+     Буфер на 8k позволяет гарантированно прочитать 28 записей каталога.
+     Теоретически можно запрашивать и больше, и тогда запрос может
+     завершиться по исчерпанию буфера, а не счетчика. Но режим исчерпания
+     буфера в некоротых ситуациях работает неправильно, в частности, для
+     RAMFS, подмонтированного как сетевой диск. Андрей Белов, автор
+     текущей версии RAMFS, говорит, что ничего поделать не может - в этом
+     случае система некорректно передаёт ему данные для продолжения поиска.}
     //JO: Внимание! размер FindBuf должен быть согласован с размером аналогичной
     //    переменной в _Defines.lSearchRec
-    FindBuf: array[0..2*1024-1] of Byte;
+    FindBuf: array[0..8*1024-1] of Byte;
     FindCount: Integer; {число необработанных записей}
     FindPtr: ^FileFindBuf3; {первая необработанная запись}
     {$ENDIF}
@@ -76,6 +79,8 @@ type
     FindName: ShortString;
     FindAttr: LongInt;
     {$ENDIF}
+    CreationTime: LongInt;
+    LastAccessTime: LongInt;
     end;
 
 function SysFindFirstNew(Path: PChar; Attr: LongInt;
@@ -287,7 +292,7 @@ function SysFindNextNew(var F: TOSSearchRecNew; IsPChar: Boolean): LongInt;
   begin
   if F.FindCount = 0 then
     begin
-    F.FindCount := 100;
+    F.FindCount := 28;
     Result := DosFindNext(F.Handle, F.FindBuf,
         SizeOf(F.FindBuf), F.FindCount);
     if Result <> 0 then

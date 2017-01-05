@@ -53,10 +53,10 @@ unit Advance;
 interface
 
 uses
-  Dos, {DnIni}
+  Dos,
   Strings,
   Objects2, Lfn {DataCompBoy}
-  , U_KeyMap, Defines, Streams
+  , Defines, Streams
   ;
 
 {$IFDEF DNPRG}
@@ -154,8 +154,6 @@ const
 
   ColorIndexes: PColorIndex = nil;
 
-  NumFloppy: Byte = 0;
-
   opUnk = 0; { Unknown  }
   opDOS = 1; { DOS      }
   opOS2 = 2; { OS/2     }
@@ -201,6 +199,11 @@ function Min(x, y: LongInt): LongInt;
 function Max(x, y: LongInt): LongInt;
 function Sgn(x: Integer): Integer;
 procedure TinySlice;
+  {` Отдача системе кванта времени. Эта процедура вызывается из
+  цикла событий TGroup.Execute, а стало быть, в любой ситуации,
+  когда работает Desktop или диалог. Если же кто-то сам крутит
+  цикл (например, с GetEvent), то он сам должен и TinySlice вызывать,
+  если нужно. Пример того, как это делается, см. в TView.MouseEvent `}
 
 function FormatLongName(Name: String; Size, ExtSize: Byte;
   {` Форматировать длинное имя под общую длину Size, в том числе
@@ -245,17 +248,16 @@ const
   {.$ENDIF}
 
 var
-  DOS40: Boolean;
   OS2exec: Boolean; { use OS2exec to determine if starting of OS/2  }
   { programs is supported                         }
   { use opsys and opOS2 <> 0 to determine if OS/2 }
   { is running                                    }
+  Win32exec: Boolean; {starting of Win32 programs is supported  }
   FreeStr: String;
   FreeLongStr: LongString;
   InterfaceStr: String;
     {` Статическая строка для передачи данных между программами.
     Использовать её без крайней необходимости не следует. `}
-  ActiveDir: String; {DataCompBoy}
   DNNumber: Byte;
 
   {Cat: порядок переменных не менять, иначе будут проблемы с плагинами}
@@ -263,15 +265,25 @@ var
 var
   {-DataCompBoy-}
   StartupDir: String;
+    {` Каталог, откуда вызван DN.EXE. С '\' в конце `}
   SourceDir: String;
+    {` Каталог, где лежат конфиги и истории. С '\' в конце.
+      Управляется Env-переменной DN2. `}
   TempDir: String;
+    {` Временный каталог. С '\' в конце `}
   TempFile: String;
   TempFileSWP: String; {JO}
   LngFile: String;
   SwpDir: String;
+    {` Каталог для врменных командных файлов и списков,
+    а в DPMI32 - для свопа на время выполнения внешней программы.
+    С '\' в конце. Управляется Env-переменной DNSWAP и ключиком /S. `}
   {-DataCompBoy-}
 const
   DirToChange: String = ''; {DataCompBoy}
+{$IFDEF DPMI32}
+  DirToMoveContent: String = ''; {JO}
+{$ENDIF}
 
 const
   CL_SafeBuf = $8000;
@@ -318,7 +330,7 @@ type
 implementation
 
 uses
-  xTime, Startup, Advance1, Advance3,
+  xTime, Startup, Advance1,
   VpSysLow, Advance2,
   Commands
   ;
@@ -498,7 +510,7 @@ function FormatLongName(Name: String; Size, ExtSize: Byte;
   label
     MakeResult;
   begin { FormatLongName }
-  if Name = '..' then
+  if (Name = '..') or (Name = '.' {бывает внутри чужих архивов}) then
     begin
     Result := AddSpace(Name, Size);
     Exit;
@@ -666,7 +678,53 @@ procedure CheckOS;
   else
     opSys := opWNT;
   {$ENDIF}
-  {$IFDEF DPMI32}opSys := opDPMI32; {$ENDIF}
+  {$IFDEF DPMI32}
+  opSys := opDPMI32;
+  asm
+  {OS2}
+    mov   AX, 4010h
+    int   2Fh
+    cmp   AX, 4010h
+    JZ    @nonOS2
+    {OS2 detected}
+    or    opSys, opOS2
+  @nonOS2:
+    mov   ax, 3306h
+    int   21h           { get true dos version }
+  {WinNT}{since WinNT don't support GetWinVer via int2f}
+    cmp   bx,3205h
+    jne   @nonWNT
+    {Win NT based OS detected }
+    or    opSys, opWNT+opWin
+  @nonWNT:
+  {DOS}
+    cmp   bl,3
+    jb    @nonDOS
+    cmp   bl,7
+    ja    @nonDOS
+    {DOS detected}
+    or    opSys, opDos
+  @nonDOS:
+  {DV}
+    mov   ax, 2B01h
+    mov   cx, 4445h
+    mov   dx, 5351h
+    int   21h           { Desqview Installed? }
+    cmp   al, 255
+    je    @nonDV
+    {DesqView detected}
+    or    opSys, opDV
+  @nonDV:
+  {WIN 3.x and 9x}
+    mov   ax, 160Ah
+    int   2Fh           { Windows Install? }
+    or    ax,ax
+    jne   @nonWin
+    {Windows detected}
+    or    opSys, opWin
+  @nonWin:
+  end; { checkos }
+  {$ENDIF}
   end;
 
 
@@ -775,18 +833,20 @@ procedure TinySlice;
 (32 мс обычно) дёргается всё равно, и если увеличить число, то дёргается
 ещё сильнее.
 }
+  {$ELSE}
+//  give_up_cpu_time;
+//piwamoto: it crashes under W2K, so i get code from DN OSP
+{AK155 Под OS/2 int $28 разгрузки процессора не даёт, а
+ int $2f (DPMI Idle) - даёт. Вероятно, для DPMI32 int $2f
+ неприменимо. Так что оставил безусловно DPMI Idle}
+  asm
+    mov ax,$1680
+    int $2f
+  end;
   {$ENDIF}
   end;
 
 begin
-NumFloppy := 0;
-if ValidDrive('A') then
-  Inc(NumFloppy);
-if ValidDrive('B') then
-  Inc(NumFloppy);
-UpCaseArray[#0] := #0;
-LowCaseArray[#0] := #0;
-DOS40 := Lo(DosVersion) >= 4;
 CheckOS;
 { Starting of OS/2 programs is possible under:              }
 { - OS/2 2.10+, OS2COMSPEC environment variable is required }
@@ -799,14 +859,14 @@ OS2exec := (opSys and opOS2 <> 0) and
         ( (Hi(DosVersion) >= 30) or
           ( (Hi(DosVersion) >= 10) and (GetEnv('OS2COMSPEC') <> ''))
         )));
+Win32exec := opSys and opWin <> 0; {для NT пока не работает}
 {$ENDIF}
 {$IFDEF OS2}
 OS2exec := True;
+Win32exec := False;
 {$ENDIF}
 {$IFDEF WIN32}
 OS2exec := False;
-{$ENDIF}
-{$IFDEF DPMI32}
-OS2exec := False;
+Win32exec := True;
 {$ENDIF}
 end.

@@ -50,70 +50,23 @@ unit Advance3; {Misc stuff}
 
 interface
 
-uses
-  Advance, DnIni, Dos, xTime, Objects2
-  ;
-
 function GetSTime: LongInt;
 
-function XRandom(N: Integer): Integer; { Rnd -N..N }
-procedure DosWrite(S: String);
-{DataCompBoy Function  KeyPressed: Boolean;}
 function FindParam(const S: String): Integer;
+  {` Находит среди ParamStr тот параметр, который начинается
+    с '/' или '-' и последующего S. Результат - номер этого параметра. `}
 {$IFDEF DPMI32}
 function Chk4Dos: Boolean;
-procedure AppendCheck;
-procedure DisableAppend;
 {$ENDIF}
 function GetEnv(S: String): String;
 function GetCrc(StartCrc: LongInt; var Buf; BufSize: Word): LongInt;
 
-{$IFDEF DPMI32}
-var
-  AppendInstalled: Boolean;
-  AppendState: SmallWord;
-  {$ENDIF}
-
 implementation
+
 uses
-  Advance1, Advance2, Advance6, Commands {Cat}
+  Advance, Dos,
+  Advance1, Advance6, Commands {Cat}
   ;
-
-{$IFDEF DPMI32}
-procedure AppendCheck;
-  begin
-  AppendInstalled := False;
-  if DOS40 then
-    asm
-      mov  ax, $B700
-      push bp
-      int  $2F
-      pop  bp
-      or   al, al
-      jz   @@1
-      inc  AppendInstalled
-      mov  ax, $B706
-      push bp
-      int  $2F
-      pop  bp
-      mov  AppendState, BX
-@@1:
-    end;
-  end;
-
-procedure DisableAppend;
-  begin
-  if AppendInstalled then
-    asm
-     mov ax, $B707
-     mov bx, AppendState
-     and bx, $FFFE
-     push bp
-     int  $2F
-     pop  bp
-   end
-  end;
-{$ENDIF}
 
 function GetSTime: LongInt;
   var
@@ -122,28 +75,6 @@ function GetSTime: LongInt;
   GetTime(H, M, S, SS);
   GetSTime := SS+LongInt(S)*100+LongInt(M)*6000+LongInt(H)*360000;
   end;
-
-function XRandom;
-  begin
-  XRandom := N div 2-Random(N)
-  end;
-
-procedure DosWrite;
-  begin
-  Writeln(S);
-  end;
-
-{DataCompBoy
-function KeyPressed: Boolean; assembler;
-asm
- mov ah, 1
- int 16h
- mov ax,1
- jnz @@1
- xor ax,ax
-@@1:
-end;
-}
 
 function FindParam(const S: String): Integer;
   var

@@ -54,7 +54,8 @@ interface
 uses
   Lfn, Files,
   Defines, Objects2, Streams, Memory, Startup,
-  DNHelp, Advance, Advance1, Advance2, Advance3, Collect, Drivers
+  DNHelp, Advance, Advance1, Advance2, Collect, Drivers
+  , Hash
   ;
 
 type
@@ -156,6 +157,19 @@ type
     procedure FreeItem(Item: Pointer); virtual;
     function Compare(Key1, Key2: Pointer): Integer; virtual;
     function FileCompare(Key1, Key2: Pointer): Integer;
+    procedure DelDuplicates(var TotalInfo: TSize);
+      {` Устранение записей, ссылающихся на один и тот же файл.
+        Если коллекция сортированная, то она должна быть отсортирована
+        до вызова данной программы `}
+    end;
+
+type
+  PFilesHash = ^TFilesHash;
+  {` Хэшировщик, применяемый для быстрого поиска по имени/пути
+    в несортированных коллекциях `}
+  TFilesHash = object(THash)
+    procedure Hash(Item: Pointer); virtual;
+    function Equal(Item1, Item2: Pointer): Boolean; virtual;
     end;
 
 const
@@ -193,8 +207,11 @@ function PackedDate(P: PFileRec): LongInt; {DataCompBoy}
 function PackedCreationDate(P: PFileRec): LongInt; {JO}
 function PackedLastAccDate(P: PFileRec): LongInt; {JO}
 //function GetFileType(const S: String; Attr: Byte): Integer;
-procedure DosReread(Files: PFilesCollection);
 {procedure ReplaceLongName(var fr: PFileRec; const NewName: string);}
+
+function SameFile(P1, P2: PFileRec): Boolean;
+  {` Относятся ли файловые записи к одному и тому же файлу,
+  то есть если совпадают ли (длинное) имя и путь. `}
 
 implementation
 uses
@@ -206,7 +223,6 @@ uses
   , VpSysLow, VPUtils
   {$IFDEF PLUGIN}, Plugin {$ENDIF}
   , FlTl, DnIni, Dos, FileType, PDSetup, U_KeyMap
-
   ;
 
 const
@@ -530,10 +546,6 @@ function TFilesCollection.Compare;
       CmpName := +1
     else if S1 < S2 then
       CmpName := -1
-        // JO: в чём смысл этого условия с #22 непонятно, но оно приводит к
-        //     несходимости QuickSort и зависанию/падениям при наличии NoShortName
-        //     в панели при компиляции с дефайном QSort
-        {else if S1[1] = #22 then CmpName := +1}
     else if owner1 > owner2 then
       CmpName := +1
     else if owner1 < owner2 then
@@ -585,8 +597,26 @@ function TFilesCollection.Compare;
       CmpEXT := 0;
     end { CmpEXT };
 
+  function CmpTime(Yr1, Yr2: Word; FDate1, FDate2: LongInt;
+           Second1, Second2: Byte): Integer;
+    begin
+    if  (Yr1 < Yr2) then
+      CmpTime := +1
+    else if (Yr1 > Yr2) then
+      CmpTime := -1
+    else if (FDate1 < FDate2) then
+      CmpTime := +1
+    else if (FDate1 > FDate2) then
+      CmpTime := -1
+    else if (Second1 < Second2) then
+      CmpTime := +1
+    else if (Second1 > Second2) then
+      CmpTime := -1
+    else
+      CmpTime := 0;
+    end;
+
   var
-    C1: Integer; { результат сравнения имён   // AK155}
     Name1, Name2: String; {UpStrg(P2^.Name)  // AK155}
     Own1, Own2: String;
     Branched: Boolean; {идёт ли сравнение в панели представляющей ветвь}
@@ -652,36 +682,15 @@ function TFilesCollection.Compare;
     //    раскрытой ветви - пустая трата процессорного времени
     if Branched then
       begin
-      if Own1[Length(Own1)] = '\' then
-        SetLength(Own1, Length(Own1)-1);
-      if Own2[Length(Own2)] = '\' then
-        SetLength(Own2, Length(Own2)-1);
-{JO: вpеменно метод с весовой таблицей не используется!}
-      if (CmpMethod and 1 <> 0) then
-        begin
-        UpStr(Own1);
-        UpStr(Own2);
-        end
-      else
-        begin
-        LowStr(Own1);
-        LowStr(Own2);
-        end;
+      MakeNoSlash(Own1);
+      MakeNoSlash(Own2);
+      XLatStr(Own1, CompareXlat[CmpMethod]^);
+      XLatStr(Own2, CompareXlat[CmpMethod]^);
       end;
 
     SM := SortMode;
 
-    if not (SM in [psmLongName, psmLongExt]) then
-      begin
-      if Name1 < Name2 then
-        C1 := -1
-      else if Name1 = Name2 then
-        C1 := 0
-      else
-        C1 := 1;
-      end;
-
-    if  (Owner <> nil) then
+    if  (Panel <> nil) then
       begin
       for UpN := 1 to 4 do
         case Ups[UpN] of
@@ -702,8 +711,8 @@ function TFilesCollection.Compare;
             end;
           end;
  upsArchives:
-          if not (SM in [psmSize, psmTime {$IFNDEF DPMI32}, psmCrTime,
-                         psmLATime {$ENDIF}]) then
+          if not (SM in [psmSize, psmTime, psmCrTime,
+                         psmLATime]) then
             begin
             if  (P1^.TType = ttArc) and (TType <> ttArc) then
               begin
@@ -717,8 +726,8 @@ function TFilesCollection.Compare;
               end;
             end;
  upsExecutables:
-          if not (SM in [psmSize, psmTime {$IFNDEF DPMI32}, psmCrTime,
-                         psmLATime {$ENDIF}]) then
+          if not (SM in [psmSize, psmTime, psmCrTime,
+                         psmLATime]) then
             begin
             if  (P1^.TType = ttExec) and (TType <> ttExec) then
               begin
@@ -732,8 +741,8 @@ function TFilesCollection.Compare;
               end;
             end;
  upsHidSysFiles:
-          if not (SM in [psmSize, psmTime {$IFNDEF DPMI32}, psmCrTime,
-                         psmLATime {$ENDIF}]) then
+          if not (SM in [psmSize, psmTime, psmCrTime,
+                         psmLATime]) then
             begin
             if  ((P1^.Attr and (Hidden+SysFile)) <> 0) and
                 ((Attr and (Hidden+SysFile)) = 0) then
@@ -773,7 +782,7 @@ function TFilesCollection.Compare;
           Exit;
           end;
         end;
-      end; {Owner <> nil}
+      end; {Panel <> nil}
 
     if SortFlags and psfOwnerFirst <> 0 then
       begin
@@ -797,27 +806,13 @@ Lab1:
                C := CmpName(Name1, Name2, Own1, Own2)
       else
       case SM of
-        psmUnsorted:
-          if P1^.Owner^ = Owner^
-          then
-            if C1 = 0 then
-              C := 0
-            else
-              C := -1
-          else if P1^.Owner^ < Owner^ then
-            C := -1
-          else
-            C := 1;
+//JO: реально при psmUnsorted метод Compare никогда не вызывается, но
+//    на всякий случай лучше, чтобы сравнение производилось, причём
+//    будет честнее, если это будет нормальное сравнение по именам и
+//    путям, а не нечто, создающее псевдонесортированный беспорядок
+             psmUnsorted,
         {LFN}psmLongName:
           C := CmpName(Name1, Name2, Own1, Own2);
-        141:
-          if Name1 < Name2 then
-            C := -1
-          else if (Name1 > Name2) then
-            C := 1
-          else
-            C := 0;
-
         {LEXT}psmLongExt:
           begin
           C := CmpEXT(Name1, Name2);
@@ -829,100 +824,44 @@ Lab1:
             C := -1
           else if P1^.Size < Size then
             C := 1
-          else if C1 = -1 then
-            C := -1
-          else if C1 = 1 then
-            C := 1
           else
             C := CmpName(Name1, Name2, Own1, Own2);
         {DATE}psmTime:
           begin
-          if  (P1^.Yr < Yr) then
-            C := 1
-          else if (P1^.Yr > Yr) then
-            C := -1
-          else if (P1^.FDate < FDate) then
-            C := 1
-          else if (P1^.FDate > FDate) then
-            C := -1
-          else if (P1^.Second < Second) then
-            C := 1
-          else if (P1^.Second > Second) then
-            C := -1
-          else if C1 = -1 then
-            C := -1
-          else if C1 = 1 then
-            C := 1
-          else
+          C := CmpTime(P1^.Yr, Yr, P1^.FDate,
+                       FDate, P1^.Second, Second);
+          if C = 0 then
             C := CmpName(Name1, Name2, Own1, Own2);
           end;
         {JO}
-        {$IFNDEF DPMI32}
         {Creat.DATE}psmCrTime:
           begin
-          if  (P1^.YrCreat < YrCreat) then
-            C := 1
-          else if (P1^.YrCreat > YrCreat) then
-            C := -1
-          else if (P1^.FDateCreat < FDateCreat) then
-            C := 1
-          else if (P1^.FDateCreat > FDateCreat) then
-            C := -1
-          else if (P1^.SecondCreat < SecondCreat) then
-            C := 1
-          else if (P1^.SecondCreat > SecondCreat) then
-            C := -1
-          else if C1 = -1 then
-            C := -1
-          else if C1 = 1 then
-            C := 1
-          else
+          C := CmpTime(P1^.YrCreat, YrCreat, P1^.FDateCreat,
+                       FDateCreat, P1^.SecondCreat, SecondCreat);
+          if C = 0 then
             C := CmpName(Name1, Name2, Own1, Own2);
           end;
         {L.Acc.DATE}psmLATime:
           begin
-          if  (P1^.YrLAcc < YrLAcc) then
-            C := 1
-          else if (P1^.YrLAcc > YrLAcc) then
-            C := -1
-          else if (P1^.FDateLAcc < FDateLAcc) then
-            C := 1
-          else if (P1^.FDateLAcc > FDateLAcc) then
-            C := -1
-          else if (P1^.SecondLAcc < SecondLAcc) then
-            C := 1
-          else if (P1^.SecondLAcc > SecondLAcc) then
-            C := -1
-          else if C1 = -1 then
-            C := -1
-          else if C1 = 1 then
-            C := 1
-          else
+          C := CmpTime(P1^.YrLAcc, YrLAcc, P1^.FDateLAcc,
+                       FDateLAcc, P1^.SecondLAcc, SecondLAcc);
+          if C = 0 then
             C := CmpName(Name1, Name2, Own1, Own2);
           end;
-        {$ENDIF}
 
         {DIZ}psmDIZ:
           begin
           if  (P1^.DIZ <> nil) then
             begin
             ST1 := P1^.DIZ^.DIZText;
-{JO: вpеменно метод с весовой таблицей не используется!}
-            if (CmpMethod and 1 <> 0) then
-              UpStr(ST1)
-            else
-              LowStr(ST1);
+            XLatStr(ST1, CompareXlat[CmpMethod]^);
             end
           else
             ST1 := '';
           if  (P2^.DIZ <> nil) then
             begin
             ST2 := P2^.DIZ^.DIZText;
-{JO: вpеменно метод с весовой таблицей не используется!}
-            if (CmpMethod and 1 <> 0) then
-              UpStr(ST2)
-            else
-              LowStr(ST2);
+            XLatStr(ST2, CompareXlat[CmpMethod]^);
             end
           else
             ST2 := '';
@@ -937,29 +876,17 @@ Lab1:
             else if ST1 < ST2 then
               C := -1
             else
-              C := 0;
+              C := CmpName(Name1, Name2, Own1, Own2);
             end;
-          if C = 0 then
-            C := C1;
-          if C = 0 then
-            if Own1 < Own2 then
-              C := -1
-            else if Own1 > Own2 then
-              C := 1;
           end;
         {/JO}
-        else {case}
-          if  (P1^.Attr and $3F = Attr and $3F) and (P1^.Yr = Yr)
-               and (P1^.FDate = FDate) and (P1^.Second = Second)
-            and (C1 = 0) and (P1^.Owner^ = Owner^)
-            //! {$IFNDEF OS2} and (GetLFN(P1^.LFN)=GetLFN(LFN)) {$ENDIF}
-            then
-            C := 0
-          else
-            C := -1;
-      end {case}; {case}
+      else {case}
+//JO: если значение SortMode какое-нибудь нестандартное, то pеально
+//    ничего не сpавниваем, пpосто инициализиpуем значение функции
+          C := -1;
+      end; {case}
       end;
-    end;
+    end; {with P2^}
   if SortFlags and psfInverted = 0 then
     Compare := C
   else
@@ -975,9 +902,12 @@ Lab1:
 //    TFilesCollection.Compare разрослась до безобразия, а для скорости
 //    сортировки важна быстрота её вызова, а во-вторых поскольку поле
 //    TFilesCollection.Sortmode используется этими двумя функциями совершенно
-//    разным образом. Метод FileCompare используется только один раз
-//    в одном единственном месте, и нигде не наследуется.
-
+//    разным образом. Метод FileCompare используется только для сравнения
+//    отдельно взятых файловых записей, и нигде не наследуется.
+//JO: 27-04-2006 - перенёс в TFilesCollection.FileCompare из
+//    TFilesCollection.Compare сравнение файлов по всем критериям сразу,
+//    используемое для групповых операций с файлами в панели (в данный
+//    момент используется только для разотметки файлов по cmCopyUnselect)
 function TFilesCollection.FileCompare;
   var
     P1: PFileRec absolute Key1;
@@ -1012,7 +942,7 @@ function TFilesCollection.FileCompare;
 
     SM := SortMode;
 
-    if  (SM and 16 = 0)
+    if  (SM and fcmCaseSensitive = 0)
       {$IFDEF Win32}
       {JO: регистрочувствительное сравнение по коротким именам лишено смысла}
       or (not uLfn)
@@ -1036,14 +966,31 @@ function TFilesCollection.FileCompare;
         C1 := 1;
       end;
 
+    if SM = fcmPreciseCompare then
+//  сравнение используется в TFilePanel.HandleEvent для CM_CopyUnselect,
+//  т.е. для разотметки файлов при групповых операциях
+      begin
+//JO: по поводу маски $3F см. комментарий AK155 от 28-11-05 к константам
+//    Marked и Copied модуля FileCopy
+      if (P1^.Attr and $3F = Attr and $3F)
+            and (P1^.Yr = Yr)
+            and (P1^.FDate = FDate) and (P1^.Second = Second)
+            and (C1 = 0) and (P1^.Owner^ = Owner^)
+            then
+            FileCompare := 0
+          else
+            FileCompare := -1;
+      Exit;
+      end;
+
     if  (C1 = 0) and ((P1^.Attr or Attr) and Directory = 0) and
-        ( (SM and 1 = 0) or (P1^.Size = Size)) and
-        ( (SM and 2 = 0) or (P1^.Yr < Yr) or
+        ( (SM and fcmCompSize = 0) or (P1^.Size = Size)) and
+        ( (SM and fcmCompTime = 0) or (P1^.Yr < Yr) or
           ( (P1^.Yr = Yr) and (P1^.FDate <= FDate)) or
           ( (P1^.Yr = Yr) and (P1^.FDate = FDate) and (P1^.Second <
              Second))) and
-        ( (SM and 4 = 0) or (P1^.Attr = Attr)) and
-        ( (SM and 8 = 0) or
+        ( (SM and fcmCompAttr = 0) or (P1^.Attr = Attr)) and
+        ( (SM and fcmCompContent = 0) or
         CompareFiles(MakeNormName(P1^.Owner^, Name1),
           MakeNormName(Owner^, Name2)))
     then
@@ -1135,7 +1082,7 @@ function SelectDrive; {-$VIV, JO}
   {$IFDEF NetBrowser}
   if IncludeTemp then
     begin
-    Items := NewItem('~@:~ Network:', '', kbNoKey, 1400,
+    Items := NewItem('~@:~ Network:', '', kb2, 1400,
               hcNoContext, Items);
     Inc(N);
     end;
@@ -1198,9 +1145,9 @@ function SelectDrive; {-$VIV, JO}
         if IDDQD.dr+IDDQD.Fl = 0 then
           FreeStr := GetString(dlEmpty)
         else if IDDQD.dr = 0 then
-          FreeStr := ItoS(IDDQD.Fl)+' '+#0+GetString(dlDIFiles)+#0
+          FreeStr := ItoS(IDDQD.Fl)+' '+GetString(dlDIFiles)
         else if IDDQD.Fl = 0 then
-          FreeStr := ItoS(IDDQD.dr)+' '+#0+GetString(dlDirectories)+#0
+          FreeStr := ItoS(IDDQD.dr)+' '+GetString(dlDirectories)
         else
           FormatStr(FreeStr, GetString(dlFilDir), IDDQD);
         end
@@ -1370,45 +1317,6 @@ function SelectDrive; {-$VIV, JO}
   for I := 1 to DrvCnt do
     with DrvStrArr[I] do
       if DT = dtnLAN then FullS := FullS + '~'+GetShare(Dr)+'~';
-
-(*
-//JO: нижележащий кусок оставлен временно до тех пор, пока текущий
-//    каталог определяется "на месте", а не хранится внутренне самим DN
-          begin
-          if  (DT = dtnFloppy)
-                 or ((InterfaceData.DrvInfType and ditCDdir = 0)
-              and (InterfaceData.DrvInfType and ditLocalDir = 0))
-          then
-            ShowDir := False
-          else if (InterfaceData.DrvInfType and ditCDdir <> 0)
-            and (InterfaceData.DrvInfType and ditLocalDir <> 0)
-          then
-            ShowDir := True
-          else if (InterfaceData.DrvInfType and ditLocalDir <> 0)
-          then
-            ShowDir := (DT <> dtnCDRom)
-          else
-            ShowDir := (DT = dtnCDRom);
-          if ShowDir then
-            begin
-            pSaveNeedAbort := NeedAbort;
-            NeedAbort := True;
-            lGetDir(DriveNum, PathName); {DataCompBoy}
-            if IOResult = 0 then
-              begin
-              if Length(PathName) = 3 then
-                PathName := ''
-              else
-                begin
-                Delete(PathName, 1, 3);
-                PathName := '<'+CutLongString(PathName)+'>';
-                end;
-              FullS := FullS+PathName;
-              end;
-            NeedAbort := pSaveNeedAbort;
-            end
-          end;
-*)
 
   for I := 1 to DrvCnt do
     with DrvStrArr[I] do
@@ -1659,66 +1567,100 @@ function PackedLastAccDate(P: PFileRec): LongInt;
   PackedLastAccDate := L;
   end;
 
-procedure DosReread(Files: PFilesCollection);
-  var
-    i: LongInt;
-    sr: lSearchRec;
-    p: PFileRec;
-    D: DateTime;
-    S: String;
+{ Файловые записи считаются относящимися к одному и тому же файлу,
+если совпадают (длинное) имя и путь. }
+function SameFile(P1, P2: PFileRec): Boolean;
   begin
-  if Files = nil then
+  Result := False;
+  if P1^.FlName[True] <> P2^.FlName[True] then
     Exit;
-  i := 0;
-  while i < Files^.Count do
+  if (P1^.Owner <> P2^.Owner) and (P1^.Owner^ <> P2^.Owner^) then
+    Exit;
+  Result := True;
+  end;
+
+procedure TFilesHash.Hash(Item: Pointer);
+  var
+    i: Integer;
+    R: Longint;
+  begin
+  R := 0;
+  with PFileRec(Item)^ do
     begin
-    ClrIO;
-    p := Files^.At(i);
-    {JO: проверяем, не лежит ли файл в архиве в панели поиска}
-    if not PathFoundInArc(p^.Owner^) then
-      begin
-      with p^ do
-        lFindFirst(MakeNormName(Owner^, FlName[True]), AnyFileDir, sr);
-      {JO}
-      lFindClose(sr);
-      if  (DosError <> 0) or Abort then
-        Files^.AtFree(i)
-      else
-        begin
-        p^.Size := sr.FullSize;
-        UnpackTime(sr.sr.Time, D);
-        p^.Yr := D.Year;
-        with TDate4(p^.FDate) do
-          begin
-          Month := D.Month;
-          Day := D.Day;
-          Hour := D.Hour;
-          Minute := D.Min;
-          end;
-        p^.Second := D.Sec;
-        p^.Attr := sr.sr.Attr;
-        {JO: чтобы менялся цвет в панели поиска и временной панели при переименовании}
-        p^.TType := GetFileType(p^.FlName[True], p^.Attr);
-        Inc(i);
-        end;
-      end
-    else
-      begin
-      {JO: проверяем, существует ли архив, в котором лежит файл }
-      S := p^.Owner^;
-      if Length(S) > 1 then
-        S[2] := ';';
-      {JO: реально не важно, какой символ взять, лишь бы не ':'}
-      S := Copy(p^.Owner^, 1, PosChar(':', S)-1);
-      lFindFirst(S, AnyFileDir, sr);
-      lFindClose(sr);
-      if  (DosError <> 0) or Abort then
-        Files^.AtFree(i)
-      else
-        Inc(i);
-      end;
+    for i := 1 to Length(FlName[True]) do
+      R := R*3 + Byte(FlName[True][i]);
+    if Owner <> nil then
+      for i := 1 to Length(Owner^) do
+        R := R*3 + Byte(PString(Owner)^[i]);
     end;
-  if Files^.Count > 0 then
-    Files^.Sort;
-  end { DosReread };
+  R := (R * $33C6EF37) and $7FFFFFF;
+  hf := R mod Count;
+  RehashStep := ((R div Count) mod Count) or 1;
+  end;
+
+function TFilesHash.Equal(Item1, Item2: Pointer): Boolean;
+  begin
+  Result := SameFile(Item1, Item2);
+  end;
+
+procedure TFilesCollection.DelDuplicates(var TotalInfo: TSize);
+  type
+    TIsDupe = function(i: Integer): Boolean;
+  var
+    i,j, DupeStart, k: Integer;
+    H: PFilesHash;
+    S: TSize;
+    IsDupe: TIsDupe;
+
+  function IsSortedDupe(i: Integer): Boolean;
+    begin { в сортированной коллекции дупы стоят рядом }
+    Result := SameFile(Items^[i-1], Items^[i]);
+    end;
+
+  function IsUnsortedDupe(i: Integer): Boolean;
+    begin
+    Result := not H^.AddItem(i);
+    end;
+
+  begin
+  if not Duplicates then
+    Exit;
+  TotalInfo := 0;
+  H := nil;
+  if SortMode = psmUnsorted then
+    begin
+    New(H, Init(@Self));
+    if H^.HT <> nil then
+      Exit; //! Наверно, памяти мало, сообщить бы об этом
+    @IsDupe := @IsUnsortedDupe;
+    end
+  else
+    @IsDupe := @IsSortedDupe;
+
+  { Каждый пакет дупов сначала полностью выявляется, а затем
+  удаляется. Удалять по одному некорректно, так как после этого
+  некорректным становится сравнение следующего с предыдущим
+  (удалённым). Для результатов поиска оно, впрочем, работает,
+  только потому, что у записей результатов поиска UsageCount>1,
+  на что закладываться нет никаго смысла.}
+  j := 1; DupeStart := 1;
+  for i := 1 to Count-1 do
+    if not IsDupe(i) then
+      begin
+      for k := DupeStart to i-1 do
+        DelFileRec(PFileRec(Items^[k]));
+      DupeStart := i+1; // новый кандидат на начало пакета дупов
+      Items^[j] := Items^[i];
+      S := PFileRec(Items^[j])^.Size;
+      if S > 0 then {у каталога с неизвестным размером Size=-1}
+        TotalInfo := TotalInfo + S;
+      inc(j);
+      end;
+  Count := j;
+  Duplicates := False;
+  { лишнюю память в Items^ не освобождаем }
+  if H <> nil then
+    Dispose(H, Done);
+  end;
+
 end.
