@@ -118,7 +118,7 @@ procedure RunOS2Command;
     M := 'START "'+Command+'" /FS '+EX
   else
     M := 'START "'+Command+'" /WIN '+EX;
-  ExecString(@M, '');
+  ExecString(M, '');
   end { RunOS2Command };
 {DataCompBoy}
 end.

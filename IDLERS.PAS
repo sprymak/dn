@@ -441,7 +441,7 @@ procedure TClockSaver.Draw;
     else
       begin
       Move(BB, B, Size.X*2);
-      MoveStr(B[X], SStr(dH, 2, '0')+':'+SStr(dM, 2, '0'), Clr); {JO}
+      MoveStr(B[X], Dec2(dH)+':'+Dec2(dM), Clr); {JO}
       {$IFNDEF Win32}
       WordRec(B[X+2]).Hi := Clr+$80; {JO}
       {$ENDIF}
@@ -489,7 +489,7 @@ procedure TClockSaver.Update;
       else
         Clr := $09; {JO}
       end;
-    MoveStr(B[0], SStr(dH, 2, '0')+':'+SStr(dM, 2, '0'), Clr); {JO}
+    MoveStr(B[0], Dec2(dH)+':'+Dec2(dM), Clr); {JO}
     {$IFNDEF Win32}
     WordRec(B[2]).Hi := Clr+$80; {JO}
     {$ENDIF}

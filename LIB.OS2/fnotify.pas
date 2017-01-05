@@ -34,6 +34,7 @@ procedure NotifyInit;
 procedure NotifyAsk(var S: String);
 procedure NotifySuspend;
 procedure NotifyResume;
+procedure NotifyDone;
 
 implementation
 

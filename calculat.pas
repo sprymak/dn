@@ -967,6 +967,7 @@ function Evalue(const s: String; CCV: Pointer): CReal;
     o: Pointer;
   begin
   CurCalcView := CCV;
+  Evalue := 0;
   try
     EvalueError := False;
     CurrOp := 0;

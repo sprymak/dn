@@ -51,7 +51,7 @@ unit Advance2; {File related functions}
 interface
 
 uses
-  Defines, Streams, Advance, Dos, Lfn, UFNMatch
+  Defines, Advance, Views
   ;
 
 var
@@ -77,6 +77,8 @@ function GetCurDrive: Char;
 procedure SetCurDrive(C: Char);
 
 function GetExt(const s: String): String;
+  {` s - имя файла, возможно, с путём. Результат - расширение,
+   начинающееся с точки. Если расширения нет - результат '.' `}
 function Norm12(const s: String): Str12;
 {-DataCompBoy-}
 function DelSquashes(s: String): String;
@@ -100,32 +102,8 @@ function InDirFilter(Name, Filter: String): Boolean; {JO}
 {FUNCTION  InExtMask(Name, Mask: string):Boolean;}
 {does Ext match Mask? }
 
-type
-  TMaskPos = packed record
-    CurPos: Byte;
-    InSq: Boolean;
-    end;
-  PMasksPos = ^TMasksPos;
-  TMasksPos = packed array[0..255] of TMaskPos;
-  TMasksData = packed record
-    Num: Byte;
-    case Boolean of
-      True: (P: Pointer; );
-      False: (A: array[1..2] of TMaskPos; );
-    end;
-  TMasksDataArr = packed array[32..255] of TMasksData;
-  PMaskData = ^TMaskData;
-  TMaskData = packed record
-    Filter: String;
-    MP: TMasksDataArr;
-    end;
-
-procedure FreeTMaskData(var MD: TMaskData); {Cat}
-procedure MakeTMaskData(var MD: TMaskData); {Fills TMaskData members}
-{for work of InExtFilter}
-function InExtFilter(Name: String; const F: TMaskData): Boolean;
-{does extension of  }
-{Name match Filter? }
+function InExtFilter(Name: String; const F: String): Boolean;
+{` does extension of  Name match Filter? `}
 (*
 FUNCTION  InOldMask(Name,Mask: string):Boolean;     {DataCompBoy}
 FUNCTION  InOldFilter(Name,Filter: string):Boolean; {DataCompBoy}
@@ -163,20 +141,22 @@ procedure GetFTimeSizeAttr(const A: String; var ATime: LongInt;
     var ASize: TSize; var AAttr: Word);
 {-DataCompBoy-}
 
-{-DataCompBoy-}
-type
-  TQuickSearchData = record
-    Mask: String;
-    NumExt: Word;
-    ExtD: Word;
-    end;
+var
+  QSMask: string;
+  LastSuccessPos: Integer;
 
-function InQSMask(Name, Mask: String): Boolean; {JO}
+function QSMaskPlusStar: String;
+  {` добавить '*' в конце QSMask, если там её не было `}
+procedure InitQuickSearch(Panel: PView);
+procedure StopQuickSearch;
+procedure DoQuickSearch(Key: Word);
+function QuickSearchString(SizeX: Word): String;
+  {` Построение строки для показа текущей маски быстрого поиска.
+  Собственно строка выделяется цветом (тильдами), поэтому содержащиеся
+  внутри неё тильды нужно защищать. Звезда в конце маски, если она
+  подразумеваемая, выводится обычным цветом, а если действительно
+  является частью маски, то выводится ярко `}
 
-procedure InitQuickSearch(var QS: TQuickSearchData);
-procedure DoQuickSearch(var QS: TQuickSearchData; Key: Word);
-function GetCursorPos(const QS: TQuickSearchData; const Name: String;
-    Size, ExtSize: Word): Word;
 procedure FileChanged(const Name: String);
 {-DataCompBoy-}
 
@@ -189,18 +169,19 @@ type
     end;
   {$ENDIF}
 
-function PackMask(const Mask: String; var PM: String {$IFDEF OS_DOS};
-     LFNDis: Boolean {$ENDIF}): Boolean; {DataCompBoy}
-
 function CompareFiles(const N1, N2: String): Boolean;
 
 implementation
 uses
-  Drivers,
+  {VPUtils, }Drivers, Streams, Dos, Lfn,
   Advance1, Advance3, Strings,
-  Commands, DNApp, DnIni, Memory
-  , VpSysLow, VPUtils, U_KeyMap
+  Commands, DNApp, DnIni, Memory, FlPanelX, dnHelp
+  , VpSysLow, U_KeyMap
   ;
+
+var
+  QSPanel: PView;
+  SaveHelpCtx: Word;
 
 {$IFDEF OS_DOS}
 constructor TTempFile.Init(const AExt: String; ABufSize: SW_Word);
@@ -502,20 +483,16 @@ procedure SetCurDrive;
   SetDrive(Byte(C)-65)
   end;
 
-{-DataCompBoy-}
 function GetExt;
   var
     i: Byte;
   begin
-  for i := Length(s) downto 1 do
-    if s[i] in ['.', '\', '/'] then
-      Break;
-  if  ( (i > 1) or (s[1] = '.')) and not (s[i] in ['/', '\']) then
-    GetExt := Copy(s, i, MaxStringLength)
+  i := PosLastDot(s);
+  if i >= Length(s) then
+    Result := '.'
   else
-    GetExt := '.';
+    Result := Copy(s, i, MaxStringLength);
   end;
-{-DataCompBoy-}
 
 function Norm12;
   var
@@ -613,95 +590,220 @@ function SquashesName;
   end;
 {-DataCompBoy-}
 
-{-DataCompBoy-}
-function InMask;
+{ Вспомогательная программа для InMask; обработка и маски,
+и имени начинается с указанных позиций.
+  Имя не долджно сожержать ничего, кроме символов имени
+(в частности, не должно быть обрамляющих кавычек).
+  Спецсимволы маски обрабатываются так:
+  - '"' игнорируется;
+  - '?' сопоставляется с ровно одним символом;
+  - '|' сопоставляется с ровно одной цифрой;
+  - '>' сопоставляется со всеми символами до последней
+    точки включительно;
+  - '*' сопоставляется с любой последовательностью (пустой
+    в том числе). Для этого предпринимаются попытки найти в имени
+    ближайший следующий за звездой контекст маски и сопоставить
+    хвосты маски и имени (рекурсия). Если этот контекст маски
+    можно найти более, чем в одном месте остатка имени, все эти
+    места проверяются последовательно.
+
+  Переменная LastSuccessPos отслеживает позицию имени, на которой
+остановилось успешное сопоставление с незвёздным контекстом.
+Используется при быстром поиске, где маска всегда заканчивается звездой,
+и определяет позицию курсора в текущем найденном имени.
+В других применениях (кроме быстрого поиска) эта переменная не используется.
+  }
+
+function InMaskA(const Name: String; const  Mask: String;
+    iName, iMask: Integer): Boolean;
   var
-    k: Byte;
-    j: Boolean;
-    l: Byte;
-    ext, maskext: String;
+    i, l, s: Integer;
+    Exact: string; {контекст, следующий за звездой }
   begin
-  if  (Mask = x_x) or (Mask = '*') then
+  Result := False;
+  while iMask <= Length(Mask) do
     begin
-    InMask := True;
-    Exit;
-    end;
-
-  j := Mask[Length(Mask)] = '.';
-  UpStr(Mask);
-  maskext := '';
-  l := Length(Mask);
-  while (l > 0) and (not (Mask[l] in ['\', '/'])) and (Mask[l] <> '.')
-  do
-    Dec(l);
-  if Mask[l] = '.' then
-    begin
-    maskext := Copy(Mask, l+1, MaxStringLength);
-    Delete(Mask, l, MaxStringLength);
-    end;
-
-  ext := '';
-  UpStr(Name);
-  if  (maskext <> '') or j then
-    begin
-    l := Length(Name);
-    while (l > 0) and (not (Name[l] in ['\', '/'])) and (Name[l] <> '.')
-    do
-      Dec(l);
-    if Name[l] = '.' then
+    if iName > Length(Name) then
       begin
-      ext := Copy(Name, l+1, MaxStringLength);
-      Delete(Name, l, MaxStringLength);
+      while (iMask <= Length(Mask))  and (Mask[iMask] = '*') do
+        Inc(iMask);
+      if iMask > Length(Mask) then
+        Result := True;
+      Exit;
       end;
-    if  (ext = '') and not j then
-      Mask := Mask+'.'+maskext;
+    case Mask[iMask] of
+      '"':
+        Inc(iMask);
+      '>': { Переход вправо к расширению }
+        begin
+        Inc(iMask);
+        l := PosLastDot(Name);
+        if l < iName then
+          Exit;
+        iName := l;
+        if iName <= Length(Name) then
+          inc(iName);
+        LastSuccessPos := iName;
+        end;
+      '?':
+        begin
+        Inc(iMask);
+        Inc(iName);
+        LastSuccessPos := iName;
+        end;
+      '|': { Цифра }
+        begin
+        if not (Name[iName] in ['0'..'9']) then
+          Exit;
+        Inc(iMask);
+        Inc(iName);
+        LastSuccessPos := iName;
+        end;
+      '*':
+        begin
+        inc(iMask);
+        while (iMask <= Length(Mask)) and (Mask[iMask] = '*') do
+          inc(iMask);
+        if iMask > Length(Mask) then
+          begin
+          Result := True; Exit;
+          end;
+        l := iMask;
+        Exact := '';
+        while (l <= Length(Mask)) and
+              not (Mask[l] in ['?', '|', '*', '>'])
+        do
+          begin
+          if Mask[l] <> '"' then
+            Exact := Exact + Mask[l];
+          inc(l);
+          end;
+        if l <> iMask then
+          begin
+          i := iName;
+          while True do
+            begin { попытки найти Exact и сопоставить остаток маски
+              с остатком имени. Цикл нужен, так как Exact может
+              встретиться несколько раз.
+              i - текущая точка имени, l - текущая точка маски }
+            i := SPos(Exact, Name, i);
+            if i = 0 then
+              Exit; { Окончательная неудача }
+            inc(i, l-iMask);
+            s := LastSuccessPos;
+            LastSuccessPos := i;
+            if InMaskA(Name, Mask, i, l) then
+              begin
+              Result := True; Exit; { Удача }
+              end;
+            LastSuccessPos := s;
+            end;
+          end
+        else if Mask[l] in ['?', '|'] then
+          begin { указанный джокер вслед за звездой }
+          s := LastSuccessPos;
+          for i := iName to Length(Name) do
+            if InMaskA(Name, Mask, i, l) then
+              begin
+              Result := True; Exit; { Удача }
+              end;
+          LastSuccessPos := s;
+          end;
+        end;
+      else {case}
+        begin
+        if Mask[iMask] <> Name[iName] then
+          exit;
+        Inc(iMask);
+        Inc(iName);
+        LastSuccessPos := iName;
+        end
+    end {case};
     end;
-  if ext <> '' then
-    InMask := FnMatch(Mask, Name) and FnMatch(maskext, ext)
-  else
-    InMask := FnMatch(Mask, Name);
-  end { InMask };
-{-DataCompBoy-}
+  l := Length(Name);
+  if Name[l] = '.' then
+    Dec(l); { Это нужно для сопоставлений типа Name='CMD.' Mask = 'CMD',
+      см. добавление точки в InMask }
+  Result := (iName >= l+1);
+  end;
 
-{-DataCompBoy-}
+function InMask(Name, Mask: String): Boolean;
+  var
+    s: Integer;
+  begin
+  if Name = '..' then
+    begin
+    Result := False; Exit;
+    end;
+  if Mask = '' then
+    begin
+    Result := True; Exit;
+    end;
+  if Pos('.', Name) = 0 then
+    Name := Name + '.'; { Подразумеваемая точка в конце имени без расширения }
+  UpStr(Mask);
+  UpStr(Name);
+  s := LastSuccessPos;
+  LastSuccessPos := 1;
+  Result := InMaskA(Name, Mask, 1, 1);
+  if not Result then
+    LastSuccessPos := s
+  else
+    if (LastSuccessPos = Length(Name)+1) and
+       (Name[LastSuccessPos-1] = '.')
+    then { Стали на воображаемой точке - надо вернуться }
+      Dec(LastSuccessPos);
+  end { InMask };
+
 function InFilter;
   var
-    i: Byte;
+    i, l: Integer;
     S: String;
-    B: Boolean;
-    j: Boolean;
+    Inv: Boolean;
+    Literal: Boolean;
   begin
-  InFilter := True;
-  while Length(Filter) > 0 do
+  InFilter := False;
+  l := Length(Filter);
+  Literal := False;
+  while l > 0 do
     begin
-    i := Length(Filter)+1;
-    j := False;
-    repeat
-      Dec(i);
+    i := l;
+    while i > 0 do
+      begin
       if Filter[i] = '"' then
-        j := not j;
-    until (i = 1) or ((Filter[i] in [';', ',']) and not j);
-    if Filter[i] in [';', ','] then
-      S := Copy(Filter, i+1, MaxStringLength)
-    else
-      S := Filter;
-    B := S[1] <> '-';
-    SetLength(Filter, i-1);
-    InFilter := B;
-    if not B then
-      Delete(S, 1, 1); {DelFC(S);}
+        Literal := not Literal
+      else if not Literal and (Filter[i] in [',', ';']) then
+        Break;
+      Dec(i);
+      end;
+    S := Copy(Filter, i+1, l-i);
     DelLeft(S);
     DelRight(S);
-    if  (S <> '') and InMask(Name, S) then
-      Exit;
+    if S <> '' then
+      begin
+      Inv := S[1] = '-';
+      if Inv then
+        begin
+        Delete(S, 1, 1); {DelFC(S);}
+        DelLeft(S);
+        end;
+      if S <> '' then
+        begin
+        if InMask(Name, S) then
+          begin
+          Result := not Inv;
+          Exit;
+          end;
+        end;
+      end;
+    l := i-1;
     end;
-  InFilter := False;
   end { InFilter };
-{-DataCompBoy-}
+
 {JO}
 function InDirFilter;
   var
-    i: Byte;
+    i: Integer;
     S: String;
     B: Boolean;
     j: Boolean;
@@ -735,430 +837,15 @@ function InDirFilter;
   InDirFilter := False;
   end { InDirFilter };
 {/JO}
-(*
-        {-DataCompBoy-}
-FUNCTION  InExtMask(Name, Mask: string):Boolean;
-var mp, np, i, e: byte;
-    sq,sq2: boolean;
-    nt: boolean;
-label R;
-begin
- if Boolean(PosChar('*',Mask))
- then InExtMask := InMask(Name, '*'+Mask)
- else begin
-  InExtMask:=false;
-  sq:=false;
-  mp:=length(Mask); np:=length(Name);
-  while (np>0) and (mp>0) do begin
-   if Mask[mp]='"' then sq:=not sq
-   else if not sq and (Mask[mp]=']') then begin
-    sq2:=sq;
-    for i:=mp downto 1 do
-     if Mask[i]='"' then sq2:=not sq2 else
-     if not sq2 and (Mask[i]='[') then break;
-    if Mask[i]<>'[' then break;
-    e:=mp-1;
-    mp:=i;
-    inc(i);
-    nt := Mask[i]='^';
-    if nt then inc(i);
-    for i:=i to e do
-     if Mask[i+1]<>'-' then
-      if nt xor (UpCaseArray[Mask[i]]=UpCaseArray[Name[np]])
-       then exit
-       else begin dec(np); goto R end
-     else begin
-      if nt xor ((UpCaseArray[Name[np]] >= UpCaseArray[Mask[i]]) and
-                 (UpCaseArray[Name[np]] <= UpCaseArray[Mask[i+2]]))
-       then begin dec(np); goto R end
-       else exit;
-      inc(i, 2);
-     end;
-   end
-   else if (Mask[mp]<>'?') and (UpCaseArray[Mask[mp]]<>UpCaseArray[Name[np]]) then exit
-   else dec(np);
-R: dec(mp);
+
+function InExtFilter(Name: String; const F: String): Boolean;
+  begin
+  Result := InFilter(Copy(Name, PosLastDot(Name)+1, MaxStringLength), F);
   end;
-  InExtMask:=true;
- end
-end;
-        {-DataCompBoy-}
-*)
 
-{Cat}
-procedure FreeTMaskData(var MD: TMaskData);
-  var
-    I: Byte;
-  begin
-  with MD do
-    begin
-    for I := 32 to 255 do
-      with MP[I] do
-        if Num > 2 then
-          FreeMem(P, Num*SizeOf(TMaskPos));
-    FillChar(MP, SizeOf(MP), #0);
-    end;
-  end;
-{/Cat}
-
-procedure MakeTMaskData(var MD: TMaskData);
-  var
-    i, j, l, e, k, o, NumMP: Byte;
-    Dina1: array[0..255] of record
-      CurPos: Byte;
-      Meta: Boolean;
-      end;
-    InSq: Boolean;
-    InS: Boolean;
-    Pss: array[1..255] of TMaskPos;
-  label Ok, Ne;
-  begin
-  with MD do
-    begin
-    FreeTMaskData(MD);
-
-    if Filter = '' then
-      Exit;
-    if Filter[1] in [' ', #9] then
-      DelLeft(Filter);
-    if not (Filter[1] in [';', ',']) then
-      Filter := ';'+Filter;
-    (*
-    begin
-      SetLength(Filter, Length(Filter)+1);
-      move(Filter[1], Filter[2], Length(Filter));
-      Filter[1] := ';';
-    end;
-    *)
-    if not (Filter[Length(Filter)] in [';', ',']) then
-      Filter := Filter+';';
-    (*
-    begin
-      SetLength(Filter, Length(Filter)+1);
-      Filter[Length(Filter)]:=';';
-    end;
-    *)
-
-    InSq := False;
-    Dina1[0].CurPos := 0;
-    NumMP := 0;
-
-    for i := Length(Filter) downto 2 do
-      if  (Filter[i] in [';', ',']) and not InSq then
-        if not (Filter[i-1] in [';', ',']) then
-          begin
-          Inc(NumMP);
-          Dina1[NumMP].CurPos := i-1;
-          Dina1[NumMP].Meta := False;
-          end
-        else
-      else if (Filter[i] = '"') then
-        InSq := not InSq
-      else if (Filter[i] = '*') then
-        Dina1[NumMP].Meta := True;
-
-    for j := 32 to 255 do
-      if UpCaseArray[Char(j)] = Char(j) then
-        begin
-        l := 0;
-        if j <> Byte('*') then
-          begin
-          for i := 1 to NumMP do
-            if not Dina1[i].Meta then
-              begin
-              e := Dina1[i].CurPos;
-              if Filter[e] = '"'
-              then
-                begin
-                InSq := True;
-                Dec(e);
-                end
-              else
-                InSq := False;
-
-              if  (Filter[e] = ']') and not InSq then
-                begin
-                Dec(e);
-                InS := False;
-                for k := e downto 1 do
-                  if  (Filter[k] = '[') and not InS
-                  then
-                    Break
-                  else if Filter[k] = '"' then
-                    InS := not InS;
-                o := k-1;
-                Inc(k);
-                if Filter[k] = '^' then
-                  begin
-                  InS := True;
-                  Inc(k)
-                  end
-                else
-                  InS := False;
-                for k := k to e do
-                  if Filter[k+1] = '-' then
-                    if InS xor ((UpCaseArray[Char(j)] >=
-                           UpCaseArray[Filter[k]]) and
-                          (UpCaseArray[Char(j)] <=
-                           UpCaseArray[Filter[k+2]]))
-                    then
-                      goto Ok
-                    else
-                      Inc(k, 2)
-                  else if InS xor (UpCaseArray[Char(j)] =
-                       UpCaseArray[Filter[k]])
-                  then
-                    goto Ok;
-                goto Ne;
-                end;
-
-              if  (UpCaseArray[Filter[e]] = UpCaseArray[Char(j)]) or
-                  (Filter[e] = '.') or (Filter[e] = '?')
-              then
-                begin
-                if Filter[e] <> '.' then
-                  Dec(e);
-                o := e;
-Ok:
-                Inc(l);
-                Pss[l].CurPos := o;
-                Pss[l].InSq := InSq;
-                end;
-Ne:
-              end;
-          end
-        else
-          for i := 1 to NumMP do
-            if Dina1[i].Meta then
-              begin
-              Inc(l);
-              Pss[l].CurPos := Dina1[i].CurPos;
-              end;
-        if l <= 2 then
-          begin
-          Move(Pss[1], MP[j].A[1], l*SizeOf(TMaskPos));
-          MP[j].Num := l;
-          end
-        else
-          begin
-          GetMem(MP[j].P, l*SizeOf(TMaskPos));
-          Move(Pss[1], MP[j].P^, l*SizeOf(TMaskPos));
-          MP[j].Num := l;
-          end;
-        end;
-    end
-  end { MakeTMaskData };
-
-{-DataCompBoy-}
-function InExtFilter;
-  var
-    i, j, l, e: Byte;
-    Dina1, Dina2: TMasksPos;
-    Num1, Num2: Byte;
-    InSq: Boolean;
-  label Try2, q;
-  begin
-  if Byte(Name[Length(Name)]) < 32 then
-    begin
-    InExtFilter := False;
-    Exit
-    end;
-  InExtFilter := True; {JO}
-  Num1 := F.MP[Byte(UpCaseArray[Name[Length(Name)]])].Num;
-  if Num1 = 0 then
-    goto q;
-  Dina1[0].CurPos := 1;
-  if Num1 <= 2 then
-    Move(F.MP[Byte(UpCaseArray[Name[Length(Name)]])].A,
-      Dina1[1],
-      Num1*SizeOf(TMaskPos))
-  else
-    Move(PMasksPos(F.MP[Byte(UpCaseArray[Name[Length(Name)]])].P)^,
-      Dina1[1],
-      Num1*SizeOf(TMaskPos));
-  {InExtFilter := True;} {JO}
-  j := Length(Name)-1;
-  while Num1 > 0 do
-    begin
-    Num2 := 0;
-    for i := 1 to Num1 do
-Try2:
-      begin
-      if F.Filter[Dina1[i].CurPos] = '"' then
-        begin
-        Dina1[i].InSq := not Dina1[i].InSq;
-        Dec(Dina1[i].CurPos);
-        goto Try2
-        end
-      else if (F.Filter[Dina1[i].CurPos] in [';', ',']) and
-        not Dina1[i].InSq
-      then
-        begin
-        if Name[j] = '.' then
-          Exit;
-        end
-      else if (F.Filter[Dina1[i].CurPos] = '-') and
-          (F.Filter[Dina1[i].CurPos-1] in [';', ',']) and
-        not Dina1[i].InSq
-      then
-        begin
-        if Name[j] = '.' then
-          begin
-          InExtFilter := False;
-          Exit;
-          end
-        end
-      else if (F.Filter[Dina1[i].CurPos] = '.') and
-          (F.Filter[Dina1[i].CurPos-1] in [';', ',']) and
-        not Dina1[i].InSq
-      then
-        begin
-        if  (PosChar('.', Name) = 0) then
-          Exit;
-        end
-      else if (F.Filter[Dina1[i].CurPos] = ']') and
-        not Dina1[i].InSq
-      then
-        begin
-        InSq := Dina1[i].InSq;
-        for l := Dina1[i].CurPos-1 downto 1 do
-          if F.Filter[l] = '"' then
-            InSq := not InSq
-          else if not InSq and (F.Filter[l] = '[') then
-            Break
-          else if F.Filter[l] = ';' then
-            Break;
-        if F.Filter[l] <> '[' then
-          Continue;
-        e := Dina1[i].CurPos-1;
-        Inc(Num2);
-        Dina2[Num2].CurPos := l-1;
-        Dina2[Num2].InSq := Dina1[i].InSq;
-        Inc(l);
-        InSq := F.Filter[l] = '^';
-        if InSq then
-          Inc(l);
-        for l := l to e do
-          if F.Filter[l+1] <> '-' then
-            if Dina2[Num2].InSq xor (UpCaseArray[F.Filter[l]] =
-                 UpCaseArray[Name[j]])
-            then
-              begin
-              Dec(Num2);
-              Break
-              end
-            else
-              Break
-          else
-            begin
-            if Dina2[Num2].InSq xor
-                ( (UpCaseArray[Name[j]] >= UpCaseArray[F.Filter[l]]) and
-                  (UpCaseArray[Name[j]] <= UpCaseArray[F.Filter[l+2]])
-                )
-            then
-              Break
-            else
-              begin
-              Dec(Num2);
-              Break
-              end;
-            Inc(l, 2);
-            end;
-        end
-      else if (F.Filter[Dina1[i].CurPos] = '?') or
-          (UpCaseArray[F.Filter[Dina1[i].CurPos]] =
-           UpCaseArray[Name[j]])
-      then
-        begin
-        Inc(Num2);
-        Dina2[Num2].CurPos := Dina1[i].CurPos-1;
-        Dina2[Num2].InSq := Dina1[i].InSq;
-        end;
-      end;
-    Num1 := Num2;
-    Move(Dina2[1], Dina1[1], Num1*SizeOf(TMaskPos));
-    Dec(j);
-    end;
-q:
-  if F.MP[Byte('*')].Num <> 0
-  then
-    if F.MP[Byte('*')].Num <= 2 then
-      for i := 1 to F.MP[Byte('*')].Num do
-        begin
-        for j := F.MP[Byte('*')].A[i].CurPos downto 1 do
-          if F.Filter[j] = ';' then
-            Break;
-        if F.Filter[j] = ';' then
-          Inc(j);
-        if InMask(Name, '*.'+Copy(F.Filter, j,
-              F.MP[Byte('*')].A[i].CurPos-j+1))
-        then
-          Exit;
-        end
-    else
-      for i := 1 to F.MP[Byte('*')].Num do
-        begin
-        for j := PMasksPos(F.MP[Byte('*')].P)^[i].CurPos downto 1 do
-          if F.Filter[j] = ';' then
-            Break;
-        if F.Filter[j] = ';' then
-          Inc(j);
-        if InMask(Name, '*.'+Copy(F.Filter, j,
-              PMasksPos(F.MP[Byte('*')].P)^[i].CurPos-j))
-        then
-          Exit;
-        end;
-  InExtFilter := False
-  end { InExtFilter };
-{-DataCompBoy-}
-(*
-        {-DataCompBoy-}
-FUNCTION InOldMask;
-var i:byte;
-begin
-  i:=13;
-  repeat
-    dec(i);
-    if (Mask[i]<>'?') and (UpCase(Mask[i])<>UpCase(Name[i]))
-      and (I <> 9)
-      then begin InOldMask:=false; Exit end
-  until i=0; InOldMask:=true
-end;
-        {-DataCompBoy-}
-
-        {-DataCompBoy-}
-FUNCTION InOldFilter;
-var i:byte;
-    S: string[13];
-    B: Boolean;
-begin
-  InOldFilter:=true; if Pos(' ',Filter) > 0 then Filter := DelSpaces(Filter);
-  UpStr(Filter); UpStr(Name);
-  if Filter='' then Exit;
-{$IFNDEF OS2}
-  Name:=Norm12(Name);
-{$ENDIF}
-  repeat if Filter[Length(Filter)]=';' then SetLength(Filter, Length(Filter)-1);
-    if Length(Filter) <> 0 then begin
-      i := Length(Filter); while (i>1)and(Filter[pred(i)]<>';') do dec(i);
-      S := Copy(Filter, i, succ(Length(Filter) - i)); B := S[1] = '-';
-      InOldFilter := not B;
-      if B then DelFC(S);
-      DelLeft(S);
-{$IFNDEF OS2}
-      if (S <> '') and InMask(Name, Norm12(S)) then Exit;
-{$ELSE}
-      if (S <> '') and InMask(Name, S) then Exit;
-{$ENDIF}
-      SetLength(Filter, pred(i));
-    end
-  until Length(Filter) = 0; InOldFilter:=false
-end;
-        {-DataCompBoy-}
-*)
 function InSpaceMask;
   var
-    i: Byte;
+    i: Integer;
     j: Boolean;
   begin
   i := 13;
@@ -1179,7 +866,7 @@ function InSpaceMask;
 
 function InSpaceFilter;
   var
-    i: Byte;
+    i: Integer;
     S: String[13];
     B: Boolean;
   begin
@@ -1572,211 +1259,97 @@ procedure GetFTimeSizeAttr(const A: String; var ATime: LongInt;
   end;
 {-DataCompBoy-}
 
-function InQSMask(Name, Mask: String): Boolean; {JO}
+function QSMaskPlusStar: String;
   begin
-  if QuickSearchType = 1 then
-    InQSMask := InMask(Name, Mask)
-  else
-    InQSMask := (UpStrg(Copy(Name, 1, Length(Mask))) = UpStrg(Mask));
+  Result := QSMask;
+  if Result[Length(Result)] <> '*' then
+    Result := Result + '*';
   end;
 
-procedure InitQuickSearch(var QS: TQuickSearchData);
+procedure InitQuickSearch(Panel: PView);
   begin
-  if QuickSearchType = 1 then
-    QS.Mask := '*'
-  else
-    QS.Mask := '';
-  QS.NumExt := 0;
-  QS.ExtD := 0;
-  end;
-
-procedure DoQuickSearch(var QS: TQuickSearchData; Key: Word);
-  begin
-  if QuickSearchType = 1 then
-    if Key = kbBack then
-      if QS.Mask <> '*' then
-        if QS.Mask[Length(QS.Mask)-1] <> '.' then
-          begin
-          if QS.Mask[Length(QS.Mask)-1] = '"' then
-            SetLength(QS.Mask, Length(QS.Mask)-3)
-          else
-            SetLength(QS.Mask, Length(QS.Mask)-1);
-          QS.Mask[Length(QS.Mask)] := '*';
-          Dec(QS.ExtD);
-          end
-        else
-          begin
-          SetLength(QS.Mask, Length(QS.Mask)-2);
-          QS.Mask[Length(QS.Mask)] := '*';
-          Dec(QS.NumExt);
-          QS.ExtD := 0;
-          for Key := Length(QS.Mask)-1 downto 1 do
-            if QS.Mask[Key] = '.' then
-              Break
-            else if QS.Mask[Key] <> '"' then
-              Inc(QS.ExtD);
-          end
-      else
-    else
-      case Char(Lo(Key)) of
-        '*':
-          ;
-        '[', ']':
-          begin
-          SetLength(QS.Mask, Length(QS.Mask)-1);
-          QS.Mask := QS.Mask+'"'+Char(Lo(Key))+'"*';
-          Inc(QS.ExtD);
-          end;
-        '.':
-          begin
-          Inc(QS.NumExt);
-          QS.Mask := QS.Mask+'.*';
-          QS.ExtD := 0;
-          end;
-        else {case}
-          begin
-          SetLength(QS.Mask, Length(QS.Mask)-1);
-          QS.Mask := QS.Mask+Char(Lo(Key))+'*';
-          Inc(QS.ExtD);
-          end;
-      end
-
-  else if Key = kbBack then
+  QSMask := '';
+  LastSuccessPos := 1;
+  QuickSearch := True;
+  QSPanel := Panel;
+  with PFilePanelRoot(QSPanel)^ do
     begin
-    if Length(QS.Mask) > 0 then
-      begin
-      SetLength(QS.Mask, Length(QS.Mask)-1);
-      Dec(QS.ExtD);
-      end;
-    end
-  else
-    begin
-    QS.Mask := QS.Mask+Char(Lo(Key));
-    Inc(QS.ExtD);
+    SaveHelpCtx := HelpCtx;
+    HelpCtx := hcQuickSearch;
+    InfoView^.Draw; { Чтобы появилась маска из одной звёздочки }
     end;
+  end;
+
+procedure StopQuickSearch;
+  begin
+  if QuickSearch then
+    begin
+    QuickSearch := False;
+    with QSPanel^ do
+      HelpCtx := SaveHelpCtx;
+    end;
+  end;
+
+procedure DoQuickSearch(Key: Word);
+  begin
+  case Key of
+    kbCtrlLeft:
+      QSMask := QSMask + '>';
+    kbCtrlRight:
+      QSMask := QSMaskPlusStar + '.';
+    kbBack:
+      begin
+      if QSMask <> '' then
+        Delete(QSMask, Length(QSMask), 1);
+      if (QSMask <> '') and (QSMask[Length(QSMask)] = '*') then
+        Delete(QSMask, Length(QSMask), 1);
+      end
+    else
+      if (Char(Lo(Key)) <> '*') or (QSMask[Length(QSMask)] <> '*') then
+        QSMask := QSMask+Char(Lo(Key));
+  end {case};
   end { DoQuickSearch };
 
-function GetCursorPos(const QS: TQuickSearchData; const Name: String;
-    Size, ExtSize: Word): Word;
+function QuickSearchString(SizeX: Word): String;
   var
-    O: Word;
-    D: Word;
+    S: String; { текст маски, поднотовленный к показу }
+    l, i: Integer;
+    DefaultStar: Boolean;
   begin
-  D := 1;
+  Result := GetString(dlFileSearch);
+  DefaultStar := QSMask[Length(QSMask)] <> '*';
+  L := SizeX - Length(Result) - Ord(DefaultStar) - 1;
 
-  if QuickSearchType = 1 then
-    begin
-    if not InMask(Name, QS.Mask) then
-      begin
-      GetCursorPos := 0;
-      Exit
-      end;
-    for O := 1 to QS.NumExt do
-      begin
-      while Name[D] <> '.' do
-        Inc(D);
-      Inc(D);
-      end;
-    end
-
-  else
-    begin
-    if not InQSMask(Name, QS.Mask) then
-      begin
-      GetCursorPos := QS.ExtD+1;
-      Exit
-      end;
-    end;
-
-  D := D+QS.ExtD;
-  if ExtSize = 0 then
-    GetCursorPos := Min(D, Size)
-  else
-    begin
-    O := Length(GetSName(Name));
-    if D > O+1 then
-      begin
-      D := D-O-1;
-      GetCursorPos := Min(Size, Size-ExtSize+D);
-      end
-    else
-      GetCursorPos := Min(Size-ExtSize, D);
-    end;
-  end { GetCursorPos };
-
-{-DataCompBoy-}
-function PackMask(const Mask: String; var PM: String {$IFDEF OS_DOS};
-     LFNDis: Boolean {$ENDIF}): Boolean;
-  label mc, fc;
-  var
-    k, k2, k3: Byte;
-  begin
-  if  (Mask = x_x) or (Mask = '*') then
-    begin
-    PM := x_x;
-    PackMask := False;
+  { Определяем i - начало выводимой части маски }
+  if Length(QSMask) > L then
+    begin  { Обрезание слева }
+    Result := Result + #17'~';
+    i := Length(QSMask)-L;
     end
   else
     begin
-    PackMask := True;
-    {!}
-    if  (PosChar(';', Mask) = 0) and (PosChar('[', Mask) = 0) then
-      begin
-      {$IFDEF OS_DOS}
-      if LFNDis then
-        begin
-        {Check for correct DOS mask}
-        if  (CharCount('.', Mask) < 2) and (CharCount('*', Mask) < 3)
-        then
-          begin
-          k := PosChar('.', Mask);
-          if k = 0 then
-            k := Length(Mask);
-          k2 := PosChar('*', Mask);
-          if k2 > 0 then
-            k3 := PosChar('*', Copy(Mask, k2+1, 255))
-          else
-            k3 := 0;
-          if k3 > 0 then
-            Inc(k3, k2);
-          if  ( (k2 = 0) or
-                (k2 = Length(Mask)) or
-                (k2 = k-1)
-              ) and
-              ( (k3 = 0) or
-                (k3 = Length(Mask))
-              )
-          then
-            begin
-            PM := Mask;
-            PackMask := False;
-            end
-          else
-            goto mc;
-          end
-        else
-          begin
-mc: {Place mask comressing here, but do not touch NormMask variable}
-          goto fc; {Here is temporary code}
-          end;
-        end
-      else {не LFNDis}
-        begin
-        {$ENDIF}
-        PM := Mask;
-        PackMask := False;
-        {$IFDEF OS_DOS}
-        end;
-      {$ENDIF}
-      end
-    else {в Mask есть ';' или '[' }
-      begin
-fc: {Place filter comressing here, but do not touch NormMask variable}
-      PM := x_x;
-      end;
+    Result := Result + '~';
+    i := 0;
     end;
-  end { PackMask };
-{-DataCompBoy-}
+
+  l := 0; { L - это длина S }
+  while i <> Length(QSMask) do
+    begin
+    inc(i);
+    if QSMask[i] = '~' then
+      begin
+      Inc(l);
+      S[l] := #0;
+      end;
+    Inc(l);
+    S[l] := QSMask[i]
+    end;
+  SetLength(S, l+1);
+  S[l+1] := '~';
+  if DefaultStar then
+    S := S + '*';
+  Result := Result + S;
+  end;
 
 {-DataCompBoy-}
 procedure FileChanged(const Name: String);

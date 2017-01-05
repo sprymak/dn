@@ -165,7 +165,6 @@ procedure TAINArchive.GetFile;
     l: LongInt;
     DT: DateTime;
     s: String;
-    s1: String;
   begin
   if TextRec(ListFile).Handle = 0 then
     begin { первый вызов: вызов архиватора для вывода оглавления }
@@ -237,11 +236,7 @@ procedure TAINArchive.GetFile;
   DelLeft(s);
   DT.Day := StoI(Copy(s, 1, 2));
   DT.Month := StoI(Copy(s, 4, 2));
-  s1 := Copy(s, 7, 4);
-  DelRight(s1);
-  DT.Year := StoI(s1);
-  if DT.Year < 1900 then
-    Inc(DT.Year, 1900);
+  DT.Year := 1900 + StoI(fDelRight(Copy(S,7,3)));
   System.Delete(s, 1, 10);
   DelLeft(s);
   DT.Hour := StoI(Copy(s, 1, 2));

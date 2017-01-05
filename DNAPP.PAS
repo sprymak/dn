@@ -85,7 +85,7 @@ const
   #$87#$8B#$87#$8B#$B0#$8B#$8B#$0F#$30#$7F#$30#$8B#$87#$70#$87#$8F+
   #$3F#$8F#$3F#$8E#$8E#$70#$8B#$87#$30#$3F#$0F#$3E#$0E#$31#$31#$00+
   #$87#$8F#$87#$8B#$B0#$87#$70#$8B#$30#$3F#$87#$8F#$87#$8F#$70#$7F+
-  #$7A#$13#$13#$70#$30#$79#$39#$7E#$7E#$7F#$70#$37#$3F#$3F#$13#$13+
+  #$8F#$30#$13#$70#$30#$79#$39#$7E#$7E#$7F#$70#$37#$3F#$3F#$13#$13+
   #$30#$3F#$8F#$30#$38#$3E#$0F#$07#$0E#$87#$8B#$87#$87#$8B#$B0#$87+
   #$70#$8E#$30#$3B#$83#$8E#$38#$3F#$3A#$31#$3F#$70#$87#$8F#$8D#$89+
   #$84#$82#$C8#$6D#$80#$8C#$0C#$7C#$0B#$0F#$8B#$8B#$8E#$8F#$8D#$8B+
@@ -191,16 +191,9 @@ const
   SystemColors: array[apColor..apMonochrome] of String =
     (CColor, CBlackWhite, CMonochrome);
 
-type
-  PCacheCollection = ^TCacheCollection;
-  TCacheCollection = object(TCollection)
-    procedure FreeItem(Item: Pointer); virtual;
-    procedure PutItem(var S: TStream; Item: Pointer); virtual;
-    function GetItem(var S: TStream): Pointer; virtual;
-    end;
-
   { TBackground object }
 
+type
   PBackground = ^TBackground;
   TBackground = object(TView)
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
@@ -294,9 +287,14 @@ type
   { Interface and resource procedures }
 
 procedure UpdateWriteView(P: Pointer);
-procedure InitStringCache;
 procedure OpenResource;
 function ExecResource(Key: TDlgIdx; var Data): Word;
+  {` Загрузить диалог из ресурса. Если есть PreExecuteDialog,
+  то выполнить её. Выполнить диалог через ExecDialog`}
+function ExecDialog(D: PDialog; var Data): Word;
+  {` Выполнить диалог со стандартным обменом данными, то есть
+   туда данные передаются всегда, а возвращаются только если
+   результат - не cmCancel `}
 function LoadResource(Key: TDlgIdx): PObject;
 function GlobalMessage(What, Command: Word; InfoPtr: Pointer): Pointer;
 function GlobalMessageL(What, Command: Word; InfoLng: LongInt): Pointer;
@@ -324,7 +322,6 @@ const
   LngStream: PStream = nil;
   LStringList: PStringList = nil;
   Resource: PIdxResource = nil;
-  StringCache: PCollection = nil;
   appPalette: Integer = apColor;
 
 const
@@ -342,6 +339,14 @@ const
   PMWindowed: Boolean = False;
   {Устанавливается в dn2pmapi}
   {$ENDIF}
+
+var
+  PreExecuteDialog: procedure(D: PView);
+    {` Подготовка диалога к выполнению. Может присваиваться перед
+     вызовом ExecResource; автоматически очищается в ExecResource.
+     Она вызывается только в ExecResource. Ни в TGroup.ExecView,
+     ни в TGroup.ExecuteDialog PreExecuteDialog не вызывается.
+     См. также TDialog.DirectLink `}
 
 implementation
 
@@ -1247,7 +1252,6 @@ function TProgram.SetScreenMode(Mode: Word): Boolean;
   begin
   HideMouse;
   DoneEvents;
-  FillChar(ScreenMirror, SizeOf(ScreenMirror), 0); // Added by SANDSoft
   DoneMemory;
   DoneVideo;
   Result := SetVideoMode(Mode);
@@ -1472,26 +1476,76 @@ procedure OpenResource;
   New(Resource, Init(ResourceStream));
   end;
 
-function ExecResource;
-  var
-    D: PDialog;
-    W: Word;
+function LoadDialog(Key: TDlgIdx): PDialog;
   begin
-  ExecResource := cmCancel;
+  Result := nil;
   OpenResource;
   if Resource = nil then
     Exit;
-  D := PDialog(Resource^.Get(Key));
-  D := PDialog(Application^.ValidView(D));
-  if D = nil then
+  Result := PDialog(Resource^.Get(Key));
+  Result := PDialog(Application^.ValidView(Result));
+  if Result = nil then
     Exit;
-  D^.SetData(Data);
-  W := Desktop^.ExecView(D);
-  if W <> cmCancel then
-    D^.GetData(Data);
-  ExecResource := W;
-  Dispose(D, Done);
   end;
+
+function ExecDialog(D: PDialog; var Data): Word;
+  begin
+  D^.SetData(Data);
+  Result := Desktop^.ExecView(D);
+  if Result <> cmCancel then
+    D^.GetData(Data);
+  end;
+
+function ExecResource(Key: TDlgIdx; var Data): Word;
+  assembler; {&USES None} {&FRAME-}
+{ AK155. Тут может вызываться PreExecuteDialog, которая вполне
+может оказаться локальной процедурой. Поэтому ExecResource
+не должна иметь стекового фрейма, иначе в PreExecuteDialog будут
+испорчены обращения к локальным переменным объемлющей процедуры.
+Паскальную процедуру без фрейма VP умеет строить только если
+у неё нет ни параметров, ни локальных переменных, поэтому
+приходится писать на ассемблере. Чтобы не делать ассемблерную
+процедуру слишком большой, из прежнего текста ExecResource
+вычленены LoadDialog и ExecDialog. Последняя, кстати, может
+пригодиться и сама по себе, поэтому она вынесена в интерфейс. }
+  var
+    D: PDialog;
+    Res: Longint;
+  asm
+  mov [Res], cmCancel; // Result := cmCancel;
+
+  movsx eax,byte ptr[Key]
+  push eax
+  call LoadDialog
+  mov [D],eax // D := LoadDialog(Key);
+
+  or eax,eax
+  jz @@1 // if D = nil then Exit;
+
+  cmp [PreExecuteDialog],0
+  jz @@2 // if @PreExecuteDialog <> nil then
+
+  push dword ptr[D]
+  call [PreExecuteDialog] //  PreExecuteDialog(D);
+@@2:
+
+  mov  eax,[Data]
+  push [D]
+  push eax
+  call ExecDialog
+  mov [Res],eax // Result := ExecDialog(D, Data);
+
+  mov eax,[D]
+  push 1
+  push eax
+  mov eax,[eax]
+  call dword ptr [eax + $0C] //  Dispose(D, Done);
+
+  mov [PreExecuteDialog],0 // @PreExecuteDialog := nil;
+@@1:
+  mov eax,[Res]
+  end;
+
 
 function LoadResource;
   begin
@@ -1676,17 +1730,11 @@ procedure InitLngStream;
 
   begin
   PS := OpenResourceStream('.LNG');
-  XS := nil;
-  if PS^.GetSize < MemAvail/100 then
-    {If Language file <1% of free memory,}
-    {then load it in memory              }
+  XS := New(PMemoryStream, Init(PS^.GetSize, PS^.GetSize));
+  if XS^.Status <> stOK then
     begin
-    XS := New(PMemoryStream, Init(PS^.GetSize, PS^.GetSize));
-    if XS^.Status <> stOK then
-      begin
-      Dispose(XS, Done);
-      XS := nil;
-      end;
+    Dispose(XS, Done);
+    XS := nil;
     end;
 
   if XS <> nil then
@@ -1699,7 +1747,6 @@ procedure InitLngStream;
       end
     else
       Dispose(XS, Done);
-
     end;
 
   LngStream := PS;
@@ -1711,109 +1758,14 @@ procedure InitLngStream;
 
   end { InitLngStream };
 
-const
-  CacheSize = 64;
-
-type
-  PCacheRec = ^TCacheRec;
-  TCacheRec = record
-    Id: TStrIdx;
-    Str: String;
-    end;
-
-function NewCacheRec(const S: String; Id: TStrIdx): PCacheRec;
-  var
-    P: PCacheRec;
-  begin
-  GetMem(P, Length(S)+1+SizeOf(TStrIdx));
-  P^.Id := Id;
-  Move(S, P^.Str, Length(S)+1);
-  NewCacheRec := P;
-  end;
-
-procedure DisposeCacheRec(P: PCacheRec);
-  begin
-  FreeMem(P, Length(P^.Str)+1+SizeOf(TStrIdx));
-  end;
-
-procedure TCacheCollection.FreeItem(Item: Pointer);
-  begin
-  DisposeCacheRec(Item);
-  end;
-
-procedure TCacheCollection.PutItem(var S: TStream; Item: Pointer);
-  var
-    R: PCacheRec absolute Item;
-  begin
-  S.Write(R^, Length(R^.Str)+1+SizeOf(TStrIdx));
-  end;
-
-function TCacheCollection.GetItem(var S: TStream): Pointer;
-  var
-    R: TCacheRec;
-    P: PCacheRec;
-    CRL: Byte;
-  begin
-  S.Read(R, 1+SizeOf(TStrIdx));
-  CRL := Length(R.Str);
-  S.Read(R.Str[1], CRL);
-  GetMem(P, CRL+1+SizeOf(TStrIdx));
-  Move(R, P^, CRL+1+SizeOf(TStrIdx));
-  GetItem := P;
-  end;
-
-function CacheIndexOf(Id: TStrIdx): Integer;
-  var
-    A: Integer;
-  begin
-  CacheIndexOf := -1;
-  StringCache^.Pack;
-  for A := 0 to StringCache^.Count-1 do
-    if PCacheRec(StringCache^.At(A))^.Id = Id then
-      begin
-      CacheIndexOf := A;
-      Exit;
-      end;
-  end;
-
-procedure InitStringCache;
-  begin
-  if StringCache <> nil then
-    Dispose(StringCache, Done);
-  StringCache := New(PCacheCollection, Init(CacheSize, 0));
-  end;
-
 function GetString;
   var
     S: String;
     I: Integer;
-    P: PCacheRec;
   begin
-  if StringCache = nil then
-    InitStringCache;
-
-  I := CacheIndexOf(Index);
-  if I = -1 then
-    begin
-    if LStringList = nil then
-      InitLngStream;
-    S := LStringList^.Get(Word(Index));
-    P := NewCacheRec(S, Index);
-    if StringCache^.Count = CacheSize then
-      StringCache^.AtFree(CacheSize-1);
-    StringCache^.AtInsert(0, P);
-    end
-  else
-    begin
-    P := StringCache^.At(I);
-    S := P^.Str;
-    if I <> 0 then
-      begin
-      StringCache^.AtDelete(I);
-      StringCache^.Pack;
-      StringCache^.AtInsert(0, P);
-      end;
-    end;
+  if LStringList = nil then
+    InitLngStream;
+  S := LStringList^.Get(Word(Index));
   {Cat: вообще говоря, здесь имело бы смысл проверять, не получили ли мы
         пустую строку; если мы будем возвращать пустую строку, то может
         случиться беда вроде такой: NewStr(GetString(...)), т.е. в случае

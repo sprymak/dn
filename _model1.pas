@@ -47,6 +47,7 @@ type
   PRadioButtonsVMT = ^TRadioButtonsVMT;
   PCheckBoxesVMT = ^TCheckBoxesVMT;
   PMultiCheckBoxesVMT = ^TMultiCheckBoxesVMT;
+  PComboBoxVMT = ^TComboBoxVMT;
   PScrollerVMT = ^TScrollerVMT;
   PListViewerVMT = ^TListViewerVMT;
   PListBoxVMT = ^TListBoxVMT;
@@ -223,7 +224,7 @@ type
     Duplicates: Boolean;
     SortMode: Byte;
     Selected: LongInt;
-    Owner: Pointer;
+    Panel: Pointer;
     {$IFDEF WIN32}
     LFNActive: Boolean;
     {$ENDIF}
@@ -493,6 +494,7 @@ type
     Palette: AInt;
     Frame: PFrame;
     Title: PString;
+    DirectLink: array [1..9] of PView;
     end;
 
   PInputline = ^TInputLine;
@@ -639,6 +641,29 @@ type
     SelRange: Byte;
     Flags: AWord;
     States: PString;
+    end;
+
+  PComboBox = ^TComboBox;
+  TComboBox = packed record
+    VMT: PComboBoxVMT;
+    ObjectIsInited: Boolean;
+    Owner: PGroup;
+    Next: PView;
+    Origin: TPoint;
+    Size: TPoint;
+    Cursor: TPoint;
+    GrowMode: Byte;
+    DragMode: Byte;
+    HelpCtx: AWord;
+    State: AWord;
+    Options: AWord;
+    EventMask: AWord;
+    UpTmr: TEventTimer;
+    UpdTicks: LongInt;
+    Selected: Word;
+    Count: Word;
+    Menu: Pointer;
+    Items: array[1..10] of Pointer;
     end;
 
   PScroller = ^TScroller;
@@ -2120,6 +2145,32 @@ type
     MovedTo: procedure (Item: Integer; Obj: Pointer);
     end;
 
+  TComboBoxVMT = packed record
+    NotForYou1: Integer;
+    NotForYou2: Integer;
+    NotForYou3: Integer;
+    Done: procedure (DP: Integer; Obj: Pointer);
+    Awaken: procedure (Obj: Pointer);
+    CalcBounds: procedure (var Bounds: TRect; Delta: TPoint; Obj: Pointer);
+    ChangeBounds: procedure (var Bounds: TRect; Obj: Pointer);
+    DataSize: function (Obj: Pointer): Word;
+    Draw: procedure (Obj: Pointer);
+    EndModal: procedure (Command: Word; Obj: Pointer);
+    Execute: function (Obj: Pointer): Word;
+    GetData: procedure (var Rec; Obj: Pointer);
+    GetEvent: procedure (var Event: TEvent; Obj: Pointer);
+    GetHelpCtx: function (Obj: Pointer): Word;
+    GetPalette: function (Obj: Pointer): PPalette;
+    HandleEvent: procedure (var Event: TEvent; Obj: Pointer);
+    PutEvent: procedure (var Event: TEvent; Obj: Pointer);
+    SetData: procedure (var Rec; Obj: Pointer);
+    SetState: procedure (AState: Word; Enable: Boolean; Obj: Pointer);
+    SizeLimits: procedure (var Min, Max: TPoint; Obj: Pointer);
+    Valid: function (Command: Word; Obj: Pointer): Boolean;
+    Update: procedure (Obj: Pointer);
+    ResetCursor: procedure (Obj: Pointer);
+    end;
+
   TScrollerVMT = packed record
     NotForYou1: Integer;
     NotForYou2: Integer;
@@ -2801,10 +2852,8 @@ type
     KillUse: procedure (Obj: Pointer);
     lChDir: procedure (ADir: String; Obj: Pointer);
     GetDir: function (Obj: Pointer): String;
-    GetDirectory: function (SortMode, PanelFlags: Integer;
-       const FileMask: String;
-      var TotalInfo: TSize; var FreeSpace: String; Obj: Pointer)
-    : PCollection;
+    GetDirectory: function (const FileMask: String;
+      var TotalInfo: TSize; Obj: Pointer): PCollection;
     CopyFiles: procedure (Files: PCollection; Own: PView;
        MoveMode: Boolean; Obj: Pointer);
     CopyFilesInto: procedure (Files: PCollection; Own: PView;
@@ -2845,10 +2894,8 @@ type
     KillUse: procedure (Obj: Pointer);
     lChDir: procedure (ADir: String; Obj: Pointer);
     GetDir: function (Obj: Pointer): String;
-    GetDirectory: function (SortMode, PanelFlags: Integer;
-       const FileMask: String;
-      var TotalInfo: TSize; var FreeSpace: String; Obj: Pointer)
-    : PCollection;
+    GetDirectory: function (const FileMask: String;
+      var TotalInfo: TSize; Obj: Pointer): PCollection;
     CopyFiles: procedure (Files: PCollection; Own: PView;
        MoveMode: Boolean; Obj: Pointer);
     CopyFilesInto: procedure (Files: PCollection; Own: PView;
@@ -2889,10 +2936,8 @@ type
     KillUse: procedure (Obj: Pointer);
     lChDir: procedure (ADir: String; Obj: Pointer);
     GetDir: function (Obj: Pointer): String;
-    GetDirectory: function (SortMode, PanelFlags: Integer;
-       const FileMask: String;
-      var TotalInfo: TSize; var FreeSpace: String; Obj: Pointer)
-    : PCollection;
+    GetDirectory: function (const FileMask: String;
+      var TotalInfo: TSize; Obj: Pointer): PCollection;
     CopyFiles: procedure (Files: PCollection; Own: PView;
        MoveMode: Boolean; Obj: Pointer);
     CopyFilesInto: procedure (Files: PCollection; Own: PView;
@@ -2933,10 +2978,8 @@ type
     KillUse: procedure (Obj: Pointer);
     lChDir: procedure (ADir: String; Obj: Pointer);
     GetDir: function (Obj: Pointer): String;
-    GetDirectory: function (SortMode, PanelFlags: Integer;
-       const FileMask: String;
-      var TotalInfo: TSize; var FreeSpace: String; Obj: Pointer)
-    : PCollection;
+    GetDirectory: function (const FileMask: String;
+      var TotalInfo: TSize; Obj: Pointer): PCollection;
     CopyFiles: procedure (Files: PCollection; Own: PView;
        MoveMode: Boolean; Obj: Pointer);
     CopyFilesInto: procedure (Files: PCollection; Own: PView;
@@ -2977,10 +3020,8 @@ type
     KillUse: procedure (Obj: Pointer);
     lChDir: procedure (ADir: String; Obj: Pointer);
     GetDir: function (Obj: Pointer): String;
-    GetDirectory: function (SortMode, PanelFlags: Integer;
-       const FileMask: String;
-      var TotalInfo: TSize; var FreeSpace: String; Obj: Pointer)
-    : PCollection;
+    GetDirectory: function (const FileMask: String;
+      var TotalInfo: TSize; Obj: Pointer): PCollection;
     CopyFiles: procedure (Files: PCollection; Own: PView;
        MoveMode: Boolean; Obj: Pointer);
     CopyFilesInto: procedure (Files: PCollection; Own: PView;
@@ -3043,6 +3084,7 @@ const
   TRadioButtons_VMTSize = SizeOf(TRadioButtonsVMT) div 4-3;
   TCheckBoxes_VMTSize = SizeOf(TCheckBoxesVMT) div 4-3;
   TMultiCheckBoxes_VMTSize = SizeOf(TMultiCheckBoxesVMT) div 4-3;
+  TComboBox_VMTSize = SizeOf(TComboBoxVMT) div 4-3;
   TScroller_VMTSize = SizeOf(TScrollerVMT) div 4-3;
   TListViewer_VMTSize = SizeOf(TListViewerVMT) div 4-3;
   TListBox_VMTSize = SizeOf(TListBoxVMT) div 4-3;

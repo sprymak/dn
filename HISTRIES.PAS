@@ -173,6 +173,11 @@ const
   EditHistory: PCollection = nil;
   ViewHistory: PCollection = nil;
 
+var
+  HistNameSuffix: string;
+    {` Добавки к имени файла истории. Например, если эта переменная имеет
+       значение 'Wrk', то для истории будет использован файл DNWrk.HIS `}
+
 implementation
 uses
   Dos, Commands, DNApp, Dialogs, HistList,
@@ -181,7 +186,7 @@ uses
   {$IFDEF SS}
   Idlers,
   {$ENDIF}
-  FViewer, CmdLine
+  FViewer, CmdLine, PDSetup
   ;
 
 procedure FreeLastUnmarked(C: PCollection);
@@ -619,7 +624,7 @@ function GetCommand(Idx: Integer): String;
 type
   PTHistList = ^TTHistList;
   TTHistList = object(TListBox)
-    EVHistory, CommandHistory: Boolean;
+    EVHistory, CommandHistory, RolledFwd: Boolean;
     Dlg: TDlgIdx; {AK155}
     function ItemStr(I: LongInt): PString;
     function IsSelected(I: LongInt): Boolean; virtual;
@@ -646,8 +651,29 @@ function TTHistList.ItemStr;
   end;
 
 function TTHistList.GetText;
+  var
+    WasSlash: Boolean;
   begin
-  FreeStr := Cut(CnvString(ItemStr(Item)), Size.X);
+  FreeStr := CnvString(ItemStr(Item));
+  if not RolledFwd then
+    begin
+    WasSlash := False;
+    if FreeStr[Length(FreeStr)] = '\' then
+      begin
+      SetLength(FreeStr, Length(FreeStr)-1);
+      WasSlash := True;
+      end;
+    if WasSlash then
+      FreeStr := Cut(FreeStr, Size.X-2) + '\'
+    else
+      FreeStr := Cut(FreeStr, Size.X-1);
+    end
+  else
+    begin
+    if Length(FreeStr) > Size.X-1 then
+      FreeStr := FreeStr[1] + #17 +
+        Copy(FreeStr, Length(FreeStr) - (Size.X-4), Size.X-3);
+    end;
   if FreeStr[1] = '+' then
     FreeStr[1] := #254
   else
@@ -726,6 +752,16 @@ procedure TTHistList.HandleEvent;
         ScanMarked(1);
       kbLeft, kbAltUp:
         ScanMarked(-1);
+      kbCtrlRight:
+        begin
+        RolledFwd := True;
+        DrawView;
+        end;
+      kbCtrlLeft:
+        begin
+        RolledFwd := False;
+        DrawView;
+        end;
     end
   else if (Event.What = evBroadcast) then
     case Event.Command of
@@ -1040,7 +1076,7 @@ procedure LoadHistories;
     S: TBufStream;
     A: AWord;
   begin
-  S.Init(SourceDir+'DN'+GetEnv('DNDSK')+'.HIS', stOpenRead, 2048);
+  S.Init(SourceDir+'DN'+HistNameSuffix+'.HIS', stOpenRead, 2048);
   if S.Status = stOK then
     begin
     S.Read(FreeStr[1], Length(HistoryFileSign));
@@ -1071,7 +1107,7 @@ procedure SaveHistories;
     S: TBufStream;
     A: AWord;
   begin
-  S.Init(SourceDir+'DN'+GetEnv('DNDSK')+'.HIS', stCreate, 2048);
+  S.Init(SourceDir+'DN'+HistNameSuffix+'.HIS', stCreate, 2048);
   if S.Status = stOK then
     begin
     FreeStr := HistoryFileSign;

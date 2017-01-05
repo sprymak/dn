@@ -203,27 +203,16 @@ type
     DrvInfType: TDriveInfoType;
     end;
 
-  TPanelDefaultsData = record
-    Sort: Word;
-    Show: Word;
-    LeftPanel: Word;
-    end;
-
   TFMSetup = record
-    Options: Word;
-    Show: Word;
+    Options: Word; // Поведение
     Quick: Word;
-    TagChar: String[1];
-    RestChar: String[1];
-    DIZ: String;
-    end;
-
-  TOldFMSetup = record
-    Options: AWord;
-    Show: AWord;
-    Quick: AWord;
-    TagChar: String[1];
-    DIZ: String;
+    LRCtrlInDriveLine: Word;
+    Show: Word;    // Внешний вид
+    TagChar: String[1]; // Если не нужен, то TagChar[1]= ' ';
+    RestChar: String[1]; // RestChar[1] всегда корректен
+    DIZ: String[250];
+    NewPanelPreset: Word;
+    LeftPanelType: Word;
     end;
 
   TEditorDefaultsData = record
@@ -293,7 +282,6 @@ const
   {но это не годится для 32-битной платформы}
   ComareDirsOptions: TComareDirsOptions = (o: 3; FMask: '*.*'; S: 0);
   UUDecodeOptions: AWord = 3;
-  MakeListFileOptions: AWord = 0;
 
   UUEncodeData: TUUEncodeData =
     (Name: '';
@@ -314,34 +302,6 @@ const
 
   TerminalDefaults: TTerminalDefaults = (Emulation: emANSIBBS;
      Options: toCTRLCLS+toAutoZModem);
-
-  {-DataCompBoy-} {piwamoto} {JO}
-  { note: BIN, DAT, RAW are NOT included in any group, }
-  { becouse there is TOO MUCH filetypes with these extensions }
-
-  Archives: PMaskData = nil;
-  {sources}
-  CustomMask1: PMaskData = nil;
-  {raw text}
-  CustomMask2: PMaskData = nil;
-  {databases & speadsheets}
-  CustomMask3: PMaskData = nil;
-  {kill'em!}
-  CustomMask4: PMaskData = nil;
-  {graphics}
-  CustomMask5: PMaskData = nil;
-  {config}
-  CustomMask6: PMaskData = nil;
-  {audio & video}
-  CustomMask7: PMaskData = nil;
-  {fonts}
-  CustomMask8: PMaskData = nil;
-  {Office documents}
-  CustomMask9: PMaskData = nil;
-  {system}
-  CustomMask10: PMaskData = nil;
-  {-DataCompBoy-}
-procedure InitMaskData;
 
 const
 
@@ -364,35 +324,29 @@ const
       Tabulated: 1)
     );
 
-  PanelDefaults: TPanelDefaultsData = (
-    Sort: psmLongExt-1;
-    Show: fmiCurrent+
-    {fmiSelected +}
-    fmiHiliteFiles+
-    fmiFree+
-    fmiExeFirst+
-    fmiArchivesFirst;
-    LeftPanel: fdoDriveDrive
-    );
-
   FMSetup: TFMSetup =
     (Options: fmoDragAndDrop+
-    fmoBeep+
-    fmoEnterArchives+
-    fmoSpaceToggle+
-    fmoUseArrows+
-    fmoBackGoesBack+
-    fmoKillContainer+
-    fmoAlwaysCopyDesc;
-    Show: fmsColumnTitles+
-    fmsDriveLine+
-    fmsTagChar+
-    fmsDivider;
+      fmoBeep+
+      fmoEnterArchives+
+      fmoSpaceToggle+
+      fmoUseArrows+
+      fmoBackGoesBack+
+      fmoKillContainer+
+      fmoAlwaysCopyDesc;
     Quick: pqsAlt;
+    LRCtrlInDriveLine: fdlPassive;
+    Show: fmsColumnTitles+
+      fmsDriveLine+
+      fmsShowScrollBar+
+      fmsHiliteFiles;
     TagChar: #251;
     RestChar: #16;
-    DIZ: 'descript.ion;files.bbs'
+    DIZ: 'descript.ion;files.bbs';
+    NewPanelPreset: 2; {нумерация от нуля, то есть 2 - это как Ctrl-3}
+    LeftPanelType: fdoDriveDrive
     );
+
+  AutoRefreshPanels: Boolean = False;
 
   EditorDefaults: TEditorDefaultsData = (
     EdOpt: ebfBSU+
@@ -438,163 +392,13 @@ const
     CopyLimitBuf: 8192;
     ForceDefArch: '';
     Drives: (
-      {A}(ossCheckFreeSpace {$IFNDEF OS_DOS} shr 1 {$ENDIF})+
-        (ossVerify {$IFNDEF OS_DOS} shr 1 {$ENDIF})+
-        (ossUnarcToDirectly {$IFNDEF OS_DOS} shr 1 {$ENDIF}),
-      {B}(ossCheckFreeSpace {$IFNDEF OS_DOS} shr 1 {$ENDIF})+
-        (ossVerify {$IFNDEF OS_DOS} shr 1 {$ENDIF})+
-        (ossUnarcToDirectly {$IFNDEF OS_DOS} shr 1 {$ENDIF}),
+      {A}ossCheckFreeSpace + ossVerify + ossUnarcToDirectly,
+      {B}ossCheckFreeSpace + ossVerify + ossUnarcToDirectly,
       {C}0, {D}0, {E}0, {F}0, {G}0, {H}0, {I}0, {J}0, {K}0, {L}0, {M}0,
       {N}0,
       {O}0, {P}0, {Q}0, {R}0, {S}0, {T}0, {U}0, {V}0, {W}0, {X}0, {Y}0,
       {Z}0
       )
-    );
-
-  ColumnsDefaultsDisk: record
-    Params: array[1..10] of
-    record
-      Param: Word;
-      LFNLen: String[3];
-      EXTLen: String[3];
-      end;
-    FileCase: Word;
-    DirsCase: Word;
-    end = (
-    Params: ((Param: 1; LFNLen: '12'; EXTLen: '3'), (Param: 1023;
-         LFNLen: '12'; EXTLen: '3'),
-        (Param: 1; LFNLen: '18'; EXTLen: '4'), (Param: 1; LFNLen: '18';
-         EXTLen: '0'),
-        (Param: 1; LFNLen: '38'; EXTLen: '4'), (Param: 1; LFNLen: '252';
-         EXTLen: '0'),
-        (Param: 3; LFNLen: '252'; EXTLen: '0'), (Param: 257;
-         LFNLen: '12'; EXTLen: '3'),
-        (Param: 1; LFNLen: '12'; EXTLen: '3'),
-
-        (Param: {$IFDEF OS2}1 {$ELSE}0 {$ENDIF};
-        LFNLen: '12'; EXTLen: '3'));
-    FileCase: 4;
-    DirsCase: 4
-    );
-
-  ColumnsDefaultsFind: record
-    Params: array[1..10] of
-    record
-      Param: Word;
-      LFNLen: String[3];
-      EXTLen: String[3];
-      end;
-    FileCase: Word;
-    DirsCase: Word;
-    end = (
-    Params: ((Param: 257; LFNLen: '12'; EXTLen: '3'), (Param: 511;
-         LFNLen: '12'; EXTLen: '3'),
-        (Param: 1; LFNLen: '18'; EXTLen: '4'), (Param: 1; LFNLen: '18';
-         EXTLen: '0'),
-        (Param: 1; LFNLen: '38'; EXTLen: '4'), (Param: 1; LFNLen: '252';
-         EXTLen: '0'),
-        (Param: 3; LFNLen: '252'; EXTLen: '0'), (Param: 257;
-         LFNLen: '18'; EXTLen: '0'),
-        (Param: 1; LFNLen: '12'; EXTLen: '3'),
-      {$IFDEF OS2}
-        (Param: 1; LFNLen: '12'; EXTLen: '3'));
-      {$ELSE}
-        (Param: 0; LFNLen: '12'; EXTLen: '3'));
-    {$ENDIF}
-    FileCase: 4;
-    DirsCase: 4
-    );
-  ColumnsFindLast: Byte = 1;
-
-  ColumnsDefaultsTemp: record
-    Params: array[1..10] of
-    record
-      Param: Word;
-      LFNLen: String[3];
-      EXTLen: String[3];
-      end;
-    FileCase: Word;
-    DirsCase: Word;
-    end = (
-    Params: ((Param: 257; LFNLen: '12'; EXTLen: '3'), (Param: 511;
-         LFNLen: '12'; EXTLen: '3'),
-        (Param: 1; LFNLen: '18'; EXTLen: '4'), (Param: 1; LFNLen: '18';
-         EXTLen: '0'),
-        (Param: 1; LFNLen: '38'; EXTLen: '4'), (Param: 1; LFNLen: '252';
-         EXTLen: '0'),
-        (Param: 3; LFNLen: '252'; EXTLen: '0'), (Param: 257;
-         LFNLen: '18'; EXTLen: '0'),
-        (Param: 1; LFNLen: '12'; EXTLen: '3'),
-      {$IFDEF OS2}
-        (Param: 1; LFNLen: '12'; EXTLen: '3'));
-      {$ELSE}
-        (Param: 0; LFNLen: '12'; EXTLen: '3'));
-    {$ENDIF}
-    FileCase: 4;
-    DirsCase: 4
-    );
-  ColumnsTempLast: Byte = 1;
-
-  ColumnsDefaultsArch: record
-    Params: array[1..10] of
-    record
-      Param: Word;
-      LFNLen: String[3];
-      EXTLen: String[3];
-      end;
-    FileCase: Word;
-    DirsCase: Word;
-    end = (
-    Params: ((Param: 1; LFNLen: '12'; EXTLen: '3'), (Param: 63;
-         LFNLen: '12'; EXTLen: '3'),
-        (Param: 1; LFNLen: '18'; EXTLen: '4'), (Param: 1; LFNLen: '18';
-         EXTLen: '0'),
-        (Param: 1; LFNLen: '38'; EXTLen: '4'), (Param: 1; LFNLen: '252';
-         EXTLen: '0'),
-        (Param: 51; LFNLen: '252'; EXTLen: '0'), (Param: 51;
-         LFNLen: '12'; EXTLen: '3'),
-        (Param: 33; LFNLen: '12'; EXTLen: '3'), (Param: 1; LFNLen: '12';
-         EXTLen: '3'));
-    FileCase: 4;
-    DirsCase: 4
-    );
-
-  ColumnsDefaultsArvd: record
-    Params: array[1..10] of
-    record
-      Param: Word;
-      LFNLen: String[3];
-      EXTLen: String[3];
-      end;
-    FileCase: Word;
-    DirsCase: Word;
-    end = (
-    Params: ((Param: 1; LFNLen: '12'; EXTLen: '3'), (Param: 271;
-         LFNLen: '12'; EXTLen: '3'),
-        (Param: 1; LFNLen: '18'; EXTLen: '4'), (Param: 1; LFNLen: '18';
-         EXTLen: '0'),
-        (Param: 1; LFNLen: '38'; EXTLen: '4'), (Param: 1; LFNLen: '252';
-         EXTLen: '0'),
-        (Param: 3; LFNLen: '252'; EXTLen: '0'), (Param: 257;
-         LFNLen: '12'; EXTLen: '3'),
-        (Param: 1; LFNLen: '12'; EXTLen: '3'), (Param: 1; LFNLen: '12';
-         EXTLen: '3'));
-    FileCase: 4;
-    DirsCase: 4
-    );
-
-  OldColumnsDefaults: record
-    DiskDrive,
-    FindDrive,
-    Temp,
-    Arc,
-    Arvid: AWord
-    end = (
-    DiskDrive: 0;
-    FindDrive: 0;
-    Temp: 0;
-    Arc: 0;
-    Arvid: 0
     );
 
   {$IFDEF PRINTMANAGER}
@@ -653,86 +457,6 @@ procedure FatalError;
 { note: BIN, DAT, RAW are NOT included in any group, }
 { becouse there is TOO MUCH filetypes with these extensions }
 
-procedure InitMaskData;
-  begin
-  New(Archives);
-  FillChar(Archives^, SizeOf(Archives^), 0);
-  Archives^.Filter :=
-    {archive volumes for ace,ain,arj,rar,zxzip}
-    'a[0-9][0-9];r[0-9][0-9];c[0-9][0-9];$z[0-9];'+
-    {supported archives in order of appearance}
-    'ace;ain;arc;pak;arj;bs2;bsa;cab;chz;ha;hap;hpk;hyp;z;'+
-    'lha;ice;lzh;lim;ark;qrk;rar;sqz;tar;taz;tgz;gz;uc2;ufa;'+
-    'zip;zoo;$z;zxz;'+
-    {arvid}
-    'avt;tdr;'+
-    {unsupported archives}
-    'j;777;acb;boa;imp';
-
-  {sources}
-  New(CustomMask1);
-  FillChar(CustomMask1^, SizeOf(CustomMask1^), 0);
-  CustomMask1^.Filter :=
-    'pas;asm;inc;c;cpp;cc;cxx;hdr;def;pp;h;hpp;hxx;rc;idb;bas;js;jav;java';
-
-  {raw text}
-  New(CustomMask2);
-  FillChar(CustomMask2^, SizeOf(CustomMask2^), 0);
-  CustomMask2^.Filter :=
-    '.;asc;dok;txt;ans;me;1st;diz;dif;inf;info;patch;pat;nfo;uue;uu[1-9];u[0-9][0-9]'
-    ;
-
-  {databases & speadsheets}
-  New(CustomMask3);
-  FillChar(CustomMask3^, SizeOf(CustomMask3^), 0);
-  CustomMask3^.Filter := 'dbf;db;wkz;wks;123;wk1;xls;mdb;mde';
-
-  {kill'em!}
-  New(CustomMask4);
-  FillChar(CustomMask4^, SizeOf(CustomMask4^), 0);
-  CustomMask4^.Filter := 'tmp;$$$;bak;qab;swp;log;lut;c2t;err;old';
-
-  {graphics}
-  New(CustomMask5);
-  FillChar(CustomMask5^, SizeOf(CustomMask5^), 0);
-  CustomMask5^.Filter :=
-     'pcx;bmp;gif;rle;ico;jpg;jpe;jpeg;png;tif;tga;wpg;psd;'+
-    'pcd;cur;ani;dib';
-
-  {config}
-  New(CustomMask6);
-  FillChar(CustomMask6^, SizeOf(CustomMask6^), 0);
-  CustomMask6^.Filter := 'ini;cfg;ctl;nif;lst;m3u;pls;reg;mak';
-
-  {audio & video}
-  New(CustomMask7);
-  FillChar(CustomMask7^, SizeOf(CustomMask7^), 0);
-  CustomMask7^.Filter :=
-    {audio streams}
-    'wav;voc;ym;aud;snd;wma;'+
-    {compressed audio streams}
-    'mp[1-3g];vqf;vtx;asf;as4;'+
-    {sampled music}
-    'mod;stm;s3m;xm;it;mdl;mtm;mid;cmf;sid;'+
-    {video}
-    'avi;mpeg;mpe;smk;bik;gl;mvy;mve;mov;fli;flc;tgv';
-
-  {fonts}
-  New(CustomMask8);
-  FillChar(CustomMask8^, SizeOf(CustomMask8^), 0);
-  CustomMask8^.Filter := 'fon;fot;fnt;ttf;ofm;pfm;afm;sft;eft;pft;xft;chr';
-
-  {Office documents}
-  New(CustomMask9);
-  FillChar(CustomMask9^, SizeOf(CustomMask9^), 0);
-  CustomMask9^.Filter := 'doc;wp;rtf;sdw;lwp;sam;html;htm';
-
-  {system}
-  New(CustomMask10);
-  FillChar(CustomMask10^, SizeOf(CustomMask10^), 0);
-  CustomMask10^.Filter := 'dll;drv;ifs;flt;add;sys;vxd;386;rtl;ovr;ovl';
-  end { InitMaskData };
-
 begin
 StartupDir := '';
 SourceDir := '';
@@ -775,3 +499,4 @@ TempFile := lfGetLongFileName(TempFile);
 if  (SysPlatformId <> -1) and (SysPlatformId <> 2) then
   CmdExt := '.BAT'
 end.
+

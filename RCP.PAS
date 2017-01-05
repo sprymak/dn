@@ -363,6 +363,7 @@ const
   idButton = 'BUTTON ';
   idCheckBoxes = 'CHECKBOXES ';
   idRadioButtons = 'RADIOBUTTONS ';
+  idComboBox = 'COMBOBOX ';
   idHistory = 'HISTORY ';
   idItem = 'ITEM ';
   idHelpCtx = 'HELPCTX ';
@@ -869,6 +870,7 @@ procedure ProcessDLGs;
       J: CondInt;
       PV: PView;
       LastSB: PScrollBar;
+      nDirectLink: Byte;
 
     function IsThis(const S: String): Boolean;
       begin
@@ -1029,6 +1031,14 @@ procedure ProcessDLGs;
       D^.Insert(PV);
       end;
 
+    procedure MakeComboBox;
+      begin
+      R.Assign(GetID(Token(S, i)), GetID(Token(S, i)), GetID(Token(S,
+         i)), GetID(Token(S, i)));
+      PV := New(PComboBox, Init(R, GetItems));
+      D^.Insert(PV);
+      end;
+
     procedure MakeButton;
       var
         B, K: String;
@@ -1152,6 +1162,15 @@ procedure ProcessDLGs;
       Readln(F.T, S);
       S := DefineParser.ProceedStr2(S);
       Inc(Line);
+
+      { Разбор метки прямой ссылки вида #1 .. #9, строго с первой позиции}
+      nDirectLink := 0; // 0 - метки нет
+      if (Length(S) >= 2) and (S[1] = '#') and (S[2] in ['1'..'9']) then
+        begin
+        nDirectLink := Byte(S[2]) - Byte('0');
+        S[1] := ' '; S[2] := ' ';
+        end;
+
       DelLeft(S);
       FreeStr := UpStrg(S);
       if  (S <> '') and (S[1] <> ';') then
@@ -1191,6 +1210,8 @@ procedure ProcessDLGs;
           D^.SelectNext(True)
         else if IsThis(idRadioButtons) then
           MakeRadioButtons
+        else if IsThis(idComboBox) then
+          MakeComboBox
         else if IsThis(idButton) then
           MakeButton
         else if IsThis(idHistory) then
@@ -1201,6 +1222,12 @@ procedure ProcessDLGs;
           Break
         else if (S <> '') and (S[1] <> ';') then
           Error('Unknown identifier in line '+ItoS(Line));
+        if nDirectLink <> 0 then
+          begin { запоминание прямой ссылки на текущий объект }
+          if D^.DirectLink[nDirectLink] <> nil then
+            Error('Direct Link Label redefined in line '+ItoS(Line));
+          D^.DirectLink[nDirectLink] := PV;
+          end;
         while I < Length(S) do
           PV^.Options := PV^.Options or GetID(Token(S, I));
         end;
@@ -1495,9 +1522,6 @@ repeat
       begin
       Dispose(LStringList, Done);
       LStringList := nil;
-      if StringCache <> nil then
-        Dispose(StringCache, Done);
-      StringCache := nil;
       end;
     DLStream.Done;
     ReRegisterType(RStrListMaker);

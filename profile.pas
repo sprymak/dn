@@ -299,8 +299,7 @@ function FindKey(KeyName: PChar; Dest: PChar): Boolean;
         end;
       end;
   until IsAppLine(Buf) or (CurFile^.Status <> 0);
-  if CurFile^.Status <> 0 then
-    CurFile^.Reset;
+  CurFile^.Reset;
   end { FindKey };
 
 procedure DeleteBuf(Dest, Source: LongInt);
@@ -333,8 +332,7 @@ procedure DeleteLine;
   begin
   pos := CurFile^.GetPos;
   ReadLine(Buf);
-  if CurFile^.Status <> 0 then
-    CurFile^.Reset;
+  CurFile^.Reset;
   DeleteBuf(pos, CurFile^.GetPos);
   end;
 
@@ -402,8 +400,7 @@ function GetPrivateProfileString;
             end
           end
       until Res or (CurFile^.Status <> 0);
-      if CurFile^.Status <> 0 then
-        CurFile^.Reset;
+      CurFile^.Reset;
       Copy[0] := #0;
       GetPrivateProfileString := Copy-ReturnedString-1;
       Exit
@@ -473,8 +470,7 @@ function WritePrivateProfileString;
         if not Res and (Buf[0] <> ';') then
           DeleteBuf(p, CurFile^.GetPos);
       until Res;
-      if CurFile^.Status <> 0 then
-        CurFile^.Reset;
+      CurFile^.Reset;
       end
     else
       begin

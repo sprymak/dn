@@ -105,7 +105,6 @@ var
   LoaderSeg: Word;
   CommandOfs: Word;
   RunFirst: Boolean;
-  IgnoreOldFiles: Boolean;
 const
   Virgin: Boolean = False; {JO}
   NoTempDir: Boolean = False; {JO}
@@ -160,65 +159,72 @@ const
   w95locked: Boolean = False; {Gimly}
 
 const
+// Идентификаторы блоков dn.cfg, соответствующих структурам данных
+// различных диалогов настройки. При изменении размера или структуры
+// таких блоков желательно давать им новый идентификатор во избежание
+// неправильной интерпретации старых версий dn.cfg. Новые идентификаторы
+// во избежание путаницы следует помещать в конец данного списка,
+// а неиспользуемые - оставлять закомментированными на старом месте
   cfgMouseData = 3;
   cfgInterfaceData = 4;
   cfgSaversData = 5;
   cfgSystemColors = 6;
-  cfgPanelDefaults = 7;
+//  cfgPanelDefaults = 7;
   cfgTetrisRec = 9;
-  cfgOldCustomMasks = 10; {DataCompBoy}
+//  cfgOldCustomMasks = 10; {DataCompBoy}
   cfgPrinterSetup = 11;
   cfgColumnDefaults = 12;
   {cfgSavers              = 13; Obsolete}
   cfgCountryInfo = 14;
   cfgConfirms = 15;
   cfgTermDefaults = 16;
-  cfgDirsToChange = 17;
+//  cfgDirsToChange = 17;
   cfgFindDlgPos = 20;
   cfgCDParams = 21;
   cfgUUEData = 22;
   cfgVGAPalette = 23;
   cfgBlink = 24;
   cfgFFindOptions = 26;
-  cfgOldFMSetup = 27; {DataCompBoy}
+//  cfgOldFMSetup = 27; {DataCompBoy}
   cfgDriveInfoData = 28;
-  cfgMakeListFile = 29;
+//  cfgMakeListFile = 29;
   cfgOldEditorDefaults = 30; {DataCompBoy}
   cfgStartupData = 31;
   cfgSystemData = 32;
-  cfgINIdata = 33;
-  cfgIgnoreOldFiles = 34;
+//  cfgINIdata = 33;
+//  cfgIgnoreOldFiles = 34;
   cfgExtractOptions = 35;
   {New Record Versions}
   cfgOldSystemData = 36; {DataCompBoy}
   cfgNewSaversData = 37;
-  cfgColumnsDefaultsDisk = 38;
-  cfgColumnsDefaultsFind = 39;
-  cfgColumnsDefaultsTemp = 40;
-  cfgColumnsDefaultsArch = 41;
+//  cfgColumnsDefaultsDisk = 38;
+//  cfgColumnsDefaultsFind = 39;
+//  cfgColumnsDefaultsTemp = 40;
+//  cfgColumnsDefaultsArch = 41;
   {    cfgColumnsDefaultsArvd = 42; Do not use 42 - old version!!!}
-  cfgNewFMSetup = 43; {DataCompBoy}
-  cfgOldArcCustomMasks = 44; {DataCompBoy}
-  cfgColumnsDefaultsArvd = 45; {DataCompBoy}
-  cfgShowScrollBar = 47; {DataCompBoy}
+//  cfgNewFMSetup = 43; {DataCompBoy}
+//  cfgOldArcCustomMasks = 44; {DataCompBoy}
+//  cfgColumnsDefaultsArvd = 45; {DataCompBoy}
+//  cfgShowScrollBar = 47; {DataCompBoy}
   cfgNewStartupData = 48; {DataCompBoy}
   cfgDefaultArchiver = 49; {DataCompBoy}
   cfgDefaultArchiverMode = 50; {DataCompBoy}
   cfgOld2SystemData = 51; {DataCompBoy}
-  cfgOldCustomMasks2 = 52; {DataCompBoy}
-  cfgCustomMasks = 53; {DataCompBoy}
-  cfgCustomMasks2 = 54; {DataCompBoy}
-  cfgArcCustomMasks = 55; {DataCompBoy}
+//  cfgOldCustomMasks2 = 52; {DataCompBoy}
+//  cfgCustomMasks = 53; {DataCompBoy}
+//  cfgCustomMasks2 = 54; {DataCompBoy}
+//  cfgArcCustomMasks = 55; {DataCompBoy}
   cfgFMSetup = 56; {DataCompBoy}
   {                      = 57; !DO NOT USE!}
   cfgNewSystemData = 58; {DataCompBoy}
   cfgEditorDefaults = 59; {DataCompBoy}
-  cfgNewPanelDefaults = 60; {DataCompBoy}
+//  cfgNewPanelDefaults = 60; {DataCompBoy}
   cfgSavers = 61; {DataCompBoy}
   cfgChangeCaseOptions = 62; {DataCompBoy}
   cfgINIcrc = 63; {DataCompBoy}
   cfgAppPalette = 64; {JO}
   cfgComareDirsOptions = 65; {JO}
+  cfgPanSetupPreset = 66;
 
   dlAbout = #13#3'DN/2 Open Source'+
   #13#3'Version %s, %s'+
@@ -257,8 +263,8 @@ uses
   {$ifdef modem}
   modemio,
   {$endif}
-  ColorSel,
-  UFNMatch {, Crt}
+  ColorSel {, Crt}
+  , FileType, PDSetup
   ;
 
 { Load and Store Palette routines }
@@ -356,11 +362,8 @@ constructor TDataSaver.Load;
           if Q >= 0 then
             begin
             TempFiles := New(PFilesCollection, Init(Q+1, $10));
-            TempFiles^.SortMode := psmOrdered;
+            TempFiles^.SortMode := psmLongName;
             TempFiles^.Duplicates := False;
-            {$IFDEF Win32}
-            TempFiles^.LFNActive := True;
-            {$ENDIF}
             {TempFiles^.Owner := @Self;}
             for Q2 := 0 to Q do
               TempFiles^.AtInsert(Q2, LoadFileRecOwn(S, TempDirs));
@@ -652,6 +655,7 @@ destructor TDNApplication.Done;
   var
     B: Word;
     SaveStream: PStream;
+    INItime, INIsize: LongInt;
   begin
   {-$VOL begin} {if CBAutoSave added by piwamoto}
   if cbAutoSave then
@@ -673,6 +677,10 @@ destructor TDNApplication.Done;
   ClipBoard := nil;
   if ConfigModified then
     WriteConfig;
+{JO}
+  if ProbeINI(INItime, INIsize) then
+    WriteIniCache(INItime, INIsize);
+{/JO}
   if  (StartupData.Unload and osuAutosave <> 0)
   then
     SaveRealDsk
@@ -731,17 +739,17 @@ procedure WriteHighlite;
   begin
   lAssignText(F, SourceDir+'dnhgl.grp');
   lRewriteText(F);
-  Writeln(F.T, CustomMask1^.Filter);
-  Writeln(F.T, CustomMask2^.Filter);
-  Writeln(F.T, CustomMask3^.Filter);
-  Writeln(F.T, CustomMask4^.Filter);
-  Writeln(F.T, CustomMask5^.Filter);
-  Writeln(F.T, CustomMask6^.Filter);
-  Writeln(F.T, CustomMask7^.Filter);
-  Writeln(F.T, CustomMask8^.Filter);
-  Writeln(F.T, CustomMask9^.Filter);
-  Writeln(F.T, CustomMask10^.Filter);
-  Writeln(F.T, Startup.Archives^.Filter);
+  Writeln(F.T, CustomMask1);
+  Writeln(F.T, CustomMask2);
+  Writeln(F.T, CustomMask3);
+  Writeln(F.T, CustomMask4);
+  Writeln(F.T, CustomMask5);
+  Writeln(F.T, CustomMask6);
+  Writeln(F.T, CustomMask7);
+  Writeln(F.T, CustomMask8);
+  Writeln(F.T, CustomMask9);
+  Writeln(F.T, CustomMask10);
+  Writeln(F.T, Archives);
   Close(F.T);
   end;
 {JO}
@@ -795,7 +803,6 @@ procedure WriteConfig;
   StoreBlock(cfgNewStartupData, StartupData, SizeOf(StartupData));
   StoreBlock(cfgMouseData, MouseData, SizeOf(MouseData));
   StoreBlock(cfgInterfaceData, InterfaceData, SizeOf(InterfaceData));
-  StoreBlock(cfgShowScrollBar, ShowScrollBar, SizeOf(ShowScrollBar));
   {$IFDEF SS}
   StoreBlock(cfgNewSaversData, SaversData.Time,
        SizeOf(SaversData)-SizeOf(SaversData.Selected)*2);
@@ -804,44 +811,16 @@ procedure WriteConfig;
   UnMark;
   {$ENDIF}
   StoreBlock(cfgSystemColors, SystemColors, SizeOf(SystemColors));
-  StoreBlock(cfgNewPanelDefaults, PanelDefaults, SizeOf(PanelDefaults));
   StoreBlock(cfgEditorDefaults, EditorDefaults, SizeOf(EditorDefaults));
   StoreBlock(cfgTetrisRec, TetrisRec, SizeOf(TetrisRec));
-  StoreBlock(cfgArcCustomMasks, Startup.Archives^.Filter,
-       SizeOf(Startup.Archives^.Filter));
-  MarkP(cfgCustomMasks);
-  S.Write(CustomMask1^.Filter, SizeOf(CustomMask1^.Filter));
-  S.Write(CustomMask2^.Filter, SizeOf(CustomMask2^.Filter));
-  S.Write(CustomMask3^.Filter, SizeOf(CustomMask3^.Filter));
-  S.Write(CustomMask4^.Filter, SizeOf(CustomMask4^.Filter));
-  S.Write(CustomMask5^.Filter, SizeOf(CustomMask5^.Filter));
-  UnMark;
-  MarkP(cfgCustomMasks2);
-  S.Write(CustomMask6^.Filter, SizeOf(CustomMask6^.Filter)); {JO}
-  S.Write(CustomMask7^.Filter, SizeOf(CustomMask7^.Filter));
-  S.Write(CustomMask8^.Filter, SizeOf(CustomMask8^.Filter));
-  S.Write(CustomMask9^.Filter, SizeOf(CustomMask9^.Filter));
-  S.Write(CustomMask10^.Filter, SizeOf(CustomMask10^.Filter)); {JO}
-  UnMark;
   {$IFDEF PRINTMANAGER}
   StoreBlock(cfgPrinterSetup, RPrinterSetup, SizeOf(RPrinterSetup));
   {$ENDIF}
-  StoreBlock(cfgColumnsDefaultsDisk, ColumnsDefaultsDisk,
-       SizeOf(ColumnsDefaultsDisk));
-  StoreBlock(cfgColumnsDefaultsFind, ColumnsDefaultsFind,
-       SizeOf(ColumnsDefaultsFind));
-  StoreBlock(cfgColumnsDefaultsTemp, ColumnsDefaultsTemp,
-       SizeOf(ColumnsDefaultsTemp));
-  StoreBlock(cfgColumnsDefaultsArch, ColumnsDefaultsArch,
-       SizeOf(ColumnsDefaultsArch));
-  StoreBlock(cfgColumnsDefaultsArvd, ColumnsDefaultsArvd,
-       SizeOf(ColumnsDefaultsArvd));
+  StoreBlock(cfgPanSetupPreset, PanSetupPreset, SizeOf(PanSetupPreset));
   StoreBlock(cfgCountryInfo, CountryInfo, SizeOf(CountryInfo));
   StoreBlock(cfgConfirms, Confirms, SizeOf(Confirms));
   StoreBlock(cfgUUEData, UUDecodeOptions,
        SizeOf(UUDecodeOptions)+SizeOf(TUUEncodeData));
-  StoreBlock(cfgMakeListFile, MakeListFileOptions,
-       SizeOf(MakeListFileOptions));
   StoreBlock(cfgTermDefaults, TerminalDefaults, SizeOf(TerminalDefaults));
   StoreBlock(cfgFMSetup, Startup.FMSetup, SizeOf(Startup.FMSetup));
   StoreBlock(cfgVGAPalette, VGA_palette, SizeOf(VGA_palette));
@@ -857,21 +836,6 @@ procedure WriteConfig;
   {JO: два раза???}
   StoreBlock(cfgChangeCaseOptions, ChangeNamesCaseOptions,
        SizeOf(ChangeNamesCaseOptions));
-  {StoreBlock(cfgINIcrc, INIstoredcrc, SizeOf(INIstoredcrc));}
-  MarkP(cfgINIdata);
-  S.Write(INIstoredtime, SizeOf(INIstoredtime));
-  S.Write(INIstoredsize, SizeOf(INIstoredsize));
-  S.Write(iniparamblock_START,
-       Ofs(iniparamblock_END)-Ofs(iniparamblock_START));
-  UnMark;
-
-  if IgnoreOldFiles then
-    StoreBlock(cfgIgnoreOldFiles, IgnoreOldFiles, 0);
-
-  MarkP(cfgDirsToChange);
-  for I := 0 to 8 do
-    S.WriteStr(DirsToChange[I]);
-  UnMark;
   StoreBlock(cfgAppPalette, appPalette, SizeOf(appPalette));
   StoreBlock(cfgComareDirsOptions, ComareDirsOptions,
        SizeOf(ComareDirsOptions));
@@ -990,30 +954,6 @@ procedure TDNApplication.RetrieveDesktop;
     Q: String;
     QQ: Integer;
 
-  procedure GetStringCache;
-    var
-      Ss: String;
-      P: PCollection;
-    begin
-    Ss := CnvString(S^.ReadStr);
-    if Ss <> #0#0#0 then
-      begin
-      P := PCollection(S^.Get);
-      if  (StringCache = nil)
-      then
-        if  (Ss = CacheLngId)
-        then
-          StringCache := P
-        else
-          begin
-          InitStringCache;
-          Dispose(P, Done)
-          end
-      else
-        Dispose(P, Done);
-      end;
-    end { GetStringCache };
-
   function GetGLUKName(s: String): String;
     begin
     GetGLUKName := GetPath(s)+Copy(GetName(s), 1, 12);
@@ -1054,9 +994,6 @@ Err:
     S^.Read(Sign[1], DskSign.SignLen);
     Sign[0] := Char(DskSign.SignLen);
     if Sign <> DskSign.Sign then
-      goto Err;
-    GetStringCache;
-    if S^.Status <> stOK then
       goto Err;
     PS := S^.ReadStr;
     if PS <> nil then
@@ -1208,36 +1145,12 @@ procedure TDNApplication.SaveDesktop(const FileName: String);
     PP: Pointer;
     R: TRect;
 
-  procedure PutStringCache;
-    var
-      Ss: PString;
-    begin
-    New(Ss);
-    lFSplit(FileName, FreeStr, FreeStr, Ss^);
-    if  (UpStrg(Ss^) = '.DSK') or
-        (StringCache = nil) or
-        (StringCache^.Count = 0)
-    then
-      begin
-      Ss^:= #0#0#0;
-      S^.WriteStr(Ss);
-      end
-    else
-      begin
-      Ss^:= CacheLngId;
-      S^.WriteStr(Ss);
-      S^.Put(StringCache);
-      end;
-    Dispose(Ss);
-    end;
-
   begin { TDNApplication.SaveDesktop }
   ClrIO;
   S := New(PBufStream, Init(FileName, stCreate, 2048));
   if not LowMemory and (S^.Status = stOK) then
     begin
     S^.Write(DskSign.Sign[1], DskSign.SignLen);
-    PutStringCache;
     S^.WriteStr(@DirToChange);
     S^.WriteStr(@TempFile);
     S^.WriteStr(@NullStr);
@@ -1402,7 +1315,7 @@ procedure TDNApplication.ViewFile(AltExt, NoExtFile: Boolean;
       end;
     {$ENDIF}
 
-    SpecialIntView := ArcViewer(FileName, RN, PanelViewMode);
+    SpecialIntView := ArcViewer(FileName, RN);
     Exit;
 
 db:
@@ -2003,7 +1916,7 @@ procedure TDNApplication.HandleCommand;
       end;
     {else PlaySound(1559, 30);}
     S.Done;
-    if not DnIni.AutoRefreshPanels then
+    if not Startup.AutoRefreshPanels then
       RereadDirectory(GetPath(FN));
     end { StoreColors };
 
@@ -2173,13 +2086,11 @@ procedure TDNApplication.HandleCommand;
     SD := '';
     CommandLine^.SetData(SD);
     CommandLine^.DrawView;
-    {AK155}
-    Message(Desktop, evBroadcast, cmGetCurrentPosFiles, nil);
     {$IFDEF RecodeWhenDraw}
     S1 := OemToCharStr(S);
-    ExecString(@S1, #13+CharToOemStr(ActiveDir)+'>'+S);
+    ExecString(S1, #13+CharToOemStr(ActiveDir)+'>'+S);
     {$ELSE}
-    ExecString(@S, #13+ActiveDir+'>'+S);
+    ExecString(S, #13+ActiveDir+'>'+S);
     {$ENDIF}
     {AK155     S:='';CommandLine^.SetData(S);CommandLine^.DrawView;}
     end { ExecCommandLine: };
@@ -2190,10 +2101,12 @@ procedure TDNApplication.HandleCommand;
       Xt: String;
     begin
     ST := '';
-    Message(Desktop, evBroadcast, cmGetCurrentPosFiles, nil);
-    lFSplit(CnvString(CurFileActive), FreeStr, Nm, Xt);
-    if InExtFilter(CnvString(CurFileActive), Executables) then
-      ST := Nm+Xt+' ';
+    if (ActivePanel <> nil) then
+      with ActivePanel^ do
+        begin
+        if Files^.Count <> 0 then
+          ST := PFileRec(Files^.At(ScrollBar^.Value))^.FlName[True];
+        end;
     if InputBox(GetString(dlExecDOScmdHdr), GetString(dlExecDOScmdLine),
          ST, 128, hsExecDOSCmd) <> cmOK
     then
@@ -2202,11 +2115,7 @@ procedure TDNApplication.HandleCommand;
     if not TryRunOS2(@ST) {$IFDEF OS_DOS} and CheckExit {$ENDIF} {JO}
       then
       {$ENDIF}
-      ExecString(@St, #13#10+ActiveDir+'>'+ST);
-    DisposeStr(CurFileActive);
-    CurFileActive := nil;
-    DisposeStr(CurFilePassive);
-    CurFilePassive := nil;
+      ExecString(St, #13#10+ActiveDir+'>'+ST);
     end { ExecDOSCmd };
 
   procedure GetUserScreen;
@@ -2417,7 +2326,7 @@ procedure TDNApplication.HandleCommand;
        {$IFDEF OS_DOS} and CheckExit {$ENDIF} {JO}
       then
       {$ENDIF}
-      ExecString(PString(Event.InfoPtr), '');
+      ExecString(PString(Event.InfoPtr)^, '');
     CE;
     end;
 
@@ -2546,8 +2455,6 @@ procedure TDNApplication.HandleCommand;
           ActiveLanguage := '';
         SaveDnIniSettings(@ActiveLanguage);
         DoneIniEngine;
-        ProbeINI(INIstoredtime, INIstoredsize, INIstoredcrc);
-        ConfigModified := True;
         end;
       end;
     L.FreeAll;
@@ -2607,36 +2514,6 @@ procedure TDNApplication.HandleCommand;
       ConfirmSetup;
     cmCountrySetup:
       SetupCountryInfo;
-    cmColumnDefaultsDisk:
-      if SetupColumnDefaultsDisk then
-        begin
-        WriteConfig;
-        Application^.Redraw;
-        end;
-    cmColumnDefaultsTemp:
-      if SetupColumnDefaultsTemp then
-        begin
-        WriteConfig;
-        Application^.Redraw;
-        end;
-    cmColumnDefaultsFind:
-      if SetupColumnDefaultsFind then
-        begin
-        WriteConfig;
-        Application^.Redraw;
-        end;
-    cmColumnDefaultsArch:
-      if SetupColumnDefaultsArch then
-        begin
-        WriteConfig;
-        Application^.Redraw;
-        end;
-    cmColumnDefaultsArvd:
-      if SetupColumnDefaultsArvd then
-        begin
-        WriteConfig;
-        Application^.Redraw;
-        end;
     cmHighlightGroups:
       SetHighlightGroups;
     {$IFDEF DBView}
@@ -2759,7 +2636,7 @@ procedure TDNApplication.HandleCommand;
           {$ENDIF} {JO}
           begin
           ST := SwpDir+'$DN'+ItoS(DNNumber)+'$'+CmdExt+' '+ST;
-          ExecString(@ST, '');
+          ExecString(ST, '');
           if RunMenu then
             begin
             Event.What := evCommand;
@@ -2851,8 +2728,7 @@ procedure TDNApplication.HandleCommand;
         end
       else
         begin
-        StringCache^.FreeAll;
-        ExecString(@NullStr, '');
+        ExecString('', '');
         end;
     {-DataCompBoy-}
     {$ENDIF}
@@ -2979,8 +2855,6 @@ procedure TDNApplication.HandleCommand;
       UpdateARH(nil);
     cmLoConfigArchiver..cmHiConfigArchiver:
       SetupArchive(Event.Command);
-    cmFMDefaults:
-      FMDefaults;
     cmFMSetup:
       FMSetup;
     cmDriveInfoSetup:
@@ -3085,7 +2959,9 @@ procedure TDNApplication.HandleCommand;
         Unlock;
         end;
 
-      if (ModalCount <> 0) or MenuActive then
+      if (ModalCount <> 0) or MenuActive or
+         Desktop^.Current^.GetState(sfDragging)
+      then
         begin { исполняем и уничтожаем модальный хелп }
         ExecView(HelpWnd);
         HelpWnd^.Free;
@@ -3111,19 +2987,12 @@ procedure TDNApplication.HandleCommand;
 {-DataCompBoy-}
 
 procedure ShowTimeInfo;
+  var
+    S: String;
   begin
-  FreeStr := SStr(DDTimer div 360000, 2, '0');
-  AddStr(FreeStr, ':');
-  DDTimer := DDTimer mod 360000;
-  Insert(SStr(DDTimer div 6000, 2, '0'), FreeStr, Length(FreeStr)+1);
-  AddStr(FreeStr, ':');
-  DDTimer := DDTimer mod 6000;
-  Insert(SStr(DDTimer div 100, 2, '0'), FreeStr, Length(FreeStr)+1);
-  AddStr(FreeStr, '.');
-  Insert(SStr(DDTimer mod 100, 2, '0'), FreeStr, Length(FreeStr)+1);
-  MessageBox(GetString(dlElapsedTime)+FreeStr, nil,
-     mfOKButton+mfInformation);
+  S := SecToStr(DDTimer div 1000) + '.' + Dec2(DDTimer mod 1000);
   DDTimer := 0; {JO}
+  MessageBox(GetString(dlElapsedTime)+S, nil, mfOKButton+mfInformation);
   end;
 
 procedure SetSysColors(var Pal);
@@ -3227,16 +3096,12 @@ procedure w95QuitCancel;
 procedure ExecDNAutoexec;
   var
     I: Integer;
-    S: String;
   begin
   if RunFirst then
     begin
     I := FindParam('/E');
     if I > 0 then
-      begin
-      S := Copy(ParamStr(I), 3, MaxStringLength);
-      ExecString(@S, '');
-      end
+      ExecString(Copy(ParamStr(I), 3, MaxStringLength), '');
     end;
   end;
 
@@ -3261,3 +3126,4 @@ procedure ClearSelection(AFP: Pointer; FC: Pointer);
   end;
 
 end.
+

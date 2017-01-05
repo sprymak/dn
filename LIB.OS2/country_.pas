@@ -18,6 +18,10 @@ function QueryToAscii(CP: Word; var ToAscii: TXLat): Boolean;
   {` Для кодовой страницы CP запрашивается у ОС таблица перекодировки
   из CP в текущую кодовую страницу`}
 
+function QueryABCSort(CP: Word; var ABCSortXlat: TXLat): Boolean;
+  {` Для кодовой страницы CP запрашивается у ОС таблица весов
+  для алфавитной сортировки. Если CP=0 - для текущей кодовой страницы.`}
+
 implementation
 
 uses
@@ -182,6 +186,25 @@ function QueryToAscii(CP: word; var ToAscii: TXLat): Boolean;
 
   rc := rc or UniFreeUconvObject(uco_CP);
   result := rc = 0;
+  end;
+
+function QueryABCSort(CP: Word; var ABCSortXlat: TXLat): Boolean;
+  var
+    UserInfo  : CountryCode; // Country and code page requested
+    ulSeqLen  : ULong;       // Length of sequence returned
+    i         : char;       // Two loop indices
+    j         : ULong;
+    rc        : ApiRet;      // Return code
+  begin
+  UserInfo.country := 0;  // Request information about current country
+  UserInfo.codepage := CP; // ... and current code page
+  rc := DosQueryCollate(
+    SizeOf(ABCSortXlat),  // Length of output area
+    UserInfo,           // Country and codepage info
+    @ABCSortXlat,          // Area for collating sequence
+    ulSeqLen);          // Length of data returned
+
+  Result := (rc = No_Error) and (ulSeqLen = 256);
   end;
 
 begin

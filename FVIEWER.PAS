@@ -350,7 +350,7 @@ function SearchFileStr;
     if Display then
       begin
       Info^.Write(1, StrGrd(L, I, 30, False));
-      Info^.Write(2, ZtoS(Percent(L, I))+'%');
+      Info^.Write(2, Percent(L, I));
       if  (not Inserted) and TimerExpired(Tmr) then
         begin
         Desktop^.Insert(Info);
@@ -548,8 +548,8 @@ procedure TViewInfo.Draw;
       then
         S := S+'100'
       else
-        S := S+Long2Str(Round(Percent(FileSize, FilePos+ExposedPos)), 3);
-      S := S+'% of '+FStr(FileSize)+' Bytes'+Ch2;
+        S := S + Percent(FileSize, FilePos+ExposedPos);
+      S := S + ' of '+FStr(FileSize)+' Bytes'+Ch2;
       end;
     end;
   MoveChar(B, Ch2, Color, Size.X);
@@ -721,7 +721,7 @@ function TFileViewer.WriteModify;
     Fl^.Write(Buf^, BufSize);
     end;
   NeedAbort := False;
-  if not DnIni.AutoRefreshPanels then
+  if not Startup.AutoRefreshPanels then
     RereadDirectory(GetPath(FileName));
   end { TFileViewer.WriteModify };
 
@@ -803,7 +803,7 @@ procedure TViewScroll.HandleEvent;
       Max1: Double; {JO}
     begin
     Max1 := MaxV;
-    GetPrecValue := Trunc(Max1*(SP-1)/(Size.Y-3))+1;
+    GetPrecValue := Round(Max1*(SP-1)/(Size.Y-3))+1;
     end;
   {/JO}
 
@@ -922,7 +922,7 @@ function TViewScroll.GetPartCode: LongInt;
     Max1 := MaxV;
     {GetPartCode := 1+((Size.Y-3)*Value) div MaxV}
     {JO: точности вычисления с Longint для очень больших файлов недостаточно}
-    GetPartCode := 1+Trunc(((Size.Y-3)*Val1)/Max1);
+    GetPartCode := 1+Round(((Size.Y-3)*Val1)/Max1);
     end;
   {/JO}
   end;
@@ -1146,7 +1146,7 @@ destructor TFileViewer.Done;
     begin
     EraseTempFile(FileName);
     KillAfterUse := False;
-    if not DnIni.AutoRefreshPanels then
+    if not Startup.AutoRefreshPanels then
       RereadDirectory(GetPath(FileName));
     end;
   Info := nil;
@@ -1407,7 +1407,7 @@ procedure TFileViewer.Draw;
           S := DumpStr(Buf^[W], L, J, Filter);
           W2 := Pos(#179, S);
           SetLength(SZ, Length(S)-W2);
-          for IZ := 1 to Length(S)-W2 do
+          for IZ := 1 to Length(SZ) do
             if S[W2+IZ] = #0 then
               begin
               SZ[IZ] := #1;
@@ -1440,7 +1440,7 @@ procedure TFileViewer.Draw;
             end;
           for IZ := 1 to Length(SZ) do
             if SZ[IZ] = #1 then
-              MoveColor(B[W2+IZ-1], 1, (CC[1] and $F0)+(CC[3] and $0F));
+              MoveColor(B[11+HexPos*3+IZ], 1, (CC[1] and $F0)+(CC[3] and $0F));
           if SearchActive then
             begin
             if  (L <= SearchX) and (L+J > SearchX) then
@@ -2102,7 +2102,7 @@ procedure TFileViewer.SaveToFile(FN: String);
   FN := GetPath(FN);
   if  (Length(FN) > 3) and (FN[Length(FN)] = '\') then
     SetLength(FN, Length(FN)-1);
-  if not DnIni.AutoRefreshPanels then
+  if not Startup.AutoRefreshPanels then
     GlobalMessage(evCommand, cmRereadDir, @FN);
   end { TFileViewer.SaveToFile };
 
@@ -2553,7 +2553,7 @@ DoSave:
                 do
                   begin
                   Dec(LFR);
-                  Inc(Cur.X, 2);
+                  Inc(Cur.X, (1 + Byte(HexEdit)));
                   end;
                 {$IFDEF DisAsm}
                 end
@@ -3503,7 +3503,7 @@ procedure TFileViewer.CountUp;
       vmAsm:
         begin
         ScanUp(D);
-        Dec(LineStart, D.InstrLen);
+        LineStart := BufPos-D.InstrLen;
         end;
       {$ENDIF}
     end {case};
@@ -3527,7 +3527,7 @@ procedure TFileViewer.CountUp;
     else {if ViewMode = vmText then }
       {/AK155}
       begin
-      if LineStart > 0 then
+      if (LineStart > 0) and (LineStart < BufSize) then
         BufPos := LineStart { нормальное начало строки }
       else if FilePos = 0 then
         begin { начало файла }

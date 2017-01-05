@@ -138,10 +138,8 @@ function FindFileWithSPF(pFileName: String; Info: PWhileView): String;
     S, S2: String;
     IsSec, Found, InSq: Boolean;
     P, I: Integer;
-    D: TMaskData;
   label ex;
   begin
-  FillChar(D, SizeOf(D), 0);
   FindFileWithSPF := '';
   if ExistFile(pFileName) then
     begin
@@ -207,9 +205,7 @@ function FindFileWithSPF(pFileName: String; Info: PWhileView): String;
         S := Copy(S, 2, P-2)
       else
         Delete(S, 1, 1);
-      D.Filter := S;
-      MakeTMaskData(D);
-      IsSec := InExtFilter(pFileName, D);
+      IsSec := InExtFilter(pFileName, S);
       end
     else if IsSec then
       begin
@@ -250,7 +246,6 @@ function FindFileWithSPF(pFileName: String; Info: PWhileView): String;
 ex:
   Close(F.T);
   {D.Filter := ''; MakeTMaskData(D);}
-  FreeTMaskData(D); {Cat}
   end { FindFileWithSPF };
 {-DataCompBoy-}
 

@@ -196,10 +196,12 @@ const
   sigZOO {: TStr4} = 'ZOO:';
   arcZXZ = 24;
   sigZXZ {: TStr4} = 'ZXZ:';
+  arc7Z  = 25;
+  sig7Z  {: TStr4} = '7Z:';
   {$ENDIF}
   arcUNK = 255; {UNKNOWN Archiver}
 
-  NumSupportedArchs = 25;
+  NumSupportedArchs = 26;
 
   PPacker: PChar = 'Packer';
   PUnPacker: PChar = 'Unpacker';
@@ -254,7 +256,9 @@ procedure MakeArchive(S: String; Files: PCollection;
      MoveMode, AddToExisting: Boolean; Owner: Pointer);
 procedure UnarchiveFiles(const FName: String);
 procedure SkipSFX;
-procedure Check4ArcId;
+  {` Устанавливает ArcPos на начало собственно архива.
+  Перед вызовом ArcFile^ должен быть уже открыт и позиционирован
+  на начало. После вызова позиция в ArcFile^ не определена `}
 function _Cardinal(L: LongInt): Real; {piwamoto}
 function FromOct(S: String): LongInt; {fixed by piwamoto}
 function CheckForSpaces(S: String): Boolean; { Flash }
@@ -1268,7 +1272,6 @@ procedure UnarchiveFiles;
     Abort := True;
     Exit;
     end;
-  ArcPos := 0;
   SkipSFX;
   AType := DetectArchive;
   FreeObject(ArcFile);
@@ -1309,8 +1312,7 @@ procedure UnarchiveFiles;
     ExtrDir := '';
     end;
   if  (DDr in ['A'..'Z']) and
-      ( (SystemData.Drives[DDr] {$IFNDEF OS_DOS} shl 1 {$ENDIF}) and
-      ossUnarcToDirectly <> 0)
+      (SystemData.Drives[DDr] and ossUnarcToDirectly <> 0)
   then
     DT.W := DT.W and not 8
   else
@@ -1430,7 +1432,7 @@ TryAgain:
   lGetDir(0, DirToChange);
   Advance2.lChDir(TempExtrDir);
   DelDoubles('  ', S);
-  ExecStringRR(@S, '', False);
+  ExecStringRR(S, '', False);
   {JO}
   if not TempDirUsed then
     goto ex
@@ -1500,8 +1502,16 @@ procedure SkipSFX; {piwamoto}
       Reserved4: LongInt;
       end;
     LXhdrRec: record
+      NumOfPages : Longint;
+      ObjectPageTableOffset : Longint;
+      DataPagesOffset : Longint;
       NonResTableOffs: LongInt;
       TableLenght: Byte;
+      end;
+    LXPage: record
+      PageDataOffset : LongInt;
+      DataSize : AWord;
+{     Flags : AWord;}{we don't need 'em}
       end;
     NEhdrRec: record
       NumOfSegments: AWord; {1c}
@@ -1523,11 +1533,147 @@ procedure SkipSFX; {piwamoto}
       LastPageSize: LongInt; {2c}
       DataPagesOffs: LongInt; {80}
       end;
+
+procedure Check4ArcId; {piwamoto}
+  const
+    BufferSize = $8000;{ should be enougth for everyone ;-))) }
+    {works almost fine with $1000}
+    {some of MS-CAB-SFX (service pack for office) requires $5800.}
+    {tested at 21.09.2005 by piwamoto}
+  var
+    ReEntrance: Byte;
+    ArcId, ArcPosID: LongInt;
+  label
+    Recurce;
+  begin
+  ReEntrance := 0;
+
+Recurce:
+
+  Inc(ReEntrance);
+  ArcPosID := ArcPos;
+  Repeat
+   ArcFile^.Seek(ArcPosID);
+   ArcFile^.Read(ArcId, SizeOf(ArcId));
+   Inc (ArcPosID);
+  Until ((ArcPos + BufferSize - ArcPosID) = 3{SizeOf(ArcId)-1}) or
+       (ArcFile^.EOF) or
+  {ZIP}(ArcId = $04034b50 {'PK'#3#4}) or
+  {RAR}(ArcId = $21726152 {'Rar!'}) or
+  {ARJ}(((ArcId and $ffff) = $ea60) and (Byte(ArcId shr 24) < $b)) or
+
+  {$IFNDEF MINARCH}
+  {IS3}(ArcId = $8c655d13 {#$13#$5D#$65#$8C}) or
+  {ZOO}(ArcId = $fdc4a7dc {#$DC#$A7#$C4#$FD}) or
+  {CHZ}(ArcId = $46684353 {'SChF'}) or
+  {CHZ}(ArcId = $44684353 {'SChD'}) or
+  {LHA}((ArcId and $f8ffffff) = $30686C2D{-lh0...-lh7}) or {LHA/LZH}
+(* piwamoto: this code useful only with very small BufferSize
+  {LHA}(ArcId = $736F5920) or {' Yos' LHA/LZH .COM SFX}
+*)
+  {7Z }(ArcId = $AFBC7A37) or {7-Zip}
+  {$ENDIF}
+
+  {COFF}(ArcId = $0003014c {#$4c#$01#$03#$00}) or
+  {unix-style COFF executable - GNU C / go32stub 2.02 // DJ Delorie}
+  {ACE}(ArcId = $4543412a {'*ACE'}) or
+  {ACE}(ArcId = $78667321 {'!sfx'}) or {!sfx - ACE-SFX script}
+  {ACE}(ArcId = $5846532a {'*SFX'}) or {**SFX** - ACE-SFX script}
+  {CAB}(ArcId = $8648862a) or {digital sign for Microsoft's hotfixes}
+  {CAB}(ArcId = $4643534d {'MSCF'});
+
+   if ((ArcPos + BufferSize - ArcPosID) > 3) and not ArcFile^.EOF
+     then ArcPos := ArcPosID - 1;
+
+  {$IFNDEF MINARCH}
+  if (ArcId and $f8ffffff) = $30686C2D {LHA/LZH} then ArcPos := ArcPos - 2;
+(* piwamoto: this code useful only with very small BufferSize
+  if (ArcId = $736F5920) {LHA .COM SFX} and (ReEntrance < 2) then
+     begin {must be after LHA/LZH ArcPos correction}
+     ArcPosID := ArcPos - 8;
+     ArcFile^.Seek(ArcPosID);
+     repeat
+       ArcFile^.Read(ArcID, 1);
+       Inc (ArcPosID);
+     until (Byte(ArcID) = $29{')'}) or (ArcPosID = ArcPos);
+     {don't care if ArcID <> $29}
+     ArcFile^.Seek(ArcPosID - 5);
+     ArcFile^.Read(ArcId, SizeOf(ArcId));{DataSize}
+     if (ArcId = $63282053) or (ArcId = $6328204C) then
+       begin
+       ArcPos := ArcPos + $4c0;{SFX 'S' edition minlen=4ef, max=686}
+       if Byte(ArcId) = $4C {'L'}
+         then ArcPos := ArcPos + $200;{SFX 'L' edition minlen=72d, max=7ba}
+       goto Recurce;
+       end;
+     end;
+*)
+  {$ENDIF}
+  if ArcId = $0003014c {#$4c#$01#$03#$00} then
+    begin
+    {unix-style COFF executable - GNU C / go32stub 2.02 // DJ Delorie}
+    ArcFile^.Seek(ArcPos+$68);
+    ArcFile^.Read(ArcPosID, SizeOf(ArcPosID)); {DataOffset}
+    ArcFile^.Read(ArcId, SizeOf(ArcId)); {DataSize}
+    ArcPos := ArcPos+ArcPosID+ArcId;
+    Exit;
+    end;
+  if ArcId = $78667321 {!sfx - ACE-SFX script} then
+    begin {must be before '*ACE' & '*SFX' ArcPos correction}
+    ArcFile^.Read(ArcPosID, 2); {skip 2 bytes}
+    ArcFile^.Read(ArcPosID, SizeOf(ArcPosID)); {size of !sfx! script}
+    ArcPos := ArcPos+ArcPosID+8;
+    ArcFile^.Read(ArcPosID, SizeOf(ArcPosID)); {skip 4 bytes}
+    ArcFile^.Read(ArcPosID, SizeOf(ArcPosID)); {script is not empty?}
+    ArcFile^.Seek(ArcPos);
+    ArcFile^.Read(ArcId, SizeOf(ArcId));
+    if  (ArcPosID <> 0) and (ArcId = $4543412a) then
+      ArcId := $5846532a;
+    end;
+  if ArcId = $4543412a {'*ACE'} then
+    ArcPos := ArcPos-8;
+  if ArcId = $5846532a {**SFX** - ACE-SFX script} then
+    begin
+    ArcPos := ArcPos-6;
+    ArcFile^.Seek(ArcPos);
+    ArcPosID := 0;
+    ArcFile^.Read(ArcPosID, 2); {only 2 bytes}
+    ArcPos := ArcPos+ArcPosID+4;
+    ArcFile^.Seek(ArcPos);
+    ArcFile^.Read(ArcPosID, 2); {only 2 bytes}
+    ArcPos := ArcPos+ArcPosID+2;
+    ArcFile^.Read(ArcPosID, 3); {skip 3 bytes}
+    ArcFile^.Read(ArcPosID, SizeOf(ArcPosID)); {size of **SFX** script}
+    ArcPos := ArcPos+ArcPosID;
+    Exit;
+    end;
+  if (ArcId = $8648862a) and (ReEntrance < 2) then
+    begin {digital sign for Microsoft's hotfixes}
+    ArcPos := PEobjRec.Offset + $400{known offset.min=$600, max=$5c00};
+    goto Recurce;
+    end;
+   {last check - uses ArcId}
+   if (ArcPos + BufferSize - ArcPosID) = 3 {No known ArcId found} then
+     begin {check for PackageForTheWeb script}
+     ArcFile^.Seek(ArcPos);
+     ArcFile^.Read(ArcPosID, SizeOf(ArcPosID));{size of script}
+     if ((ArcPosID and $fffc0000) = 0) then
+        {<$40000}{feel free to change it}
+        begin
+        ArcPosID := ArcPosID + ArcPos + 4;
+        if ArcPosID < ArcFile^.GetSize then
+          begin
+          ArcFile^.Seek(ArcPosID);
+          ArcFile^.Read(ArcId, SizeOf(ArcId));
+          if ArcID = $4643534d {'MSCF'} then ArcPos := ArcPosID;
+          end;
+        end;
+     end;
+  end { Check4ArcId };
+
   begin { SkipSFX }
+  ArcPos := 0;
   ArcFile^.Read(MZExeRec.ExeID,
-
-
-
      SizeOf(MZExeRec.ExeID)+SizeOf(MZExeRec.LastB)+SizeOf(MZExeRec.TotalP));
   if  (MZExeRec.ExeID = $5a4d {'MZ'}) or (MZExeRec.ExeID = $4d5a {'ZM'})
   then
@@ -1611,22 +1757,16 @@ procedure SkipSFX; {piwamoto}
               ArcPos := ArcPos+NEhdrRec.ResourceTypeNum*12+8;
               ArcFile^.Seek(ArcPos);
               ArcFile^.Read(NEhdrRec.ResourceType,
-
-
-
-                 SizeOf(NEhdrRec.ResourceType)+SizeOf(NEhdrRec.ResourceTypeNum))
-              ;
+                 SizeOf(NEhdrRec.ResourceType)+
+                 SizeOf(NEhdrRec.ResourceTypeNum));
             until (NEhdrRec.ResourceType = 0) or (ArcFile^.Status <> stOK);
             repeat
               {search for non-empty resource}
               ArcPos := ArcPos-12;
               ArcFile^.Seek(ArcPos);
               ArcFile^.Read(NEhdrRec.ResourceOffset,
-
-
-
-                 SizeOf(NEhdrRec.ResourceOffset)+SizeOf(NEhdrRec.ResourceLenght))
-              ;
+                 SizeOf(NEhdrRec.ResourceOffset)+
+                 SizeOf(NEhdrRec.ResourceLenght));
             until (NEhdrRec.ResourceOffset <> 0)
                or (ArcFile^.Status <> stOK);
             ArcPos := LongInt
@@ -1636,14 +1776,31 @@ procedure SkipSFX; {piwamoto}
           end;
         $584c:
           begin {LX}
+          ArcFile^.Seek(MZExeRec.NewExe + $14);
+          ArcFile^.Read(LXhdrRec.NumOfPages, SizeOf(LXhdrRec.NumOfPages));
+          ArcFile^.Seek(MZExeRec.NewExe + $48);
+          ArcFile^.Read(LXhdrRec.ObjectPageTableOffset, SizeOf(LXhdrRec.ObjectPageTableOffset));
+          ArcFile^.Seek(MZExeRec.NewExe + $80);
+          ArcFile^.Read(LXhdrRec.DataPagesOffset, SizeOf(LXhdrRec.DataPagesOffset));
           ArcFile^.Seek(MZExeRec.NewExe+$88);
           ArcFile^.Read(LXhdrRec.NonResTableOffs,
                SizeOf(LXhdrRec.NonResTableOffs));
-          ArcFile^.Seek(LXhdrRec.NonResTableOffs);
-          ArcFile^.Read(LXhdrRec.TableLenght,
-             SizeOf(LXhdrRec.TableLenght));
-          ArcPos := LXhdrRec.NonResTableOffs+LXhdrRec.TableLenght+4;
-          {4=1+3}
+          if LXhdrRec.NonResTableOffs <> 0 then
+            begin
+            ArcFile^.Seek(LXhdrRec.NonResTableOffs);
+            ArcFile^.Read(LXhdrRec.TableLenght, SizeOf(LXhdrRec.TableLenght));
+            ArcPos := LXhdrRec.NonResTableOffs + LXhdrRec.TableLenght + 4; {4=1+3}
+            end
+          else
+            begin
+            ArcFile^.Seek(MZExeRec.NewExe
+                         + LXhdrRec.ObjectPageTableOffset
+                         + 8 * (LXhdrRec.NumOfPages - 1));{last page offset}
+            ArcFile^.Read(LXPage, SizeOf(LXPage));
+            ArcPos := LXhdrRec.DataPagesOffset
+                     + LXPage.PageDataOffset
+                     + LXPage.DataSize;
+            end;
           end;
         $454c:
           begin {LE}
@@ -1664,121 +1821,7 @@ procedure SkipSFX; {piwamoto}
     end; {it isn't an EXE}
   Check4ArcId;
   ArcFile^.Seek(ArcPos);
-  end { SkipSFX }; {SkipSFX}
-
-procedure Check4ArcId; {piwamoto}
-  var
-    ArcId, ArcPosID: LongInt;
-  begin
-  ArcPosID := ArcPos;
-  repeat
-    ArcFile^.Seek(ArcPosID);
-    ArcFile^.Read(ArcId, SizeOf(ArcId));
-    Inc(ArcPosID);
-  until ((ArcPosID-ArcPos) = $1fd) or
-  {1fch = SizeOf(DN's internal ArcFile^.Read cache size) - SizeOf(ArcId)}
-    (ArcFile^.Eof) or
-  {ZIP}(ArcId = $04034b50 {'PK'#3#4}) or
-  {RAR}(ArcId = $21726152 {'Rar!'}) or
-  {ARJ}(((ArcId and $ffff) = $ea60) and (Byte(ArcId shr 24) < $b)) or
-
-  {$IFNDEF MINARCH}
-  {IS3}(ArcId = $8c655d13 {#$13#$5D#$65#$8C}) or
-  {ZOO}(ArcId = $fdc4a7dc {#$DC#$A7#$C4#$FD}) or
-  {CHZ}(ArcId = $46684353 {'SChF'}) or
-  {CHZ}(ArcId = $44684353 {'SChD'}) or
-  {LHA}((ArcId and $f8ffffff) = $30686C2D{-lh0...-lh7}) or {LHA/LZH}
-  {LHA}(ArcId = $736F5920) or {' Yos' LHA/LZH .COM SFX}
-  {7Z }(ArcId = $AFBC7A37) or {7-Zip}
-  {$ENDIF}
-
-  {COFF}(ArcId = $0003014c {#$4c#$01#$03#$00}) or
-  {unix-style COFF executable - GNU C / go32stub 2.02 // DJ Delorie}
-  {ACE}(ArcId = $4543412a {'*ACE'}) or
-  {ACE}(ArcId = $78667321 {'!sfx'}) or {!sfx - ACE-SFX script}
-  {ACE}(ArcId = $5846532a {'*SFX'}) or {**SFX** - ACE-SFX script}
-  {CAB}(ArcId = $4643534d {'MSCF'});
-  if  ( (ArcPosID-ArcPos) < $1fd) and not (ArcFile^.Eof) then
-    ArcPos := ArcPosID-1;
-  {$IFNDEF MINARCH}
-  if (ArcId and $f8ffffff) = $30686C2D {LHA/LZH} then ArcPos := ArcPos - 2;
-  if ArcId = $736F5920 {LHA .COM SFX} then
-     begin {must be after LHA/LZH ArcPos correction}
-     ArcPosID := ArcPos - 8;
-     ArcFile^.Seek(ArcPosID);
-     repeat
-       ArcFile^.Read(ArcID, 1);
-       Inc (ArcPosID);
-     until (Byte(ArcID) = $29{')'}) or (ArcPosID = ArcPos);
-     {don't care if ArcID <> $29}
-     ArcFile^.Seek(ArcPosID - 5);
-     ArcFile^.Read(ArcId, SizeOf(ArcId));{DataSize}
-     if (ArcId = $63282053) or (ArcId = $6328204C) then
-       begin
-       ArcPos := ArcPos + $4c0;{SFX 'S' edition minlen=4ef, max=686}
-       if Byte(ArcId) = $4C {'L'}
-         then ArcPos := ArcPos + $200;{SFX 'L' edition minlen=72d, max=7ba}
-       Check4ArcId;
-       Exit;
-       end;
-     end;
-  {$ENDIF}
-  if ArcId = $0003014c {#$4c#$01#$03#$00} then
-    begin
-    {unix-style COFF executable - GNU C / go32stub 2.02 // DJ Delorie}
-    ArcFile^.Seek(ArcPos+$68);
-    ArcFile^.Read(ArcPosID, SizeOf(ArcPosID)); {DataOffset}
-    ArcFile^.Read(ArcId, SizeOf(ArcId)); {DataSize}
-    ArcPos := ArcPos+ArcPosID+ArcId;
-    Exit;
-    end;
-  if ArcId = $78667321 {!sfx - ACE-SFX script} then
-    begin {must be before '*ACE' & '*SFX' ArcPos correction}
-    ArcFile^.Read(ArcPosID, 2); {skip 2 bytes}
-    ArcFile^.Read(ArcPosID, SizeOf(ArcPosID)); {size of !sfx! script}
-    ArcPos := ArcPos+ArcPosID+8;
-    ArcFile^.Read(ArcPosID, SizeOf(ArcPosID)); {skip 4 bytes}
-    ArcFile^.Read(ArcPosID, SizeOf(ArcPosID)); {script is not empty?}
-    ArcFile^.Seek(ArcPos);
-    ArcFile^.Read(ArcId, SizeOf(ArcId));
-    if  (ArcPosID <> 0) and (ArcId = $4543412a) then
-      ArcId := $5846532a;
-    end;
-  if ArcId = $4543412a {'*ACE'} then
-    ArcPos := ArcPos-8;
-  if ArcId = $5846532a {**SFX** - ACE-SFX script} then
-    begin
-    ArcPos := ArcPos-6;
-    ArcFile^.Seek(ArcPos);
-    ArcPosID := 0;
-    ArcFile^.Read(ArcPosID, 2); {only 2 bytes}
-    ArcPos := ArcPos+ArcPosID+4;
-    ArcFile^.Seek(ArcPos);
-    ArcFile^.Read(ArcPosID, 2); {only 2 bytes}
-    ArcPos := ArcPos+ArcPosID+2;
-    ArcFile^.Read(ArcPosID, 3); {skip 3 bytes}
-    ArcFile^.Read(ArcPosID, SizeOf(ArcPosID)); {size of **SFX** script}
-    ArcPos := ArcPos+ArcPosID;
-    Exit;
-    end;
-   {last check - uses ArcId}
-   if  (ArcPosID - ArcPos) = $1fd {No known ArcId found} then
-     begin {check for PackageForTheWeb script}
-     ArcFile^.Seek(ArcPos);
-     ArcFile^.Read(ArcPosID, SizeOf(ArcPosID));{size of script}
-     if ((ArcPosID and $fffc0000) = 0) then
-        {<$40000}{feel free to change it}
-        begin
-        ArcPosID := ArcPosID + ArcPos + 4;
-        if ArcPosID < ArcFile^.GetSize then
-          begin
-          ArcFile^.Seek(ArcPosID);
-          ArcFile^.Read(ArcId, SizeOf(ArcId));
-          if ArcID = $4643534d {'MSCF'} then ArcPos := ArcPosID;
-          end;
-        end;
-     end;
-  end { Check4ArcId }; {Check4ArcId}
+  end { SkipSFX };
 
 function _Cardinal(L: LongInt): Real; {piwamoto}
   {-Return the unsigned equivalent of L as a real}

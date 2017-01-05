@@ -552,7 +552,7 @@ const
 
 function SysCmdln: PChar;
 var
-  Buffer: array[0..260] of Char;
+  ProgramName: ShortString;
   p : PChar;
 begin
   if assigned(cSysCmdLn) then
@@ -565,17 +565,11 @@ begin
       StrCopy(Result, p);
       if IsConsole then
         CharToOemBuff(Result, Result, StrLen(Result));
-      SysCtrlGetModuleName(0, Buffer);
-      if StrLIComp(Buffer, Result, StrLen(Buffer)) = 0 then
-        p := Result + StrLen(Buffer)            // have position for #0
-      else
-        begin
-          p := StrScan(Result, ' ');            // guess position
-          if not Assigned(p) then
-            p := StrEnd(Result);                // no parameters are given
-        end;
 
-      p[0] := #0;                               // place separator
+      p := Result;
+      if not (p^ in [#1..' ']) then
+        p := GetParamStr(p, ProgramName);
+      p^ := #0;
 
       cSysCmdLn := Result;
     end;

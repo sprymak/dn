@@ -192,7 +192,7 @@ procedure EraseFiles;
     New(TD, Init($10, $10, False));
     DC^.Insert(NewStr(FreeStr));
 
-    while DC^.Count > 0 do
+    while (DC^.Count>0) and (not EraseCancel) and (not Abort) do
       begin
       FreeStr := PString(DC^.At(0))^;
       DC^.AtFree(0);
@@ -207,8 +207,9 @@ procedure EraseFiles;
       lFindFirst(MakeNormName(FreeStr, x_x), AnyFile, SR); {JO}
       while DosError = 0 do
         begin
-        if Abort then
-          Break;
+        CalcCancel; {JOHN_SW}
+        if Abort or EraseCancel then
+          Break; {JOHN_SW}
         if  (SR.FullName = '.') or (SR.FullName = '..') then
           begin
           lFindNext(SR);
@@ -292,8 +293,9 @@ procedure EraseFiles;
     Dispose(DC, Done);
     DosDelDir := not Abort;
     if not Abort then
-      while TD^.Count > 0 do
+      while (TD^.Count > 0) and (not EraseCancel) and (not Abort) do
         begin
+        CalcCancel; {JOHN_SW}
         ClrIO;
         s := PString(TD^.At(0))^;
 TryDel:
@@ -375,8 +377,6 @@ TryDel:
       Abort := True;
       end;
     PInfo^.DrawView;
-    CreateDirectory(Dir, True);
-    DeleteDirectory := True;
     end { DeleteDirectory };
 
   var
@@ -482,7 +482,7 @@ LLL:
               R.A.X := 1; R.A.Y := 2; R.B.X := 53; R.B.Y := 3;
               D^.Insert(New(PStaticText, Init(R,GetString(dlErasingNoFile))));
               inc(R.A.Y); inc(R.B.Y);
-              S := FormatLongName(S,50,0,flnUseCutChar,nfmNull,nil);
+              S := FormatLongName(S,50,0,0,nfmNull);
               D^.Insert(New(PStaticText, Init(R,^C+S)));
               Case Desktop^.ExecView(D) Of
                cmOK:     Goto LLL {Dec(I)};

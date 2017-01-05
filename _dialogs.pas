@@ -19,11 +19,13 @@ uses
 type
   PDialog = ^TDialog;
   TDialog = object(TWindow)
+    DirectLink: array [1..9] of PView;
     constructor Init(var Bounds: TRect; const ATitle: String);
     constructor Load(var S: TStream);
     {function GetPalette: PPalette; virtual;}
     {procedure HandleEvent(var Event: TEvent); virtual;}
     {function Valid(Command: Word): Boolean; virtual;}
+    procedure Store(var S: TStream);
     end;
 
   PInputline = ^TInputLine;
@@ -268,6 +270,25 @@ type
     procedure Store(var S: TStream);
     end;
 
+  PComboBox = ^TComboBox;
+  TComboBox = object(TView)
+(*  Selected: Word; // текущий номер варианта (нумерация от 1)
+    Count: Word; { не отрывать от Selected! См. Load,Store}
+    Menu: PMenu;
+    Items: array[1..10] of PMenuItem; // прямые ссылки в меню
+    constructor Init(var Bounds: TRect; AStrings: PSItem);
+    procedure BuildMenu(AStrings: PSItem);
+    destructor Done; virtual;
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
+    procedure Draw; virtual;
+    procedure HandleEvent(var Event: TEvent); virtual;
+    function DataSize: Word; virtual;
+    procedure GetData(var Rec); virtual;
+    procedure SetData(var Rec); virtual;
+    constructor Load(var S: TStream);
+    procedure Store(var S: TStream); *)
+    end;
+
 implementation
 
 uses
@@ -282,6 +303,11 @@ constructor TDialog.Init(var Bounds: TRect; const ATitle: String);
 constructor TDialog.Load(var S: TStream);
   begin
   _TDialog^.Load(_Model1.TStream(S), nil, @Self);
+  end;
+
+procedure TDialog.Store(var S: TStream);
+  begin
+  _TDialog^.Store(_Model1.TStream(S), @Self);
   end;
 
 constructor TInputLine.Init(var Bounds: TRect; AMaxLen: LongInt);

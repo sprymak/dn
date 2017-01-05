@@ -113,7 +113,7 @@ type
   : PMenuStringsRet;
   TCreateDriveObjectProc = function (Command, ObjType: SmallWord;
      const PluginName: ShortString; DNFuncs, DNMethods: Pointer;
-     AOwner: Pointer; Num: Integer): Pointer;
+     AOwner: Pointer): Pointer;
   TRegisterDriveObjectProc = function (Command, ObjType: SmallWord;
      const PluginName: ShortString; DNFuncs, DNMethods: Pointer): Integer;
   {&Cdecl-}
@@ -150,7 +150,7 @@ type
 
 function CreateDriveMenus(var Items: PMenuItem; var MaxL: Integer)
   : Integer;
-function CreateDriveObject(I: Integer; AOwner: Pointer; Num: Integer)
+function CreateDriveObject(I: Integer; AOwner: Pointer)
   : Pointer;
 
 (*** EDITOR EVENT HOOKS ***)
@@ -775,7 +775,7 @@ function CreateDriveMenus(var Items: PMenuItem; var MaxL: Integer)
         end;
   end { CreateDriveMenus };
 
-function CreateDriveObject(I: Integer; AOwner: Pointer; Num: Integer)
+function CreateDriveObject(I: Integer; AOwner: Pointer)
   : Pointer;
   type
     PDrivePanelsInfoShort = ^TDrivePanelsInfoShort;
@@ -816,7 +816,7 @@ function CreateDriveObject(I: Integer; AOwner: Pointer; Num: Integer)
         ObjType := RegisterDriveObject($FFFF, 0, PluginPath^,
              @DNFunctions, @DNMethods);
         Result := CreateDriveObject(0, 0, PluginPath^, @DNFunctions,
-             @DNMethods, AOwner, Num);
+             @DNMethods, AOwner);
         end;
       end;
   end { CreateDriveObject };

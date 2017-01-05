@@ -1802,6 +1802,7 @@ function TXFileEditor.HandleCommand;
       FlushWorkString;
       KeyMap := RollKeyMap[KeyMap];
       HandleCommand := True;
+      WorkString := GetLine(Delta.Y); { Прочитать в новой кодировке }
       end;
   end {case};
   end { TXFileEditor.HandleCommand };

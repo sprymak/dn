@@ -428,110 +428,6 @@ procedure THelpTopic.Store(var S: TStream);
   WriteParagraphs;
   WriteCrossRefs;
   end { THelpTopic.Store };
-(*
-function THelpTopic.WrapText(var Text; Size: AInt;
-  var Offset: AInt; Wrap: Boolean): String;
-type
-  PCArray = ^CArray;
-  CArray = array[0..32767] of Char;
-var
-  Line: String;
-  I, P: AInt;
-
-function IsBlank(Ch: Char): Boolean;
-begin
-  IsBlank := (Ch = ' ') or (Ch = #13) or (Ch = #10);
-end;
-
-function Scan(var P; Size: AInt; Offs: AInt; C: Char): AInt; assembler;
-{$IFNDEF BIT_32}
-asm
-        CLD
-        LES     DI,P
-        ADD     DI,Offs
-        MOV     CX,Size
-        MOV     AL, C
-        REPNE   SCASB
-        SUB     CX,Size
-        NEG     CX
-        XCHG    AX,CX
-end;
-{$ELSE} {$USES esi,edi,ecx} {&FRAME-}
-
-asm
-        cld
-        xor     eax,eax
-        mov     edi,P
-        mov      ax,Offs
-        add     edi,eax
-        mov      ax,Size
-        mov     edx,eax
-        sub     edx,&Offset
-        test    dh,dh
-        jz      @@1
-        mov     edx,256
-      @@1:
-        mov     ecx,edx
-        mov     al,C
-        repne   scasb
-        sub     ecx,edx
-        neg     ecx
-        xchg    eax,ecx
-end;
-{$ENDIF}
-
-procedure TextToLine(var Text; Offs, Length: AInt; var Line: String);
-  assembler;
-{$IFNDEF BIT_32}
-asm
-        CLD
-        PUSH    DS
-        LDS     SI,Text
-        ADD     SI,Offs
-        LES     DI,Line
-        MOV     AX,Length
-        STOSB
-        XCHG    AX,CX
-        REP     MOVSB
-        POP     DS
-end;
-{$ELSE} {$USES esi,edi,ecx} {&FRAME-}
-asm
-        cld
-        xor     eax,eax
-        mov     esi,Text
-        mov      ax,Offs
-        add     esi,eax
-        mov     edi,Line
-        mov      ax,Length
-        stosb
-        xchg    eax,ecx
-        rep     movsb
-end;
-{$ENDIF}
-
-begin
-  I := Scan(Text, Size-Offset, Offset, #13);
-  if I + Offset > Size then I := Size - Offset;
-  if (I >= Width) and Wrap then
-  begin
-    I := Offset + Width;
-    if I > Size then I := Size
-    else
-    begin
-      while (I > Offset) and not IsBlank(PCArray(@Text)^[I]) do Dec(I);
-      if I = Offset then I := Offset + Width
-      else Inc(I);
-    end;
-    if I = Offset then I := Offset + Width;
-    Dec(I, Offset);
-  end;
-  TextToLine(Text, Offset, I, Line);
-  if Line[Length(Line)] = #13 then SetLength(Line, Length(Line)-1);
-  Inc(Offset, I);
-  WrapText := Line;
-end;
-*)
 
 {JO: взял THelpTopic.WrapText из VP 2.1 TVDEMO, так как в старой падала      }
 {    регулярно ассемблерная функция Scan на repne   scasb ; решил, что       }
@@ -550,6 +446,12 @@ function THelpTopic.WrapText(var Text; Size: Integer;
     IsBlank := (Ch = ' ') or (Ch = #13) or (Ch = #10);
     end;
 
+{ Найти число символов до указанного включительно.
+Если не найден - до последнего символа в буфере.
+Size - это размер буфера, а не длина зоны поиска.
+Зона поиска - от Offset до Size (исключительно), но
+не более 256 символов. Не допускается Offset = Size.
+}
   function Scan(var P; Offset, Size: Integer; C: Char): Integer;
     assembler;
     {&USES esi,edi} {&FRAME-}

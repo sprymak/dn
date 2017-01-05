@@ -123,6 +123,8 @@
 {    ("No help available...") will appear in the help window.           }
 {=======================================================================}
 
+{<tvhc.001>}
+
 program TVHC;
 
 {$S-}
@@ -995,8 +997,8 @@ end;
         (Line = '') or
         (Line[1] = CommandChar) or
         (Line = #26) or
-        ( (Line[1] = ' ') and (State = Wrapping)) or
-        ( (Line[1] <> ' ') and (State = NotWrapping));
+        ( (Line[1] in [' ', #179]) and (State = Wrapping)) or
+        ( (Line[1] <> #179) and (State = NotWrapping));
     end;
 
   function RemoveLeadSpaces(const S: String): String;
@@ -1011,6 +1013,8 @@ end;
 
   var
     CurrentTitle: String;
+  label
+    MakeResult;
 
   begin { ReadParagraph }
   Ofs := 0;
@@ -1037,7 +1041,8 @@ end;
     AddToBuffer(FreeStr, False);
     FreeStr := '';
     AddToBuffer(FreeStr, False);
-    Line := GetLine(TextFile);
+    State := NotWrapping;
+    goto MakeResult;
     end
   else if IsEndParagraph then
     begin
@@ -1048,19 +1053,18 @@ end;
   while not IsEndParagraph do
     begin
     if State = Undefined then
-      if Line[1] = ' '
-      then
+      if Line[1] = #179 then
         State := NotWrapping
       else
         State := Wrapping;
-    if  (State = NotWrapping) and (Line[1] = ' ')
-    then
+    if  (State = NotWrapping) and (Line[1] = #179) then
       Line := Copy(Line, 2, MaxStringLength);
     ScanForCrossRefs(Line);
     AddToBuffer(Line, State = Wrapping);
     Line := GetLine(TextFile);
     end;
   UnGetLine(Line);
+MakeResult:
   GetMem(P, SizeOf(P^)+Ofs);
   P^.Size := Ofs;
   P^.Wrap := State = Wrapping;

@@ -242,7 +242,7 @@ procedure SetDescription(PF: PFileRec; DizOwner: String);
   PF^.DIZ^.DizText := NewDiz;
   ExportDiz(nil, PF^.FlName[True], PF^.DIZ, PF^.Owner^);
   { if IOResult <> 0 then CantWrite(DIZOwner); }
-  if not DnIni.AutoRefreshPanels then
+  if not Startup.AutoRefreshPanels then
     RereadDirectory(PF^.Owner^);
   end { SetDescription };
 {-DataCompBoy-}
@@ -524,7 +524,7 @@ procedure ExportDiz(
   LName := True; // по умолчанию - по длинным именам
   CopyShortString(UpStrg(NewLongName), GetDizName1[True]);
 {$IFDEF DualName}
-  if DescrByShortNames then
+  if (FMSetup.Options and fmoDescrByShortNames) <> 0 then
     begin
     LName := False;
     GetDizName1[False] :=
@@ -540,7 +540,7 @@ procedure ExportDiz(
     EraseFile(ContainerFullName);
     end
   else
-    OldContainerAttr := Hidden + Archive;
+    OldContainerAttr := Archive;
   if NewDiz^.DizText <> '' then
     begin
     { Длинное имя восстановить, какое есть,

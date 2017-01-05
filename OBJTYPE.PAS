@@ -78,6 +78,7 @@ const
   otZXZArchiver = 9223;
   otIS3Archiver = 9224;
   otTGZArchiver = 9225;
+  otS7ZArchiver = 9226;
 
   { --- ArcView }
 
@@ -156,10 +157,12 @@ const
   otParamText = 20;
   otMultiCheckBoxes = 27;
   otHexLine = 29;
+  otComboBox = 34;
 
   { --- DiskInfo }
 
   otDiskInfo = 3361;
+  otDriveView = 3363;
 
   { --- NetInfo }
 
@@ -202,7 +205,7 @@ const
 
   otFilePanel = 3350;
   otFlPInfoView = 3351;
-  otTopView = 3352;
+  otDirView = 3352;
   otSeparator = 3353;
   otSpecScroll = 3354;
   otDriveLine = 14354;

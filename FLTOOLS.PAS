@@ -49,7 +49,7 @@ unit FLTools;
 
 interface
 uses
-  FilesCol, FlPanelX
+  FilesCol, FlPanelX, PDSetup
   ;
 
 procedure CM_AdvancedFilter(AFP: Pointer);
@@ -77,20 +77,25 @@ procedure DragMover(AP: Pointer; Text: String; AFC, AC: Pointer);
 procedure CM_RenameSingleL(AFP, PEV: Pointer);
 procedure CM_RenameSingleDialog(AFP, PEV: Pointer);
 procedure CM_SortBy(AFP: Pointer);
+procedure CM_PanelSortSetup;
 function CM_ChangeDirectory(AFP: Pointer): String;
 procedure CM_MakeDir(AFP: Pointer);
 procedure CM_LongCopy(AFP: Pointer);
 procedure CM_ChangeCase(AFP: Pointer);
+function PanelSetupTag(const PSS: TPanelSetupSet;
+  {` Сформировать краткое строковое описание настроек панели }
+    PC: TPanelClass): String;
+  {`}
 procedure CM_SelectColumn(AFP: Pointer); {JO}
 {$IFDEF OS2}
 procedure CM_SetEALongname(AFP: Pointer; CurPos: Integer); {JO}
 {$ENDIF}
 
 function FirstNameNum(P: PFilePanelRoot): LongInt;
-{AK155 Получение первого номера (от 1) в коллекции файлов панели,
+{` AK155 Получение первого номера (от 1) в коллекции файлов панели,
   соответствующего не фиктивному имени '..', а настоящему имени.
   Возвращает либо 1, если это корень диска и элемента '..' нет,
-  либо 2, если он есть.}
+  либо 2, если он есть. `}
 
 implementation
 uses
@@ -99,8 +104,8 @@ uses
   Advance, Advance1, Advance2, Advance3, Dos, Defines, Dialogs,
   Views, DNApp, Commands, Drivers, FlPanel, Drives, FileCopy,
   Gauge, Gauges, Archiver, Startup, SWE, Validate, Messages, Menus, DNHelp,
-  FileFind, Tree, FBB, DNUtil, Filediz, Filelst, FlTl,
-  ErrMess
+  FileFind, Tree, FBB, DNUtil, Filediz, Filelst, FlTl, DblWnd,
+  ErrMess, Objects2
   ;
 
 type
@@ -108,6 +113,7 @@ type
   TSelectList = object(TListBox)
     function IsSelected(I: LongInt): Boolean; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
+    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
     end;
 
 procedure DrawViews(P: PFilePanelRoot);
@@ -119,8 +125,8 @@ procedure DrawViews(P: PFilePanelRoot);
 
 function TSelectList.IsSelected(I: LongInt): Boolean;
   begin
-  IsSelected := (List <> nil)
-       and (Copy(CnvString(List^.At(I)), 1, 1) = #251); {-$VIV}
+  IsSelected := (List <> nil) and
+    (Copy(CnvString(List^.At(I)), 1, 1) = FMSetup.TagChar[1]);
   end;
 
 procedure TSelectList.HandleEvent(var Event: TEvent);
@@ -141,7 +147,7 @@ procedure TSelectList.HandleEvent(var Event: TEvent);
       P := nil;
     if P <> nil then
       if P^[1] = ' ' then
-        P^[1] := #251 {-$VIV #254}
+        P^[1] := FMSetup.TagChar[1]
       else
         P^[1] := ' ';
     CE
@@ -153,11 +159,11 @@ procedure TSelectList.HandleEvent(var Event: TEvent);
       case Event.CharCode of
         '*':
           if P^[1] = ' ' then
-            P^[1] := #251 {-$VIV #254}
+            P^[1] := FMSetup.TagChar[1]
           else
             P^[1] := ' ';
         '+':
-          P^[1] := #251; {-$VIV #254}
+          P^[1] := FMSetup.TagChar[1];
         '-':
           P^[1] := ' ';
       end {case};
@@ -198,6 +204,329 @@ procedure TSelectList.HandleEvent(var Event: TEvent);
     inherited HandleEvent(Event);
   end { TSelectList.HandleEvent };
 
+function TSelectList.GetText(Item: LongInt; MaxLen: Integer): String;
+  var S: String;
+      ColWidth: Byte;
+  begin
+  if List <> nil then
+    S := PString(List^.At(Item))^
+  else
+    S := '';
+  ColWidth := (Size.X div NumCols)-1;
+  if Length(S) > ColWidth then
+    begin
+    SetLength(S, ColWidth);
+    S[ColWidth] := FMSetup.RestChar[1];
+    end;
+  Result := S;
+  end;
+
+{AK155 29.05.05 Средства "оживления" диалогов записи и чтения
+настроек панелей, а также самих диалогов настроек панели.
+ }
+
+var
+  PanelClass: Word;
+    { В какой класс панели будем писать; это значение блока
+      радиокнопок, то есть от 0 до High(TPanelClass)+1 ("Все") }
+  PresetNum: Word;
+    { Номер пресета панели или последнего загруженного.
+    Он выбран по умолчанию в диалоге "Записать" }
+
+type
+{ Диалог установок вида панелей. Является также базовым типом
+  для диалогов установок сортировки и фильтра. }
+  PShowDialog = ^TShowDialog;
+  TShowDialog = object(TDialog)
+    function OwnDataAddress(P: PPanelSetup): Pointer; virtual;
+      { Адрес того блока данных внутри P^, с которым работает
+      данный диалог, то есть, в данном случае, адрес P^.Show.
+      Этот метод перекрывается в диалогах сортировки и фильтра.
+      Виртуализация этого метода используется в программе обработки
+      нажатия кнопки "записать" TSaveSetupButtonPress. }
+    procedure HandleEvent(var Event: TEvent); virtual;
+      { Для реакции на хоткеи и кнопку "Записать".
+      Это метод общий для всех трёх диалогов}
+    end;
+
+{ Радиокнопки класса панели в диалоге "Записать".
+  Для реакции на смену выбора в блоке радиокнопок "Тип панели" }
+  PPanelClassRB = ^TPanelClassRB;
+  TPanelClassRB = object(TRadioButtons)
+    procedure MovedTo(Item: Integer); virtual;
+    procedure Press(Item: Integer); virtual;
+      { Приходится перекрываь и MoveTo, и Press, так как ни одна из
+      них не вызывается всегда. Например, при перемещеии курсором
+      вызывается только MovedTo, при нажатии мышью - только Press,
+      а при нажатии горячей клавишей - обе.}
+    procedure ChangeClass(Item: Integer);
+    end;
+
+  TSaveSetupButton = object(TButton)
+    procedure Press; virtual;
+    end;
+
+  TSaveSetupDialg = object(TDialog)
+    procedure HandleEvent(var Event: TEvent); virtual;
+      { Для реакции на кнопку "Все" }
+    end;
+
+  var
+    SavePresetData: record { даные диалога "Записать"}
+      ForClass: Word; {Класс панели: диск, список и.п.д.}
+      Target: Word; { Пресет, эта и та панели.}
+      end;
+
+procedure TSaveSetupDialg.HandleEvent(var Event: TEvent);
+  var
+    T: PCheckBoxes;
+  begin
+  if (Event.What = evCommand) and (Event.Command = cmSelectAll) then
+    begin
+    T := PCheckBoxes(DirectLink[2]);
+    with T^ do
+      begin
+      if Value = $FFF then
+        Value := 1 shl (PresetNum-1)
+      else
+        Value := $FFF;
+      Draw;
+      end;
+    ClearEvent(Event);
+    end
+  else
+    inherited HandleEvent(Event);
+  end;
+
+procedure PrepareSaveSetupDialog(P: PDialog);
+  begin
+  ObjChangeType(P, TypeOf(TSaveSetupDialg));
+  ObjChangeType(P^.DirectLink[1], TypeOf(TPanelClassRB));
+    { Прицепили свою реакцию на смену выбора класса панели }
+  PPanelClassRB(P^.DirectLink[1])^.ChangeClass(Ord(PanelClass));
+    { Сформировали блок радиокнопок с пресетами }
+  end;
+
+procedure TPanelClassRB.Press(Item: Integer);
+  begin
+  inherited Press(Item);
+  if Item <> PanelClass then
+    ChangeClass(Item);
+  end;
+
+procedure TPanelClassRB.MovedTo(Item: Integer);
+  begin
+  inherited MovedTo(Item);
+  if Item <> PanelClass then
+    ChangeClass(Item);
+  end;
+
+procedure TPanelClassRB.ChangeClass(Item: Integer);
+  { Реакция на смену выбора типа панели: перерисовка блока пресетов }
+  var
+    T: PCheckBoxes;
+    i: Integer;
+    S: String;
+  begin
+  PanelClass := Item;
+//  T := PRadioButtons(PDialog(Owner)^.DirectLink[2]);
+  T := PCheckBoxes(PDialog(Owner)^.DirectLink[2]);
+  with T^.Strings do
+    begin
+    { Освобождение обозначений десяти пресетов, если они есть.
+    Последние два элемента (эта и другая панели) есть всегда. }
+    for i := Count-3 downto 0 do
+      AtFree(i);
+    { Добавление обозначений десяти пресетов. Исходно у Strings
+    Delta=0, Limit=2, Count=2, поэтому добавить ничего нельзя.}
+    Delta := 10; // нужно добавить ровно столько
+    for i := 1 to 10 do
+      begin
+      S := '~' + ItoS(i mod 10) + '~ ';
+      if PanelClass <= Ord(High(TPanelClass)) then
+        { нормальный класс, а не "Все"}
+        S := S +
+          PanelSetupTag(PanSetupPreset[i], TPanelClass(PanelClass));
+      AtInsert(i-1, NewStr(S));
+      end;
+    T^.DrawView;
+    end;
+  end;
+
+procedure TSaveSetupButton.Press;
+  var
+    TargetSetupSet: PPanelSetupSet;
+    PC: TPanelClass;
+    TargetPanel: PFilePanelRoot;
+    TargetBlock: Word;
+  begin
+  PresetNum := ActivePanel^.PresetNum;
+  PanelClass := Ord(dt2pc[ActivePanel^.Drive^.DriveType]);
+  EnableCommands([cmOK]); { Диалог фильтра мог задизейблить }
+  SavePresetData.ForClass := PanelClass;
+  SavePresetData.Target := 1 shl (PresetNum-1);
+  @PreExecuteDialog := @PrepareSaveSetupDialog;
+  if ExecResource(dlgSavePanelSetup, SavePresetData) = cmOK then
+    begin
+    for TargetBlock := 0 to 11 do
+      if ((1 shl TargetBlock) and SavePresetData.Target) <> 0 then
+        begin
+        case TargetBlock of
+          0..9: {пресеты 1..10}
+            begin
+            TargetPanel := nil;
+            TargetSetupSet := @PanSetupPreset[TargetBlock+1];
+            ConfigModified := True;
+            end;
+          10: { Эта панель}
+            begin
+            TargetPanel := ActivePanel;
+            TargetSetupSet := @TargetPanel^.PanelSetupSet;
+            end;
+          11: { Другая панель}
+            begin
+            TargetPanel := PassivePanel;
+            TargetSetupSet := @TargetPanel^.PanelSetupSet;
+            end;
+        end {case};
+        if PanelClass > Ord(High(TPanelClass)) then { "Все"}
+          for PC := Low(TPanelClass) to High(TPanelClass) do
+            with PShowDialog(Owner)^ do
+              GetData(OwnDataAddress(@TargetSetupSet^[PC])^)
+        else { один реальный класс }
+          begin
+          PC := TPanelClass(PanelClass);
+          with PShowDialog(Owner)^ do
+            GetData(OwnDataAddress(@TargetSetupSet^[PC])^);
+          end;
+        if TargetPanel <> nil then { записали не в пресет, а в панель }
+          begin
+          PDoubleWindow(TargetPanel^.Owner)^.SetMaxiState(TargetPanel);
+          TargetPanel^.Rebound;
+          TargetPanel^.RereadDir;
+          end;
+        end;
+    end;
+  end;
+
+function TShowDialog.OwnDataAddress(P: PPanelSetup): Pointer;
+  begin
+  Result := @P^.Show;
+  end;
+
+procedure TShowDialog.HandleEvent(var Event: TEvent);
+  var
+    N: Integer;
+    P: PFilePanelRoot;
+  procedure LoadData(N: Integer; NewSetupSet: PPanelSetupSet);
+    var
+      PC: TPanelClass;
+    begin
+    PC := dt2pc[ActivePanel^.Drive^.DriveType];
+    PresetNum := N;
+    SetData(OwnDataAddress(@NewSetupSet^[PC])^);
+    ClearEvent(Event);
+    end;
+  begin
+  inherited HandleEvent(Event);
+  case Event.What of
+    evKeyDown:
+      case Event.KeyCode of
+        kbCtrl1..kbCtrl0:
+          begin
+          N := 1 + (Event.KeyCode - kbCtrl1) div (kbCtrl2 - kbCtrl1);
+          LoadData(N, @PanSetupPreset[N]);
+          end;
+        kbCtrlEqual:
+          begin
+          P := OtherFilePanel(ActivePanel);
+          LoadData(P^.PresetNum, @P^.PanelSetupSet);
+          end;
+      end {case};
+  end {case};
+  end;
+
+{ ----------------- CM_AdvancedFilter ----------------- }
+
+{ Нужно обеспечить такое поведение диалога. Если активна строка
+ввода, то кнопка по умолчанию - "OK", и её нажатие завершает диалог
+с занесением содержимого строки ввода. А если активен список
+расширений, то кнопка по умолчанию - "Добавить", и её нажатие
+добавляет элемент фильтра и возобновляет диалог. Лишние кнопки
+должны быть не активны. Лучше бы, конечно, было сделать их
+невидимыми, но Hide и Show для TButton работают настолько
+нетривиально, что связываться с ними не хочется.
+  Для манипуляций с кнопками цепляемся через SetState к событиям
+выбора списка и строки ввода. }
+
+var
+  OkButton, AddButton: PButton;
+
+type
+
+  PFilterDialog = ^TFilterDialog; { Диалог фильтра }
+  TFilterDialog = object(TShowDialog)
+    function OwnDataAddress(P: PPanelSetup): Pointer; virtual;
+    destructor Done; virtual;
+    end;
+
+  PExtSelList = ^TExtSelList; { Список расширений }
+  TExtSelList = object(TSelectList)
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
+    function DataSize: Word; virtual;
+    procedure GetData(var Rec); virtual;
+      { Чтобы список не участвовал в GetData - SetData}
+    end;
+
+  PFilterLine = ^TFilterLine; { Строка ввода фильтра }
+  TFilterLine = object(TInputLine)
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
+    end;
+
+procedure TExtSelList.SetState(AState: Word; Enable: Boolean);
+  begin
+  if Enable and (Astate and sfSelected <> 0) then
+    begin
+    Owner^.EnableCommands([cmYes, cmNo]);
+    OkButton^.MakeDefault(False);
+    AddButton^.MakeDefault(True);
+    Owner^.DisableCommands([cmOK]);
+    end;
+  inherited SetState(AState, Enable);
+  end;
+
+function TExtSelList.DataSize: Word;
+  begin
+  Result := 0;
+  end;
+
+procedure TExtSelList.GetData(var Rec);
+  begin
+  end;
+
+procedure TFilterLine.SetState(AState: Word; Enable: Boolean);
+  begin
+  if Enable and (Astate and sfSelected <> 0) then
+    begin
+    Owner^.EnableCommands([cmOK]);
+    AddButton^.MakeDefault(False);
+    OkButton^.MakeDefault(True);
+    Owner^.DisableCommands([cmYes, cmNo]);
+    end;
+  inherited SetState(AState, Enable);
+  end;
+
+function TFilterDialog.OwnDataAddress(P: PPanelSetup): Pointer;
+  begin
+  Result := @P^.FileMask;
+  end;
+
+destructor TFilterDialog.Done;
+  begin
+  EnableCommands([cmOK, cmYes, cmNo]);
+  inherited Done;
+  end;
+
 procedure CM_AdvancedFilter;
   var
     P: PFilePanelRoot absolute AFP;
@@ -206,139 +535,132 @@ procedure CM_AdvancedFilter;
     ClrPlus, ClrMinus: Boolean;
     S, FileMask: String;
     FItem: Integer;
+    SelectFilterLine: Boolean;
+    PC: PStringCollection;
+      { Коллекция расширений с элементами типа ' *.pas'.
+      Первый символ текста элемента - признак отметки:
+      пробел - значит не отмечен }
+
+  procedure BuildPC;
+  { Построение коллекции расширений для ListBox }
+  { Строится коллекция файлов, а потом из неё выбираются расширения.
+  Это надо делать именно через методы TDrive, а не через чтение диска,
+  так как бывают архивы и т.п.
+    Но строить всю коллекцию - это плохой метод, так как он приводит
+  к лишней трате памяти  на коллекцию файлов. Лучше было бы, если бы
+  у TDrive был итератор (виртуальный), позволяющий для каждой файловой
+  записи что-то сделать, не строя сначала всю коллекцию. Кстати, и
+  построение коллекции можно было бы сделать через него, то есть
+  итератор был бы более элементарной функцией, чем GetDirectory.
+  }
+    var
+      SR: lSearchRec;
+      S: String;
+      ti: TSize;
+      fc: PFilesCollection;
+      i: Integer;
+    begin
+    PC := New(PStringCollection, Init(20, 20, False));
+    fc := P^.Drive^.GetDirectory(x_x, ti);
+    for i := 0 to fc^.Count-1 do
+      with PFileRec(fc^.Items^[i])^ do
+        begin
+        S := FlName[uLFN];
+        S := Copy(S, PosLastDot(S)+1, 255);
+        UpStr(S);
+        PC^.Insert(NewStr(' *.' + S));
+        end;
+    Dispose(fc, Done);
+    PC^.AtInsert(0, NewStr(' *.*'));
+    end;
 
   function GetMaskSelection: String;
     var
-      PC: PStringCollection;
-      I: LongInt;
       D: PDialog;
       PL: PListBox;
       IL: PInputline;
+      Cmd: Word;
 
     function MakeDialog: PDialog;
       var
         Dlg: PDialog;
-        R: TRect;
-        Control, Labl, Histry: PView;
+        b: Integer;
       begin
       Dlg := PDialog(LoadResource(dlgAdvancedFilter));
+      ObjChangeType(Dlg, TypeOf(TFilterDialog));
       with Dlg^ do
         begin
-        R.Assign(Size.X-4, 2, Size.X-3, Size.Y-6);
-        Control := New(PScrollBar, Init(R));
-        Insert(Control);
-
-        R.Assign(3, 2, Size.X-4, Size.Y-6);
-        Control := New(PSelectList, Init(R, 3, PScrollBar(Control)));
-        PL := PListBox(Control);
-        PListBox(PL)^.NewLisT(PC);
-        Insert(Control);
-
-        R.Assign(3, Size.Y-5, Size.X-5, Size.Y-4);
-        Control := New(PInputLine, Init(R, 255));
-        IL := PInputLine(Control);
-        Insert(Control);
-        R.Assign(Size.X-5, Size.Y-5, Size.X-2, Size.Y-4);
-        Insert(New(PHistory, Init(R, IL, hsFileMask)));
-
-        PL^.Select;
+        PL := PListBox(DirectLink[2]);
+        ObjChangeType(PL, TypeOf(TExtSelList));
+        PL^.NewLisT(PC);
+        IL := PInputLine(DirectLink[1]);
+        ObjChangeType(IL, TypeOf(TFilterLine));
+        OkButton := PButton(DirectLink[4]);
+        AddButton := PButton(DirectLink[3]);
+        for b := 3 to 5 do
+          with PButton(DirectLink[b]) do
+            Options := Options and not ofSelectable;
+          { Кнопки "OK", "Добавить" и "Закрыть" по Tab пропускаются }
+        ObjChangeType(Dlg^.DirectLink[7], TypeOf(TSaveSetupButton));
+          { Подменяем тип кнопки "Записать", чтобы подсунуть свой Press }
+        end;
+      IL^.SetState(sfSelected, True);
+        { Чтобы привести кнопки в нужные состояния, см. TFilterLine }
+      if not SelectFilterLine then
+        begin
+        Dlg^.SelectNext(False);
         end;
       MakeDialog := Dlg;
       end;
 
     procedure DoMake(P: PString);
       begin
-      if  (P <> nil) and (P^[1] <> ' ') then
+      if P^[1] <> ' ' then
         begin
         AddStr(FreeStr, ';');
-        if i = cmNo then
+        if Cmd = cmNo then
           AddStr(FreeStr, '-');
         FreeStr := FreeStr+Copy(P^, 2, Length(P^)-1);
+        P^[1] := ' ';
         end;
       end;
 
-    procedure GetMasks;
-
-      {AK155: эта процедура должна формировать маску по расширению
-для текущего файла и добавлять ее в коллекцию. Но при этом не
-учитывалась возможность длинного имени (в Name). }
-
-      procedure DoInsert(P1: PFileRec); {DataCompBoy}
-        var
-          l, i: Integer;
-        begin
-        if  (P1 <> nil) and (P1^.Attr and Directory = 0) then
-          begin
-          l := Length(P1^.FlName[uLfn]);
-          i := PosLastDot(P1^.FlName[uLfn]);
-          FreeStr := Copy(P1^.FlName[uLfn], i+1, l-i);
-          DelRight(FreeStr);
-          UpStr(FreeStr);
-          Insert(' *.', FreeStr, 1);
-          {AK155: только лишние тормоза, поскольку Duplicate=false
-     if PC^.IndexOf(@FreeStr) < 0 then
-/AK155}
-          PC^.Insert(NewStr(FreeStr));
-          end;
-        end;
-
-      var
-        d: PDrive;
-        fs: String;
-        ti: TSize;
-        fc: PFilesCollection;
-      begin { GetMasks }
-      d := P^.Drive;
-      fc := PFilesCollection(
-          d^.GetDirectory(P^.SortMode, P^.PanelFlags, x_x, fs, ti));
-      if  (fc <> nil) and (not d^.NoMemory) then
-        fc^.ForEach(@DoInsert);
-      Dispose(fc, Done);
-      end { GetMasks };
-
+    var
+      CurrentExt: PString;
+      PS: PString;
+      I, l: Integer;
     begin { GetMaskSelection: }
     GetMaskSelection := '';
-    PC := New(PStringCollection, Init(20, 20, False));
-    GetMasks;
-    if  (PC^.Count > 0) and (not P^.Drive^.NoMemory) then
+    D := MakeDialog;
+    D^.Options := D^.Options or ofCentered;
+    PL^.FocusItem(FItem);
+    IL^.Data := FileMask;
+    Cmd := Desktop^.ExecView(D);
+
+    SelectFilterLine := True;
+    if (Cmd = cmYes) or (Cmd = cmNo) then
       begin
-      PC^.AtInsert(0, NewStr(' *.*'));
-      D := MakeDialog;
-      D^.Options := D^.Options or ofCentered;
-      PL^.FocusItem(FItem);
-      IL^.Data := FileMask;
-      I := Desktop^.ExecView(D);
-
-      if I <> cmCancel then
+      SelectFilterLine := False;
+      FItem := PL^.Focused;
+      FreeStr := '';
+      PC^.ForEach(@DoMake);
+      if FreeStr = '' then
         begin
-        if IL^.Data = FileMask then
-          begin
-          FItem := PL^.Focused;
-          FreeStr := '';
-          PC^.ForEach(@DoMake);
-          if FreeStr = '' then
-            begin
-            FreeStr := CnvString(PC^.At(FItem));
-            if I = cmNo then
-              Insert('-', FreeStr, 1);
-            end
-          else
-            Delete(FreeStr, 1, 1); {DelFC(FreeStr);}
-          if  (I = cmNo) and (FreeStr <> '-*.*') and
-              (FreeStr <> '-*')
-          then
-            Insert('*.*;', FreeStr, 1);
-          DelLeft(FreeStr);
-          GetMaskSelection := FreeStr;
-          end
-        else
-          GetMaskSelection := #20+IL^.Data;
+        CurrentExt := PC^.At(FItem);
+        CurrentExt^[1] := FMSetup.TagChar[1];
+        DoMake(CurrentExt);
         end;
-      Dispose(D, Done);
-      end;
-    Dispose(PC, Done);
-    end { GetMaskSelection: };
-
+      if  (Cmd = cmNo) and (FreeStr <> '-*.*') and
+          (FreeStr <> '-*')
+      then
+        Insert('*.*;', FreeStr, 1);
+      DelLeft(FreeStr);
+      GetMaskSelection := FreeStr;
+      end
+    else if Cmd = cmOK then
+      GetMaskSelection := #20+IL^.Data;
+    Dispose(D, Done);
+    end { GetMaskSelection };
 
   procedure InS(const AAS: String);
     var
@@ -362,14 +684,18 @@ procedure CM_AdvancedFilter;
     FileMask := FileMask+P^;
     end;
 
-  begin {------------------- CM_AdvancedFilter -----------------------}
-  FileMask := P^.FileMask;
+  var
+    NeedRebound: Boolean;
+  begin { CM_AdvancedFilter }
+  SelectFilterLine := True;
+  FileMask := P^.PanSetup^.FileMask;
   FItem := 0;
+  BuildPC;
   repeat
     S := GetMaskSelection;
-    if  (P^.Drive^.NoMemory) or (S = '') then
+    if S = '' then { Кнопка "Закрыть" или Esc }
       Break;
-    if S[1] = #20 then
+    if S[1] = #20 then { Кнопка "OK" }
       FileMask := Copy(S, 2, 255)
     else
     if  (S = '- *.*') or (S = x_x) then
@@ -419,14 +745,24 @@ procedure CM_AdvancedFilter;
           FileMask := '- *.*'+FileMask;
         end;
       end;
-    P^.FileMask := FileMask;
-    P^.OldDelta := -1;
-    P^.RereadDir;
-    P^.Delta := -1;
-    P^.DrawView;
-  until False;
+    if FileMask = '*' then
+      FileMask := x_x;
+    with P^ do
+      begin
+      NeedRebound := (PanSetup^.FileMask = x_x) <> (FileMask = x_x);
+        { Если фильтр стал или перестал быть тождественным, это
+          может вызывать изменение числа строк подвала, если в какой-то
+          строке нет ничего, кроме фильтра. См. TInfoView.Compile }
+      PanSetup^.FileMask := FileMask;
+      if NeedRebound then
+        Rebound;
+      OldDelta := -1;
+      RereadDir;
+      Delta := -1;
+      end;
+  until S[1] = #20;
+  Dispose(PC, Done);
   P^.ChkNoMem;
-  {messagebox(FileMask, nil, mfOKButton);}
   end { CM_AdvancedFilter };
 {------------------- CM_AdvancedFilter -----------------------}
 
@@ -673,7 +1009,7 @@ procedure CM_CompareDirs(AFP, IP: Pointer);
     CompareDat = 2;
     CompareLength = 4;
     CompareContens = 8;
-    {$IFDEF Win32}
+    {$IFDEF DualName}
   function IsCheckboxes(P: PView): Boolean;
     begin
     IsCheckboxes := TypeOf(P^) = TypeOf(TCheckBoxes);
@@ -703,7 +1039,8 @@ procedure CM_CompareDirs(AFP, IP: Pointer);
   DT.FMask := ComareDirsOptions.FMask;
   DT.o := ComareDirsOptions.o;
   DT.S := ComareDirsOptions.S;
-  {$IFDEF Win32}
+(* !! AK155 04.05.05 временно - надо разобраться
+  {$IFDEF DualName}
   D := PDialog(LoadResource(dlgCompareDirs));
   if D = nil then
     Exit;
@@ -725,10 +1062,11 @@ procedure CM_CompareDirs(AFP, IP: Pointer);
     end;
   D^.GetData(DT);
   {$ELSE}
+!! *)
   DialRes := ExecResource(dlgCompareDirs, DT);
   if DialRes = cmCancel then
     Exit;
-  {$ENDIF}
+//!!  {$ENDIF}
   if DialRes = cmYes then
     begin
     ConfigModified := True;
@@ -774,7 +1112,7 @@ procedure CM_EraseFiles;
   P^.Drive^.EraseFiles(FC);
   FC^.DeleteAll;
   Dispose(FC, Done);
-  P^.SetDirName;
+  P^.RedrawPanelInfoDir;
   P^.SendLocated;
   end;
 
@@ -799,7 +1137,7 @@ procedure CM_MakeList;
   MakeListFile(P, FC);
   FC^.DeleteAll;
   Dispose(FC, Done);
-  P^.SetDirName;
+  P^.RedrawPanelInfoDir;
   end { CM_MakeList };
 
 {-DataCompBoy-}
@@ -856,6 +1194,15 @@ procedure CM_SetAttributes;
     Ok := j = 0;
     CutNumber := i;
     end { CutNumber };
+
+  procedure Swap(var A, B: Word);
+  var
+    C: Word;
+  begin
+  C := A;
+  A := B;
+  B := C;
+  end;
 
   begin { CM_SetAttributes }
   if  (P^.Files^.Count = 0) or (P^.Drive^.DriveType >= dtArcFind) then
@@ -922,17 +1269,12 @@ CurTime1:
     UnpackTime(DTT, DT);
     UnpackTime(DTT_Cr, DT_Cr);
     UnpackTime(DTT_LAc, DT_LAc);
-    D.T := SStr(DT.Hour, 2, '0')+':'+SStr(DT.Min, 2, '0')
-        +':'+SStr(DT.Sec, 2, '0');
-    D.D := ItoS(DT.Day)+'-'+SStr(DT.Month, 2, '0')+'-'+ItoS(DT.Year);
-    D.T_Cr := SStr(DT_Cr.Hour, 2, '0')+':'+SStr(DT_Cr.Min, 2, '0')
-      +':'+SStr(DT_Cr.Sec, 2, '0');
-    D.D_Cr := ItoS(DT_Cr.Day)+'-'+SStr(DT_Cr.Month, 2, '0')
-        +'-'+ItoS(DT_Cr.Year);
-    D.T_LAc := SStr(DT_LAc.Hour, 2, '0')+':'+SStr(DT_LAc.Min, 2, '0')
-      +':'+SStr(DT_LAc.Sec, 2, '0');
-    D.D_LAc := ItoS(DT_LAc.Day)+'-'+SStr(DT_LAc.Month, 2, '0')
-        +'-'+ItoS(DT_LAc.Year);
+    D.T := FormatDateTime(DT, True);
+    D.D := FormatDateTime(DT, False);
+    D.T_Cr := FormatDateTime(DT_Cr, True);
+    D.D_Cr := FormatDateTime(DT_Cr, False);
+    D.T_LAc := FormatDateTime(DT_LAc, True);
+    D.D_LAc := FormatDateTime(DT_LAc, False);
     D.S := D.C;
 CurTime:
     Dlg^.SetData(D);
@@ -1016,6 +1358,12 @@ CurTime:
     Day := CutNumber(D.D);
     Month := CutNumber(D.D);
     Year := CutNumber(D.D);
+    case CountryInfo.DateFmt of
+      0: {MM-DD-YY}
+        Swap(Day, Month);
+      2: {YY-MM-DD}
+        Swap(Day, Year);
+    end;
     DateSet := ok and not ((Day > 31) or (Day < 1) or (Month > 12) or
            (Month < 1));
 
@@ -1043,6 +1391,12 @@ CurTime:
     Day := CutNumber(D.D_Cr);
     Month := CutNumber(D.D_Cr);
     Year := CutNumber(D.D_Cr);
+    case CountryInfo.DateFmt of
+      0: {MM-DD-YY}
+        Swap(Day, Month);
+      2: {YY-MM-DD}
+        Swap(Day, Year);
+    end;
     CrDateSet := ok and not ((Day > 31) or (Day < 1) or (Month > 12) or
            (Month < 1));
 
@@ -1070,6 +1424,12 @@ CurTime:
     Day := CutNumber(D.D_LAc);
     Month := CutNumber(D.D_LAc);
     Year := CutNumber(D.D_LAc);
+    case CountryInfo.DateFmt of
+      0: {MM-DD-YY}
+        Swap(Day, Month);
+      2: {YY-MM-DD}
+        Swap(Day, Year);
+    end;
     LAcDateSet := ok and not ((Day > 31) or (Day < 1) or (Month > 12) or
            (Month < 1));
 
@@ -1180,75 +1540,67 @@ CurTime:
   if P^.Drive^.DriveType = dtDisk then
     GlobalMessage(evCommand, cmRereadInfo, nil);
   GlobalMessage(evCommand, cmRereadTree, @P^.DirectoryName);
-  P^.SetDirName;
+  P^.RedrawPanelInfoDir;
   NotifyResume; {Cat}
   end { CM_SetAttributes };
 {-DataCompBoy-}
 
-procedure CM_SetShowParms;
+
+procedure PrepareShowDialog(P: PDialog);
   var
-    I: record
-      Prm: Word;
-      LFNLen: String[3];
-      EXTLen: String[3]
-      end;
+    i: Integer;
+  begin
+  ObjChangeType(P, TypeOf(TShowDialog));
+    { Подменяем диалогу тип, чтобы подсунуть свой HandleEvent}
+  ObjChangeType(P^.DirectLink[4], TypeOf(TSaveSetupButton));
+    { Подменяем тип кнопки "Записать", чтобы подсунуть свой Press }
+  PComboBox(P^.DirectLink[2])^.Items[1].Disabled := True;
+    { Сделали недоступным "Не показывать" для выделенных }
+  with PComboBox(P^.DirectLink[3])^ do
+    for i := 2 to 6 do
+      Items[i].Disabled := True;
+    { Сделали недоступным "В подвале" и "На разделителе" % упаковки }
+  end;
+
+procedure CM_SetShowParms(AFP: Pointer);
+  var
     J, K, Old: Word;
     Idx: TDlgIdx;
     P: PFilePanelRoot absolute AFP;
+    R: TRect;
   begin
-  with P^.Drive^ do
+  @PreExecuteDialog := @PrepareShowDialog;
+  with P^ do
     begin
-    Old := Flags;
-    case DriveType of
-      dtFind, dtTemp, dtList, dtArcFind:
-        Idx := dlgFindParms;
-      dtArc:
-        Idx := dlgArcParms;
-      else {case}
-        Idx := dlgDiskParms;
-    end {case};
-    I.Prm := Flags;
-    I.LFNLen := ItoS(LFNLen);
-    I.EXTLen := ItoS(EXTLen);
-    J := ExecResource(Idx, I);
+    J := ExecResource(dlgPanelShowSetup, PanSetup^.Show);
     case J of
       cmOK:
         begin
-        J := StoI(I.LFNLen);
-        if J < 5 then
-          Exit;
-        if J > 252 then
-          J := 252;
-        LFNLen := J;
-        K := StoI(I.EXTLen);
-        if K > 247 then
-          K := 247;
-        if  (J-K >= 5) then
-          EXTLen := K
-        else
-          EXTLen := J-5;
-        Flags := I.Prm;
+        K := Min(252, Max(5, StoI(PanSetup^.Show.LFNLen)));
+        LFNLen := K;
+        EXTLen := Max(0, Min(StoI(PanSetup^.Show.EXTLen), K-5));
+        PanSetup^.Show.LFNLen := ItoS(LFNLen);
+        PanSetup^.Show.ExtLen := ItoS(ExtLen);
+        LFNLonger250 := (LFNLen >= 250)
+          {$IFDEF DualName}
+          and (PanSetup^.Show.ColumnsMask and psLFN_InColumns <> 0)
+          {$ENDIF};
+        PDoubleWindow(P^.Owner)^.SetMaxiState(P);
         end;
-      cmYes:
-        GetParam(1);
-      cmNo:
-        GetParam(2);
       else {case}
         Exit;
     end {case};
-    P^.DeltaX := 0;
-    if  ( (DriveType = dtDisk) or (DriveType = dtArvid))
-      and ((Flags xor Old) and psShowDescript <> 0)
+    DeltaX := 0;
+    if (PanSetup^.Show.PathDescrInfo <> fseNotShow) and
+       (Drive^.DizOwner = '')
     then
-      P^.RereadDir;
-    {$IFDEF DualName}
-    if not (P^.Drive^.DriveType in [dtArc, dtArcFind]) then
-      P^.Files^.LFNActive := (Flags and psShowLongName) <> 0;
-    {$ENDIF}
+      Drive^.ReadDescrptions(Files);;
+    GetBounds(R);
+    R.A.Y := 1;
+    R.B.Y := Owner^.Size.Y-1;
+    ChangeBounds(R);
+    Owner^.Redraw;
     end;
-  DrawViews(P);
-  P^.SendLocated;
-  DrawViews(P);
   end { CM_SetShowParms };
 
 procedure CM_CopyTemp;
@@ -1315,8 +1667,8 @@ procedure CM_ToggleDescriptions;
     dtDisk,
     dtArvid:
       begin
-      P^.Drive^.Flags := P^.Drive^.Flags xor psShowDescript;
-      P^.Drive^.Flags := P^.Drive^.Flags;
+      P^.PanSetup^.Show.ColumnsMask :=
+        P^.PanSetup^.Show.ColumnsMask xor psShowDescript;
       P^.DeltaX := 0;
       P^.RereadDir;
       DrawViews(P);
@@ -1326,7 +1678,8 @@ procedure CM_ToggleDescriptions;
     dtArcFind,
     dtTemp:
       begin
-      P^.Drive^.Flags := P^.Drive^.Flags xor psShowDir;
+      P^.PanSetup^.Show.ColumnsMask :=
+        P^.PanSetup^.Show.ColumnsMask xor psShowDir;
       DrawViews(P);
       end;
 
@@ -1339,17 +1692,15 @@ procedure CM_ToggleLongNames;
   begin
   if P^.Drive^.DriveType in [dtArc, dtArcFind] then
     Exit;
+  {$IFDEF DualName}
+  with P^.PanSetup^.Show do
+    ColumnsMask := ColumnsMask xor psLFN_InColumns;
+  {$ELSE}
+  {$IFDEF OS2}
   with P^.Drive^ do
-    begin
-    {$IFDEF DualName}
-    Flags := Flags xor psShowLongName;
-    P^.Files^.LFNActive := (Flags and psShowLongName) <> 0;
-    {$ELSE}
-    {$IFDEF OS2}
     ShowLogNames := not ShowLogNames;
-    {$ENDIF}
-    {$ENDIF}
-    end;
+  {$ENDIF}
+  {$ENDIF}
   P^.DeltaX := 0;
   {  P^.RereadDir; }
   {AK155 22-07-2002
@@ -1368,6 +1719,8 @@ procedure CM_ToggleShowMode;
   var
     P: PFilePanelRoot absolute AFP;
   begin
+{!! Это переключени в то ли 2, то ли 1, надо просто выкинуть }
+(*
   P^.DeltaX := 0;
   if P^.Drive^.Param <> 2 then
     begin
@@ -1381,6 +1734,7 @@ procedure CM_ToggleShowMode;
   P^.RereadDir;
   DrawViews(P);
   {Message(Desktop, evCommand, cmMaxi, nil);}
+*)
   end;
 
 type
@@ -1647,22 +2001,22 @@ procedure CM_RenameSingleL;
   S := PF^.FlName[uLfn];
   S2 := S;
   {$IFDEF DualName}
-  if DescrByShortNames then
+  if (FMSetup.Options and fmoDescrByShortNames) <> 0 then
     Nm := PF^.FlName[False]
   else
     {$ENDIF}
     Nm := PF^.FlName[True];
   {$IFDEF DualName}
-  if  (P^.Drive^.Flags and psShowLongName = 0)
+  if  (P^.PanSetup^.Show.ColumnsMask and psLFN_InColumns = 0)
   then
     R.Assign(0, 0, 13, 1)
   else
     {$ENDIF}
-   if (P^.Drive^.LFNLen < 250)
+   if (P^.LFNLen < 250)
   then
-    R.Assign(0, 0, P^.Drive^.LFNLen+1, 1)
+    R.Assign(0, 0, P^.LFNLen+1, 1)
   else
-    R.Assign(P^.Drive^.CalcLengthWithoutName, 0, 255, 1);
+    R.Assign(P^.CalcLengthWithoutName, 0, 255, 1);
   R.Move(P^.LastCurPos.X, P^.LastCurPos.Y);
   R.Move(P^.Origin.X, 0);
   Dec(R.A.X);
@@ -1677,7 +2031,7 @@ procedure CM_RenameSingleL;
     PIF^.LC := #186
   else if R.B.X-P^.Origin.X-P^.Size.X = 1 then
     PIF^.RC := #186;
-  if  (PF^.TType = 0) or (P^.PanelFlags and fmiHiliteFiles = 0)
+  if  (PF^.TType = 0) or (Startup.FMSetup.Show and fmsHiliteFiles = 0)
   then
     PIF^.C[1] := P^.GetColor(1)
   else
@@ -1782,7 +2136,7 @@ procedure CM_RenameSingleDialog;
     Exit;
   S := PF^.FlName[uLfn];
   {$IFDEF DualName}
-  if DescrByShortNames then
+  if (FMSetup.Options and fmoDescrByShortNames) <> 0 then
     Nm := PF^.FlName[False]
   else {$ENDIF}
     Nm := PF^.FlName[True];
@@ -1815,52 +2169,51 @@ procedure CM_RenameSingleDialog;
 procedure CM_SortBy;
   var
     Menu: PMenu;
-    PM: PMenuItem;
+    PM, DefPM: PMenuItem;
     N, W: Word;
     R: TRect;
     PV: PView;
     P: PFilePanelRoot absolute AFP;
-    Cur: PFileRec;
-    ScrollBarValue: LongInt;
-    OwnerOnOff, InvOnOff: String[5]; {JO}
+    OwnerOnOff, GrpOnOff, InvOnOff: String[5]; {JO}
+    Idx: TStrIdx;
+    i: Word;
   begin
 
   {JO: 31-01-2004}
-  if P^.SortFlags and psfOwnerFirst <> 0 then
+  if P^.PanSetup^.Sort.SortFlags and psfOwnerFirst <> 0 then
     OwnerOnOff := GetString(dlMenuItemOn)
   else
     OwnerOnOff := GetString(dlMenuItemOff);
-  if P^.SortFlags and psfInverted <> 0 then
+  if P^.PanSetup^.Sort.SortFlags and psfSortByType <> 0 then
+    GrpOnOff := GetString(dlMenuItemOn)
+  else
+    GrpOnOff := GetString(dlMenuItemOff);
+  if P^.PanSetup^.Sort.SortFlags and psfInverted <> 0 then
     InvOnOff := GetString(dlMenuItemOn)
   else
     InvOnOff := GetString(dlMenuItemOff);
   {/JO}
 
-  Menu := NewMenu(
-      NewItem(GetString(dlSortName), '', kbNoKey, cmSortName, 0,
-        NewItem(GetString(dlSortExt), '', kbNoKey, cmSortExt, 0,
-          NewItem(GetString(dlSortSize), '', kbNoKey, cmSortSize, 0,
-            NewItem(GetString(dlSortDate), '', kbNoKey, cmSortDate, 0,
-              {$IFNDEF DPMI32}
-              NewItem(GetString(dlSortCrDate), '', kbNoKey, cmSortCrDate,
-                 0,
-                NewItem(GetString(dlSortLADate), '', kbNoKey,
-                   cmSortLADate, 0,
-                  {$ENDIF}
-                  NewItem(GetString(dlSortDIZ), '', kbNoKey, cmSortDIZ, 0,
-                    NewItem(GetString(dlSortType), '', kbNoKey,
-                       cmSortType, 0,
-                      NewItem(GetString(dlSortUnsorted), '', kbNoKey,
-                         cmSortUnsorted, 0,
-                        {JO: 31-01-2004}
-                        NewLine(
-                          NewItem(GetString(dlSortOwner), OwnerOnOff,
-                             kbNoKey, cmSortOwnerToggle, 0,
-                            NewItem(GetString(dlSortInverted), InvOnOff,
-                               kbNoKey, cmSortInvToggle, 0,
-                              {/JO}
-                              nil))))))))))) {$IFNDEF DPMI32})) {$ENDIF};
-  N := NumSortModes;
+  PM :=  NewLine(
+       NewItem(GetString(dlSortOwner), OwnerOnOff,
+          kbNoKey, cmSortOwnerToggle, 0,
+         NewItem(GetString(dlSortGroup), GrpOnOff,
+            kbNoKey, cmSortGrpToggle, 0,
+           NewItem(GetString(dlSortInverted), InvOnOff,
+              kbNoKey, cmSortInvToggle, 0,
+             nil))));
+
+  Idx := dlSortUnsorted;
+  for i := NumSortModes-1 downto 0 do
+    begin
+    PM := NewItem(GetString(Idx), '', kbNoKey, cmSortName + i, 0, PM);
+    if i = P^.PanSetup^.Sort.SortMode then
+      DefPM := PM;
+    Dec(Idx);
+    end;
+  Menu := NewMenu(PM);
+  Menu^.Default := DefPM;
+
   W := 15;
   Desktop^.GetExtent(R);
   R.A := P^.Origin;
@@ -1872,46 +2225,62 @@ procedure CM_SortBy;
     R.A.X := R.B.X-W;
   if R.A.Y < 0 then
     R.A.Y := 0
-  else if R.A.Y+N+2 > R.B.Y then
-    R.A.Y := R.B.Y-N-2;
+  else if R.A.Y+NumSortModes+1 > R.B.Y then
+    R.A.Y := R.B.Y-NumSortModes-1;
   R.B.X := R.A.X+100;
   R.B.Y := R.A.Y+100; {R.B := R.A;}
   PV := New(PMenuBox, Init(R, Menu, nil));
   PV^.HelpCtx := hcSortBy;
-  Menu^.Default := LookUpMenu(PMenuBox(PV)^.Menu,
-       P^.SortMode+cmSortUnsorted, dfByCommand);
   N := Desktop^.ExecView(PV);
   Dispose(PV, Done);
   DisposeMenu(Menu);
-  if  (N >= cmSortUnsorted) and (P^.SortMode+cmSortUnsorted <> N) then
-    begin
-    if n = cmSortOwnerToggle then
-      P^.SortFlags := P^.SortFlags xor psfOwnerFirst
-    else if n = cmSortInvToggle then
-      P^.SortFlags := P^.SortFlags xor psfInverted
-    else
+  if N <> 0 then
+    with P^ do
       begin
-      P^.SortMode := n-cmSortUnsorted;
-      P^.Files^.SortMode := n-cmSortUnsorted;
+      if N < cmSortOwnerToggle then
+        PanSetup^.Sort.SortMode := N - cmSortName
+      else
+        PanSetup^.Sort.SortFlags :=
+          PanSetup^.Sort.SortFlags xor (1 shl (N-cmSortOwnerToggle));
+      Reorder;
+      RedrawPanelInfoDir;
       end;
-    if P^.SortMode = psmUnsorted then
-      P^.RereadDir;
-    ScrollBarValue := P^.ScrollBar^.Value;
-    if ScrollBarValue >= P^.Files^.Count then
-      Exit;
-    Cur := P^.Files^.At(ScrollBarValue);
-    if P^.Files^.SortMode <> psmUnsorted then
-      P^.Files^.Sort;
-    for ScrollBarValue := 0 to P^.Files^.Count-1 do
-      if P^.Files^.At(ScrollBarValue) = Cur then
-        begin
-        P^.ScrollBar^.SetValue(ScrollBarValue);
-        Break;
-        end;
-    P^.DrawView;
-    P^.SetDirName;
-    end
   end { CM_SortBy };
+
+
+type
+  PSortDialog = ^TSortDialog;
+  TSortDialog = object(TShowDialog)
+    function OwnDataAddress(P: PPanelSetup): Pointer; virtual;
+    end;
+
+function TSortDialog.OwnDataAddress(P: PPanelSetup): Pointer;
+  begin
+  Result := @P^.Sort;
+  end;
+
+procedure PrepareSortDialog(P: PDialog);
+  begin
+  ObjChangeType(P, TypeOf(TSortDialog));
+    { Подменяем диалогу тип, чтобы подсунуть свой HandleEvent}
+  ObjChangeType(P^.DirectLink[1], TypeOf(TSaveSetupButton));
+    { Подменяем тип кнопки "Записать", чтобы подсунуть свой Press }
+//  PRadioButtons(P^.DirectLink[2])^.EnableMask := not 1;
+    {!!Временно! Алфавитная сортировка недоступна }
+  end;
+
+procedure CM_PanelSortSetup;
+  begin
+  with ActivePanel^ do
+    begin
+    @PreExecuteDialog := @PrepareSortDialog;
+    if ExecResource(dlgPanelSortSetup, PanSetup^.Sort) = cmOK then
+      begin
+      Reorder;
+      RedrawPanelInfoDir;
+      end;
+    end;
+  end { CM_PanelSortSetup };
 
 {-DataCompBoy-}
 function CM_ChangeDirectory;
@@ -1966,7 +2335,7 @@ procedure CM_MakeDir;
     end;
   if J >= 0 then
     P^.ScrollBar^.SetValue(J);
-  P^.ChDirName;
+  P^.RedrawPanelInfoDir;
   end { CM_MakeDir };
 {-DataCompBoy-}
 
@@ -2130,7 +2499,7 @@ procedure CM_ChangeCase(AFP: Pointer);
       {    именам, так как для коротких имён регистр не меняется                 }
 
       {$IFDEF DualName}
-      if not DescrByShortNames then
+      if (FMSetup.Options and fmoDescrByShortNames) = 0 then
       {$ENDIF}
         begin
         Sn := PF^.FlName[True];
@@ -2219,229 +2588,60 @@ procedure CM_ChangeCase(AFP: Pointer);
   FC^.DeleteAll;
   Dispose(FC, Done);
   end { CM_ChangeCase };
+
+function PanelSetupTag(const PSS: TPanelSetupSet;
+    PC: TPanelClass): String;
+  begin
+  with PSS[PC].Show do
+    begin
+    if ColumnsMask = $7FF then
+      Result := GetString(dlFullInfo)
+    else if ((ColumnsMask and psShowDescript) <> 0) and
+      PanelFileColAllowed[PC][psnShowDescript]
+    then
+      Result := GetString(dlDescr)
+    else if ((ColumnsMask and psShowDir) <> 0) and
+      PanelFileColAllowed[PC][psnShowDir]
+    then
+      Result := GetString(dlPath)
+    else
+      Result := '';
+    Result := LFNLen + '.' + ExtLen + ' ' + Result;
+    end;
+  {!! AK155 28.04.2005 В программе JO было ещё формирование
+    признаков длинного и короткого имени ("Д" и "К"), но это
+    я пока делать не стал, глядишь, никто и не заметит пропажу.}
+  end;
+
 procedure CM_SelectColumn(AFP: Pointer); {JO}
+  {` Меню выбора номера блока настроек панели `}
   var
-    I, J, K: Byte;
-    {$IFNDEF OS2}
-    NameT: array[1..10] of String[1];
-    {$ENDIF}
-    ISFull: array[1..10] of String[12];
-    Descr: array[1..10] of String[25];
-    PanelDescr: String;
+    I: Integer;
     P: PFilePanelRoot absolute AFP;
     Menu: PMenu;
     Items: PMenuItem;
+    SelectedItem: PMenuItem;
     R: TRect;
     PV: PView;
     N, W: Word;
-
+    PSetup: PPanelSetup;
+    NameI: String;
+    PC: TPanelClass;
+    SS: Word;
   begin
-
-  case P^.Drive^.DriveType of
-    dtDisk, dtLink:
-      begin
-      for I := 1 to 10 do
-        begin
-        {$IFNDEF OS2}
-        if  (ColumnsDefaultsDisk.Params[I].Param and 1 <> 0)
-        then
-          NameT[I] := GetString(dlNameLong)
-        else
-          NameT[I] := GetString(dlNameShort);
-        {$ENDIF}
-        if  (ColumnsDefaultsDisk.Params[I].Param and 270 = 270)
-        then
-          ISFull[I] := GetString(dlFullInfo)
-        else if (ColumnsDefaultsDisk.Params[I].Param and 16 <> 0) then
-          ISFull[I] := GetString(dlDescr)
-        else
-          ISFull[I] := '';
-        Descr[I] := '';
-        end;
-      PanelDescr := PanelDescrDrive;
-      end;
-    dtFind, dtList, dtArcFind:
-      begin
-      for I := 1 to 10 do
-        begin
-        {$IFNDEF OS2}
-        if  (ColumnsDefaultsFind.Params[I].Param and 1 <> 0)
-        then
-          NameT[I] := GetString(dlNameLong)
-        else
-          NameT[I] := GetString(dlNameShort);
-        {$ENDIF}
-        if  (ColumnsDefaultsFind.Params[I].Param and 270 = 270)
-        then
-          ISFull[I] := GetString(dlFullInfo)
-        else if (ColumnsDefaultsFind.Params[I].Param and 16 <> 0) then
-          ISFull[I] := GetString(dlPath)
-        else
-          ISFull[I] := '';
-        Descr[I] := '';
-        end;
-      PanelDescr := PanelDescrFind;
-      end;
-    dtTemp:
-      begin
-      for I := 1 to 10 do
-        begin
-        {$IFNDEF OS2}
-        if  (ColumnsDefaultsTemp.Params[I].Param and 1 <> 0)
-        then
-          NameT[I] := GetString(dlNameLong)
-        else
-          NameT[I] := GetString(dlNameShort);
-        {$ENDIF}
-        if  (ColumnsDefaultsTemp.Params[I].Param and 270 = 270)
-        then
-          ISFull[I] := GetString(dlFullInfo)
-        else if (ColumnsDefaultsTemp.Params[I].Param and 16 <> 0) then
-          ISFull[I] := GetString(dlPath)
-        else
-          ISFull[I] := '';
-        Descr[I] := '';
-        end;
-      PanelDescr := PanelDescrTemp;
-      end;
-    dtArc:
-      begin
-      for I := 1 to 10 do
-        begin
-        {$IFNDEF OS2}
-        if  (ColumnsDefaultsArch.Params[I].Param and 1 <> 0)
-        then
-          NameT[I] := GetString(dlNameLong)
-        else
-          NameT[I] := GetString(dlNameShort);
-        {$ENDIF}
-        if  (ColumnsDefaultsArch.Params[I].Param and 62 = 62)
-        then
-          ISFull[I] := GetString(dlFullInfo)
-        else
-          ISFull[I] := '';
-        Descr[I] := '';
-        end;
-      PanelDescr := PanelDescrArc;
-      end;
-    dtArvid:
-      begin
-      for I := 1 to 10 do
-        begin
-        {$IFNDEF OS2}
-        if  (ColumnsDefaultsArvd.Params[I].Param and 1 <> 0)
-        then
-          NameT[I] := GetString(dlNameLong)
-        else
-          NameT[I] := GetString(dlNameShort);
-        {$ENDIF}
-        if  (ColumnsDefaultsArvd.Params[I].Param and 270 = 270)
-        then
-          ISFull[I] := GetString(dlFullInfo)
-        else if (ColumnsDefaultsArvd.Params[I].Param and 16 <> 0) then
-          ISFull[I] := GetString(dlDescr)
-        else
-          ISFull[I] := '';
-        Descr[I] := '';
-        end;
-      PanelDescr := PanelDescrArvid;
-      end;
-  end {case};
-
-  if PanelDescr <> '' then
+  Items := NewItem('~=~ ' + GetString(dlOtherPanel),
+      '', kbNoKey, 16000+11, 0,
+           NewItem('~-~ ' + GetString(dlUndoPanelSetup),
+      '', kbNoKey, 16000+12, 0, nil));
+  PC := dt2pc[P^.Drive^.DriveType];
+  for I := 10 downto 1 do
     begin
-    I := 1;
-    J := 1;
-    for K := 1 to Length(PanelDescr) do
-      if  (PanelDescr[K] = '#') or (K = Length(PanelDescr)) then
-        begin
-        if I > 10 then
-          Continue;
-        if  (J = 1) and (PanelDescr[1] <> '#') then
-          begin
-          if  (K = Length(PanelDescr)) and (PanelDescr[K] <> '#') then
-            Descr[I] := Copy(PanelDescr, J, K-J+1)
-          else
-            Descr[I] := Copy(PanelDescr, J, K-J);
-          end
-        else
-          begin
-          if  (K = Length(PanelDescr)) and (PanelDescr[K] <> '#') then
-            Descr[I] := Copy(PanelDescr, J+1, K-J)
-          else
-            Descr[I] := Copy(PanelDescr, J+1, K-J-1);
-          end;
-        if I <= 10 then
-          I := I+1;
-        J := K;
-        end;
+    NameI := PanelSetupTag(PanSetupPreset[i], PC);
+    Items := NewItem('~'+Char(I mod 10 + Byte('0'))+'~ ' + NameI,
+      '', kbNoKey, 16000+I, 0, Items);
+    if i = P^.PresetNum then
+      SelectedItem := Items;
     end;
-
-  Items := nil;
-
-  case P^.Drive^.DriveType of
-    dtDisk, dtLink:
-      for I := 10 downto 1 do
-        begin
-        J := 48+I;
-        if J = 58 then
-          J := 48;
-        Items := NewItem
-            ('~'+Char(J)+'~ '+ColumnsDefaultsDisk.Params[I].LFNLen+'.'+
-            ColumnsDefaultsDisk.Params[I].EXTLen+' '
-             {$IFNDEF OS2}+NameT[I]+' ' {$ENDIF}
-            +ISFull[I]+Descr[I], '', kbNoKey, 16000+I, 0, Items);
-        end;
-    dtFind, dtList, dtArcFind:
-      for I := 10 downto 1 do
-        begin
-        J := 48+I;
-        if J = 58 then
-          J := 48;
-        Items := NewItem
-            ('~'+Char(J)+'~ '+ColumnsDefaultsFind.Params[I].LFNLen+'.'+
-            ColumnsDefaultsFind.Params[I].EXTLen+' '
-             {$IFNDEF OS2}+NameT[I]+' ' {$ENDIF}
-            +ISFull[I]+Descr[I], '', kbNoKey, 16000+I, 0, Items);
-        end;
-    dtTemp:
-      for I := 10 downto 1 do
-        begin
-        J := 48+I;
-        if J = 58 then
-          J := 48;
-        Items := NewItem
-            ('~'+Char(J)+'~ '+ColumnsDefaultsTemp.Params[I].LFNLen+'.'+
-            ColumnsDefaultsTemp.Params[I].EXTLen+' '
-             {$IFNDEF OS2}+NameT[I]+' ' {$ENDIF}
-            +ISFull[I]+Descr[I], '', kbNoKey, 16000+I, 0, Items);
-        end;
-    dtArc:
-      for I := 10 downto 1 do
-        begin
-        J := 48+I;
-        if J = 58 then
-          J := 48;
-        Items := NewItem
-            ('~'+Char(J)+'~ '+ColumnsDefaultsArch.Params[I].LFNLen+'.'+
-            ColumnsDefaultsArch.Params[I].EXTLen+' '
-             {$IFNDEF OS2}+NameT[I]+' ' {$ENDIF}
-            +ISFull[I]+Descr[I], '', kbNoKey, 16000+I, 0, Items);
-        end;
-    dtArvid:
-      for I := 10 downto 1 do
-        begin
-        J := 48+I;
-        if J = 58 then
-          J := 48;
-        Items := NewItem
-            ('~'+Char(J)+'~ '+ColumnsDefaultsArvd.Params[I].LFNLen+'.'+
-            ColumnsDefaultsArvd.Params[I].EXTLen+' '
-             {$IFNDEF OS2}+NameT[I]+' ' {$ENDIF}
-            +ISFull[I]+Descr[I], '', kbNoKey, 16000+I, 0, Items);
-        end;
-  end {case};
-
   Menu := NewMenu(Items);
 
   N := 9;
@@ -2461,23 +2661,23 @@ procedure CM_SelectColumn(AFP: Pointer); {JO}
   R.B.X := R.A.X+100;
   R.B.Y := R.A.Y+100; {R.B := R.A;}
   PV := New(PMenuBox, Init(R, Menu, nil));
-  Menu^.Default := LookUpMenu(PMenuBox(PV)^.Menu, P^.Drive^.Param+16000,
-       dfByCommand);
+  Menu^.Default := SelectedItem;
   N := Desktop^.ExecView(PV);
   Dispose(PV, Done);
   DisposeMenu(Menu);
+  SS := ShiftState;
   if N >= 16001 then
     begin
-    N := N-16000;
-    P^.Drive^.GetParam(N);
-    P^.Owner^.Redraw;
+    if (ShiftState and (kbRightShift or kbLeftShift) <> 0) or
+      (DownButtons = mbRightButton)
+    then
+      inc(N, $10000); {см. GetParam }
+    P^.GetParam(N-16000);
     end;
-  {$IFDEF DualName}
-  if not (P^.Drive^.DriveType in [dtArc, dtArcFind]) then
-    P^.Files^.LFNActive := (P^.Drive^.Flags and psShowLongName) <> 0;
-  {$ENDIF}
   end { CM_SelectColumn }; {JO}
+
 {$IFDEF OS2}
+
 procedure CM_SetEALongname(AFP: Pointer; CurPos: Integer); {JO}
   var
     P: PFilePanelRoot absolute AFP;
@@ -2500,3 +2700,4 @@ procedure CM_SetEALongname(AFP: Pointer; CurPos: Integer); {JO}
 {$ENDIF}
 
 end.
+

@@ -81,10 +81,10 @@ type
     Attr: Word; {Checkbox}
     end;
 
-const
+ const  { какие-то рудименты чего-то не доделанного Ритлабсами
   CFindWindow = #126#127#128#129#130#131#132#133#134#135#136#137#138;
   CFileFinder = #6#7#8#9;
-  CFindInfo = #10#11#12#13;
+  CFindInfo = #10#11#12#13;}
 
   ffSeFnd = $01; {Found a file}
   {-$VOL}
@@ -145,12 +145,12 @@ type
     procedure Store(var S: TStream); virtual;
     procedure NewUpFile;
     constructor Init(const AName: String; ADirs: PCollection;
-         AFiles: PFilesCollection; Num: Byte); {DataCompBoy}
+         AFiles: PFilesCollection);
     constructor InitList(const AName: String); {DataCompBoy}
     procedure lChDir(ADir: String); virtual; {DataCompBoy}
-    function GetDirectory(SortMode, PanelFlags: Integer;
+    function GetDirectory(
          const FileMask: String;
-        var FreeSpace: String; var TotalInfo: TSize): PCollection; virtual;
+        var TotalInfo: TSize): PFilesCollection; virtual;
     procedure CopyFiles(AFiles: PCollection; Own: PView;
          MoveMode: Boolean); virtual;
     procedure CopyFromArc(AFiles: PFilesCollection; Own: PView); {JO}
@@ -164,28 +164,23 @@ type
     function GetDir: String; virtual;
     procedure MakeDir; virtual;
     destructor Done; virtual;
-    procedure GetFull(var B; P: PFileRec; C, Sc: Word); virtual;
     {DataCompBoy}
-    procedure GetEmpty(var B; SC: Word); virtual;
     procedure GetFreeSpace(var S: String); virtual;
-    function CalcLengthWithoutName: Integer; virtual;
-    function CalcLength: Integer; virtual;
-    procedure MakeTop(var S: String); virtual;
     function isUp: Boolean; virtual;
     procedure ChangeUp(var S: String); virtual;
     procedure ChangeRoot; virtual;
     procedure RereadDirectory(S: String); virtual;
     function GetFullFlags: Word; virtual;
     procedure GetDirInfo(var B: TDiskInfoRec); virtual;
-    procedure GetParam(n: Byte); virtual; {DataCompBoy}
     procedure HandleCommand(Command: Word; InfoPtr: Pointer); virtual;
-    function OpenDirectory(const Dir: String): PDrive; virtual;
+    function OpenDirectory(const Dir: String;
+                                 PutDirs: Boolean): PDrive; virtual;
     end;
 
   PTempDrive = ^TTempDrive;
   TTempDrive = object(TFindDrive)
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
-    constructor Init(num: Byte);
+    constructor Init;
     constructor Load(var S: TStream);
     procedure Store(var S: TStream); virtual;
     procedure CopyFilesInto(AFiles: PCollection; Own: PView;
@@ -197,7 +192,6 @@ type
     procedure EraseFiles(AFiles: PCollection); virtual;
     procedure ChangeRoot; virtual;
     procedure GetDirInfo(var B: TDiskInfoRec); virtual;
-    procedure GetParam(n: Byte); virtual; {DataCompBoy}
     destructor Done; virtual;
     end;
 
@@ -207,13 +201,15 @@ procedure CopyToTempDrive(AFiles: PCollection; Own: PView;
 implementation
 uses
   Lfn {DataCompBoy}, DNApp, Advance1, Advance2, Advance3, Startup,
-  Memory, Messages, HistList, Commands, RStrings, FlPanel, FViewer,
-   Microed,
+  Memory, Messages, HistList, Commands, RStrings, FlPanelX, FlPanel
+  , FViewer, Microed,
   Tree, xTime, DNUtil, U_KeyMap, {!!}CmdLine, Histries,
   Archiver, ArchDet {JO},
   ArcView {JO: для разархивирования файлов найденных в архивах}
   , Events {AK155 для LongWorkBegin - LongWorkEnd}
   , FlTl {JO: для GetDriveTypeNew}
+  , filetype
+  , PDSetup
   ;
 
 const
@@ -251,7 +247,7 @@ procedure FindFile;
 
   if ExecResource(dlgFileFind, FindRec) = cmCancel then
     Exit;
-  ConfigModified := True;
+  ConfigModified := True; {AK155 Не понял. При чём тут конфиг?!!}
   DelLeft(FindRec.Mask);
   DelRight(FindRec.Mask);
   if FindRec.Mask = '' then
@@ -265,10 +261,7 @@ procedure FindFile;
   else
     FindRec.AddChar := '';
   New(Files, Init($10, $10));
-  Files^.SortMode := psmOrdered;
-  {$IFDEF Win32}
-  Files^.LFNActive := True; {JO}
-  {$ENDIF}
+  Files^.SortMode := psmLongName;
   Directories := New(PStringCollection, Init(30, 30, False));
   R.Assign(1, 1, 40, 10);
   Inc(SkyEnabled);
@@ -419,10 +412,8 @@ function FindFiles;
     CancelSearch: Boolean;
     DateAfter, DateBefore,
     SizeGreat, SizeLess: LongInt;
-    MaskSearch: Boolean;
     Attr: Byte;
     SS: Byte;
-    Mask: String;
     T: TEventTimer;
     FF: String;
     TotalNum: LongInt; {-$VIV}
@@ -512,12 +503,13 @@ function FindFiles;
     begin { SearchData }
     LookInArchives := (FindRec.Options and ffoInArch <> 0)
          and (FindRec.What = ''); {JO}
-    if  (Length(Path)+Length(Mask)) > (MaxPathLen) then
+    if  (Length(Path)+Length(x_x)) > (MaxPathLen) then
       {-$VOL} {DataCompBoy}
       begin
       FFResult := FFResult or ffSeD2Lng;
       Exit;
       end;
+
     if CancelSearch then
       Exit;
     LongWorkBegin;
@@ -547,7 +539,7 @@ function FindFiles;
       if Path[Length(Path)] <> '|' then
         {JO}
         begin {начало поиска не в архиве}
-        lFindFirst(Path+Mask, AnyFile, SR); {JO}
+        lFindFirst(Path+x_x, AnyFile, SR); {JO}
 
         while (DosError = 0) and not CancelSearch and (MAvail > MemReq)
         do
@@ -559,8 +551,7 @@ function FindFiles;
             {$ENDIF}
             and (not Security or (Security and (SR.SR.Attr and Hidden =
                  0)))
-            and (MaskSearch or InFilter(SR.FullName,
-                 FindRec.Mask+FindRec.AddChar))
+            and (InFilter(SR.FullName, FindRec.Mask+FindRec.AddChar))
             and ((FindRec.Options and ffoAdvanced = 0) or (SR.SR.Time >=
                  DateAfter)
               and (SR.SR.Time <= DateBefore) and (SR.FullSize >=
@@ -621,12 +612,13 @@ function FindFiles;
         New(ArcFile, Init(ArcPath, stOpenRead, 512));
         if  (ArcFile = nil) or (ArcFile^.Status <> stOK) then
           goto NotArchive;
-        ArcPos := 0;
         SkipSFX;
         AType := DetectArchive;
         if  (AType = nil)
-          or (AType^.GetID in [arcAIN, arcUC2])
+          or (AType^.GetID in [arcAIN, arcUC2, Arc7Z])
           {временно! - надо решить проблему с лочкой dndosout.bat}
+          {15.02.2005 AK155 7z никакого отношения к dndosout.bat не имеет,
+           и поиск в нём почти работает, но пока подглючивает.}
           then
           goto NotArchive;
         ArcDirs := New(PStringCollection, Init(30, 30, False));
@@ -811,7 +803,8 @@ NotArchive:
             end
           else
             {JO}
-           if LookInArchives and (InExtFilter(SR.FullName, Archives^)
+           if LookInArchives and
+             ( (GetFileType(SR.FullName, 0) = ttArc)
               or InExtFilter(SR.FullName, AddArchives))
             {             or ((PosChar('.', SR.Fullname) = 0) and (SR.SR.Attr and SysFile = 0))}
             then
@@ -895,14 +888,7 @@ Skip:
     FN := FN+'\';
   { Flash <<< }
 
-  {$IFDEF OS_DOS}
-  MaskSearch := not PackMask(FindRec.Mask+FindRec.AddChar, Mask, True);
-  {$ELSE}
-  MaskSearch := not PackMask(FindRec.Mask+FindRec.AddChar, Mask);
-  {$ENDIF}
-
-  New(Drv, Init(GetString(dlFindPanel)+FindRec.Mask, Directories, Files,
-       PanelViewMode));
+  New(Drv, Init(GetString(dlFindPanel)+FindRec.Mask, Directories, Files));
   if FindRec.What <> '' then
     Drv^.AWhat := NewStr(FindRec.What);
   Drv^.AMask := NewStr(FindRec.Mask);
@@ -952,10 +938,10 @@ Skip:
     else
       with PFilePanel(Pnl)^ do
         begin
-        SS := SortMode;
-        SortMode := psmUnsorted;
+        SS := PanSetup^.Sort.SortMode;
+        PanSetup^.Sort.SortMode := psmUnsorted;
         ReadDirectory;
-        SortMode := SS;
+        PanSetup^.Sort.SortMode := SS;
         end;
     end;
   if  (Files^.Count = 0) or (Pnl = nil) then
@@ -1146,47 +1132,6 @@ function GetArcName(S: String): String;
 {/JO}
 
 {-DataCompBoy-}
-procedure TFindDrive.GetParam;
-  begin
-  Param := n;
-  with ColumnsDefaultsFind do
-    begin
-    Flags := Params[n].Param;
-    LFNLen := StoI(Params[n].LFNLen);
-    if  (LFNLen = 0) or (LFNLen > 252) then
-      LFNLen := 252;
-    EXTLen := StoI(Params[n].EXTLen);
-    if EXTLen > 252 then
-      EXTLen := 252;
-    case FileCase of
-      0:
-        FilFLP := 0;
-      1:
-        FilFLP := flnLowCase;
-      2:
-        FilFLP := flnCapitalCase;
-      3:
-        FilFLP := flnUpCase;
-      4:
-        FilFLP := 65535;
-    end {case};
-    case DirsCase of
-      0:
-        DirFLP := 0;
-      1:
-        DirFLP := flnLowCase;
-      2:
-        DirFLP := flnCapitalCase;
-      3:
-        DirFLP := flnUpCase;
-      4:
-        DirFLP := 65535;
-    end {case};
-    end;
-  end { TFindDrive.GetParam };
-{-DataCompBoy-}
-
-{-DataCompBoy-}
 constructor TFindDrive.Init;
   var
     S: PString;
@@ -1194,14 +1139,10 @@ constructor TFindDrive.Init;
     I: LongInt;
   begin
   TObject.Init;
-  if Num < 1 then
-    GetParam(1)
-  else
-    GetParam(Num);
-  innum := Num;
   ListFile := nil;
   isDisposable := True;
   DriveType := dtFind;
+  ColAllowed := PanelFileColAllowed[pcList];
   CurDir := AName;
   Dirs := PSortedCollection(ADirs);
   Files := AFiles;
@@ -1248,12 +1189,9 @@ constructor TFindDrive.Load(var S: TStream);
   if Q >= 0 then
     begin
     Files := New(PFilesCollection, Init(Q+1, $10));
-    Files^.SortMode := psmOrdered;
-    {$IFDEF Win32}
-    Files^.LFNActive := True; {JO}
-    {$ENDIF}
+    Files^.SortMode := psmLongName;
     Files^.Duplicates := TypeOf(Self) = TypeOf(TFindDrive);
-    Files^.Owner := @Self;
+    Files^.Panel := Self.Panel;
     for Q2 := 0 to Q do
       begin
       Files^.AtInsert(Q2, LoadFileRecOwn(S, Dirs));
@@ -1330,7 +1268,10 @@ function TFindDrive.GetDirectory;
     OW: Pointer;
     S: String;
   begin
-  {$IFDEF DualName}uLfn := Flags and psShowLongName <> 0; {$ENDIF}
+  {$IFDEF DualName}
+  uLfn := PFilePanelRoot(Panel)^.PanSetup^.Show.
+    ColumnsMask and psLFN_InColumns <> 0;
+  {$ENDIF}
 
 LLL:
 
@@ -1339,17 +1280,12 @@ LLL:
   AllFiles := (FileMask = x_x) or (FileMask = '*');
   ClrIO;
   FreeSpc := 0;
-  FreeSpace := '';
   TotalInfo := 0;
 
   AFiles := New(PFilesCollection, Init($10, $10));
-  PFilesCollection(AFiles)^.Owner := Owner;
+  PFilesCollection(AFiles)^.Panel := Panel;
   AFiles^.Duplicates := TypeOf(Self) = TypeOf(TFindDrive);
-  {$IFDEF Win32}
-  PFilesCollection(AFiles)^.LFNActive := Flags and psShowLongName <> 0;
-  {JO}
-  {$ENDIF}
-  PFilesCollection(AFiles)^.SortMode := SortMode;
+//  PFilesCollection(AFiles)^.SortMode := SortMode;
   S := '';
   PD := nil;
   ClrIO;
@@ -1390,196 +1326,20 @@ LLL:
       if P^.Attr and Directory <> 0 then
         begin
         P^.Attr := P^.Attr and $7FFF;
-        P^.Size := 0;
-        if PanelFlags and fmiDirLen <> 0 then
-          begin
-          if  (SR.SR.Name <> '..') and (SR.SR.Name <> '.')
-          then
-            P^.Size := GetDirLen(MakeNormName(P^.Owner^, P^.FlName[uLfn]));
-
-          if Abort then
-            begin
-            PanelFlags := PanelFlags and (not fmiDirLen);
-            Abort := False;
-            end;
-          end;
+        P^.Size := -1;
         end;
       end;
 
 { AK155 QSort может переставлять файлы с одинаковыми ключами, поэтому
 просто за счёт Compare нельзя обеспечить настоящее Unsorted }
-  if SortMode <> psmUnsorted then
-    AFiles^.Sort;
+{  if SortMode <> psmUnsorted then
+    AFiles^.Sort;}
 
   if DriveType <> dtTemp then
     AFiles^.AtInsert(0, CopyFileRec(UpFile));
 
   GetDirectory := AFiles;
   end { TFindDrive.GetDirectory };
-
-function TFindDrive.CalcLengthWithoutName;
-  begin
-  CalcLengthWithoutName := (10+CountryInfo.TimeFmt)
-      *Byte(Flags and psShowSize <> 0)+
-    9*Byte(Flags and psShowDate <> 0)+
-      (7-CountryInfo.TimeFmt)*Byte(Flags and psShowTime <> 0)+
-    9*Byte(Flags and psShowCrDate <> 0)+
-      (7-CountryInfo.TimeFmt)*Byte(Flags and psShowCrTime <> 0)+
-    9*Byte(Flags and psShowLADate <> 0)+
-      (7-CountryInfo.TimeFmt)*Byte(Flags and psShowLATime <> 0);
-  end;
-
-function TFindDrive.CalcLength;
-  var
-    B: Word;
-  begin
-  {$IFNDEF OS2}
-  if Flags and psShowLongName <> 0 then
-    {$ENDIF}
-    B := LFNLen+1+CalcLengthWithoutName+
-      252*Byte(Flags and psShowDir <> 0)
-      {$IFNDEF OS2}
-  else
-    B := 13+CalcLengthWithoutName+
-      252*Byte(Flags and psShowDir <> 0)
-      {$ENDIF}
-      ;
-  if B > MaxViewWidth then
-    B := MaxViewWidth;
-  CalcLength := B;
-  end;
-
-procedure TFindDrive.MakeTop;
-  var
-    Q: String;
-  begin
-  if  (LFNLen < 250) {$IFNDEF OS2} or (Flags and psShowLongName = 0)
-    {$ENDIF}
-  then
-    begin
-    {$IFNDEF OS2}
-    if Flags and psShowLongName <> 0 then
-      begin
-      {$ENDIF}
-      if LFNLen <= SizeX then
-        S := CenterStr(GetString(dlTopLFN), LFNLen)+GetString(dlTopSplit)
-      else
-        S := AddSpace(CenterStr(GetString(dlTopLFN), SizeX), LFNLen)
-          {$IFNDEF OS2}
-          ;
-      end
-    else
-      S := GetString(dlTopName)
-        {$ENDIF}
-    end
-  else
-    S := '';
-  if Flags and psShowSize <> 0 then
-    S := S+Copy(GetString(dlTopSize), 2-CountryInfo.TimeFmt, 255);
-  if Flags and psShowDate <> 0 then
-    S := S+GetString(dlTopDate);
-  if Flags and psShowTime <> 0 then
-    S := S+Copy(' '+GetString(dlTopTime), 1+CountryInfo.TimeFmt, 255);
-  if Flags and psShowCrDate <> 0 then
-    S := S+GetString(dlTopCrDate);
-  if Flags and psShowCrTime <> 0 then
-    S := S+Copy(' '+GetString(dlTopCrTime), 1+CountryInfo.TimeFmt, 255);
-  if Flags and psShowLADate <> 0 then
-    S := S+GetString(dlTopLADate);
-  if Flags and psShowLATime <> 0 then
-    S := S+Copy(' '+GetString(dlTopLATime), 1+CountryInfo.TimeFmt, 255);
-  if  (LFNLen >= 250) {$IFNDEF OS2} and (Flags and psShowLongName <> 0)
-    {$ENDIF}
-    then
-    S := S+AddSpace(CenterStr(GetString(dlTopLFN), SizeX-Length(S)),
-         LFNLen)
-  else if Flags and psShowDir <> 0 then
-    begin
-    Q := GetString(dlTopPath);
-    S := S+Q+Strg(' ', 252-Length(Q)) {+ '~'#179'~'};
-    end;
-  end { TFindDrive.MakeTop };
-
-procedure TFindDrive.GetFull;
-  var
-    X: AWord;
-  begin
-  inherited GetFull(B, P, C, Sc);
-  if  (LFNLen < 250) {$IFNDEF OS2} or (Flags and psShowLongName = 0)
-    {$ENDIF}
-  then
-    begin
-    {$IFNDEF OS2}
-    if Flags and psShowLongName <> 0 then
-      {$ENDIF}X := LFNLen+1 {$IFNDEF OS2}
-    else
-      X := 13 {$ENDIF};
-    end
-  else
-    X := 0;
-  if Flags and psShowSize <> 0 then
-    X := X+11;
-  if Flags and psShowDate <> 0 then
-    Inc(X, 9);
-  if Flags and psShowTime <> 0 then
-    Inc(X, 6);
-  if Flags and psShowCrDate <> 0 then
-    Inc(X, 9);
-  if Flags and psShowCrTime <> 0 then
-    Inc(X, 6);
-  if Flags and psShowLADate <> 0 then
-    Inc(X, 9);
-  if Flags and psShowLATime <> 0 then
-    Inc(X, 6);
-  if X >= 255 then
-    Exit;
-  if  (Flags and psShowDir <> 0)
-         and ((LFNLen < 250) {$IFNDEF OS2} or (Flags and psShowLongName =
-         0) {$ENDIF})
-  then
-    begin
-    C := C shr 8;
-    MoveStr(TAWordArray(B)[X], AddSpace( {$IFDEF RecodeWhenDraw}
-        CharToOemStr {$ENDIF}(P^.Owner^), MaxViewWidth-X-1), C);
-    {Inc(X, 80);
-    TAWordArray(B)[X-1]:=SC;}
-    end;
-  end { TFindDrive.GetFull };
-
-procedure TFindDrive.GetEmpty;
-  var
-    X: AWord;
-  begin
-  inherited GetEmpty(B, SC);
-  if  (LFNLen < 250) {$IFNDEF OS2} or (Flags and psShowLongName = 0)
-    {$ENDIF}
-  then
-    begin
-    {$IFNDEF OS2}
-    if Flags and psShowLongName <> 0 then
-      {$ENDIF}X := LFNLen+1 {$IFNDEF OS2}
-    else
-      X := 13 {$ENDIF};
-    end
-  else
-    X := 0;
-  if Flags and psShowSize <> 0 then
-    X := X+11;
-  if Flags and psShowDate <> 0 then
-    Inc(X, 9);
-  if Flags and psShowTime <> 0 then
-    Inc(X, 6);
-  if Flags and psShowCrDate <> 0 then
-    Inc(X, 9);
-  if Flags and psShowCrTime <> 0 then
-    Inc(X, 6);
-  if Flags and psShowLADate <> 0 then
-    Inc(X, 9);
-  if Flags and psShowLATime <> 0 then
-    Inc(X, 6);
-  if  (X > 0) and (X < 255) then
-    TAWordArray(B)[X-1] := SC;
-  end { TFindDrive.GetEmpty };
 
 procedure TFindDrive.ChangeUp;
   var
@@ -1589,21 +1349,29 @@ procedure TFindDrive.ChangeUp;
     S := ''
   else
     S := GetName(ListFile^);
-  if Owner = nil then
+  if Panel = nil then
     Exit;
+{AK155 16.05.2005 Prev = nil не бывает. Подробности см. в комментарии
+в TFindDrive.ChangeRoot
   if Prev = nil then
     begin
-    New(Prev, Init(0, Owner, innum));
+    New(Prev, Init(0, Panel));
     if Prev = nil then
       Exit;
     GlobalMessage(evCommand, cmRereadInfo, nil);
     end;
-  PDrive(PFilePanel(Owner)^.Drive) := PDrive(Prev);
+/AK155}
+  PFilePanel(Panel)^.Drive := PDrive(Prev);
   Prev^.lChDir(Prev^.CurDir);
+
+{AK155 16.05.2005 Присвоение для ActivePanel не нужно, так как
+не в активной панели не может возникнуть ChangeUp. А даже если бы
+и могла, то с какой стати нужно было бы эту панель активизировать?
   if  (Prev^.DriveType = dtDisk) and
-      (PView(Owner)^.GetState(sfSelected+sfActive))
+      (PView(Panel)^.GetState(sfSelected+sfActive))
   then
-    ActivePanel := Owner;
+    ActivePanel := Panel;
+/AK155}
   GlobalMessage(evCommand, cmRereadInfo, nil);
   Prev := nil;
   Dispose(PDrive(@Self), Done);
@@ -1618,27 +1386,35 @@ procedure TFindDrive.ChangeRoot;
     CurDir := '';
     Exit;
     end;
-  if Prev <> nil then
+{!! AK155 16.05.2005
+FindDrive может появиться на панели только в результате
+InsertDrive, а в нём FindDrive обязательно получит Prev <> nil.
+Так что анализ не нужен и финальная часть данной процедуры
+тоже не нужна
+}
+//  if Prev <> nil then
     begin
-    PDrive(PFilePanel(Owner)^.Drive) := PDrive(Prev);
+    PFilePanel(Panel)^.Drive := PDrive(Prev);
     Prev^.ChangeRoot;
     GlobalMessage(evCommand, cmRereadInfo, nil);
     Prev := nil;
     Dispose(PDrive(@Self), Done);
-    Exit;
+//    Exit;
     end;
-  New(Prev, Init(0, Owner, innum));
+(* AK155 16.05.2005
+  New(Prev, Init(0, Panel));
   if Prev = nil then
     Exit;
   GlobalMessage(evCommand, cmRereadInfo, nil);
   {Prev^.Owner := Owner;}
-  {Prev^.Flags := PFilePanel(Owner)^.Drive^.Flags;}
-  PDrive(PFilePanel(Owner)^.Drive) := PDrive(Prev);
+  PDrive(PFilePanel(Panel)^.Drive) := PDrive(Prev);
   Prev^.ChangeRoot;
-  if  (PView(Owner)^.GetState(sfSelected+sfActive)) then
-    ActivePanel := Owner;
+  if  (PView(Panel)^.GetState(sfSelected+sfActive)) then
+    ActivePanel := Panel;
   GlobalMessage(evCommand, cmRereadInfo, nil);
   Prev := nil;
+/AK155 16.05.2005
+*)
   end { TFindDrive.ChangeRoot };
 
 function TFindDrive.isUp;
@@ -1745,7 +1521,6 @@ procedure TFindDrive.UseFile;
       FreeObject(ArcFile); {Abort := true;}
       Exit;
       end;
-    ArcPos := 0;
     SkipSFX;
     AType := DetectArchive;
     FreeObject(ArcFile);
@@ -1851,10 +1626,7 @@ procedure NewTemp;
   begin
   if TempFiles = nil then
     New(TempFiles, Init($10, $10));
-  TempFiles^.SortMode := psmOrdered;
-  {$IFDEF Win32}
-  TempFiles^.LFNActive := True; {JO}
-  {$ENDIF}
+  TempFiles^.SortMode := psmLongName;
   TempFiles^.Duplicates := False;
   end;
 
@@ -1932,58 +1704,12 @@ procedure CopyToTempDrive;
   end { CopyToTempDrive };
 {-DataCompBoy-}
 
-{-DataCompBoy-}
-procedure TTempDrive.GetParam;
-  begin
-  Param := n;
-  with ColumnsDefaultsTemp do
-    begin
-    Flags := Params[n].Param;
-    LFNLen := StoI(Params[n].LFNLen);
-    if  (LFNLen = 0) or (LFNLen > 252) then
-      LFNLen := 252;
-    EXTLen := StoI(Params[n].EXTLen);
-    if EXTLen > 252 then
-      EXTLen := 252;
-    case FileCase of
-      0:
-        FilFLP := 0;
-      1:
-        FilFLP := flnLowCase;
-      2:
-        FilFLP := flnCapitalCase;
-      3:
-        FilFLP := flnUpCase;
-      4:
-        FilFLP := 65535;
-    end {case};
-    case DirsCase of
-      0:
-        DirFLP := 0;
-      1:
-        DirFLP := flnLowCase;
-      2:
-        DirFLP := flnCapitalCase;
-      3:
-        DirFLP := flnUpCase;
-      4:
-        DirFLP := 65535;
-    end {case};
-    end;
-  end { TTempDrive.GetParam };
-{-DataCompBoy-}
-
 constructor TTempDrive.Init;
   var
     S: PString;
     {     I: LongInt;}
   begin
   TObject.Init;
-  if num < 1 then
-    GetParam(1)
-  else
-    GetParam(num);
-  innum := num;
   if TempDirs = nil then
     TempDirs := New(PStringCollection, Init(10, 10, False));
   if TempFiles = nil then
@@ -1993,6 +1719,7 @@ constructor TTempDrive.Init;
   Files := TempFiles;
   CurDir := cTEMP_;
   DriveType := dtTemp;
+  ColAllowed := PanelFileColAllowed[pcList];
   ListFile := nil;
   Lfn.lGetDir(0, FreeStr); {System.GetDir(0, FreeStr);}
   {Cat}
@@ -2017,7 +1744,7 @@ constructor TTempDrive.Load(var S: TStream);
   S.Read(Q, SizeOf(Q));
   if Q >= 0 then begin
    Files := New(PFilesCollection, Init($10, $10));
-   Files^.SortMode := psmOrdered;
+   Files^.SortMode := psmLongName;
    Files^.Duplicates := False;
 {  Files^.Owner := @Self;}
    for Q2:=0 to Q do Files^.AtInsert(Q2, LoadFileRecOwn(S, Dirs));
@@ -2120,7 +1847,7 @@ constructor TFindDrive.InitList;
   begin
   if not ReadList(AName, FC, DC) then
     Fail;
-  Init(AName, PCollection(FC), DC, PanelViewMode);
+  Init(AName, PCollection(FC), DC);
   ListFile := NewStr(AName);
   DriveType := dtList;
   AddToDirectoryHistory(ListFile^, Integer(DriveType));
@@ -2202,8 +1929,7 @@ procedure TFindDrive.CopyFromArc;
     ExtrDir := '';
     end;
   if  (DDr in ['A'..'Z']) and
-      ( (SystemData.Drives[DDr] {$IFNDEF OS_DOS} shl 1 {$ENDIF}) and
-      ossUnarcToDirectly <> 0)
+      (SystemData.Drives[DDr] and ossUnarcToDirectly <> 0)
   then
     DT.W := DT.W and not 8
   else
@@ -2242,10 +1968,10 @@ procedure TFindDrive.CopyFromArc;
     if FCCur^.Count > 0 then
       begin
       Drv := New(PArcDrive, Init(GetArcName(CurArcName),
-            GetArcName(CurArcName), 1));
+            GetArcName(CurArcName)));
       if Drv <> nil then
         begin
-        Drv^.Owner := Owner;
+        Drv^.Panel := Panel;
         // дабы обеспечить снятие выделения в панели
         Drv^.lChDir(GetArcOwn(CurArcName));
         PArcDrive(Drv)^.Password := DT.Psw;
@@ -2380,7 +2106,8 @@ procedure TFindDrive.HandleCommand(Command: Word; InfoPtr: Pointer);
     Prev^.HandleCommand(Command, InfoPtr);
   end;
 
-function TFindDrive.OpenDirectory(const Dir: String): PDrive;
+function TFindDrive.OpenDirectory(const Dir: String;
+                                        PutDirs: Boolean): PDrive;
   begin
   OpenDirectory := nil;
   end;
@@ -2433,3 +2160,4 @@ procedure TTempDrive.ChangeRoot;
   end;
 
 end.
+

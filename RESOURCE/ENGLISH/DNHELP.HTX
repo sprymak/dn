@@ -223,6 +223,129 @@ echo area.
   Y      {Memory Info     :MemoryInfo}           {Toggle Full Mode     :_}
   Z      {Zoom Window     :WindowsFeature}
 
+.topic MouseOverview=32
+.title Mouse in DN
+
+   You can do almost anything with the mouse.
+
+{Common operations:_}
+
+   Mouse click on an active element makes DN respond in a predefined way.
+
+   Left click on a menu's element opens or executes that item.
+   Right click in such case is usually equal to the left click, but if the
+menu is Main menu and if it is hidden (Options->Configuration->Interface...->
+->Hide menu bar). Here right click is used to operate with windows (they may
+be overlayed by an activated Main menu), then the left click is used to
+operate the menu itself.
+
+   If you grab the window's top (the double horizontal border line), you
+can move the window.
+
+   Mouse click on a number in square brackets or on the brackets themselves
+(window's upper left corner) closes the window.
+
+   Mouse click on an arrow in square brackets or on the brackets themselves
+(window's upper right corner) makes the window maximized (up arrow) or resizes
+it to common size (up-down arrow). Also you can simply double click the
+window's top to do that.
+
+   You can resize the window while moving the lower left corner (the single
+border line).
+
+   You can also use scroll bar with the mouse.
+
+{Mouse in File manager:_}
+
+   Here specific mouse usage in the File manager is described.
+
+   The main feature is file operations, you can read about them below.
+
+   File tagging is done by right-clicking on a file name.
+
+   Mouse click on a panel's name (path line) can cause two actions. If you
+click on a line before the first backslash or on the first backslash itself,
+DN opens Drive selection menu. If you click after the first backslash, the
+Directory tree will be opened.
+
+   If you grab the panel separator (the double vertical border line), you can
+redistribute the two panels' widths. Note that you currently cannot do that
+when one of the panels is hidden.
+
+   If you grab the border of the "Name" column (the single vertical border
+line), you can change the width of this column.
+
+   A single click on a drive letter in the drive line changes the drive, a
+double click makes DN to change to a root directory of that drive (even if
+you are already on that drive).
+   Clicking on the square brackets housing the drive line closes or opens the
+corresponding panel (the left bracket closes and opens the left panel, while
+the right bracket does that for the right panel).
+
+
+   And now to the file operations
+
+   You can grab files, move and drop them, causing coping, moving or
+deleting files. The main rule of grabbing is: what you see is what you grab.
+
+   You can grab either one file (over which the cursor is located), tagged
+files, or all files (including subdirs).
+
+One file can be grabbed:
+  - from the lines "File information" and "LFN" in the footer
+  - as an untagged name from file panel.
+
+Tagged files can be grabbed:
+  - from the line "Selected files" (in the footer and divider)
+  - from the line of the brief info about selected files on the divider (left
+part)
+  - as a tagged name in the file panel.
+
+All files can be grabbed:
+  - from the line "Directory info" (in the footer and divider)
+  - from the line of the brief info about directory on the divider (right
+part).
+
+   You can also grab files from the panels "Archive" and "List" ("Temp:",
+"Search", and "Branch").
+
+   It is also important where you drop (release) files.
+   You can drop file on any file panel, panel's name (path line), drive line,
+and in the trashcan. The main rule is: where you drop is where you go.
+
+   Files will be copied in the current directory (it's name and path are
+displayed at the upper line of the panel's frame border) if you drop:
+  - on its path in the frame border
+  - on an empty line or a line with filename (not directory name).
+
+   If you drop files on a line with a subdirectory name, they will be copied
+into that subdirectory.
+
+   If you drop files on "..", they will be copied into the parent directory of
+the current directory.
+
+   When you drop files on a drive letter in the drive line, they will be copied
+into the current direcory of that drive. Be careful! If copy confirmation is
+turned off and you do not know exactly which directory is "current" on the
+drive, the files may be copied to a wrong place!
+
+   When you drop files in a trashcan, they will be deleted.
+
+   File operations will be canceled if you drop files on all other elements
+not listed above (for example, when you drop files on the separator between
+the panels).
+
+   You can hold Ctrl or Shift while releasing files. If you do, the files will
+be moved, not copied. So you can disable confirmation dialog. However, when
+you drop files onto a trashcan, the keys are ignored.
+
+   When you drop files onto the "Archive" panel, they will be copied to the
+archive.
+
+   When you drop files onto the "Temp:" panel, confirmation dialogs will not
+be displayed.
+
+   No action is taken if files are dropped onto "Search" and "Branch".
 
 .topic EditorFeature=8
 .title Text Editor
@@ -818,49 +941,66 @@ When copying, Navigator can use system 'copy' function if
 .topic CopyDialog=30
 .title Copy dialog box
 
-   ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ Copy ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
-   º Copy file dnhlp.txt to                                 º
- Úº A:\ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ Şİº
- ³ º                                                        º
- ³ º ( ) Overwrite all existing files ¿°°°°°°°°°°°°°°°°°°°  º
- ³ º ( ) Append to all existing files ³ ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
- ³ º () Ask for overwrite °°°°°°°°°°°Ù°°°°°°°°°°°°°°°°°°°  º  ³
- ³ º ( ) Skip all existing files°°°°°°°°°°°°°°°°°°°°°°°°°°  º  ³
- ³ º ( ) Refresh old files°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°  º  ³
- ³ º                             ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿³
- ³ º [ ] Check free disk space ÄÙ[ ] Copy descriptions°°°  º ³³
- ³ º [ ] Verify disk writes°°°°°°°[ ] Remove source files°  º ³³
- ³ º                                                        º ³³
- ³ º                °°°OK°°°Ü °Cancel°Ü °°Tree°°Ü °°Help°°Ü º ³³
- ³ º                 ßßßßßßßß  ßßßßßßßß  ßßßßßßßß  ßßßßßßßß º ³³
- ³ ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼ ³³
- ³                                                            ³³
- À Line with filemask, to which the given file(s)             ³³
-   will be copied. Wildcards are allowed.                     ³³
-                                                              ³³
-   The possible options for copying:                   ÄÄ¿    ³³
-                                                         ³    ³³
-    "Overwrite all existing files" - overwrite           ³    ³³
-    already existing files without requests,             ³    ³³
-    speeds up the copying process, as does not           ³    ³³
-    check the existence of a created file.               ³    ³³
-                                                         ³    ³³
-    "Append to all existing files" - adding the          ³    ³³
-    contents of a copied file to an already              ÃÄÄÄÄ³Ù
-    existing file without request. If a group            ³    ³
-    of files is copied, it is necessary to take          ³    ³
-                                                         ³    ³
-    care about that, so the files are in the             ³    ³
-    right order.                                         ³    ³
-                                                         ³    ³
-    "Ask for overwrite" - Navigator will ask you         ³    ³
-    if you want to overwrite an already existing         ³    ³
-    file with the file to be copied.                   ÄÄÙ    ³
-    (on by default)                                           ³
-                                                              ³
-    If you enable this option, Navigator will          ÄÄÄÄÄÄÄÙ
-    check the available free space, before
-    writing the file to disk.
+
+   Fill the input line at the top of dialog with path and/or
+   filemask, to which the given file(s) will be copied.
+   Standard wildcards are allowed, with two additional
+   substitution symbols:
+
+   "<" character in the destination mask means that the
+       corresponding source name character is to be skipped
+
+   ">" character in the destination mask means that the next
+       character is to be inserted into the name instead
+       of replacing existing characters
+
+   The possible options for copying:
+
+    "Overwrite all existing files" - overwrite
+    already existing files without requests,
+    speeds up the copying process, as does not
+    check the existence of a created file.
+
+    "Append to all existing files" - adding the
+    contents of a copied file to an already
+    existing file without request. If a group
+    of files is copied, it is necessary to take
+    care about that, so the files are in the
+    right order.
+
+    "Ask for overwrite" - Navigator will ask you
+    if you want to overwrite an already existing
+    file with the file to be copied.
+    (on by default)
+
+    "Skip all existing files" - skip already
+    existing files without requests
+
+    "Refresh old files" - overwrite already
+    existing files only if they older then
+    files to be copied
+
+    "Check free disk space" - if you enable this
+    option, Navigator will check the available
+    free space, before  writing the file to disk.
+
+    "Verify disk writes" - checking of file integrity
+    after writing will be done
+
+    "Copy descriptions" - the descriptions of copied
+    files will be copied to descriptions containing
+    file in destination directory.
+    Note: this option is available only either if
+    option "Always copy descriptions" in
+    File Manager Setup is checked on, or if
+    descriprions show mode of file panel switched on
+    (or if both conditions mentioned above are true)
+
+    "Rename to logical names" (OS/2 version only) -
+    rename copied/moved files to values of their
+    Extended Attribute .LONGNAME
+
+    "Remove source files" - move files instead of copy
 
 
 .topic AppendFiles=31
@@ -1040,130 +1180,237 @@ Navigator performs following operations with disks:
 
   - {Install a volume label:VolLabel}
 
-.topic FilePanel=1100
-.title File Panel
+.topic FilePanel=1100 ; [M] /_Antares19_/ 23-04-2000
+.title File panel
+   {File panel:_} - is the main panel of the File manager. You can work with
+both files and directories, and perform both individual or group operations.
+You can set up each panel in {Options|Panel:_}.
 
-File panel is the main panel of the File Manager. It gives the user the
-opportunity to work with files and directories and to perform operations
-on groups of files and/or directories. The user can change the parameters
-for each panel using the command Panel|Setup Panel, with ALT-S.
+   One can also set up the view of the current panel from the menu
+{Panel|Select appearance preset...:_} (Alt-"-"). Or just use the hotkeys
+Ctrl-(1..9,0) for {presets:PanelPresets}.
+   Under Windows you can see long or short file names, and this can be changed
+in the panel's view dialog (the hotkey is Ctrl-N).
 
-To tag (or untag) files for group operations use the Insert key or,
-for tagging files using a mask, the command Panel|Select Group
-(Panel|Unselect Group to untag) is used. If you want, that the
-tagged files become not untagged and the untagged become tagged, use the
-command Panel|Invert Selection.
+   There are different file operations available. You can call them from the
+{File:FileMenu} and {Panel:PanelMenu} menus.
+   You can tag files for group operations with {INSERT:_} key (or SPACE key,
+if you want {Options|File Manager|Setup...:FileMgrSetup}).
+Untagging is made by the same keys.
+   Here is more information about tagging and untagging:
+   - to tag all files by mask use {Gray+:_}
+   - to untag all files by mask use {Gray-:_}
+   - to tag all files from the same group as the curent file use {Ctrl-Gray+:_}
+   - to untag all files from the same group as the curent file use
+{Ctrl-Gray-:_}
+   - to tag all files with the same extension as the current file use
+{Shift-Ctrl-Gray+:_}
+   - to untag all files with the same extension as the current file use
+{Shift-Ctrl-Gray-:_}
+   - to invert tagging use {Gray*:_}. Note that directories are excluded.
+   - to invert tagging including directories use {Ctrl-Gray*:_}.
 
-Note: marking of directories must be done manually.
+   The prefix "Gray" above means that numeric pad keys are used.
+   Note that you can use {Gray*:_} and {Ctrl-Gray*:_} for quick tagging of
+the panel's content.
+   You can also tag all if you press {Ctrl-Gray+:_} on {"..":_}.
 
-Panel|Make list file command is used whenever you want to create a list
-of currently marked files.
-
-
- See also {"Types of file panel":PanelWide}
-          {"Installation of file panel parameters":PanelSetup}
-          {"File panel Hot keys":PanelHotKeys}
+³See also: {File panel view:PanelView}
+³          {Panel sorting:PanelSortSetup}
+³          {Hotkeys in file panel:PanelHotKeys}
 
 .topic LinkPanel=1101
 .title Link Panel
 
+.topic PanelView=11000
+.title File panel type
+   There are four types of file panels. These are "Drive", "List", "Archive"
+and "ARVID".
+   "Drive" is the main type of panels and the most commonly used. The
+differences of other types will be described according to the following view.
+An example of this type
 
-.topic PanelWide=11000
-.title Type of file panel
+³     1              2                 4
+³                                3   
+³  ÉÍ[1]ÍÍÍÍÍÍÍÍÍÍÍ E:\DN ÍÍÍÍÍÍÍÍÍÍÍ[]Í»
+³  º    Name    ³    Name    ³    Name    5
+³  º..          ³            ³            ±6
+³  ºColors      ³            ³            ±
+³  ºXLT         ³            ³            ş7
+³  º   This is file list, it can looks:   ±
+³  º            like that:                ±
+³  ºenglish  dlg³  118 380³19.05.05³ 2:54³±
+³  ºrussian  dlg³  124 392³25.05.05³ 2:53³±
+³  ºdn       dsk³    7 905³28.05.05³16:59³±
+³  ºdnhgl    grp³      747³28.05.05³15:32³±
+³  ºdn       his³    3 409³28.05.05³18:35³±
+³  ºenglish  hlp³  134 094³19.05.05³ 2:53³±
+³  ºrussian  hlp³  206 716³25.05.05³ 2:53³±
+³  ºdnini    in_³    6 932³28.05.05³16:59³±
+³  ºdn       ini³    1 715³26.05.05³21:04³±
+³  ºdescript ion³       27³28.05.05³18:57³±
+³  ºenglish  lng³   21 637³19.05.05³ 2:54³8
+³ 9Ä10 470(2)ÄÄÁÄÄ10ÄÄÄÄÄÁÄÄ1 729 245(16)11
+³12XLT               1 105 25.05.05 11:29º
+³13XLT                                   º
+³14Recode tabels                         º
+³15[ A C D E F G H I * ]ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
 
-The file panel of the file manager appears on your screen like this:
+  1 - Global window number (left panel)
+  2 - Path to current directory
+  3 - Column name
+  4 - Maximize button (rigth panel)
+  5 Ä Scroll up button
+  6 Ä Scroll bar
+  7 - Scroll bar marker
+  8 Ä Scroll down button
+  9 - Tagged files info (total size and quantity)
+ 10 - Divider. It splits the footer from the panel
+ 11 - Total files info (total size and quantity)
+ 12 - Current file info (file under the cursor)
+ 13 - Long file name of the current file
+ 14 - Description of the current file
+ 15 - Drive line
 
-   ÉÍ[ş]ÍÍÍÍÍÍÍÍ E:\TP\DNHLP ÍÍÍÍÍÍÍÍÍ[]Í»
-   º..          ³            ³            
-   º a          ³            ³            ş
-   º dn      hlp³            ³            ±
-   º {The list of files, which can:_}         ±
-   º            {appear like this:_}          ±
-   º a          ³ 1,059 ³23-05-93³21:48   ±
-   º dn      hlp³ 27,724³23-05-93³21:22   ±
-   º dnhlp   hlp³ 21,870³22-05-93³14:15   ±
-   º dn      old³ 7,507 ³22-05-93³13:09   
-   ºÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
-   º..          < UP - DIR > 7-04-93 13:50ÄÄÄ¿³
-   º          No files selected           ÄÄ¿³³
-   º Total:8 files with 88,508 bytes      Ä¿³³³
-   º 16,748,544 free bytes on drive E:    ¿³³³³
-   ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÄÙ³³³³³
-                                           ³³³³³
-           The amount of free space on diskÙ³³³³
-      Information about all files on panel ÄÙ³³³
-      (their used space and common length)   ³³³
-     The same information about marked filesÄÙ³³
-     The information about the currently  ÄÄÄÄÙ³
-     highlighted file                          ³
-                              Info Divider ÄÄÄÄÙ
+Note that this is only an example and not all possible items are shown.
 
-All the elements which are part of the file panel can be included
-or excluded by switching on or of the appropriate toggle in the menu-option
-Options|Defaults|File Panel.
+   The "List" panel is used for displaying the search results, branches, and
+lists, as well as for the "TEMP:" panel. The main difference between them is
+the elements being displayed.
+An example of this type
 
-.topic PanelSetup=11001
-.title Installation of file panel parameters
+³ÉÍ[1]ÍÍÍÍÍÍÍÍÍ Find: *.* ÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+³º    Name    ³  Path                   
+³º..          ³E:\(0)                   ±
+³ºColorsû     ³E:\(0)\                  ş
+³ºXLT         ³E:\(0)\                  ±
+³ºdn       cfg³E:\(0)\                  ±
+³ºenglish  dlg³E:\(0)\                  ±
+³ºrussian  dlg³E:\(0)\                  ±
+³ºdn       dsk³E:\(0)\                  ±
+³ºdn       exe³E:\(0)\                  ±
+³ºdnhgl    grp³E:\(0)\                  ±
+³ºdn       his³E:\(0)\                  ±
+³ºenglish  hlp³E:\(0)\                  ±
+³ºrussian  hlp³E:\(0)\                  ±
+³ºdnini    in_³E:\(0)\                  ±
+³ºdn       ini³E:\(0)\                  ±
+³ºdescript ion³E:\(0)\                  ±
+³ºdescript°ion³E:\(0)\XLT\              
+³ºÄ600(1)ÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄ1 730 996(24)º
+³ºXLT               1 105 25.05.05 11:29º
+³ºXLT                                   º
+³º                                      º
+³È[ A C D E F G H I * ]ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
 
-{Sort by:_} - Type of sorting. Files can be sorted by name,
-extension, size, creation date and time or unsorted.
-The last means that files will be shown in the same order, as
-they are showed by the DOS command "DIR". (Provided you did not use
-the /O switch!)
+  The panel's name can be "TEMP:", "Branch:", "Find:" ¨«¨ "List:"
+Displayed after the colon are directory for which the branch is build,
+search mask, or name of a file-list.
+You cannot see files' descriptions in columns and footer, but one can see
+full paths to the files.
 
-{Show:_} - What should be visible on the screen?
 
-  Directory length - Show the total count of all files in a
-   subdirectory, including all underlying directories.
+   The "Archive" panel is used to display the archive content.
 
-  Current file - Show the information about the currently selected file.
+An example of this type
 
-  Selected files - Show the information about the selected files.
+³ÉÍ[1]ÍÍÍÍÍÍÍÍ RAR:(0).rar ÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+³º    Name    ³    Name    ³    Name    
+³º..          ³russian  lng³            ±
+³ºColorsû     ³            ³            ±
+³ºXLT         ³            ³            ş
+³ºdn       cfg³            ³            ±
+³ºenglish  dlg³            ³            ±
+³ºrussian  dlg³            ³            ±
+³ºdn       dsk³            ³            ±
+³ºdn       exe³            ³            ±
+³ºdnhgl    grp³            ³            ±
+³ºdn       his³            ³            ±
+³ºenglish  hlp³            ³            ±
+³ºrussian  hlp³            ³            ±
+³ºdnini    in_³            ³            ±
+³ºdn       ini³            ³            ±
+³ºdescript ion³            ³            ±
+³ºenglish  lng³            ³            
+³ºÄ600/516(1)ÄÁÄÄÄÄÄÄÄÄÄÄÄÄ1 730 996(16)º
+³ºXLT           <Š â «®£> 28.05.05 19:28º
+³ºXLT                                   º
+³º  Packed:  1 061         Ratio: 96%   º
+³È[ A C D E F G H I * ]ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
 
-  Totals - Show the information about all files, which are visible
-   on the file panel.
+You cam see the archive type and archive's file name.
+Descriptions and paths are unavaiable, but one can see information about
+packing: the packed size and packing ratio.
 
-  Free space - Show the amount of available free space on the current
-   disk. This way you will not need the information screen (Ctrl-L).
+See also Options->Panel->{Setup appearance:PanelShowSetup}
 
-  Files highlight - "Illumination" of files of various
-   types by different colors. It is possible to define
-   five groups of user files.
+.topic PanelSortSetup=11001
+.title Sorting in file panel
+{Sort by...:_}
+   This block is used to choose basic sorting scheme for filenames in a panel.
+(Note for Windows users. Sorting by name sorts by names of the files shown in
+the panel. So, if the panel displays short names, sorting would be done by
+short names.)
+   Creation date and last access date can be useful if you need to find a
+file created at a certain time (it can be modified afterwards) or a file which
+was accessed most recently.
+   Sorting by description can be useful if you wish to find a file without
+any description within a very large number of different files or to group files
+with certain descriptions (showng the description can be usefull too, Ctrl-K).
+   Unsorted means that names of files and directories will be shown in an
+order the operating system assigns. Note that additional sorting features
+(described below) are inactive, too.
 
-  Executable first - Show the executable files
-   (BAT, COM, EXE, BTM) at the beginning of the filelist,
-   independent from the selected sorting order.
+{Sorting features:_}
+   These features have a priority over the "Sort by..." option. Thus, if you
+check "Sort by path" (i.e., for a search panel), files will be sorted by path
+and only for the files with the same path the "Sort by..." option will be used.
+   Sorting by group can be useful if you do not like sorting by extension and
+you want to see, i.e., all documents first (*.txt, *.doc ...), then graphical
+files (*.bmp, *.jpg ...) and so on.
+   You can set up groups in Options->File manager->Highlight groups... and
+colors for groups in Options->Colors...->File manager->File panel->Highlight->
+->Custom 1, Custom 2...
+   Inverted order just inverts the "Sort by..." block option. It does not
+affect "Sort by path" or "Sort by group".
+   If you check "Directories by name", directories will always be sorted by
+their names (and "Sort by..." block option will only be used for files). This
+can be useful when files are sorted by extension because directory extensions
+are less important than file extensions.
+   Note that this setting overrides all others in the "Sort by..." block
+(except "Unsorted").
 
-  Put archives first - Show the archived files
-   (ZIP, ARJ, ZOO, etc.) at the beginning of the filelist,
-   independent from the selected sorting order.
+{Put to the top:_}
+   Here you can set up which files should be placed first. This block has the
+highest priority.
+   There are four categories: "Directories", "Archives", "Executables" and
+"Hidden and system". The order in the block means the order of sorting.
+An additional (fifth) category, "None", can be selected when you use less than
+all four categories. If so, you should select "None" for empty places.
+   Here is an example of that block:
 
-  Exe before archives
+³      Put to the top:
+³    1 [   Directories   ]
+³    2 [    Archives     ]
+³    3 [   Executables   ]
+³    4 [      None       ]
 
-  Long name in bottom - show full long name of the current file in
-the info pane in panel bottom if (part of) this long name don't
-show in 'Current file' info line. This flag and 'Selected files'
-flag share one info line.
+   This means that first will go directories, then archives, then executables,
+and then all other files. In each group files will be sorted according to
+other blocks.
 
-  Descrition in bottom - show description of the current file in the
-info pane in panel bottom. This flag and 'Free space' flag split
-one info line.
+{File names comparing:_}
+   In operating systems for which DN/2 is produced (OS/2 and Windows), the
+uppercase and lowercase characters in filenames are not distinguished. So, it
+is not necessary to differentiate between them when sorting files in panels.
+But if you compare alphabetic characters and non-alphabetic symbols, results
+of such comparsions will be different, depending on the case conversion. If
+you want files starting with the "_" symbol to be before files, starting
+with letter, select Lower case (and Upper case otherwise).
+   Alphabetic sorting is used for national alphabets, where the machine code
+comparsion results may be incorrect for national symbols.
 
- {File mask:_} - Filter for filenames. Every single files mask,
-   is separated from the next one with a semi-colon (";").
-   The files that will fit on one of these masks are shown in the
-   file panel. All others are invisible.
-
-.topic PanelDefaults=11002
-.title Panel Defaults
-  In this window You may set default settings for {new:_}
-{File Manager:FileManager}. These settings don't change the state of
-existing File Managers.
-  Button  blocks  {Sort by:_} and {Display:_} are the same with
-{Panel Options:PanelSetup}.
-
-  Right panel in new Manager alway is a disk panel, left panel is
-configurable.
+See also {File panel setup:PanelSetup}
 
 .topic PanelHotKeys=11003
 .title File panel Hot keys
@@ -2209,9 +2456,9 @@ operation, automatically the printing is suspended.
 
 .topic CountrySetup=16564
 .title Country support
-This panel is designed for settings specific to country and language.
+   This panel is designed for settings specific to country and language.
 
-The group of settings in upper part of the dialog usually does not
+   The group of settings in upper part of the dialog usually does not
 require manual correction. These values are requested from operating
 system when DN is started for the first time.  However one can change
 them if necessary.
@@ -2220,10 +2467,10 @@ button {System:_}. The uppercase table setup that existed in previous
 versions of DN is eliminated now. This table is requested from operating
 system and cannot be modified.
 
-In lower part of the dialog there are three input lines: "Keyboard",
-"WIN:" and "Additional codetables".
+   In lower part of the dialog there are three input lines: "Keyboard",
+"Alphabetic sorting", "WIN:" and "Additional codetables".
 
-Line {Keyboard:_} defines the name of conversion file for symbols
+   The line {Keyboard:_} defines the name of conversion file for symbols
 entered in wrong keyboard layout and is used when pressing Alt-F12
 in editor and input lines. This is usual conversion file (XLT)
 which is located in XLT directory by default. Setting up a full path
@@ -2232,7 +2479,23 @@ For Russian layout (441) such file is supplied with DN (ru441.xlt).
 If you use other layout, for example, 443 ("typewriter"), then you can
 easily build the corresponding conversion file.
 
-Line {WIN:_} defines conversion from Windows code table
+   The line {Alphabetic sorting:_}
+specifies a weight table for alphabetic sorting of filenames in
+the panels. The weight table assigns each symbol its sorting weight
+and the sorting is done according to the weights, not the symbols'
+codes. It's the simplest to leave this line empty or to write
+there 0 - in that case the weight table for the current codepage
+and current language will be used.
+    In this line one can also specify the codepage number (for
+current language) or name of an xlt file that translates symbols
+into their weights. The file sort866.xlt defining alphabetic sorting
+for Russian language is included in the distribution of DN/2.
+    {Note:_}. At this time (Oct 29, 2005) all three options of
+specifying alphabetic sorting are functional only in the OS/2
+version of DN/2. In the Win32 version, only the xlt-file sorting
+is applied.
+
+   The line {WIN:_} defines conversion from Windows code table
 to DOS code table.
 In DN for DOS in this line should be the name of .xlt file.
 In versions for OS/2 and Windows there can be either the name
@@ -2243,8 +2506,7 @@ from operating system.
 It is strongly recommended to leave this setting as is, because this
 table is used when working with filenames, therefore it is important
 to make sure that this table corresponds to the operating system.
-
-File win866r.xlt is supplied with DN, which defines reverse conversion
+   File win866r.xlt is supplied with DN, which defines reverse conversion
 from CP 1251 to CP 866. This means that unconvertible symbols,
 i.e. missing in target code page, are converted not to "?" as usual,
 but to symbols which cannot be converted back. Besides such substitutions
@@ -2252,7 +2514,7 @@ are one-for-one, therefore conversion of any text is lossless.
 Perhaps using this or similar table is the only case when setting
 something different from zero in line WIN makes sense.
 
-Line {Additional codetables:_} allows to define extra code tables,
+   The line {Additional codetables:_} allows to define extra code tables,
 one can switch between them by pressing F8 key in editor and viewer.
 Example of setting up a code table:
 KOI:koi8r.xlt. Here we define a code table which will appear in window
@@ -2262,7 +2524,7 @@ In versions for OS/2 and Windows one can define here a code page number
 instead of conversion file name. In this line several code tables
 can be listed using the space symbol as separator.
 
-All modifications made in this dialog are applied after pressing
+   All modifications made in this dialog are applied after pressing
 "{OK:_}" button if no errors will be revealed.
 If "Cancel" button is pressed then the previous values for all parameters
 will be used, even if "System" button was pressed before,
@@ -2287,6 +2549,112 @@ Enter password again to confirm.
 
 .topic InterfaceSetup=16568
 .title Interface Setup
+
+Here you can setup which elements of DN's interface you need and which you
+need not.
+
+{Clock:_} Shows clock. There are additional options for clock in file dn.ini,
+section [Clock].
+
+{Hide menu bar:_} If you hide main menu, you can access it by pressing
+{F10:_}, and by left-clicking on upper line of screen. Right-clicking is used
+to operate with windows. See also {Mouse overview:MouseOverview}
+
+{Hide status line:_} This line usually contain hints for functional keys, and
+other hints some time. It is located on lower line of screen.
+
+{ESC for user screen:_} You can setup showing user screen by pressing {ESC:_},
+not only {Alt-F5:_}
+
+{Hide Command Line:_} You can hide Command Line, if you don't use it. And if
+you need to execute the OS command, there is {Execute OS command:_} item in
+system menu.
+
+{Auto hide Command Line:_} If cheched, Command Line will be hidden when new
+window is open, for example, editor window. Just type somehing in Manager
+window, and Command Line will appear.
+
+{Block Insert Cursor:_} Default cursor for insert is dash, and block for
+replace. This option alters this behaviour.
+
+{Store editor position:_} If checked, DN will store file position in all
+edited files, so you can continue from where you stopped. Note that this
+option will not work, when {Track editing history:_} is unchecked.
+
+{Store viewer position:_} Same as previous, but for viever.
+
+{Track editing history:_} If checked, DN will track all edited files and put
+it in File Edit History. This history is available from
+Utilities->File Edit History, or by hotkey Alt-PgUp.
+
+{Track viewing history:_} Same as previous, but for viever.
+Hotkey is Alt-PgDn.
+
+{Track directories:_} Same as previous two, Hotkey is Alt-BkSp.
+
+Block "Drive selection menu information"
+
+This block sets the view for Drive selection menu, which is called by pressing
+Alt-F1, Alt-F2, and also partly sets the view of new manager menu which is
+called by pressing Ctrl-F3.
+
+Block has two parts. Left part is a table, where you can set, what types of
+information for which types of drives shold be shown. Note, that detection of
+file system, volume label and free space require drive usage, so it can be
+useful not to show this information for removable and optical drives.
+
+And right is a list of additional settings.
+
+In block of radiobuttons {For all drives; For all, except; For none:_} you
+can setup showing information for all drives, for all except listed or not for
+any disc correspondingly.
+
+Semiblock "Additionally include:" has next settings
+
+{Quick access directories:_} If checked, DN will show list of quick access
+directories.
+
+{Number of files on TEMP:_} If checked, DN will show total number of files in
+TEMP: panel.
+
+Note that this semiblock affects only menu, which is called by Alt-F1, Alt-F2
+and not affect menu for creating new File Manager (Ctrl-F3)
+
+At the most bottom is {Tabulated view:_} setting. Here is example of how it
+works.
+
+³If unchecked
+³
+³ ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³ ³ A: Remov.                          ³
+³ ³ C: Fixed FAT32  1120.5M            ³
+³ ³ D: Fixed FAT32  144.9M             ³
+³ ³ E: Fixed FAT32  1564.0M            ³
+³ ³ F: CD-ROM                          ³
+³ ³ G: CD-ROM  Eva Gold dvd2 0.0M      ³
+³ ³ H: Fixed FAT32  4926.6M            ³
+³ ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ ³ *: TEMP: empty                     ³
+³ ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ ³ 1: C:\Program Files\eMTemp  Alt-1 ³
+³ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+³
+³If checked
+³
+³ ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³ ³ A: Remov.                             ³
+³ ³ C: Fixed  FAT32               1120.5M ³
+³ ³ D: Fixed  FAT32                144.9M ³
+³ ³ E: Fixed  FAT32               1564.0M ³
+³ ³ F: CD-ROM                             ³
+³ ³ G: CD-ROM       Eva Gold dvd2    0.0M ³
+³ ³ H: Fixed  FAT32               4926.6M ³
+³ ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ ³ *: TEMP: empty                        ³
+³ ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+³ ³ 1: C:\Program Files\eMTemp     Alt-1 ³
+³ ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
 
 .topic SetupTerminal=16569
 .title Setup Terminal
@@ -2338,17 +2706,320 @@ Value is absolute. Number is started from the zero.
 
 Press {ESC:_} to cancel the operation or {ENTER:_} to repeat it.
 
-.topic SetupDiskColumns=16580
-.title Setup Disk Columns
- Information to put in current panel columns.
 
-.topic SetupArcColumns=16581
-.title Setup Archive Columns
- Information to put in current panel columns.
+.topic PanelShowSetup=16580
+.title File panel view setup
+   This dialog includes two large groups of options. The left part is for
+files displayed in {panel columns:PanelShowSetup1}, whereas the right part
+is for additional information in {footer:PanelShowSetup2} (and on the divider
+line between the footer and columns).
 
-.topic SetupFindColumns=16582
-.title Setup Find Columns
- Information to put in current panel columns.
+See also {File panel setup:PanelSetup}
+
+.topic PanelShowSetup1=16601
+.title File panel setup - files in columns
+{Columns block:_}
+   Usually you see only the filename column. Here you can select, which
+additional columns should also be displayed. For example, a path column may be
+useful in the "List" panel.
+   Some of the panels do not have certain columns. For example, the
+"Packed size" and "Packing ratio, %" columns are meant only for archive
+panels; the column "Path" is only for the "List" panels. However, this block
+has all colums and all of them are available for selection. This can be
+useful for storing all setups ("Store" - "All").
+   The Windows version of DN has also a "Show LFN" option. Unlike other
+options, it does not turn the column on (it is always on). It sets, which type
+of names (long or short) should be displayed in the "Name" column. If file
+system does not support short file names, squares . will be shown
+as a placeholder.
+
+   Case of names in panels {Directories, Files:_}.
+   These options set the case of filenames and directory names in panels.
+Options are self-explanatory, except the AUTO/auto (directories/files).
+This option shows files "aS Is", if an LFN is shown in the panel and it has
+both the uppercase and lowercase characters in its name or extension. But if
+a panel displays short file names or if all characters in the names are of the
+same case and all letters in extensions are of the same case (cases of the name
+and extension may differ), then the directory names will be shown in uppercase
+whereas filenames in lowercase, as in the classical DOS file managers (NC, VC).
+For example, flpanel.PAS will be shown in lowercase.
+
+   You can set up the {"Name" column width:_} and space for extension below.
+The typical options are 12.3 and 18.4. If you specify 250 or more symbols
+for names, then all other columns with variable width ("Path" and
+"Description") will be blocked, and the name column will be the last, not the
+first one. For example, for files with very long names ot may be useful to
+turn on the size column, and set 252 for name width. In this case, the first
+column will contain size and the second column (for all the space left) will
+contain the name.
+
+   {Tabulate extension:_} block sets the name and extension display options.
+The "Tabulate" term means to show the extension from a certain position in a
+line and with no separator (".") between the name and extension.
+   The "Never" setting leaves 0 characters for extensions. This means that
+the extension will not be tabulated and after the separator no extension will
+be shown. Too long names will be truncated if they exceed the column width.
+   The "Always" setting assigns certain space for extensions from the right
+margin unconditionally. If a name is too long, it will be truncated before the
+extension field even if the extension is short or absent. The separator "."
+between name and extension will be replaced by a space character.
+   The "If does not fit in" setting is similar to the "Never" setting. However,
+if the full extension does not fit in, it will be truncated to certain length
+(including the cut symbol). If a name together with "." do not fit into the
+space before the extension, then the name will be truncated, too. The symbol
+"." before the extension is shown if not changed to a cut symbol.
+   The "If exists and there are symbols before" setting is a combination of
+the "Always" and "Never" settings. If a file has name and extension, then it
+will be shown with the "Always" setting. If a file has no extension (its full
+name has no ".") or has an extension only (the only "." is the first symbol
+of the name), then it will be shown as in the "Never" setting.
+
+   Here are examples of these settings.
+
+For example, we have these files
+
+³Long_name
+³Name
+³.ext
+³Long_name.ext
+³Name.ext
+³Name.long_ext
+³.long_ext
+³Long_name.long_ext
+³
+³12.3 setting
+³
+³{Never:_}     {If exists and there:_}     {If does:_}       {Always:_}
+³            {are symbols before:_}   {not fit in:_}
+³Long_name      Long_name        Long_name      Long_nam
+³Name           Name             Name           Name
+³.ext           .ext             .ext                    ext
+³Long_name.e   Long_namext     Long_namext   Long_namext
+³Name.ext       Name     ext     Name.ext       Name     ext
+³.long_ext      .long_ext        .long_ext               lo
+³Long_name.l   Long_namlo     Long_namlo   Long_namlo
+³Name.long_e   Name     lo     Name.long_e   Name     lo
+
+See also {Divider and footer settings:PanelShowSetup2}
+
+.topic PanelShowSetup2=16602
+.title File panel setup - Divider and Footer
+
+   Here you can set up the information to show in the footer, where to show it
+and how. Information types are on the left (File information, Selected files
+size, ..., Free space), and on the right of each field is a selection block.
+This block sets a place to show information (or skip it).
+
+   The option "Brief on separator" is available only for "Selected files size",
+"Packing % only", "Directory info", and "Free space".
+
+Selected files size is shown in the left part of separator, whereas directory
+info and free space - in its right part, and packing % - in its middle part.
+Note that there is no point in selecting this option for directory info and
+free space simultaneously.
+   Other information spaces can not be combined. You can see only one type of
+information in the line.
+
+   If you select to show multiple info in the same line only the first type of
+available information will be displayed (first in the top-bottom order in this
+dialog). It may be useful to combine one or more information types which can
+be absent with a type always available, but with a lower priority.
+   For example, if you wish to show description and directory info in the line
+3, then if the file has a description, that description will be shown,
+otherwise you see directory info (files quantity and total size)
+  You can have up to 4 lines in the footer. It is not nessesary to fill them
+all. If a line has not been selected to display something, it will not be
+shown at all. For example, if you want to have 2 lines in the footer, you can
+use lines 1 and 2 or 2 and 4.
+
+   Here is a more detailed description of the additional information in the
+footer.
+
+   {File information:_} - show in footer a line with file information. If you
+select to display all information in columns, you can turn this line off.
+   In Windows, where a file can have two names, the long and the short ones,
+there is an additional option "Name" with two choices, "Unlike that in panel"
+and "Always long". First selection shows an alternative name (if the panel
+displays long names, you will see a short name here and if the panel shows
+short names, you will see a long name). Second selection shows long names
+always. The second choice is useful with file systems that do not support
+short names.
+
+   {Filter:_} - here you select where to show {Filter:AdvancedFilter} (mask)
+of files in the panel. If there is no filtering (i.e., the mask is *.*), then
+the filter will not be shown. If this line has not been selected for any other
+information, it will not be shown either.
+   Those who work only occasionally with filters can select to show them in
+the line 1 and all other information in the line 2 and below. Usually, the
+filter will be absent, the line 1 will not be shown and what you set up for
+the line 2 will be displayed right under the divider. But if you select any
+filter, the line 1 will appear and the divider will expand up by one line.
+
+   {LFN:_} - here you select where to show long file name for the current
+file. It is displayed in full width of the panel. If you select to show
+long names, the next four options define their format.
+   {Place:_} ["At left side";"Centered";"At right side"] - these options
+indicate where in the line names that are shorter than the panel width will
+be shown.
+
+   {Show:_} ["Left part and ext."; "Right part"; "Left part"] - here you select
+what to show and what to cut, if name is long and does not fit into the panel
+width. "Left part" shows names with as much symbols as possible at their
+beginnings. "Right part" shows names with as much symbols as possible at their
+ends. "Left part and extension" gives priority to extensions and uses all
+remaining space for names.
+Here is an example. Assume that we have the following file:
+This_is_a_file_with_a_very_long_name_and_with_extension.extension
+
+³"Left part and ext."  This_is_a_file_with_a_very_lextension
+³
+³"Left part"           This_is_a_file_with_a_very_long_name_
+³
+³"Right part"          ong_name_and_with_extension.extension
+
+   "Show" - {If not fully shown anywhere:_}". If you select this option, long
+filename in the footer will be displayed only if it is not shown fully in the
+panel or in the line with file information.
+
+   {Common part:_} ["Do not highlight";"Highlight";"Do not show"]. This option
+defines how common parts of filenames are shown, how they are displayed in the
+panel and in the footer. When name is cut in both places and cutting is
+different, it may be useful to clearly see differences.
+   If you select "Do not highlight", then the common part will be different
+from the other part.
+   If you select "Highlight", the common part will be shown in one color,
+whereas the other part will be shown in a different color. These colors are the
+same colors as for text and numbers in the line with selected files info.
+   Common part is searched for name (from the beginning until first difference)
+and for extension (similarly) separately, so the name in the footer can have
+two highlighted zones. The comparison is case-insensitive.
+   If you select "Do not show" - the common part will not be shown. This
+option cuts only one common part from the beginning. This option may be useful
+for searching long names that differ from short names: the footer for 8.3 names
+will be empty (all name is the common part), and for really long names the
+footer will show something.
+
+   At the very bottom of the dialog is the {"Zoomed panel":_} option affecting
+not only the footer, but also the panel itself. It makes the panel maximized
+over the entire window horizontally. This regime may be useful for showing
+many columns or very long columns ("Name", "Description").
+
+   See also {Files in columns:PanelShowSetup1}
+
+.topic SavePanelSetup=16581
+.title Save panel settings
+
+   This dialog can be used to store certain groups of settings (those where
+the "Store" button is pressed) in selected places.
+   By defult settings are stored in {numbered block of settings:PanelPresets}
+which is last loaded to this panel. Type of the panel in the storage dialog
+is the same as the current panel type.
+   The panel type is selected in the left selection block and where to store
+is in the right marking block. You can store (both panels) to any numbered
+block of settings (they have numbers).
+   If you select "All" for "Panel type", all settings from the dialog will be
+saved for all four {types:PanelView} panel types.
+   If you select certain type in "Panel type", you will see a very brief info
+about the view settings ("Name" field width, number of symbols for extension,
+and also some other information ocassionally) in "Block of settings" for all
+numbered sets. So, you can more easily differentiate the presets. If you
+select "All" for "Panel type", then any information will not be shown, because
+in one preset it can be different for different panel types.
+   Very often you need to store your preferences (for example, sorting that is
+different from the default) in all presets and in both panels. In that case,
+you can press the {Check all:_} button to check all addresses. A second stroke
+of the button would leave only the current preset marked.
+
+   For example, suppose that you want both panels and the preset 4 to always
+have sorting by name for all panel types. So, call the sorting dialog (Alt-S),
+select sorting by name (and other settings, if needed). Then press the "Store"
+button, select "All" in the left block, and mark "4", "Current panel" and
+"Opposite panel". When you press "OK", all settings will be stored to all
+marked places. The easiest way to close the sorting dialog is to press the Esc
+key since settings for the current panel are alredy stored.
+
+.topic PanelSetup=16582
+.title File panel settings
+   All the file panel settings are divided into three groups and each group
+has its own dialog. These are the settings for {view:PanelShowSetup},
+{sorting:PanelSortSetup} and {filter:AdvancedFilter}.
+   All these settings can be turned on and off separately. Common settings
+are controlled in the {file manager:FileMgrSetup} dialog.
+   Here are described common properties for all three dialogs, while specific
+issues are discussed in respective articles.
+   When the dialog is called, its elements are filled in according to the
+current panel settings. These elements can be configured in some way and then
+you press "OK" button to accept changes and close the dialog.
+   The changes are made only for the current panel and only for the current
+panel type. For example, if you change the sorting type for the disk panel and
+then perform a search, the sorting changes will not be used in the search
+panel. But when you return to the disk panel, you will have your sorting
+preferences back. Note that all such changes are active only within the current
+session of work with DN. After the restart of DN, they will be lost. If you
+want to save them, you should turn "Autosave Desktop" on or store them
+manually through the "Save desktop" menu item.
+
+   DN preserves 10 separate {presets:PanelPresets} of settings. If you press
+Ctrl-number in a settings dialog, the corresponding preset will be loaded
+in the dialog. Then press {"Store":SavePanelSetup} button and the settings
+will be stored in the same preset (if you load preset [5], that preset [5]
+will be saved).
+
+.topic PanelPresets=16596
+.title Numbered presets
+
+   Full settings preset includes settings for the four types of panel (Disk,
+Archive, List, ARVID) and in each type there are three groups of settings:
+{view:PanelShowSetup}, {sorting:PanelSortSetup}, and {filter:AdvancedFilter}.
+Each panel has its own preset.
+   DN allows you to keep 10 presets independent with the panel prersets.
+These presets are numbered by 1, 2,..., 8, 9, 0. Settings from a numbered
+preset can be loaded into a certain panel and the panel settings can be
+stored to a numbered preset.
+
+   You can load not only all settings of a preset, but of a certin group,
+too. For example, one can load only sorting for the List panel.
+
+   Full loading is done via the menu for view loading (Alt-"-"). You
+should choose preset you need in the menu, and press Shift-Enter, not Enter,
+or right-click on that menu item.
+
+   Loading of the view settings can be done using the same menu, but you
+should press Enter, or left mouse click. Another way of such loading is to
+press Ctrl-digit (the digit is the number of a preset to load).
+   When you load a view settings, the previous settings are saved. If you want
+to undo the settings, you can press Ctrl-"-" or select a point to restore from
+the Alt-"-" menu. This is useful for temporary settings. For example, suppose
+a preset 2 has settings for the maximum detail view. If usually you work
+without such a view and need that view, you simply press Ctrl-2, later when
+you want your previous settings back, press Ctrl-"-".
+
+   Loading certain groups of settings for a certain panel type is done in the
+panel settings dialog. For example, to load from a preset 6 sorting
+preferences for the list panel, you open any list panel (for instance, go to
+TEMP:), call the {sorting dialog:PanelSortSetup} and press Ctrl-6. Loaded
+settings will be shown in the dialog items. To store them in the panel
+settings just press "OK" button.
+
+   There is no way of editing the numbered presets directly. There is no way
+to look at all presets and even one preset too, because even one preset has
+too many options to show on the screen simultaneously. To edit presets
+you should use the panel settings dialogs. Just load the corresponding part
+in a dialog by pressing Ctrl-digit, edit it, and store by pressing the
+{"Store":SavePanelSetup} button.
+
+.topic AdvancedFilter=48029
+.title File panel filter
+   This dialog allows you to set {filter:Wildcards} of names in current panel.
+You will see only those files that match filtering criteria.
+   Current filter (usually '*.*') is shown in the upper part of window. In
+the line you can enter any filter manually or select from history any
+previously entered filter.
+   Below the current filter is a quick builder for extension filter. You can
+select one or more extensions (press space to tag them) and press "Show" or
+"Hide" buttons to add or hide such files.
+
+See also {File panel settings:PanelSetup}
 
 .topic FileAttr=16583
 .title Set File Attributes
@@ -2478,8 +3149,6 @@ and at Alt-F4 - external one.
 
   {Setup               :FileMgrSetup}
   {Information panel   :DriveInfoSetup}
-  {New Manager defaults:PanelDefaults}
-  {Column defaults     :ColumnsDefaults}
   {Highlight groups    :HighLight}
 
 .topic OpenFileDialog=48012
@@ -2699,19 +3368,10 @@ Decoding binary files, received by E-Mail
 
 .topic MakeListFile=48028
 .title Make List File
-Enter name of file to put selected filenames.
-
-To point a place of file name in command you can use {macros:ExtMacros}
-{!:_}, {!.!:_}, {!\!.!:_}. By default a file name placed after the {action:_}
-command.
-
-.topic AdvancedFilter=48029
-.title Advanced Filter
-
-This function is desinged to ease the way of selection filename filter
-for the current file panel. The file mask list contains all extensions
-of files in the current panel, so you can specify particular files to be shown
-(or hidden) in the file panel.
+   Enter name of the file to put list and template of the line for each
+selected filename. These two input lines must be not empty.
+   The template line may to contain any text and the {macros:ExtMacros}
+to link to the corresponding file.
 
 .topic Extract=48030
 .title Extract files from archive
@@ -2808,162 +3468,251 @@ These are global options for all drives
   {Clear Read-Only from CD:_}
 
 .topic FileMgrSetup=48036
-.title File Manager Setup
+.title File manager setup
 
-{Behavior:_}
-  Auto change directory - Automatically change subdirectories when
-   "walking" through a directory tree.
+{"Behavior" block:_}
 
-  Drag-and-drop from columns - Interface with mouse.
+   {[X] Auto change directory:_} - When checked, if one panel is a directory
+tree and another is a "Disk", then moving in the tree will cause directory to
+change in another panel. Otherwise directories will be changed only when you
+press Enter on a tree element.
+   {[X] Drag-and-drop:_} - You can work with files using mouse.
+See article {Working with mouse:MouseOverview}.
+   {[X] Beep after copy:_} - DN will beep after copying, if the process took
+more than 30 seconds.
+   {[X] ENTER opens archive:_} - By default, opening an archive as a
+directory is done by F3 or Ctrl-PageDown on the archive name. When this
+option is turned on, you can open archives by pressing Enter. Note that
+this prevents executing self-extracting archives by pressing Enter. To execute
+such archives you should type archive name on the command line directly
+(or use Ctrl-Enter or Ctrl-Shift-Enter to paste names there). Also you cannot
+execute commands assigned to the Enter key in dn.ext (but commands assigned to
+Shift-Enter can be executed).
 
- {Display:_}
-  Info divider - Show a divider (a line) between the list of files and
-   the information part (you can select a different color to divide
-   the files from the information part)
+   {[X] SPACE toggles selection:_} - By default, file tagging is done by
+pressing the Ins key. This setting allows you to tag files with Spacebar,
+provided that the command line is empty.
 
+   {[X] DEL erases file(s):_} - By default, deleting files is done by pressing
+the F8 key. Turning this setting on allows you to delete files with the Del
+key, if the command line is empty.
+
+   {[X] Use / keys:_} - When this option is turned on and the command line
+empty, the cursor moving keys / are used in file panel. When turned off,
+these keys are used to move the cursor in the comand line. If you turn this
+on and want to move the cursor in a non-empty command line, just press Shift
+when using the / keys.
+
+   {[X] Alt difference:_} - With this option turned on, when you press
+Alt-digit, you will go to a quick access directory in the left panel, if the
+left Alt is used and in the right panel, if the right Alt is used. When this
+option if off, Alt-digit changes directory in the current panel.
+
+   {[X] BS - go to upper directory:_} - If you have empty command line, then
+you go to parent directory by pressig BackSpace key. To prevent unwanted
+directory changes when you are erasing command line using the key, there is
+some delay before this feature is activated.
+
+   {[X] Do not kill descriptions:_} - When you delete files, their
+descriptions will not be deleted.
+
+   {[X] Kill description containers:_} - If you delete all files with
+descriptions in a directory, then description file will be deleted too.
+
+   {[X] Always copy descriptions:_} - Description will always be copied
+when a file is copied, not only when you turn on the option of showing
+descriptions in the panel.
+
+   {[X] Drive line autorefresh:_} - When turned on, the drive line will
+be automatically refreshed every 3 seconds. It may be useful when you
+mount and unmount drives. Note that devices will not be physically
+accessed during the refreshes.
+
+   {[X] Panel autorefresh:_} - When turned on, DN will track changes in
+the file system and refresh file panels, when necessary.
+
+   {[X] Desriptions by Short names:_} - When turned on, descriptions will be
+assigned short (alternative) file names. Otherwise, descriptions will be
+assigned long (standard) file names.
+
+   {Quick search:_} - Selects the quick search key. There are 2 variants:
+"Single Alt" and "Single Ctrl". "Single Alt" means, that you need to press and
+release Alt key to activate quick search and then type file name you want to
+be found. "Single Ctrl" acts the same way, but you have to use the Ctrl key
+instead of the Alt key.
+   DN uses Alt and Ctrl in hotkeys, so there are no quick search regimes with
+holding this keys.
+   Option "Caps+symbol", which was available in the DOS version of DN is
+absent in DN/2, because it causes an unwanted CapsLock regime.
+
+   {[X] L/R Ctrl in drive line:_} - This setting gives an option of changing
+drives in the drive line with Ctrl- and Ctrl-
+ keys. There are three options:
+"Active panel always" (left and right Ctrl do not differ and both are used to
+change drives in the active panel), "Passive/active panel" (the left Ctrl is
+used to change drives in the passive panel, and the right Ctrl - in the active
+one) and "Left/right panel" (the left Ctrl changes drives in the left panel,
+and the right Ctrl - in the right one).
+
+{"Display" block:_}
+
+These are the elements that are shown in file panels
+
+   {[X] Column titles:_} - When turned on, the column titles will be displayed
+(Name, Directory, Size, etc.).
+
+   {[X] Drive line:_} - When turned on, the drive line will be shown at the
+bottom of the panel. Then you can quickly select disks with Ctrl-/
+, or by
+pressing the mouse button when pointer is on a drive letter.
+
+   {[X] Scrollbar:_} - When turned on, scrollbar will be shown in file panels.
+
+   {[X] Files highlight:_} - When turned on, files will be highlighted. You
+can setup highlighting in Options->Colors...->File Manager->File Panel->
+->Highlight, and highlight groups in Options->File Manager->Highlight groups.
+
+   {[X] Show hidden files:_} - When turned on, you will see files with the
+"Hidden" attribute. This option also affects file searchig and open and save
+file dialogs.
+
+   {Tag char:_} - Symbol to tag selected files. If you delete or change this
+symbol to Space character, selected files will be tagged with color only.
+
+   {Cut char:_} - Symbol to tag name part or extension of a file, if it cannot
+be fully shown because of insufficient space.
+   Cut char affects not only file panels, but also the footer (including the
+description cut), and also the "Filter" window.
+
+   {Files with descriptions:_} - File names, where descriptions are stored.
+You can set multiple names (separate names with semicolon), for example:
+
+  descript.ion;files.bbs
+
+The directory will be scanned for a file with the first name, then the second
+name, then the third name, and so on.
+
+   {New Manager preset:_} - When a new manager is opened, {preset:PanelPresets}
+with a selected number will be used for its panels.
+
+   {Left panel:_} - Here you select the left panel type for a new manager. The
+right panel type is always "Drive".
 
 .topic SystemSetup=48037
 .title System Setup
 
-
- {[X] Internal editor:_}      - To use internal editor with F4 and
-                            external with Alt-F4; when switched off
-                            - external editor will be used with F4
-                            and internal with Alt-F4
-
- {[X] Use system clipboard:_} - When switched on, the text copied in
-                            the Navigator will be possible to insert
-                            into any another task in your system, and
-                            any text copied in another task will be
-                            available in DN. In this mode the #0
-                            symbols will be replaced with spces when
-                            string is placed to clipboard
-
- {[X] Show hidden files:_}   - To show files with "hidden" attribute
-                           in file panels
-
- {[X] Clear R/O flag from CDRom:_} - The read only attribute will be
-                                 cleared from files when they copied
-                                 from CD-ROM
-
- {[X] Advanced copy:_} - When files copying proceeds, the files will
-                     be read into common copy buffer and written
-                     afterward from this buffer (the size of copy
-                     buffer can be set by "Copy buffer limit" option
-                     of current dialog). If this option switched off,
-                     files will be copied subsequently one-by-one.
-
-
- {Video Mode 1:_} Â User-defined videomodes, which can be
- {Video Mode 2:_} Ù switched by <Alt-F10> and <Ctrl-F10>.
-                    The standard videomodes can be set as
-                    a number, which looks in hexadecimal
-                    view as:
-                    $<N><N>
-                     where the 1-st <N> can be:
-                      8 - modes 40 x ??
-                      9 - modes 80 x ??
-                     the 2-nd <N>:
-                      0 - ?? x 12
-                      1 - ?? x 14
-                      2 - ?? x 25
-                      3 - ?? x 30
-                      4 - ?? x 34
-                      5 - ?? x 43
-                      6 - ?? x 50
-                      7 - ?? x 60
-                    Custom videomodes can be set as
-                    Colmns*256 + Rows , where Columns is
-                    a columns number, and Rows is a rows
-                    number in console
-
- {Temporary directory:_} - The name and path of directory, in which
-                        the temporary files will be placed
-
-  The disks options:
-   Choose drive here    Here you can set options of disk choosen
- ÚÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ¿ ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
- Drives                  Current drive options
-
- A:                    {[X] Store tree information:_} - store tree
- B:                   ş                       of directories in a
- C:                   ±                       special file
- D:                   ± {[X] Verify disk writes:_} - to check file
- E:                   ±                       integrity after writing
- F:                   ± {[X] Check free space  :_} - to check is there
- G:                   ±                       enough free space on
- H:                                          destination drive
-                                              to copy selected files
-                                              to this drive
-                        {[X] Unpack to drive directly:_} - when set,
-                                    the "Through temporary directory"
-                                    option will be cleared in
-                                    "Extract files" dialog when
-                                    unarchiving to this drive
-                                    performed, otherwice this
-                                    option will be preset
-
- {Copy buffer limit:_} - The limit of copy buffer in kilobytes
-
- {Force default archiver:_} - Can be set to name of one of the
-                          archive types supported (see files
-                          archiving dialog) or to empty string.
-                          When set to name of archive type,
-                          this type always will be set as
-                          default archiver
+³{[X] Internal editor:_}      - To use internal editor with F4 and
+³                           external with Alt-F4; when switched off
+³                           - external editor will be used with F4
+³                           and internal with Alt-F4
+³
+³{[X] Use system clipboard:_} - When switched on, the text copied in
+³                           the Navigator will be possible to insert
+³                           into any another task in your system, and
+³                           any text copied in another task will be
+³                           available in DN. In this mode the #0
+³                           symbols will be replaced with spces when
+³                           string is placed to clipboard
+³
+³{[X] Clear R/O flag from CDRom:_} - The read only attribute will be
+³                                cleared from files when they copied
+³                                from CD-ROM
+³
+³{[X] Advanced copy:_} - When files copying proceeds, the files will
+³                    be read into common copy buffer and written
+³                    afterward from this buffer (the size of copy
+³                    buffer can be set by "Copy buffer limit" option
+³                    of current dialog). If this option switched off,
+³                    files will be copied subsequently one-by-one.
+³
+³
+³{Video Mode 1:_} Â User-defined videomodes, which can be
+³{Video Mode 2:_} Ù switched by <Alt-F10> and <Ctrl-F10>.
+³                   The standard videomodes can be set as
+³                   a number, which looks in hexadecimal
+³                   view as:
+³                   $<N><N>
+³                    where the 1-st <N> can be:
+³                     8 - modes 40 x ??
+³                     9 - modes 80 x ??
+³                    the 2-nd <N>:
+³                     0 - ?? x 12
+³                     1 - ?? x 14
+³                     2 - ?? x 25
+³                     3 - ?? x 30
+³                     4 - ?? x 34
+³                     5 - ?? x 43
+³                     6 - ?? x 50
+³                     7 - ?? x 60
+³                   Custom videomodes can be set as
+³                   Colmns*256 + Rows , where Columns is
+³                   a columns number, and Rows is a rows
+³                   number in console
+³
+³{Temporary directory:_} - The name and path of directory, in which
+³                       the temporary files will be placed
+³
+³ The disks options:
+³  Choose drive here    Here you can set options of disk choosen
+³ÚÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ¿ ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³Drives                  Current drive options
+³
+³A:                    {[X] Verify disk writes:_} - to check file
+³B:                   ş                       integrity after writing
+³C:                   ± {[X] Check free space  :_} - to check is there
+³D:                   ±                       enough free space on
+³E:                   ±                       destination drive
+³F:                   ±                       to copy selected files
+³G:                   ±                       to this drive
+³H:                    {[X] Unpack to drive directly:_} - when set,
+³                                   the "Through temporary directory"
+³                                   option will be cleared in
+³                                   "Extract files" dialog when
+³                                   unarchiving to this drive
+³                                   performed, otherwice this
+³                                   option will be preset
+³
+³{Copy buffer limit:_} - The limit of copy buffer in kilobytes
+³
+³{Force default archiver:_} - Can be set to name of one of the
+³                         archive types supported (see files
+³                         archiving dialog) or to empty string.
+³                         When set to name of archive type,
+³                         this type always will be set as
+³                         default archiver
 
 .topic OptionsStartup=48038
 .title Startup Options
 
-{Autosave desktop:_} - Auto save current configuration of panels. At
-inclusion of computer the panel will have the kind at its switching-off.
+Startup options
 
-{Auto run User menu:_} - Automatic occurrence {User Menu:UserMenu} at
-start DOS Navigator and after user menu item execution.
+{Auto run User Menu:_} If checked, {User menu:UserMenu} will appear right
+after launching DN, and will countinue appear after execution menu command. It
+means that while you work with menu, it will continue appear again and again.
+Then you finish your work with menu, just press ESC.
 
+{Restore screen mode:_} If checked, when DN is launched, it will switch to the
+same screen mode as it was before laching prevous command.
 
-{Kill input histories:_} - not to store the history list.
+{Clear History:_} If cheched {command History:CmdHistory} will be flushed,
+when you exit DN
 
-{Enable blinking:_} - to switch off the blinking attribute of text.
+Shutdown options
 
-{"Fast" command execution:_} - not to load second copy of COMMAND.COM for
-completion of programs. Faster, but is present the conflicts if DOS
-Navigator was run from BAT-file and for it start of some files is present
-yet.
+You can set DN to exit after {hour of inactivity:_}, if you want.
 
-{Custom video mode 1/2:CustomVideo} - Decimal or hexadecimal number
-of video mode.
+{Autosave Desktop:_} If checked, DN will store current windows' state before
+executing any command. It will allow you to restore it, if computer will be,
+for example, swithched off. You can manually save desktop from menu
+{Options->Save desktop:_}
 
- How to coding video mode:
-$<N><N>
- where 1st <N>:
-  8 - modes 40 x ??
-  9 - modes 80 x ??
-  A - modes 94 x ??
- 2nd <N>:
-  0 - ?? x 12
-  1 - ?? x 14
-  2 - ?? x 25
-  3 - ?? x 30
-  4 - ?? x 34
-  5 - ?? x 43
-  6 - ?? x 50
-  7 - ?? x 60
+{Enable blinking:_} - set EGA/VGA adapter flag, which enable "blinking"
+symbols before lanching programs from DN.
 
-{Timeslicing options:_}  - time slicing options for multitasking environments.
- {DOS  Idle (Int28):_}   - call Int 28 when idle
- {DPMI Idle (Int2F):_}   - call Int 2F
- {DESQ Idle (Int15):_}   - call Int 15
- {Sleep when inactive:_} - sleep when idle
-
- It is recommended to always set the first 3 options on.
-
-The {Release slice once:_} option means that only the one method of time
-slicing that is necessary at the moment is to be called. Recomended.
-
-The {Release while readfile:_}, {Release while copy:_},
-{Release while readarch:_} {Release while search:_} options control time
-slicing while performing the respective actions. Recommended.
+{Preserve directory:_} If cheched, and any external command change the current
+directory, DN will change the directory back. Note that this also store
+current directory when you exit DN. Directories are preserved for all panels
+in all managers.
 
 .topic Savers=48039
 .title Screen Savers
@@ -3074,31 +3823,61 @@ file will be run, and it will have to read the file substituting "!.!"
 (arranged by the Navigator), process it, and write into the file
 substituting "!%F". After viewing, the !%F file will be deleted.
 
-
 .topic Wildcards=48058
-.title DOS Wildcards and Filters
+.title Wildcards and Filters.
 
-DOS file names have two parts: the name (which  can be up to
-8 characters) and  the  extension (which  can  be  up  to  3
-characters)  with  a  period   in   between.  For   example,
-"filename.ext".
+   Filename in DOS has two parts: name and extension. Name shoud be eight
+symbols or less, and extension - three sybols or less. Name and extension is
+separatedby a point, for example "filename.ext"
 
-   *   Match any characters for the  rest  of  the  name  or
-       extension.  "a*" will  match "a", "ab", and "abc", as
-       well as many others.  '*' applies just to one part of
-       the  file  name, so "a*"  will not match "ab.c".  Use
-       "a*.*" to find all files that start with 'a' and have
-       any extension. (Note: "*a" will match  any  name, and
-       not just names with an `a' at the end  as  you  might
-       expect.)
+   In OS/2 and Windows file name can be 254 symbols long and contain any
+number of points (but not in the end of filename). However, the sequence after
+the last point is called extension, and used to determine file type.
+   If filename has no points, it asuumed that it has point at the end.
+
+   Wildcard is a sequence of symbols, which can contain not only common
+symbols (they mean themselves), but also a 'jocker' symbols (they mean
+different symbols in file name). Operation systems support two 'jockers'
+
+   * - it means any number of symbols (or none symbols)
+   ? - it means any one symbol (or none)
+
+   DN has additional 'jockers':
+
+   > - it means any symbols (or none) till last point including.
+   | - means one digit
+
+   In addition, '?' means only one symbol (it can't be none)
+
+   For example, we have a '*a>t*' wildcard. Files advance.txt, readme.txt suit
+it, and file a.txt don't.
+
+   In many cases, Dos Navigator allow you to use not only one wildcard, but
+a certain combination of it. Wildcards is separated by ";" symbol. Such
+combinations is called {filters:_}.
+   Filename suits filter, if it suits at least one wildcard in it.
 
 
-DOS Navigator allows not only single file masks, but containers of
-masks too. These containers are called {"Filters":_}.
-Filter is a file mask sequence in that every mask is separated by ";" char.
+³Example:   *.exe;*.com;*.bat;*.btm;*.cmd  Ä¿
+³           *.asm;*.c;*.cpp;*.inc;*.pas    ÄÅ- This is a filters
+³           name.*; *.exe                  ÄÙ
 
-E.g. :  *.exe;*.com;*.bat;*.btm;*.cmd
-        *.asm;*.c;*.cpp;*.inc;*.pas      are Filters
+In first case, all files with 'exe' 'áom' 'bat' 'btm' and 'cmd' extesions will
+be processed. In second - with 'asm' 'c' 'cpp' 'inc' and 'pas extensions. In
+third - files with 'name' name and any extension, and files with any name, but
+'exe' extension.
+
+   If you want to exclude some files from processing, you can enter them in
+filter with minus ("-") symbol. In this case all files will be processed
+except files, suiting wildcard with "-".
+
+³Example:  *.*; -*.txt; -text.*
+³          *.com; -command.com
+³          *.pas; *.c; -my*
+
+In firs case all files will be processed, except suiting '*.txt' and 'text.*'
+wildcards. In second - all '*.com' files except 'command.com'. In third - all
+'*.pas' and '*.c' files except the ones, starting with 'my'.
 
 .topic CustomVideo=48059
 .title Customized Video modes
@@ -3536,3 +4315,43 @@ command in command line:
 
 .topic SkipBadFile=49009   {John_SW}
 .title Could not open the file
+
+.topic QuickSearch=01210
+.title Quick search
+   Quick search is used for quick cursor positioning on a certain file in
+current directory. Classic quick search (as in NC and VC) imply, that you
+enter file name gradually, from the first letter, and, while you enter, cursor
+moves to a nearest file, which name begins with the sequence you entered.
+Cursor can move only forward, and if forward search fails to find appropriate
+file, search will continue from the beginning of the list. If a letter you
+entered is a symbol of a current file name, cursor will remain on his place.
+In most file managers not only cursor move, but in addition, entered sequence
+is shown somewhere.
+   Quick search in DN/2 has much more potential, because you enter not just a
+sequence of first letters, but a {mask:Wildcards} with a '*' assumed at
+the end of sequence. So, there is no hard, symbol-by-symbol compare of a first
+letters, but a checking of filename to suit entered mask. When you begin a
+quick search, mask is only an assumed '*', and all files suit it, so,
+whatever the current file is, the cursor will not move. Entered symbols are
+placed before '*' so, if you enter only common symbols, quick search will work
+as it was in NC and VC. The mask you enter will be shown in footer or divider.
+In addition, in current file name the text cursor will be shown. This cursor
+show the place, where the comparsion is for now (assumed '*' in the end is not
+included).
+
+   You can enter any {wildcards:Wildcards} in a quick search mask.
+For example you want to quickly set cursor on 'Program Files'. You enter
+'p* f', and cursor sets on a nearest name, with 'p' at the beginning and
+contain space symbol, followed by 'f'.
+
+   You can stop entering mask anytime and cycle files, suiting it by pressing
+Ctrl-Enter. Note, that quick search is not cancelled by Ctrl-Enter, so you can
+continue entering the mask.
+
+   If you use sorting by extension, you shoud pay attention to a '>' symbol in
+mask. It substitute all symbols to last point including. For example you have
+a directiory, containing files with different extensions. And you want to move
+to files with 'txt' extension. So, you activate a quick search and enter
+'>txt'. But usually only '>t' is quite enough. If you want to continue quick
+search by the name of file, you can clear the mask by pressing BackSpaáe and
+start entering a name.

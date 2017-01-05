@@ -660,8 +660,7 @@ procedure TFileList.ReadDirectory(AWildCard: String);
   AWildCard := lFExpand(AWildCard);
   lFSplit(AWildCard, Dir, Name, Ext);
   FileList := New(PFileCollection, Init(5, 5));
-  lFindFirst(AWildCard, FindAttr+Byte(SystemData.Options and
-       ossShowHidden <> 0)*Hidden, S);
+  lFindFirst(AWildCard, FindAttr + Byte(not Security)*Hidden, S);
   P := @P;
   while (P <> nil) and (DosError = 0) do
     begin
@@ -777,8 +776,7 @@ procedure TDirectoryList.ReadDirectory(AWildCard: String);
       end;
 
   Tmp := Dir+x_x;
-  lFindFirst(Tmp, FindAttr+Byte(SystemData.Options and ossShowHidden <>
-       0)*Hidden, S);
+  lFindFirst(Tmp, FindAttr + Byte(not Security)*Hidden, S);
   {AK155 Тут надо учитывать, что под WinNT каталога '.'
      может не быть вообще, и что FindNextFile приводит к падению,
      если FindFirstFile не был успешным из-за несуществующего

@@ -148,8 +148,13 @@ function lfGetLongFileName(const Name: String): String;
 { Name correction routine }
 procedure lTrueName(const Name: String; var S: String);
 
-{AK155 22-11-2003 Найти конец шары в пути. 0 - если это не UNC-путь}
 function GetShareEnd(const S: String): Integer;
+{` AK155 22-11-2003 Найти конец шары в пути. 0 - если это не UNC-путь `}
+
+function GetRootStart(const Path: String): Integer;
+{` Найти начало корня; например, для C:\DIR результат 3,
+для \\Server\Share\Dir результат 15. Для путей вроде '' или C: результат
+на 1 больше длины. `}
 
 { Basic file operation routines. To use IO functions from standard units,
               specify lFile.F or lText.T }
@@ -229,6 +234,7 @@ implementation
 uses
   {$IFDEF WIN32}Windows, {$ENDIF}
   Strings, Commands {Cat}
+  , Advance
   ;
 
 function StrPas_(S: array of Char): String;
@@ -446,6 +452,11 @@ function GetShareEnd(const S: String): Integer;
       но непонятно как и для кого. }
   end { GetShareEnd };
 {/AK155 22-11-2003}
+
+function GetRootStart(const Path: String): Integer;
+  begin
+  Result := Min(Length(Path)+1, Max(3, GetShareEnd(Path)+1));
+  end;
 
 {AK155 22-11-2003 Доработано с учётом UNC-путей }
 procedure lFSplit(const Path: String; var Dir, Name, ext: String);

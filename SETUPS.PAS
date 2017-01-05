@@ -112,13 +112,13 @@ type
 procedure SetupCountryInfo;
   {` Диалог настоек страны `}
 function ApplyCodetables: Integer;
-  {` Применить настройки коировок из CountryInfo. Результат:
+  {` Применить настройки кодировок из CountryInfo. Результат:
      0 - нет ошибок,
      1 - ошибка в KbdToggleLayout
-     2 - ошибка в WinCodeTable,
-     3 - ошибка в Codetables,
+     2 - ошибка в ABCSortTable,
+     3 - ошибка в WinCodeTable,
+     4 - ошибка в Codetables,
      `}
-procedure FMDefaults;
 procedure FMSetup;
 procedure DriveInfoSetup;
 procedure SetupEditorDefaults;
@@ -128,26 +128,21 @@ procedure StartupSetup;
 procedure MouseSetup;
 procedure ConfirmSetup;
 function TerminalSetup: Boolean;
-function SetupColumnDefaultsDisk: Boolean;
-function SetupColumnDefaultsFind: Boolean;
-function SetupColumnDefaultsTemp: Boolean;
-function SetupColumnDefaultsArch: Boolean;
-function SetupColumnDefaultsArvd: Boolean;
 {$IFDEF SS}
 procedure SaversSetup;
 function MakeSaversDialog: PDialog;
 {$ENDIF}
 
 const
-  CodeErrMessage: array[1..3] of TStrIdx =
+  CodeErrMessage: array[1..4] of TStrIdx =
  {`AK155 12.01.2004 Собщения об ошибках перекодировочных настроек.}
-   (dlLayoutErr, dlWinErr, dlCodetablesErr);
+   (dlLayoutErr, dlSortError, dlWinErr, dlCodetablesErr);
    {`}
 
 implementation
 uses
   Tree, Drives, Advance, Advance1, Advance2, Advance3, Messages, DNHelp,
-  Advance6, DnIni, Country_, U_KeyMap
+  Advance6, DnIni, Country_, U_KeyMap, fnotify
   ;
 
 procedure ConfirmSetup;
@@ -218,11 +213,6 @@ procedure InterfaceSetup;
     AltTab: Boolean;
     R: TRect;
   begin
-  if ShowScrollBar then
-    InterfaceData.Options := InterfaceData.Options or ouiShowScrollBar
-  else
-    InterfaceData.Options := InterfaceData.Options and not
-       ouiShowScrollBar;
   with PApplication(Application)^ do
     if ExecResource(dlgInterfaceSetup, InterfaceData) <> cmCancel then
       begin
@@ -233,25 +223,6 @@ procedure InterfaceSetup;
         Dec(R.B.Y);
       if InterfaceData.Options and ouiHideCmdline = 0 then
         Dec(R.B.Y);
-      if  (InterfaceData.Options and ouiShowScrollBar <> 0)
-         <> ShowScrollBar
-      then
-        begin
-        Desktop^.Lock;
-        ShowScrollBar := InterfaceData.Options and ouiShowScrollBar <> 0;
-        if ShowScrollBar then
-          begin
-          Desktop^.Hide;
-          Desktop^.Show;
-          end
-        else
-          begin
-          Message(Application, evKeyDown, kbTab, nil);
-          Message(Application, evKeyDown, kbTab, nil);
-          end;
-        Desktop^.UnLock;
-        Desktop^.Redraw;
-        end;
       Desktop^.Locate(R);
       R.A.Y := R.B.Y;
       R.B.Y := R.A.Y+Byte(InterfaceData.Options and ouiHideCmdline = 0);
@@ -334,6 +305,9 @@ procedure SaversSetup;
 {$ENDIF}
 
 function ApplyCodetables: Integer;
+  var
+    CP: Word;
+    Err: Integer;
   begin
   with CountryInfo do
     begin
@@ -346,16 +320,28 @@ function ApplyCodetables: Integer;
       Result := 1;
       Exit;
       end;
-    FreeCodetables;
-    if (WinCodetable <> '') and not BuildWinCodeTable(WinCodeTable)
-    then
+    if ABCSortTable = '' then
+      ABCSortTable := '0';
+    Val(ABCSortTable, CP, Err);
+    if (Err = 0) and QueryABCSort(CP, ABCSortXlat) then
+      begin { запрос таблицы у ОС удовлетворён }
+      end
+    else if not BuildABCSortXlat(ABCSortTable) then
       begin
       Result := 2;
       Exit;
       end;
-    if not InitCodeTables(CodeTables) then
+
+    FreeCodetables;
+    if (WinCodetable <> '') and not BuildWinCodeTable(WinCodeTable)
+    then
       begin
       Result := 3;
+      Exit;
+      end;
+    if not InitCodeTables(CodeTables) then
+      begin
+      Result := 4;
       Exit;
       end;
     end;
@@ -397,24 +383,32 @@ TryDialog:
   ConfigModified := True;
   end;
 
-procedure FMDefaults;
-  begin
-  if ExecResource(dlgFMDefaults, Startup.PanelDefaults) <> cmOK then
-    Exit;
-  Message(Application, evCommand, cmUpdateConfig, nil);
-  GlobalMessage(evCommand, cmReboundPanel, nil);
-  end;
-
 procedure FMSetup;
   begin
   if ExecResource(dlgFMSetup, Startup.FMSetup) <> cmOK then
     Exit;
+  if Startup.FMSetup.TagChar = '' then
+    Startup.FMSetup.TagChar[1] := ' ';
+  if (Startup.FMSetup.RestChar = '') or
+     (Startup.FMSetup.RestChar[1] = ' ')
+  then
+    Startup.FMSetup.RestChar := #16; { символа обрезки не может не быть }
   Message(Application, evCommand, cmUpdateConfig, nil);
   GlobalMessage(evCommand, cmReboundPanel, nil);
 
   FMSetupOpt := Startup.FMSetup.Options;
   SaveDnIniSettings(@FMSetupOpt);
   DoneIniEngine;
+  if AutoRefreshPanels <>
+     (Startup.FMSetup.Options and fmoAutorefreshPanels <> 0)
+  then
+    begin
+    AutoRefreshPanels := not AutoRefreshPanels;
+    if AutoRefreshPanels then
+      NotifyInit
+    else
+      NotifyDone;
+    end;
   end;
 
 procedure DriveInfoSetup;
@@ -450,103 +444,6 @@ procedure SetupEditorDefaults;
     DoneIniEngine;
     end;
   end;
-
-function SetupColumnDefaultsDisk: Boolean;
-  var
-    I: Byte;
-  begin
-  SetupColumnDefaultsDisk :=
-    ExecResource(dlgSetupColumnsDisk, ColumnsDefaultsDisk) = cmOK;
-  for I := 1 to 10 do
-    begin
-    if StoI(ColumnsDefaultsDisk.Params[I].LFNLen) > 252 then
-      ColumnsDefaultsDisk.Params[I].LFNLen := '252';
-    if StoI(ColumnsDefaultsDisk.Params[I].EXTLen) > 247 then
-      ColumnsDefaultsDisk.Params[I].EXTLen := '247';
-    end;
-  end;
-
-function SetupColumnDefaultsFind: Boolean;
-  var
-    I: Byte;
-  begin
-  SetupColumnDefaultsFind :=
-    ExecResource(dlgSetupColumnsFind, ColumnsDefaultsFind) = cmOK;
-  for I := 1 to 10 do
-    begin
-    if StoI(ColumnsDefaultsFind.Params[I].LFNLen) > 252 then
-      ColumnsDefaultsFind.Params[I].LFNLen := '252';
-    if StoI(ColumnsDefaultsFind.Params[I].EXTLen) > 247 then
-      ColumnsDefaultsFind.Params[I].EXTLen := '247';
-    end;
-  end;
-
-function SetupColumnDefaultsTemp: Boolean;
-  var
-    I: Byte;
-  begin
-  SetupColumnDefaultsTemp :=
-    ExecResource(dlgSetupColumnsTemp, ColumnsDefaultsTemp) = cmOK;
-  for I := 1 to 10 do
-    begin
-    if StoI(ColumnsDefaultsTemp.Params[I].LFNLen) > 252 then
-      ColumnsDefaultsTemp.Params[I].LFNLen := '252';
-    if StoI(ColumnsDefaultsTemp.Params[I].EXTLen) > 247 then
-      ColumnsDefaultsTemp.Params[I].EXTLen := '247';
-    end;
-  end;
-
-function SetupColumnDefaultsArch: Boolean;
-  var
-    I: Byte;
-  begin
-  SetupColumnDefaultsArch :=
-    ExecResource(dlgSetupColumnsArch, ColumnsDefaultsArch) = cmOK;
-  for I := 1 to 10 do
-    begin
-    if StoI(ColumnsDefaultsArch.Params[I].LFNLen) > 252 then
-      ColumnsDefaultsArch.Params[I].LFNLen := '252';
-    if StoI(ColumnsDefaultsArch.Params[I].EXTLen) > 247 then
-      ColumnsDefaultsArch.Params[I].EXTLen := '247';
-    end;
-  end;
-
-function SetupColumnDefaultsArvd: Boolean;
-  var
-    i: Byte;
-  begin
-  {JO}
-  with ColumnsDefaultsArvd do
-    {JO: поскольку у панели арвида нет параметров }
-    begin {    "показ даты и времени создания и последнего }
-    for i := 1 to 10 do
-      {    доступа", и нет соотв. чекбоксов, то надо пропустить соотв. байты}
-      if  (Params[i].Param and $100 <> 0) then
-        Params[i].Param := (Params[i].Param and $F) or $10
-      else
-        Params[i].Param := (Params[i].Param and $F);
-    end;
-  {/JO}
-  SetupColumnDefaultsArvd :=
-    ExecResource(dlgSetupColumnsArvd, ColumnsDefaultsArvd) = cmOK;
-  for i := 1 to 10 do
-    begin
-    if StoI(ColumnsDefaultsArvd.Params[i].LFNLen) > 252 then
-      ColumnsDefaultsArvd.Params[i].LFNLen := '252';
-    if StoI(ColumnsDefaultsArvd.Params[i].EXTLen) > 247 then
-      ColumnsDefaultsArvd.Params[i].EXTLen := '247';
-    end;
-  {JO}
-  with ColumnsDefaultsArvd do
-    begin
-    for i := 1 to 10 do
-      if  (Params[i].Param and $10 <> 0) then
-        Params[i].Param := (Params[i].Param and $F) or $100
-      else
-        Params[i].Param := (Params[i].Param and $F);
-    end;
-  {/JO}
-  end { SetupColumnDefaultsArvd: };
 
 procedure TCurrDriveInfo.HandleEvent;
   var
@@ -854,3 +751,4 @@ function MakeSaversDialog: PDialog;
 {$ENDIF}
 
 end.
+

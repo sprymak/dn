@@ -311,7 +311,7 @@ procedure MyApp.Idle;
     TApplication.Idle;
     end;
   {Cat}
-  if DnIni.AutoRefreshPanels
+  if Startup.AutoRefreshPanels
     and xTime.TimerExpired(NotifyTmr)
   then
     {JO}

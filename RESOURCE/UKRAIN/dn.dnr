@@ -86,6 +86,8 @@ ColorDialog
          ColorItem 'Поле видiлене',                48,
          ColorItem 'Поле недоступне',              62,
          ColorItem 'Пiдсвiчування поля',           49,
+         ColorItem 'Комбо бокс нормальний',        128,
+         ColorItem 'Комбо бокс видiлений',         129,
          ColorItem 'Рядок вводу нормальний',       50,
          ColorItem 'Рядок вводу видiлений',        51,
          ColorItem 'Стрiлка рядка вводу',          52,
@@ -252,7 +254,7 @@ ColorDialog
          ColorItem 'Курсор',                            171,
 END
 
-DIALOG dlgCountrySetup, 54, 20, 'Iнформацiя про країну'
+DIALOG dlgCountrySetup, 54, 22, 'Iнформацiя про країну'
     HELPCTX hcCountrySetup
     RadioButtons 2, 3, 22, 6
       ITEM '~М~iсяць-День-Рiк'
@@ -274,7 +276,7 @@ DIALOG dlgCountrySetup, 54, 20, 'Iнформацiя про країну'
     InputLine 20, 10, 23, 11, 1, 0
     Label 2, 10, 'Д~е~сятковий розд.'
     InputLine 20, 11, 23, 12, 1, 0
-    Label 2, 11, 'Др~i~бных цифр'
+    Label 2, 11, 'Др~i~бних цифр'
     RadioButtons 38, 3, 52, 8
       ITEM '$123.00'
       ITEM '123.00$'
@@ -284,20 +286,23 @@ DIALOG dlgCountrySetup, 54, 20, 'Iнформацiя про країну'
       END
     Label 38, 2, '~Ф~ормат валюти'
     InputLine 46, 9, 52, 10, 4, 0
-    Label 28, 9, '~В~алютный символ'
+    Label 28, 9, '~В~алютний символ'
     InputLine 36, 11, 50, 12, 79, 0
     History 50, 11, hsKbdToggleLayot
     Label 24, 11, '~К~лавiатура'
     InputLine 36, 13, 50, 14, 79, 0
     History 50, 13, hsWinCodeTable
-    Label 30, 13, 'WIN:'
-    InputLine 2, 15, 50, 16, 255, 0
-    History 50, 15, hsCodeTables
-    Label 1, 14, 'Додатковi коду~в~ання'
+    Label 14, 13, 'Абеткове сортування'
+    InputLine 36, 15, 50, 16, 79, 0
+    History 50, 15, hsABCSortTable
+    Label 30, 15, 'WIN:'
+    InputLine 2, 17, 50, 18, 255, 0
+    History 50, 17, hsCodeTables
+    Label 1, 16, 'Додатковi коду~в~ання'
     Button 25, 6, 36, 8, '~С~истема', cmYes
-    Button 7, 17, 17, 19, 'O~K~', cmOK, bfDefault
-    Button 22, 17, 33, 19, 'Вiдмiна', cmCancel
-    Button 37, 17, 49, 19, 'Допомо~г~а', cmHelp
+    Button 7, 19, 17, 21, 'O~K~', cmOK, bfDefault
+    Button 22, 19, 33, 21, 'Вiдмiна', cmCancel
+    Button 37, 19, 49, 21, 'Допомо~г~а', cmHelp
 END
 
 DIALOG dlgConfirmations, 50, 15, 'Пiдтвердження'
@@ -408,10 +413,11 @@ DIALOG dlgArchiveFiles, 68, 21, 'Архiвування файлiв'
       ITEM '~T~AR'
       ITEM '~G~Z'
       ITEM '~U~C2'
-      ITEM 'U~F~A
+      ITEM 'U~F~A'
       ITEM '~Z~IP'
       ITEM 'Z~O~O'
       ITEM 'Z~X~Z'
+      ITEM '~7~Z'
     END
     Label 3, 7, 'Тип архiву', ofPostProcess, ofPreProcess
     RadioButtons 32, 13, 65, 16, ofPostProcess, ofPreProcess
@@ -448,7 +454,7 @@ END
 ;{-$VIV}
 DIALOG dlgInterfaceSetup, 76, 22, 'Установки iнтерфейса'
     HELPCTX hcInterfaceSetup
-    CheckBoxes 2, 2, 72, 9, ofPostProcess, ofPreProcess
+    CheckBoxes 2, 2, 72, 8, ofPostProcess, ofPreProcess
       ITEM '~Г~одинник'
       ITEM 'Сховати ~м~еню'
       ITEM 'Сховати ~р~ядок статусу'
@@ -461,7 +467,6 @@ DIALOG dlgInterfaceSetup, 76, 22, 'Установки iнтерфейса'
       ITEM 'Iстоpiя ~р~едагування файлiв'
       ITEM 'Iстоpiя ~п~еpегляду файлiв'
       ITEM '~I~стоpiя змiни каталогiв'
-      ITEM 'Показувати полосу прокрутки'
     END
     RadioButtons 2, 11, 23, 14, ofPostProcess, ofPreProcess
       ITEM 'Для всiх дискiв'
@@ -505,7 +510,7 @@ DIALOG dlgInterfaceSetup, 76, 22, 'Установки iнтерфейса'
       ITEM ''
       ITEM ''
     END
-    Label 66, 11, 'Свобод.', ofPostProcess, ofPreProcess
+    Label 66, 11, 'Вiльне', ofPostProcess, ofPreProcess
     Label 66, 12, 'мiсце', ofPostProcess, ofPreProcess
     CheckBoxes 2, 16, 33, 18, ofPostProcess, ofPreProcess
       ITEM 'Каталоги швидкого доступу'
@@ -1146,7 +1151,7 @@ END
 
 DIALOG dlgRenameDialog, 78, 13, 'Перейменування/перемiщення'
     HELPCTX hcCopyDialog
-    InputLine 2, 2, 74, 3, 255, 0
+#1  InputLine 2, 2, 74, 3, 255, 0
     History 74, 2, hsFileCopyName, ofPostProcess
     RadioButtons 2, 4, 44, 9, ofPostProcess, ofPreProcess
       ITEM 'Переписати всi i~с~нуючi файли'
@@ -1155,7 +1160,7 @@ DIALOG dlgRenameDialog, 78, 13, 'Перейменування/перемiщення'
       ITEM 'П~р~опустити всi iснуючi файли'
       ITEM 'Обновити старi ~ф~айли'
     END
-    CheckBoxes 45, 4, 76, 9, ofPostProcess, ofPreProcess
+#2  CheckBoxes 45, 4, 76, 9, ofPostProcess, ofPreProcess
       ITEM 'Перевiряти ~м~iсце на диску'
       ITEM 'Перевiряти ~з~апис на диск'
       ITEM 'Копiювати ~о~писи'
@@ -1177,7 +1182,7 @@ END
 
 DIALOG dlgCopyDialog, 78, 13, 'Копiювання'
     HELPCTX hcCopyDialog
-    InputLine 2, 2, 74, 3, 255, 0
+#1  InputLine 2, 2, 74, 3, 255, 0
     History 74, 2, hsFileCopyName, ofPostProcess
     RadioButtons 2, 4, 44, 9, ofPostProcess, ofPreProcess
       ITEM 'Переписати всi i~с~нуючi файли'
@@ -1186,7 +1191,7 @@ DIALOG dlgCopyDialog, 78, 13, 'Копiювання'
       ITEM 'П~р~опустити всi iснуючi файли'
       ITEM 'Обновити старi ~ф~айли'
     END
-    CheckBoxes 45, 4, 76, 9, ofPostProcess, ofPreProcess
+#2  CheckBoxes 45, 4, 76, 9, ofPostProcess, ofPreProcess
       ITEM 'Перевiряти ~м~iсце на диску'
       ITEM 'Перевiряти ~з~апис на диск'
       ITEM 'Копiювати ~о~писи'
@@ -1209,7 +1214,7 @@ END
 DIALOG dlgMakeList, 69, 20, 'Створити список файлiв'
     HELPCTX hcMakeListFile
     Label -1, 4, '╟───────────────────────────────────────────────────────────────────╢'
-    InputLine 14, 2, 64, 3, 255, hsMakeList
+#1  InputLine 14, 2, 64, 3, 255, hsMakeList
     Label 2, 2, 'Iм''я ~ф~айла', ofPostProcess, ofPreProcess
     InputLine 14, 6, 64, 7, 255, hsMakeListHeader
     Label 2, 6, 'На по~ч~аток', ofPostProcess, ofPreProcess
@@ -1218,18 +1223,20 @@ DIALOG dlgMakeList, 69, 20, 'Створити список файлiв'
       ITEM 'Встав~и~ти текст'
       ITEM 'Вставити фа~й~ли'
     END
-    InputLine 14, 9, 64, 10, 255, hsExecDOSCmd
-    Label 2, 9, '~Д~iя', ofPostProcess, ofPreProcess
-    InputLine 14, 11, 64, 12, 255, hsMakeListFooter
-    Label 2, 11, 'В кiне~ц~ь', ofPostProcess, ofPreProcess
-    RadioButtons 14, 12, 64, 13, ofPostProcess, ofPreProcess
+#2  InputLine 14, 10, 64, 11, 255, hsExecDOSCmd
+    Label 2, 9, '~Д~ля кожного файла', ofPostProcess, ofPreProcess
+
+;$IFDEF DualName
+    Button 14, 12, 25, 14, '#:#\#.#', cmNo, ofPostProcess, ofPreProcess
+;$ENDIF
+    Button 27, 12, 38, 14, '!:!\!.!', cmYes, ofPostProcess, ofPreProcess
+
+    InputLine 14, 14, 64, 15, 255, hsMakeListFooter
+    Label 2, 14, 'В кiне~ц~ь', ofPostProcess, ofPreProcess
+    RadioButtons 14, 15, 64, 16, ofPostProcess, ofPreProcess
       ITEM 'Ав~т~о'
       ITEM 'Вставити т~е~кст'
       ITEM 'Вставити фай~л~и'
-    END
-    CheckBoxes 4, 14, 67, 16, ofPostProcess, ofPreProcess
-      ITEM '~З~берiгати повнi шляхи файлiв у списку'
-      ITEM '~А~втоматично визначати необхiднiсть збереження шляхiв'
     END
     Button 21, 17, 33, 19, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 34, 17, 46, 19, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
@@ -1244,106 +1251,226 @@ DIALOG dlgDiskError, 43, 10, 'Дискова помилка'
     Button 17, 7, 27, 9, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgDiskParms, 41, 17, 'Установки колонок'
-    HELPCTX hcSetupDiskColumns
-    CheckBoxes 3, 3, 27, 13, ofPostProcess, ofPreProcess
-      ITEM '~Д~овге iм''я'
+DIALOG dlgPanelShowSetup, 74, 22, 'Вигляд файлової панелi'
+    HELPCTX hcPanelShowSetup
+    CheckBoxes 1, 2, 28, 14, ofPostProcess, ofPreProcess
       ITEM '~Р~озмiр'
-      ITEM '~Д~ату'
-      ITEM '~Ч~ас'
-      ITEM 'Дата створення'
-      ITEM 'Час створення'
-      ITEM 'Дата ocт.доступу'
-      ITEM 'Час ocт.доступу'
-      ITEM '~О~пис'
-    END
-    Label 3, 2, 'Показувати', ofPostProcess, ofPreProcess
-    InputLine 32, 3, 37, 4, 3, 0
-;$IFDEF OS2
-    Label 25, 3, 'NAME:', ofPostProcess, ofPreProcess
-;$ELSE
-    Label 26, 3, 'LFN:', ofPostProcess, ofPreProcess
-;$ENDIF
-    InputLine 32, 4, 37, 5, 3, 0
-    Label 26, 4, 'EXT:', ofPostProcess, ofPreProcess
-    Button 28, 6, 39,  8, 'Уст.~1~', cmYes, ofPostProcess, ofPreProcess
-    Button 28, 8, 39, 10, 'Уст.~2~', cmNo, ofPostProcess, ofPreProcess
-    Button 19, 14, 28, 16, '~О~К', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 28, 14, 39, 16, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
-END
-
-DIALOG dlgArcParms, 41, 13, 'Установки колонок'
-    HELPCTX hcSetupArcColumns
-    CheckBoxes 3, 3, 27, 9, ofPostProcess, ofPreProcess
-      ITEM '~Д~овге iм''я'
-      ITEM '~П~очатковий розмiр'
-      ITEM '~Д~ату'
-      ITEM '~Ч~ас'
-      ITEM '~У~пакований розмiр'
-      ITEM '~В~iдношення'
-    END
-    Label 3, 2, 'Показувати', ofPostProcess, ofPreProcess
-    InputLine 32, 3, 37, 4, 3, 0
-;$IFDEF OS2
-    Label 25, 3, 'NAME:', ofPostProcess, ofPreProcess
-;$ELSE
-    Label 26, 3, 'LFN:', ofPostProcess, ofPreProcess
-;$ENDIF
-    InputLine 32, 4, 37, 5, 3, 0
-    Label 26, 4, 'EXT:', ofPostProcess, ofPreProcess
-    Button 28, 5, 39,  7, 'Уст.~1~', cmYes, ofPostProcess, ofPreProcess
-    Button 28, 7, 39,  9, 'Уст.~2~', cmNo, ofPostProcess, ofPreProcess
-    Button 19, 14, 28, 16, '~О~К', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 28, 14, 39, 16, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
-END
-
-DIALOG dlgFindParms, 41, 17, 'Установки колонок'
-    HELPCTX hcSetupFindColumns
-    CheckBoxes 3, 3, 27, 13, ofPostProcess, ofPreProcess
-      ITEM '~Д~овге iм''я'
-      ITEM '~Р~озмiр'
+      ITEM 'Пакований розмiр'
+      ITEM '% пакування'
       ITEM '~Д~ата'
       ITEM '~Ч~ас'
       ITEM 'Дата створення'
       ITEM 'Час створення'
       ITEM 'Дата ocт.доступу'
       ITEM 'Час ocт.доступу'
-      ITEM '~Ш~лях'
-    END
-    Label 3, 2, 'Показувати', ofPostProcess, ofPreProcess
-    InputLine 32, 3, 37, 4, 3, 0
-;$IFDEF OS2
-    Label 25, 3, 'NAME:', ofPostProcess, ofPreProcess
-;$ELSE
-    Label 26, 3, 'LFN:', ofPostProcess, ofPreProcess
+      ITEM '~О~пис'
+      ITEM 'Шлях'
+;$IFDEF DualName
+      ITEM 'Показувати довге iм''я'
 ;$ENDIF
-    InputLine 32, 4, 37, 5, 3, 0
-    Label 26, 4, 'EXT:', ofPostProcess, ofPreProcess
-    Button 28, 6, 39,  8, 'Уст.~1~', cmYes, ofPostProcess, ofPreProcess
-    Button 28, 8, 39, 10, 'Уст.~2~', cmNo, ofPostProcess, ofPreProcess
-    Button 19, 14, 28, 16, '~О~К', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 28, 14, 39, 16, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
+    END
+    Label 1, 1, 'Колонки', ofPostProcess, ofPreProcess
+    ComboBox 20, 14, 31, 15
+      ITEM 'яК Є'
+      ITEM 'малими'
+      ITEM 'З великої'
+      ITEM 'ВЕЛИКIМИ'
+      ITEM 'АВТО'
+    END
+    Label 1, 14, 'Регiстp ~К~аталогiв', ofPostProcess, ofPreProcess
+    ComboBox 20, 15, 31, 16
+      ITEM 'яК Є'
+      ITEM 'малими'
+      ITEM 'З великої'
+      ITEM 'ВЕЛИКIМИ'
+      ITEM 'авто'
+    END
+    Label 1, 15, 'Регiстp ~Ф~айлiв', ofPostProcess, ofPreProcess
+    InputLine 24, 16, 29, 17, 3, 0
+    Label 1, 16, '~Ш~ирина колонки "Iм''я"', ofPostProcess, ofPreProcess
+    InputLine 24, 17, 29, 18, 3, 0
+    Label 1, 17, '~У~ т.ч. розширення', ofPostProcess, ofPreProcess
+
+    ComboBox 2, 19, 36, 20
+      ITEM 'Нiколи'
+      ITEM 'Коли є воно та символи перед ним'
+      ITEM 'Коли воно не умiщається'
+      ITEM 'Завжди'
+    END
+    Label 1, 18, 'Т~а~булювати розширення', ofPostProcess, ofPreProcess
+    CheckBoxes 2, 20, 28, 21, ofPostProcess, ofPreProcess
+      ITEM 'У каталогiв нiколи'
+    END
+
+    StaticText 43, 1, 72, 2, 'Роздiлювач та пiдвал'
+    ComboBox 52, 2, 71, 3
+      ITEM 'Не показувати'
+      ITEM 'В пiдвалi (ряд.1)'
+      ITEM 'В пiдвалi (ряд.2)'
+      ITEM 'В пiдвалi (ряд.3)'
+      ITEM 'В пiдвалi (ряд.4)'
+      ITEM 'На роздiлювачу'
+    END
+    Label 31, 2, 'Данi про файл', ofPostProcess, ofPreProcess
+
+;$IFDEF DualName
+    ComboBox 42, 3, 64, 4
+      ITEM 'Не таке, як у панелi'
+      ITEM 'Завжди довге'
+    END
+    Label 32, 3, '└─ Iм''я', ofPostProcess, ofPreProcess
+;$ENDIF
+
+#2  ComboBox 52, 4, 71, 5
+      ITEM 'Не показувати'
+      ITEM 'В пiдвалi (ряд.1)'
+      ITEM 'В пiдвалi (ряд.2)'
+      ITEM 'В пiдвалi (ряд.3)'
+      ITEM 'В пiдвалi (ряд.4)'
+      ITEM 'На роздiлювачу'
+      ITEM 'На розд.коротко'
+    END
+    Label 31, 4, 'Розмiр помiчених', ofPostProcess, ofPreProcess
+#1  ComboBox 52, 5, 71, 6
+      ITEM 'Не показувати'
+      ITEM 'В пiдвалi (ряд.1)'
+      ITEM 'В пiдвалi (ряд.2)'
+      ITEM 'В пiдвалi (ряд.3)'
+      ITEM 'В пiдвалi (ряд.4)'
+      ITEM 'На роздiлювачу'
+    END
+    Label 31, 5, 'Фiльтр', ofPostProcess, ofPreProcess
+    ComboBox 52, 6, 71, 7
+      ITEM 'Не показувати'
+      ITEM 'В пiдвалi (ряд.1)'
+      ITEM 'В пiдвалi (ряд.2)'
+      ITEM 'В пiдвалi (ряд.3)'
+      ITEM 'В пiдвалi (ряд.4)'
+      ITEM 'На роздiлювачу'
+    END
+    Label 31, 6, 'Опис/Шлях', ofPostProcess, ofPreProcess
+    ComboBox 52, 7, 71, 8
+      ITEM 'Не показувати'
+      ITEM 'В пiдвалi (ряд.1)'
+      ITEM 'В пiдвалi (ряд.2)'
+      ITEM 'В пiдвалi (ряд.3)'
+      ITEM 'В пiдвалi (ряд.4)'
+      ITEM 'На роздiлювачу'
+    END
+    Label 31, 7, 'Данi про пакування', ofPostProcess, ofPreProcess
+#3  ComboBox 52, 8, 71, 9
+      ITEM 'Не показувати'
+      ITEM 'В пiдвалi (ряд.1)'
+      ITEM 'В пiдвалi (ряд.2)'
+      ITEM 'В пiдвалi (ряд.3)'
+      ITEM 'В пiдвалi (ряд.4)'
+      ITEM 'На роздiлювачу'
+      ITEM 'На розд.коротко'
+    END
+    Label 31, 8, 'Тiльки % пакування', ofPostProcess, ofPreProcess
+    ComboBox 52, 9, 71, 10
+      ITEM 'Не показувати'
+      ITEM 'В пiдвалi (ряд.1)'
+      ITEM 'В пiдвалi (ряд.2)'
+      ITEM 'В пiдвалi (ряд.3)'
+      ITEM 'В пiдвалi (ряд.4)'
+      ITEM 'На роздiлювачу'
+    END
+    Label 31, 9, 'Довге iм''я', ofPostProcess, ofPreProcess
+      ComboBox 49, 10, 72, 11
+        ITEM 'Лiворуч'
+        ITEM 'У центрi'
+        ITEM 'Праворуч'
+      END
+      Label 32, 10, '├─Розмiстити', ofPostProcess, ofPreProcess
+      ComboBox 49, 11, 72, 12
+        ITEM 'Лiву частину та розш.'
+        ITEM 'Праву частину'
+        ITEM 'Лiву частину'
+      END
+      Label 32, 11, '├┬Показувати', ofPostProcess, ofPreProcess
+    StaticText 33, 12, 35, 13, '│└'
+    CheckBoxes 35, 12, 68, 13, ofPostProcess, ofPreProcess
+      ITEM 'Якщо нiде не показне цiлком'
+    END
+      ComboBox 49, 13, 72, 14
+        ITEM 'Не видiляти'
+        ITEM 'Видiляти кольором'
+        ITEM 'Не показувати'
+      END
+      Label 32, 13, '└─Спiльну част.', ofPostProcess, ofPreProcess
+    ComboBox 52, 14, 71, 15
+      ITEM 'Не показувати'
+      ITEM 'В пiдвалi (ряд.1)'
+      ITEM 'В пiдвалi (ряд.2)'
+      ITEM 'В пiдвалi (ряд.3)'
+      ITEM 'В пiдвалi (ряд.4)'
+      ITEM 'На роздiлювачу'
+      ITEM 'На розд.коротко'
+    END
+    Label 31, 14, 'Данi про каталог', ofPostProcess, ofPreProcess
+    ComboBox 52, 15, 71, 16
+      ITEM 'Не показувати'
+      ITEM 'В пiдвалi (ряд.1)'
+      ITEM 'В пiдвалi (ряд.2)'
+      ITEM 'В пiдвалi (ряд.3)'
+      ITEM 'В пiдвалi (ряд.4)'
+      ITEM 'На роздiлювачу'
+    END
+    Label 31, 15, 'Вiльне мiсце', ofPostProcess, ofPreProcess
+
+    CheckBoxes 32, 17, 58, 18, ofPostProcess, ofPreProcess
+      ITEM '~М~аксимiзована панель'
+    END
+
+#4  Button 59, 17, 72, 19, 'Запи~с~ати', 0, bfNormal
+    Button 37, 19, 47, 21, '~О~К', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 48, 19, 59, 21, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
+    Button 60, 19, 72, 21, 'Допомога', cmHelp, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgSavePanelSetup, 46, 18, 'Записати настройки панелi'
+    HELPCTX hcSavePanelSetup
+#1  RadioButtons 2, 2, 14, 7
+      ITEM '~Д~иск'
+      ITEM '~С~писок'
+      ITEM '~А~pхiв'
+      ITEM 'АРВIД'
+      ITEM '~В~сi'
+    END
+    Label 3, 1, 'Тип панелi'
+
+#2  CheckBoxes 20, 2, 44, 14
+      ITEM '~Ц~iєї панелi'
+      ITEM 'Iн~ш~ої панелi'
+    END
+    Label 20, 1, 'Блок настроєк'
+    Button 13, 13, 20, 15, 'В~с~i', cmSelectAll
+
+    Button 2, 15, 16,  17, 'O~K~', cmOK, bfDefault
+    Button 17, 15, 28, 17, 'Вiдмiна', cmCancel
+    Button 29, 15, 41, 17, 'Допомога', cmHelp
 END
 
 DIALOG dlgFileAttr, 55, 15, 'Атрибути файла'
     HELPCTX hcFileAttr
     StaticText 32, 3, 50, 4, 'Ост.модифiкацiї:'
     InputLine 27, 4, 39, 5, 8, 0
-    Label 26, 2, '~Ч~ас (Г:Х:С)', ofPostProcess, ofPreProcess
+    Label 29, 2, '~Ч~ас', ofPostProcess, ofPreProcess
     InputLine 41, 4, 53, 5, 10, 0
-    Label 40, 2, '~Д~ата (Д-М-Р)', ofPostProcess, ofPreProcess
+    Label 43, 2, '~Д~ата', ofPostProcess, ofPreProcess
 
     StaticText 35, 6, 45, 7, 'Створення:'
     InputLine 27, 7, 39, 8, 8, 0
-;   Label 37, 5, 'Час (Г:Х:С)', ofPostProcess, ofPreProcess
+;   Label 40, 5, 'Час', ofPostProcess, ofPreProcess
     InputLine 41, 7, 53, 8, 10, 0
-;   Label 52, 5, 'Дата (Д-М-Р)', ofPostProcess, ofPreProcess
+;   Label 55, 5, 'Дата', ofPostProcess, ofPreProcess
 
     StaticText 34, 8, 49, 9, 'Ост.доступу:'
     InputLine 27, 9, 39, 10, 8, 0
-;   Label 37, 7, 'Час (Г:Х:С)', ofPostProcess, ofPreProcess
+;   Label 40, 7, 'Час', ofPostProcess, ofPreProcess
     InputLine 41, 9, 53, 10, 10, 0
-;   Label 52, 7, 'Дата (Д-М-Р)', ofPostProcess, ofPreProcess
+;   Label 55, 7, 'Дата', ofPostProcess, ofPreProcess
 
     Button 2, 12, 12, 14, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 14,12, 27, 14, 'Теперiшнє', cmYes, ofPostProcess, ofPreProcess
@@ -1365,21 +1492,21 @@ DIALOG dlgFilesAttr, 59, 15, 'Атрибути файлiв'
     Label 9, 3, 'Ст~е~рти', ofPostProcess, ofPreProcess
     StaticText 36, 3, 52, 4, 'Ост.модифiкацiї:'
     InputLine 31, 4, 43, 5, 8, 0
-    Label 30, 2, '~Ч~ас (Г:Х:С)', ofPostProcess, ofPreProcess
+    Label 33, 2, '~Ч~ас', ofPostProcess, ofPreProcess
     InputLine 45, 4, 57, 5, 10, 0
-    Label 44, 2, '~Д~ата (Д-М-Р)', ofPostProcess, ofPreProcess
+    Label 47, 2, '~Д~ата', ofPostProcess, ofPreProcess
 
     StaticText 39, 6, 49, 7, 'Створення:'
     InputLine 31, 7, 43, 8, 8, 0
-;   Label 42, 5, 'Час (Г:Х:С)', ofPostProcess, ofPreProcess
+;   Label 45, 5, 'Час', ofPostProcess, ofPreProcess
     InputLine 45, 7, 57, 8, 10, 0
-;   Label 57, 5, 'Дата (Д-М-Р)', ofPostProcess, ofPreProcess
+;   Label 60, 5, 'Дата', ofPostProcess, ofPreProcess
 
     StaticText 37, 8, 51, 9, 'Ост.доступу:'
     InputLine 31, 9, 43, 10, 8, 0
-;   Label 42, 7, 'Час (Г:Х:С)', ofPostProcess, ofPreProcess
+;   Label 45, 7, 'Час', ofPostProcess, ofPreProcess
     InputLine 45, 9, 57, 10, 10, 0
-;   Label 57, 7, 'Дата (Д-М-Р)', ofPostProcess, ofPreProcess
+;   Label 60, 7, 'Дата', ofPostProcess, ofPreProcess
 
     Button 4, 12, 14, 14, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 16,12, 29, 14, 'Теперiшнє', cmYes, ofPostProcess, ofPreProcess
@@ -1460,34 +1587,34 @@ DIALOG dlgExtract, 51, 14, 'Добути файли'
     Button 37, 11, 49, 13, 'Допомо~г~а', cmHelp, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgCommandsHistory, 69, 17, 'Iстоpiя команд'
+DIALOG dlgCommandsHistory, 78, 17, 'Iстоpiя команд'
     HELPCTX hcCmdHistory
-    Button 1, 14, 14, 16, '~В~иконати', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 14, 14, 28, 16, '~К~опiювати', cmYes, ofPostProcess, ofPreProcess
-    Button 28, 14, 45, 16, '~P~едагувати', cmOK, bfBroadcast, ofPostProcess, ofPreProcess
-    Button 45, 14, 57, 16, 'В~и~далити', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
-    Button 57, 14, 68, 16, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
+    Button 5, 14, 18, 16, '~В~иконати', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 18, 14, 32, 16, '~К~опiювати', cmYes, ofPostProcess, ofPreProcess
+    Button 32, 14, 49, 16, '~P~едагувати', cmOK, bfBroadcast, ofPostProcess, ofPreProcess
+    Button 49, 14, 61, 16, 'В~и~далити', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
+    Button 61, 14, 72, 16, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgDirectoryHistory, 59, 17, 'Iстоpiя змiни каталогiв'
+DIALOG dlgDirectoryHistory, 78, 17, 'Iстоpiя змiни каталогiв'
     HELPCTX hcDirHistory
-    Button 2, 14, 16, 16, '~П~еpейти', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 20, 14, 40, 16, 'В~и~далити запис', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
-    Button 44, 14, 56, 16, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
+    Button 12, 14, 26, 16, '~П~еpейти', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 30, 14, 50, 16, 'В~и~далити запис', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
+    Button 54, 14, 66, 16, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgEditHistory, 59, 17, 'Iстоpiя редагування файлiв'
+DIALOG dlgEditHistory, 78, 17, 'Iстоpiя редагування файлiв'
     HELPCTX hcEditHistory
-    Button 2, 14, 16, 16, '~В~iдкpити', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 20, 14, 40, 16, 'В~и~далити запис', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
-    Button 44, 14, 56, 16, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
+    Button 12, 14, 26, 16, '~В~iдкpити', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 30, 14, 50, 16, 'В~и~далити запис', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
+    Button 54, 14, 66, 16, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgViewHistory, 59, 17, 'Iстоpiя перегляду файлiв'
+DIALOG dlgViewHistory, 78, 17, 'Iстоpiя перегляду файлiв'
     HELPCTX hcViewHistory
-    Button 2, 14, 16, 16, '~В~iдкpити', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 20, 14, 40, 16, 'В~и~далити запис', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
-    Button 44, 14, 56, 16, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
+    Button 12, 14, 26, 16, '~В~iдкpити', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 30, 14, 50, 16, 'В~и~далити запис', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
+    Button 54, 14, 66, 16, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgSetupArc, 78, 22, 'Установки архiватора'
@@ -1647,9 +1774,10 @@ STATUSLINE
      StatusItem ':~F5~ Копiю один', kbShiftF5, cmSingleCopy,
      StatusItem ':~F6~ Перем один', kbShiftF6, cmSingleRename,
      StatusItem ':~F8~ Видалити', kbShiftF8, cmSingleDel,
-     StatusItem '-Сорт~у~вання', kbAltB, cmSortBy,
-     StatusItem '-~З~мiнити диск ', kbAltC, cmChangeDrive,
-     StatusItem '-~S~ Установки', kbAltS, cmPanelSetup,
+     StatusItem '-Сортуват~и~', kbAltB, cmSortBy,
+     StatusItem '-~-~ Вигляд', kbAltMinus, cmSelectPreset,
+     StatusItem '-Ди~с~к ', kbAltC, cmChangeDrive,
+     StatusItem '-~S~ Установки', kbAltS, cmPanelSortSetup,
      StatusItem '-~W~ Список', kbAltW, cmMakeList,
      StatusItem '-~;~ Описи', kbAltSemicolon, cmToggleDescriptions,
      StatusItem '+~L~ Iнфо', kbCtrlL, cmDiskInfo,
@@ -1680,6 +1808,7 @@ STATUSLINE
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Розгорнути', kbCtrlAltZ, cmMaxi,
+     StatusItem '^~H~ Повна гiлка', kbCtrlAltH, cmDirBranchFull,
      StatusItem '^~F5~ Piзати/Клеїти', kbCtrlAltF5, cmPanelLongCopy,
      StatusItem '^~F6~ Змiнити pегiстp iмен', kbCtrlAltF6, cmChangeNameCase,
   StatusDef hcLinkPanel, hcLinkPanel,
@@ -1694,9 +1823,10 @@ STATUSLINE
      StatusItem '+~F6~ Калькулятор', kbCtrlF6, cmCalculator,
      StatusItem ':~F3~ Телефон', kbShiftF3, cmPhoneBook,
      StatusItem ':~F8~ Видалити', kbShiftF8, cmSingleDel,
-     StatusItem '-Сорт~у~вання', kbAltB, cmSortBy,
-     StatusItem '-~З~мiнити диск ', kbAltC, cmChangeDrive,
-     StatusItem '-~S~ Установки', kbAltS, cmPanelSetup,
+     StatusItem '-Сортуват~и~', kbAltB, cmSortBy,
+     StatusItem '-~-~ Вигляд', kbAltMinus, cmSelectPreset,
+     StatusItem '-Ди~с~к ', kbAltC, cmChangeDrive,
+     StatusItem '-~S~ Установки', kbAltS, cmPanelSortSetup,
      StatusItem '+~L~ Iнфо', kbCtrlL, cmDiskInfo,
 ;{-$VIV}
 ;$IFDEF NETINFO
@@ -1733,9 +1863,10 @@ STATUSLINE
 ;    StatusItem ':~F6~ Оживити', kbShiftF6, cmReanimator,
      StatusItem ':~F7~ Формат', kbShiftF7, cmFormatDisk,
      StatusItem ':~F8~ Вбити', kbShiftF8, cmSingleDel,
-     StatusItem '-Сорт~у~вання', kbAltB, cmSortBy,
-     StatusItem '-~З~мiнити диск ', kbAltC, cmChangeDrive,
-     StatusItem '-~S~ Установки', kbAltS, cmPanelSetup,
+     StatusItem '-Сортуват~и~', kbAltB, cmSortBy,
+     StatusItem '-~-~ Вигляд', kbAltMinus, cmSelectPreset,
+     StatusItem '-Ди~с~к ', kbAltC, cmChangeDrive,
+     StatusItem '-~S~ Установки', kbAltS, cmPanelSortSetup,
      StatusItem '-~W~ Список', kbAltW, cmMakeList,
      StatusItem '+Д~е~рево', kbCtrlT, cmDirTree,
      StatusItem '+~F12~ Календар', kbCtrlF12, cmCalendar,
@@ -1752,6 +1883,7 @@ STATUSLINE
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Розгорнути', kbCtrlAltZ, cmMaxi,
+     StatusItem '^~H~ Повна гiлка', kbCtrlAltH, cmDirBranchFull,
   StatusDef hcDirTree, hcDirTree,
      StatusItem '~F1~ Допомога', kbF1, cmHelp,
      StatusItem '~F2~ Меню', kbF2, cmUserMenu,
@@ -1872,6 +2004,7 @@ STATUSLINE
      StatusItem '-~F7~ Зворотнiй пошук', kbAltF7, cmBackSearch,
      StatusItem '-~F10~ Вiдео/1', kbAltF10, cmChangeUserMode1,
 ;{CTRL}
+     StatusItem '+~I~ Вставити запис', kbCtrlI, cmInsertDBRec,
      StatusItem '+~D~ Видалити/Вiдновити', kbCtrlD, cmDeleteDBRec,
      StatusItem '+~F3~ Нов.панель', kbCtrlF3, cmCreatePanel,
      StatusItem '+~F4~ Закрити', kbCtrlF4, cmClose,
@@ -1884,6 +2017,8 @@ STATUSLINE
      StatusItem ':~F7~ Продовжити пошук', kbShiftF7, cmContinueSearch,
      StatusItem ':~F10~ Вiдео', kbShiftF10, cmChangeMode,
 ;{ALT-CTRL}
+     StatusItem '^~~ Запис вверх', kbCtrlAltUp, cmUpDBRec,
+     StatusItem '^~~ Запис вниз', kbCtrlAltDown, cmDownDBRec,
 ;$IFDEF OS_DOS
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
@@ -2219,6 +2354,51 @@ STATUSLINE
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
 
+  StatusDef hcCmdHistory, hcCmdHistory,
+     StatusItem '~F1~ Допомога', kbF1, cmHelp,
+     StatusItem '~Space~ Вiдмiтити/зняти вiдмiтку', kbNoKey, 0,
+     StatusItem '~Del~ Видалити', kbNoKey, 0,
+     StatusItem '~<= =>~ До вiдмiчених', kbNoKey, 0,
+     StatusItem ':~~ Помiняти мiсцями', kbNoKey, 0,
+     StatusItem '+~Enter~ Скинути', kbNoKey, 0,
+     StatusItem '+~<= =>~ Пpокpутити упеpед/назад', kbNoKey, 0,
+     StatusItem '-~~ Пеpейти до вiдмiчених', kbNoKey, 0,
+     StatusItem '', kbCtrlF5, cmResize,
+     StatusItem '', kbCtrlF4, cmClose,
+
+  StatusDef hcDirHistory, hcDirHistory,
+     StatusItem '~F1~ Допомога', kbF1, cmHelp,
+     StatusItem '~Space~ Вiдмiтити/зняти вiдмiтку', kbNoKey, 0,
+     StatusItem '~Del~ Видалити', kbNoKey, 0,
+     StatusItem '~<= =>~ До вiдмiчених', kbNoKey, 0,
+     StatusItem ':~~ Помiняти мiсцями', kbNoKey, 0,
+     StatusItem '+~<= =>~ Пpокpутити упеpед/назад', kbNoKey, 0,
+     StatusItem '-~~ Пеpейти до вiдмiчених', kbNoKey, 0,
+     StatusItem '', kbCtrlF5, cmResize,
+     StatusItem '', kbCtrlF4, cmClose,
+
+  StatusDef hcViewHistory, hcViewHistory,
+     StatusItem '~F1~ Допомога', kbF1, cmHelp,
+     StatusItem '~Space~ Вiдмiтити/зняти вiдмiтку', kbNoKey, 0,
+     StatusItem '~Del~ Видалити', kbNoKey, 0,
+     StatusItem '~<= =>~ До вiдмiчених', kbNoKey, 0,
+     StatusItem ':~~ Помiняти мiсцями', kbNoKey, 0,
+     StatusItem '+~<= =>~ Пpокpутити упеpед/назад', kbNoKey, 0,
+     StatusItem '-~~ Пеpейти до вiдмiчених', kbNoKey, 0,
+     StatusItem '', kbCtrlF5, cmResize,
+     StatusItem '', kbCtrlF4, cmClose,
+
+  StatusDef hcEditHistory, hcEditHistory,
+     StatusItem '~F1~ Допомога', kbF1, cmHelp,
+     StatusItem '~Space~ Вiдмiтити/зняти вiдмiтку', kbNoKey, 0,
+     StatusItem '~Del~ Видалити', kbNoKey, 0,
+     StatusItem '~<= =>~ До вiдмiчених', kbNoKey, 0,
+     StatusItem ':~~ Помiняти мiсцями', kbNoKey, 0,
+     StatusItem '+~<= =>~ Пpокpутити упеpед/назад', kbNoKey, 0,
+     StatusItem '-~~ Пеpейти до вiдмiчених', kbNoKey, 0,
+     StatusItem '', kbCtrlF5, cmResize,
+     StatusItem '', kbCtrlF4, cmClose,
+
   StatusDef 0, $FFFF,
      StatusItem '~F1~ Допомога', kbF1, cmHelp,
      StatusItem '+~F4~ Закрити', kbCtrlF4, cmClose,
@@ -2502,10 +2682,8 @@ MENU dlgMainMenu
     MenuItem 'Об~ч~ислити розмiр каталогу', 'Ctrl-G', kbCtrlG, cmCountLen, hcPanelMenu,
     MenuItem '~Г~iлка каталогу', 'Ctrl-H', kbCtrlH, cmDirBranch, hcPanelMenu,
     MenuLine
-    MenuItem 'Установки ~к~олонок', 'Alt-R', kbAltR, cmSetupColumns, hcPanelMenu,
-    MenuItem '~У~становки панелi', 'Alt-S', kbAltS, cmPanelSetup, hcPanelMenu,
-    MenuItem 'С~о~ртувати по...', 'Alt-B', kbAltB, cmSortBy, hcPanelMenu,
-    MenuItem '~Ф~iльтр...', 'Alt-Del', kbAltDel, cmAdvFilter, hcPanelMenu,
+    MenuItem '~З~авантажити вигляд...', 'Alt-"-"', kbAltMinus, cmSelectPreset, hcPanelMenu,
+    MenuItem 'С~о~ртувати за...', 'Alt-B', kbAltB, cmSortBy, hcPanelMenu,
     MenuLine
     MenuItem 'Вiдм~i~тити групу...', 'Gray "+"', kbNoKey, cmPanelSelect, hcPanelMenu,
     MenuItem 'С~к~асувати групу...', 'Gray "-"', kbNoKey, cmPanelUnselect, hcPanelMenu,
@@ -2557,16 +2735,13 @@ MENU dlgMainMenu
      END
     SubMenu '~М~енеджер файлiв', hcOptionsMenu,
       MenuItem '~У~становки...', ' ', kbNoKey, cmFMSetup, hcSubMenuFileMgr,
-      MenuItem 'Установки для ~н~ового вiкна...', '', kbNoKey, cmFMDefaults, hcSubMenuFileMgr,
       MenuItem 'Вiкно ~i~нформацiї...', ' ', kbNoKey, cmDriveInfoSetup, hcSubMenuFileMgr,
-      SubMenu 'К~о~лонки панелiв...', hcSubMenuFileMgr,
-       MenuItem '~Д~иск',  ' ', kbNoKey, cmColumnDefaultsDisk, hcSubMenuFileMgr,
-       MenuItem '~П~ошук', ' ', kbNoKey, cmColumnDefaultsFind, hcSubMenuFileMgr,
-       MenuItem '~T~EMP:', ' ', kbNoKey, cmColumnDefaultsTemp, hcSubMenuFileMgr,
-       MenuItem '~А~pхiв', ' ', kbNoKey, cmColumnDefaultsArch, hcSubMenuFileMgr,
-       MenuItem 'А~Р~ВIД',   ' ', kbNoKey, cmColumnDefaultsArvd, hcSubMenuFileMgr,
-      END
       MenuItem '~Г~рупи файлiв...', '', kbNoKey, cmHighlightGroups, hcSubMenuFileMgr,
+     END
+   SubMenu '~П~анель', hcOptionsMenu,
+      MenuItem '~Н~астроїти вигляд панелi', 'Alt-R', kbAltR, cmPanelShowSetup, hcPanelSetup,
+      MenuItem 'Настроїти сорт~у~вання', 'Alt-S', kbAltS, cmPanelSortSetup, hcPanelSetup,
+      MenuItem '~Ф~iльтр...', 'Alt-Del', kbAltDel, cmAdvFilter, hcPanelSetup,
      END
    SubMenu 'А~р~хiватори', hcOptionsMenu,
       MenuItem 'Поточний архiватор...', 'Alt-N', kbAltN, cmSetupArchive, hcArchives,
@@ -2597,6 +2772,7 @@ MENU dlgMainMenu
       MenuItem '~Z~IP - PKZIP (C) PKWARE Inc.',                         '', kbNoKey, cmConfigZIP, hcArchives,
       MenuItem 'ZO~O~ - Zoo (C) Rahul Dhesi',                           '', kbNoKey, cmConfigZOO, hcArchives,
       MenuItem 'Z~X~Z - ZXZip (C) Michael Kondratyev',                  '', kbNoKey, cmConfigZXZ, hcArchives,
+      MenuItem '~7~Z - 7-Zip (C) Igor Pavlov',                          '', kbNoKey, cmConfig7Z,  hcArchives,
      END
     MenuLine
     MenuItem 'Файл швидкого запуску...', ' ', kbNoKey, cmEditQuickRun, hcOptionsMenu,
@@ -2934,11 +3110,18 @@ DIALOG dlgAppendQuery, 60, 13, 'Вибiр'
     Button 46, 10, 58, 12, 'Вiдмiна', cmCancel, bfNormal, ofPostProcess
 END
 
-DIALOG dlgAdvancedFilter, 36, 17, 'Фiльтр'
+DIALOG dlgAdvancedFilter, 56, 20, 'Фiльтр'
     HELPCTX hcAdvancedFilter
-    Button  2, 14, 14, 16, '~Д~одати', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 14, 14, 23, 16, '~К~рiм', cmNo, bfNormal, ofPostProcess, ofPreProcess
-    Button 23, 14, 34, 16, 'Закрити', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+#1  InputLine 3, 2, 51, 3, 250, hsFileMask
+    Label 3, 1, '~Ф~iльтр'
+    Scrollbar 52, 5, 53, 14
+#2  ListBox 3, 5, 52, 14, 5
+    Label 3, 4, '~Р~озширення'
+#3  Button  2, 15, 16, 17, '~Д~одати', cmYes, bfDefault, ofPostProcess, ofPreProcess
+#4  Button  13, 17, 21, 19, '~O~K', cmOk, bfNormal, ofPostProcess, ofPreProcess
+#5  Button 29, 17, 41, 19, 'Закрити', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+#6  Button 17, 15, 28, 17, '~К~рiм', cmNo, bfNormal, ofPostProcess, ofPreProcess
+#7  Button 29, 15, 41, 17, 'Запи~с~ати', 0, bfNormal
 END
 
 DIALOG dlgViewerFind, 50, 15, 'Пошук'
@@ -2969,130 +3152,159 @@ DIALOG dlgViewerFind, 50, 15, 'Пошук'
     Button 37,12,47,14, 'Допомо~г~а', cmHelp, bfNormal, ofPostProcess
 END
 
-DIALOG dlgPanelSetup, 62, 21, 'Установки панелi'
-    HELPCTX hcPanelSetup
-    RadioButtons 2, 3, 28, 12, ofPostProcess, ofPreProcess
-      ITEM '~I~менi'
+DIALOG dlgPanelSortSetup, 64, 21, 'Сортування'
+    HELPCTX hcPanelSortSetup
+    RadioButtons 2, 3, 28, 11, ofPostProcess, ofPreProcess
+      ITEM 'I~м~енi'
       ITEM '~Р~озширенню'
       ITEM 'Ро~з~мiру'
       ITEM '~Ч~асу'
       ITEM 'Часу створенн~я~'
       ITEM 'Ч~а~су ост. доступу'
       ITEM 'Опис~у~'
-      ITEM '~Г~рупi'
       ITEM '~Н~е сортувати'
     END
-    Label 2, 2, 'Сортувати по...', ofPostProcess, ofPreProcess
-    CheckBoxes 2, 12, 28, 14, ofPostProcess, ofPreProcess
-      ITEM 'Сортувати за шляхом'
-      ITEM 'Зворотний порядок'
+    Label 2, 2, 'Сортувати  по...', ofPostProcess, ofPreProcess
+    CheckBoxes 2, 13, 28, 17, ofPostProcess, ofPreProcess
+      ITEM 'Сортувати за ~ш~ляхом'
+      ITEM 'Сортувати за гру~п~ою'
+      ITEM 'З~в~оротний порядок'
+      ITEM 'Ка~т~алоги за iменем'
     END
-    CheckBoxes 29, 3, 60, 14, ofPostProcess, ofPreProcess
-      ITEM 'Розмiр катало~г~iв'
-      ITEM '~П~оточний файл'
-      ITEM '~В~iдмiченi файли'
-      ITEM 'Iн~ф~ормацiя про каталог'
-      ITEM 'В~i~льне мiсце'
-      ITEM '~П~iдсвiчування файлiв'
-      ITEM 'Виконуванi на по~ч~аток'
-      ITEM '~А~рхiви на початок'
-      ITEM 'Виконуванi перед архiвами'
-      ITEM 'Довге iм''я внизу'
-      ITEM 'Опис внизу'
+    Label 2, 12, 'Особливостi сортування', ofPostProcess, ofPreProcess
+    StaticText 36, 2, 47, 3, 'На початок:'
+    ComboBox 36, 3, 57, 4
+      ITEM 'Нема'
+      ITEM 'Каталоги'
+      ITEM 'Архiви'
+      ITEM 'Виконуванi '
+      ITEM 'Схованi та системнi'
     END
-    Label 29, 2, 'Зовнiшнiй вигляд', ofPostProcess, ofPreProcess
-    InputLine 2, 16, 54, 17, 250, 0
-    History 54, 16, hsFileMask, ofPostProcess
-    Label 2, 15, '~М~аска файлiв', ofPostProcess, ofPreProcess
-    Button 21, 18, 33, 20, 'O~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 33, 18, 45, 20, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
-    Button 45, 18, 57, 20, 'Допомо~г~а', cmHelp, ofPostProcess, ofPreProcess
+    Label 33, 3, '~1~', ofPostProcess, ofPreProcess
+    ComboBox 36, 4, 57, 5
+      ITEM 'Нема'
+      ITEM 'Каталоги'
+      ITEM 'Архiви'
+      ITEM 'Виконуванi '
+      ITEM 'Схованi та системнi'
+    END
+    Label 33, 4, '~2~', ofPostProcess, ofPreProcess
+    ComboBox 36, 5, 57, 6
+      ITEM 'Нема'
+      ITEM 'Каталоги'
+      ITEM 'Архiви'
+      ITEM 'Виконуванi '
+      ITEM 'Схованi та системнi'
+    END
+    Label 33, 5, '~3~', ofPostProcess, ofPreProcess
+    ComboBox 36, 6, 57, 7
+      ITEM 'Нема'
+      ITEM 'Каталоги'
+      ITEM 'Архiви'
+      ITEM 'Виконуванi '
+      ITEM 'Схованi та системнi'
+    END
+    Label 33, 6, '~4~', ofPostProcess, ofPreProcess
+#2  RadioButtons 35, 9, 62, 12, ofPostProcess, ofPreProcess
+      ITEM 'Алфавiтне'
+      ITEM 'Hа верхньому регiстрi'
+      ITEM 'Hа нижньому регiстрi'
+    END
+    Label 35, 8, 'Порiвнювання iмен файлiв', ofPostProcess, ofPreProcess
+#1  Button 47, 16, 60, 18, 'Запи~с~ати', 0
+    Button 24, 18, 36, 20, 'O~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 36, 18, 48, 20, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
+    Button 48, 18, 60, 20, 'Допомо~г~а', cmHelp, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgFMDefaults, 63, 19, 'Установки за замовчуванням для панелiв'
-    HELPCTX hcPanelDefaults
-    RadioButtons 2, 2, 28, 13, ofPostProcess, ofPreProcess
-      ITEM '~I~менi'
-      ITEM '~Р~озширенню'
-      ITEM 'Ро~з~мiру'
-      ITEM '~Ч~асу'
-      ITEM 'Часу створенн~я~'
-      ITEM 'Ч~а~су ост. доступу'
-      ITEM 'Опис~у~'
-      ITEM '~Г~рупi'
-      ITEM '~Н~е сортувати'
-    END
-    Label 2, 1, 'Сортувати по...', ofPostProcess, ofPreProcess
-    CheckBoxes 29, 2, 61, 13, ofPostProcess, ofPreProcess
-      ITEM 'Розмiр катало~г~iв'
-      ITEM '~П~оточний файл'
-      ITEM '~В~iдмiченi файли'
-      ITEM 'Iн~ф~ормацiя про каталог'
-      ITEM 'В~i~льне мiсце'
-      ITEM '~П~iдсвiчування файлiв'
-      ITEM 'Виконуванi на по~ч~аток'
-      ITEM '~А~рхiви на початок'
-      ITEM 'Виконуванi перед архiвами'
-      ITEM 'Довге iм''я внизу'
-      ITEM 'Опис внизу'
-    END
-    Label 29, 1, 'Зовнiшнiй вигляд', ofPostProcess, ofPreProcess
-    RadioButtons 29, 15, 61, 17
-      ITEM 'Диск'
-      ITEM 'Iнформацiя'
-      ITEM 'Дерево'
-      ITEM 'Вiдсутня'
-    END
-    Label 29, 14, '~Л~iва панель'
-    Button  2, 14, 12, 16, 'O~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 12, 14, 22, 16, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
-    Button  7, 16, 19, 18, 'Допомо~г~а', cmHelp, ofPostProcess, ofPreProcess
-END
-
-DIALOG dlgFMSetup, 69, 22, 'Установки Менеджера Файлiв'
+DIALOG dlgFMSetup, 72, 22, 'Установки Менеджера Файлiв'
     HELPCTX hcFileMgrSetup
-    CheckBoxes 2, 2, 40, 16, ofPostProcess, ofPreProcess
+; Options
+    CheckBoxes 1, 2, 35, 17, ofPostProcess, ofPreProcess
       ITEM 'Авто~-~змiна каталогiв'
-      ITEM 'Пере~т~ягування файлiв iз панелiв'
+      ITEM 'Пере~т~ягування файлiв мишею'
       ITEM 'Гуд~о~к пiсля копiювання'
       ITEM '~В~хiд в архiви по ~В~ВОДу'
       ITEM 'Вiдмiтка файлiв ~П~РОБIЛом'
       ITEM 'DEL для в~и~далення файлiв'
       ITEM 'Використовувати клавiшi ~/~'#26
       ITEM 'Ро~з~рiзняти клавiшi Alt'
-      ITEM 'Роз~р~iзняти клавiшi Ctrl'
-      ITEM '└─ Альтеpнативна логiка'
       ITEM 'BS - змiнити каталог вгоpу'
       ITEM 'Не видаляти описи'
       ITEM 'Видаляти контейнеpи описiв'
       ITEM 'Завжди копiювати описи'
+      ITEM 'Автооновлення рядку дискiв'
+      ITEM 'Автооновлення панелiв'
+;$IFDEF DualName
+      ITEM 'Описи за короткими iменами'
+;$ENDIF
     END
-    Label 2, 1, 'Поведiнка', ofPostProcess, ofPreProcess
-    CheckBoxes 42, 3, 67, 7, ofPostProcess, ofPreProcess
-      ITEM '~З~аголовки панелiв'
+    Label 1, 1, 'Поведiнка', ofPostProcess, ofPreProcess
+
+; Quick
+    ComboBox 17, 18, 35, 19
+      ITEM 'Одиночний Alt'
+      ITEM 'Одиночний Ctrl'
+      ITEM 'Вiдсутнiй'
+    END
+    Label 1, 18, 'Швидкий пошук:', ofPostProcess, ofPreProcess
+
+; LRCtrlInDriveLine
+    ComboBox 2, 20, 31, 21
+      ITEM 'Завжди активна панель'
+      ITEM 'Пасивна/Активна панель'
+      ITEM 'Лiва/Права панель'
+    END
+    Label 1, 19, 'L/R Ctrl в рядку дискiв:', ofPostProcess, ofPreProcess
+
+; Show
+    CheckBoxes 38, 2, 68, 7, ofPostProcess, ofPreProcess
+      ITEM '~З~аголовки колонок'
       ITEM 'Рядок ~д~искiв'
-      ITEM '~Р~оздiлювач'
-      ITEM 'Позначати вiдмiтку'
+      ITEM 'Полоса прокрутки'
+      ITEM 'Пiдсвiчування файлiв'
+      ITEM 'Показувати схованi файли'
     END
-    Label 42, 2, 'Зовнiшнiй вигляд', ofPostProcess, ofPreProcess
-    RadioButtons 42, 9, 67, 12, ofPostProcess, ofPreProcess
-      ITEM 'Од~и~ночний Alt'
-      ITEM 'Оди~н~очний Ctrl'
-      ITEM 'Caps~+~символ'
+    Label 38, 1, 'Зовнiшнiй вигляд', ofPostProcess, ofPreProcess
+
+; TagChar
+    InputLine 55, 10, 58, 11, 1, 0
+    Label 36, 10, 'Символ вiд~м~iтки:', ofPostProcess, ofPreProcess
+; RestChar
+    InputLine 55, 11, 58, 12, 1, 0
+    Label 36, 11, 'Символ о~б~рiзання:', ofPostProcess, ofPreProcess
+
+; DIZ
+    InputLine 36, 14, 70, 28, 250, 0
+    Label 36, 13, '~Ф~айли з описами', ofPostProcess, ofPreProcess
+
+; NewPanelPreset
+    ComboBox 65, 16, 70, 17
+      ITEM '1'
+      ITEM '2'
+      ITEM '3'
+      ITEM '4'
+      ITEM '5'
+      ITEM '6'
+      ITEM '7'
+      ITEM '8'
+      ITEM '9'
+      ITEM '0'
     END
-    Label 42, 8, 'Швидкий пошук', ofPostProcess, ofPreProcess
+    Label 36, 16, 'Установки ~н~ових панелiв:', ofPostProcess, ofPreProcess
 
-    InputLine 61, 13, 64, 14, 1, 0
-    Label 42, 13, 'Символ вiд~м~iтки:', ofPostProcess, ofPreProcess
-    InputLine 61, 14, 64, 15, 1, 0
-    Label 42, 14, 'Символ о~б~рiзання:', ofPostProcess, ofPreProcess
+; LeftPanelType
+    ComboBox 55, 17, 70, 18
+      ITEM 'Диск'
+      ITEM 'Iнформацiя'
+      ITEM 'Дерево'
+      ITEM 'Вiдсутня'
+      END
+    Label 36, 17, '└─ ~Л~iва панель:', ofPostProcess, ofPreProcess
 
-    InputLine 2, 17, 67, 18, 250, 0
-    Label 2, 16, '~Ф~айли з описами', ofPostProcess, ofPreProcess
-
-    Button 31, 19, 43, 21, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 43, 19, 55, 21, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
-    Button 55, 19, 67, 21, 'Допомо~г~а', cmHelp, ofPostProcess, ofPreProcess
+    Button 37, 19, 47, 21, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 47, 19, 58, 21, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
+    Button 58, 19, 70, 21, 'Допомо~г~а', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgDriveInfoSetup, 61, 14, 'Установки панелi iнформацiї'
@@ -3175,11 +3387,9 @@ End
 
 DIALOG dlgSystemSetup, 72, 21, 'Системнi установки'
     HELPCTX hcSystemSetup
-    CheckBoxes 3, 2, 69, 7, ofPostProcess, ofPreProcess
+    CheckBoxes 2, 2, 37, 6, ofPostProcess, ofPreProcess
       ITEM 'Вбудований ~р~едактор'
-;     ITEM 'Автодочитування при пере~г~лядi'
       ITEM 'Текcтовий бу~ф~еp системи'
-      ITEM '~П~оказувати схованi файли'
 ;$IFNDEF VIRTUALPASCAL
       ITEM '"~Ш~видкий" запуск пpогpам'
       ITEM '~В~iдключити XMS/EMS'
@@ -3191,7 +3401,7 @@ DIALOG dlgSystemSetup, 72, 21, 'Системнi установки'
       ITEM 'Скидати дисковi буфери'
 ;$ENDIF
     END
-    Label 3, 1, '~У~становки', ofPostProcess, ofPreProcess
+    Label 2, 1, '~У~становки', ofPostProcess, ofPreProcess
 
     InputLine 19, 8, 26, 9, 5, 0
     Label 3, 8, 'Вiдео режим ~1~', ofPostProcess, ofPreProcess
@@ -3205,11 +3415,7 @@ DIALOG dlgSystemSetup, 72, 21, 'Системнi установки'
     ListBox 2, 14, 6, 19, 1
     Label 1, 13, '~Д~иски', ofPostProcess, ofPreProcess
 
-    DriveCheckBoxes 8, 14, 39, 19, ofPostProcess, ofPreProcess
-;$IFDEF OS_DOS
-      ITEM 'Пр~я~мий доступ'
-;$ENDIF
-      ITEM '~З~апам''ятовувати дерево'
+    DriveCheckBoxes 8, 14, 39, 17, ofPostProcess, ofPreProcess
       ITEM 'Перевiряти пiсля з~а~пису'
       ITEM 'Перевiряти вiльне ~м~iсце'
       ITEM 'Пр~я~ма розпаковка на диск'
@@ -3595,23 +3801,24 @@ DIALOG dlgSetupColumnsDisk, 70, 21, 'Установки колонок - Диск'
     InputLine 63, 12, 68, 13, 3, 0
     InputLine 63, 13, 68, 14, 3, 0
 
-    RadioButtons 2, 16, 68, 17, ofPostProcess, ofPreProcess
+    StaticText 2, 15, 14, 16, 'Регiстp iмен'
+    ComboBox 14, 16, 27, 17
       ITEM 'яК Є'
       ITEM 'малi'
       ITEM 'З великої'
       ITEM 'ВЕЛИКI'
       ITEM 'Змiшано'
     END
-    Label 2, 15, 'Регiстp iмен файлiв:', ofPostProcess, ofPreProcess
+    Label 2, 16, 'файлiв:', ofPostProcess, ofPreProcess
 
-    RadioButtons 2, 18, 68, 19, ofPostProcess, ofPreProcess
+    ComboBox 14, 17, 27, 18
       ITEM 'яК Є'
       ITEM 'малi'
       ITEM 'З великої'
       ITEM 'ВЕЛИКI'
       ITEM 'Змiшано'
     END
-    Label 2, 17, 'Регiстр iмен каталогiв:', ofPostProcess, ofPreProcess
+    Label 2, 17, 'каталогiв:', ofPostProcess, ofPreProcess
 
     Button 12, 19, 24, 21, 'O~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 26, 19, 38, 21, 'Вiдмiна', cmCancel, bfNormal, ofPostProcess, ofPreProcess

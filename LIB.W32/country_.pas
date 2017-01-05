@@ -12,6 +12,8 @@ procedure GetSysCountryInfo;
 
 function QueryToAscii(CP: word; var ToAscii: TXLat): Boolean;
 
+function QueryABCSort(CP: Word; var ABCSortXlat: TXLat): Boolean;
+
 implementation
 
 uses
@@ -144,6 +146,11 @@ WC_NO_BEST_FIT_CHARS, но он работает только под NT 5. Вот и приходится
   for i := 0 to LT-1 do
     if UniString[i] <> UniStringBack[i] then
       ToAscii[Char(i)] := '?';
+  end;
+
+function QueryABCSort(CP: Word; var ABCSortXlat: TXLat): Boolean;
+  begin
+  Result := False; //!! Пока не реализовано (04.09.2005)
   end;
 
 end.

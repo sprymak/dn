@@ -102,7 +102,6 @@ type
     CurPtr: PDirRec;
     isValid {, QuickSearch}: Boolean;
     Drive, SearchPos: Byte;
-    SearchParam: TQuickSearchData; {DataCompBoy}
     CurPath, LastPath: String; {DataCompBoy}
     DC, Dirs: PCollection;
     Delta: TPoint;
@@ -158,7 +157,8 @@ type
     function GetPalette: PPalette; virtual;
     end;
 
-  PHTreeView = ^THTreeView; { панель дерева с подвалом }
+  PHTreeView = ^THTreeView;
+   {`2 панель дерева с подвалом `}
   THTreeView = object(TTreePanel)
     Info: PView;
     constructor Init(R: TRect; ADrive: Integer; ParitalView: Boolean;
@@ -167,6 +167,7 @@ type
     constructor Load(var S: TStream);
     procedure Store(var S: TStream);
     function GetPalette: PPalette; virtual;
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
     destructor Done; virtual;
     end;
 
@@ -178,9 +179,8 @@ type
     end;
 
 function ChangeDir(ATitle: TTitleStr; Drv: Byte): String; {DataCompBoy}
-procedure CreateDirectory(S: String; Del: Boolean);
-procedure CheckMkDir(const Path: String); { MkDir and check result }
-{AK155}
+procedure CheckMkDir(const Path: String);
+ {` MkDir and check result AK155 `}
 procedure MakeDirectory;
 procedure FreeTree(C: Char);
 function GetDirLen(Dir: String): TSize; {DataCompBoy}
@@ -189,7 +189,6 @@ function CreateDirInheritance(var S: String; Confirm: Boolean): Byte;
 const
   CreatedDir: String = '';
   TreeError: Boolean = False;
-  SaveTrees: Boolean = True;
 
   CHTreeView = #15#16#17#18#19#20#21;
   CTreeInfoView = #22;
@@ -319,7 +318,6 @@ procedure ReadTree(C: Char; CountLen: Boolean);
     PD: PDirRec;
     RemoteDrive: Boolean;
     Info: PView;
-    St: TBufStream;
 
     {-DataCompBoy-}
   begin { ReadTree }
@@ -332,28 +330,6 @@ procedure ReadTree(C: Char; CountLen: Boolean);
     Dispose(DrvTrees[C].C, Done);
   DrvTrees[C].C := nil;
   TreeError := True;
-  if  (not CountLen) and ((SystemData.Drives[C] {$IFNDEF OS_DOS} shl 1
-        {$ENDIF}) and ossTree <> 0)
-  then
-    begin
-    St.Init(SourceDir+'Drive'+C+'.dir', stOpenRead, 1024);
-    if St.Status = stOK then
-      begin
-      DC := PDirCollection(St.Get);
-      if DC <> nil then
-        begin
-        DC^.Pack;
-        for I := 1 to DC^.Count do
-          PDirRec(DC^.At(I-1))^.Number := I-1;
-        DrvTrees[C].C := DC;
-        DrvTrees[C].len := False;
-        TreeError := False;
-        St.Done;
-        Exit;
-        end;
-      end;
-    St.Done;
-    end;
   if LowMemory then
     Exit;
   New(DC, Init(10, 10));
@@ -416,14 +392,6 @@ DRep:
       P^.Attr := 1;
     if  (I < DC^.Count) and (PDirRec(DC^.At(I))^.Level > P^.Level) then
       P^.Attr := P^.Attr or trHasBranch;
-    end;
-  if  ( (SystemData.Drives[C] {$IFNDEF OS_DOS} shl 1 {$ENDIF}) and
-       ossTree <> 0)
-  then
-    begin
-    St.Init(SourceDir+'Drive'+C+'.dir', stCreate, 1024);
-    St.Put(DC);
-    St.Done;
     end;
   TreeError := False;
   end { ReadTree };
@@ -504,111 +472,6 @@ function FindDir(DC: PCollection; const Dir: String): Integer;
   else
     FindDir := I
   end { FindDir };
-{-DataCompBoy-}
-
-{-DataCompBoy-}
-procedure CreateDirectory;
-  var
-    Dr: String;
-    Nm: String;
-    XT: String;
-    ST: PBufStream;
-    DC: PDirCollection;
-    I, Lv: Integer;
-    P, PD: PDirRec;
-    s1: String;
-  label 1;
-  begin
-  DC := nil;
-  ST := nil;
-  if not SaveTrees then
-    Exit;
-  S := lFExpand(S);
-  lFSplit(S, Dr, Nm, XT);
-  if  (Dr[1] <= 'B') then
-    Exit;
-  if ExistFile(SourceDir+'Drive'+Dr[1]+'.DIR') then
-    ST := New(PBufStream, Init(SourceDir+'Drive'+Dr[1]+'.DIR', stOpen,
-           4096))
-  else
-    begin
-    DosError := 0; {Cat}
-    Exit;
-    end;
-  if ST^.Status = stOK then
-    begin
-    DC := PDirCollection(ST^.Get);
-    if DC <> nil then
-      begin
-      if Length(Dr) > 3 then
-        SetLength(Dr, Length(Dr)-1);
-      I := FindDir(DC, S);
-      if not Del and (I >= 0) then
-        goto 1;
-      if not Del then
-        I := FindDir(DC, Dr);
-      if I >= 0 then
-        begin
-        if Del then
-          begin
-          DrvTrees[Dr[1]].len := False;
-          Lv := PDirRec(DC^.At(I))^.Level;
-          DC^.AtFree(I);
-          while (I < DC^.Count) and (PDirRec(DC^.At(I))^.Level > Lv) do
-            DC^.AtFree(I);
-          end
-        else
-          begin
-          New(P);
-          FillChar(P^, SizeOf(P^), 0);
-          {$IFDEF DualName}
-          P^.DirName[False] := GetName
-              (lfGetShortFileName(lFExpand(Nm+XT)));
-          {$ENDIF}
-          s1 := GetName(lFExpand(Nm+XT));
-          Move(s1, P^.DirName[True], Length(s1)+1);
-          P^.NumFiles := 0;
-          P^.Size := 0;
-          P^.Level := PDirRec(DC^.At(I))^.Level+1;
-          DC^.AtInsert(I+1, P);
-          end;
-        for I := 1 to DC^.Count do
-          begin
-          P := DC^.At(I-1);
-          Lv := I;
-          P^.Number := I-1;
-          P^.Attr := 0;
-          while (Lv < DC^.Count)
-               and (PDirRec(DC^.At(Lv))^.Level > P^.Level)
-          do
-            begin
-            PD := DC^.At(Lv);
-            Inc(Lv);
-            end;
-          if  (Lv < DC^.Count)
-               and (PDirRec(DC^.At(Lv))^.Level = P^.Level)
-          then
-            P^.Attr := 1;
-          if  (I < DC^.Count) and (PDirRec(DC^.At(I))^.Level > P^.Level)
-          then
-            P^.Attr := P^.Attr or trHasBranch;
-          end;
-        ST^.Seek(0);
-        ST^.Truncate;
-        ST^.Put(DC);
-        Dispose(DC, Done);
-        DC := nil;
-        end;
-      end;
-    end;
-1:
-  if DC <> nil then
-    Dispose(DC, Done);
-  DC := nil;
-  if ST <> nil then
-    Dispose(ST, Done);
-  ST := nil;
-  end { CreateDirectory };
 {-DataCompBoy-}
 
 function GetDirLen(Dir: String): TSize; {DataCompBoy}
@@ -978,7 +841,7 @@ constructor TTreeWindow.Init;
     P: PView;
     S: PScrollBar;
   begin
-  inherited Init(Bounds, 'Directory Tree', 0);
+  inherited Init(Bounds, GetString(dlTreeTitle), 0);
   GetExtent(R);
   R.Grow(-1, -1);
   R.A.X := R.B.X;
@@ -1024,11 +887,6 @@ procedure TTreeWindow.HandleEvent(var Event: TEvent);
         Message(Application, evCommand, cmClose, nil);
         ClearEvent(Event);
         end;
-    evCommand:
-      case Event.Command of
-        cmGetName:
-          PString(Event.InfoPtr)^:= 'Directory tree';
-      end {case};
   end {case};
   inherited HandleEvent(Event);
   end;
@@ -1060,7 +918,7 @@ constructor TTreeView.Init;
   LocateEnabled := True;
   if not Abort then
     ReadTree(False);
-  QuickSearch := False;
+  StopQuickSearch;
   DrawDisabled := False;
   isValid := not Abort and (ScrollBar <> nil);
   end { TTreeView.Init };
@@ -1094,7 +952,7 @@ constructor TTreeView.Load;
   {S.Read(LastPath[0], 1); S.Read(LastPath[1], Length(LastPath));}
   CurPath := LastPath;
   Drive := Byte(LastPath[1])-64;
-  QuickSearch := False;
+  StopQuickSearch;
   DrawDisabled := False;
   LocateEnabled := True;
   Dirs := nil;
@@ -1276,27 +1134,27 @@ procedure TTreeView.HandleCommand;
       I: Integer;
     begin
     SearchForMask := False;
-    if SearchParam.Mask[1] = '\' then
+    if QSMask[1] = '\' then
       begin
       ScrollBar^.SetValue(0);
       SearchForMask := True;
-      InitQuickSearch(SearchParam);
+      InitQuickSearch(@Self);
       Exit;
       end;
     I := ScrollBar^.Value+Delta;
     if I = 0 then
       Inc(I);
     while (I < DC^.Count) and
-      not {InFilter}InQSMask(PDirRec(DC^.At(I))^.DirName[uLfn],
-         SearchParam.Mask)
+      not InMask(PDirRec(DC^.At(I))^.DirName[uLfn],
+         QSMask)
     do
       Inc(I); {DataCompBoy}
     if I >= DC^.Count then
       begin
       I := 0;
       while (I < ScrollBar^.Value) and
-        not {InFilter}InQSMask(PDirRec(DC^.At(I))^.DirName[uLfn],
-           SearchParam.Mask)
+        not InMask(PDirRec(DC^.At(I))^.DirName[uLfn],
+           QSMask)
       do
         Inc(I); {DataCompBoy}
       if I >= ScrollBar^.Value then
@@ -1316,7 +1174,7 @@ procedure TTreeView.HandleCommand;
     begin
     if not QuickSearch then
       Exit;
-    QuickSearch := False;
+    StopQuickSearch;
     DrawView;
     end;
 
@@ -1548,6 +1406,10 @@ procedure TTreeView.HandleCommand;
           CurPtr := DC^.At(ScrollBar^.Value);
           Message(Owner, evBroadcast, cmDirChanged, @CurPath);
           end;
+        cmGetName:
+          PString(Event.InfoPtr)^:= GetString(dlTreeTitle);
+        cmGetDirName:
+          PString(Event.InfoPtr)^:= GetDirName(ScrollBar^.Value);
       end {case};
     evKeyDown:
       case Event.KeyCode of
@@ -1575,7 +1437,7 @@ procedure TTreeView.HandleCommand;
           end;
         kbSpace, kbGrayPlus, kbGrayMinus:
           begin
-          QuickSearch := False;
+          StopQuickSearch;
           if Parital then
             begin
             CollapseBranch(PDirRec(DC^.At(CurPos))^.Number);
@@ -1599,11 +1461,11 @@ procedure TTreeView.HandleCommand;
         {-DataCompBoy-}
         kbBack:
           if QuickSearch then
-            if SearchParam.Mask = '' then
+            if QSMask = '' then
               CancelSearch
             else
               begin
-              DoQuickSearch(SearchParam, Event.KeyCode);
+              DoQuickSearch(Event.KeyCode);
               ScrollBar^.SetValue(0);
               SearchForMask(0);
               DrawView;
@@ -1614,7 +1476,7 @@ procedure TTreeView.HandleCommand;
             begin
             if QuickSearch then
               begin
-              if  (Event.CharCode = '\') and (SearchParam.Mask <> '')
+              if  (Event.CharCode = '\') and (QSMask <> '')
               then
                 begin
                 CE;
@@ -1628,22 +1490,21 @@ procedure TTreeView.HandleCommand;
                 ScrollBar^.SetValue(ScrollBar^.Value+1);
                 if Parital and (PD^.Attr and trExpanded = 0) then
                   CollapseBranch(PDirRec(DC^.At(CurPos))^.Number);
-                InitQuickSearch(SearchParam);
+                InitQuickSearch(@Self);
                 DrawView;
                 Exit;
                 end;
-              DoQuickSearch(SearchParam, Event.KeyCode);
+              DoQuickSearch(Event.KeyCode);
               if not SearchForMask(0) then
-                DoQuickSearch(SearchParam, kbBack);
+                DoQuickSearch(kbBack);
               end
             else
               begin
-              QuickSearch := True;
-              InitQuickSearch(SearchParam);
-              DoQuickSearch(SearchParam, Event.KeyCode);
+              InitQuickSearch(@Self);
+              DoQuickSearch(Event.KeyCode);
               SearchForMask(0);
-              if SearchParam.Mask = '\' then
-                InitQuickSearch(SearchParam);
+              if QSMask = '\' then
+                InitQuickSearch(@Self);
               end;
             CE;
             end;
@@ -1870,8 +1731,7 @@ procedure TTreeView.Draw;
           begin {    оторочены мерзкими точечками или чем ещё похуже}
           ShowCursor;
           NormalCursor;
-          SetCursor(K+Length(S)+GetCursorPos(SearchParam, Q, Size.X, 0)-1,
-             I-1)
+          SetCursor(K+Length(S)+LastSuccessPos-1, I-1)
           end
         else
           HideCursor;
@@ -2187,6 +2047,14 @@ procedure THTreeView.ChangeBounds;
     end
   end;
 
+{ AK155 10.06.05. Подвал надо прятать и показывать вместе с панелью }
+procedure THTreeView.SetState(AState: Word; Enable: Boolean);
+  begin
+  inherited SetState(AState, Enable);
+  if (AState and sfVisible <> 0) and (Info <> nil) then
+     Info^.SetState(sfVisible, Enable);
+  end;
+
 { AK155 26-01-2003. Раньше Info не освобождалось вообще }
 destructor THTreeView.Done;
   begin
@@ -2209,12 +2077,9 @@ function CreateDirInheritance;
   S := lFExpand(S);
   if Abort then
     Exit;
-  I := PosChar(':', S);
-  if I = 0 then
-    I := GetShareEnd(S); //AK155 22-11-2003
-  if I = 0 then
+  I := GetRootStart(S);
+  if I > Length(S) then
     Exit;
-  Inc(I);
   while I < Length(S) do
     begin
     J := I;
@@ -2254,7 +2119,6 @@ function CreateDirInheritance;
       CheckMkDir(M);
       if Abort then
         Exit;
-      CreateDirectory(M, False);
       end;
     end;
   end { CreateDirInheritance };

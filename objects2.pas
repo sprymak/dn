@@ -26,6 +26,15 @@ type
 
 procedure FreeObject(var O);
 
+procedure ObjChangeType(P: PObject; NewType: Pointer);
+  {` Подмена типа экземпляра объекта. В качестве NewType надо
+  указывать результат TypeOf(новый тип). Новый тип, естественно,
+  должен быть совместим по полям с типом, который имел объект
+  при рождении.
+     Основное назначение - подмена виртуальных методов, то есть
+  изменение поведения без исзменения данных.
+  `}
+
 implementation
 
 const
@@ -67,6 +76,11 @@ procedure FreeObject(var O);
     Dispose(OO, Done);
     OO := nil;
     end;
+  end;
+
+procedure ObjChangeType(P: PObject; NewType: Pointer);
+  begin
+  PWord(P)^ := Word(NewType);
   end;
 
 end.

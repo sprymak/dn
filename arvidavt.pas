@@ -89,6 +89,9 @@ procedure AvtCalcTotal(AvtDr: PArvidDrive; const Offset: LongInt;
 function AvtInit(AvtDr: PArvidDrive): Boolean;
 
 implementation
+uses
+  PDSetup
+  ;
 
 var
   FCtemp, FCLtemp, FCRtemp: TAvtFileCell;
@@ -1503,13 +1506,14 @@ procedure AvtCopyFilesInto(AvtDr: PArvidDrive; AFiles: PCollection;
   procedure AvtWalkTree;
     var
       I: Integer;
-      PC: PCollection;
+      PC: PFilesCollection;
       Dummy: TSize;
     begin
     with AvtDr^ do
       begin
       PD^.lChDir(S2);
-      PC := PD^.GetDirectory(141, 0, x_x, FreeStr, Dummy);
+      PC := PFilesCollection(PD^.GetDirectory(x_x, Dummy));
+      PC^.SortMode := 141; PC^.Sort;
       for I := 0 to PC^.Count-1 do
         begin
         PF := PC^.At(I);

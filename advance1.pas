@@ -72,7 +72,8 @@ function CnvString(P: PString): String; {conversion: PString to String}
 function CnvLongString(P: PLongString): LongString;
 {conversion: PLongString to LongString}
 function StrGrd(AMax, ACur: TSize; Wide: Byte; Rev: Boolean): String;
-function Percent(AMax, ACur: TSize): TSize;
+function Percent(AMax, ACur: TSize): String;
+  {` Построение строки вида 57%; длина - как получится. `}
 procedure Hex8Lo(L: LongInt; var HexLo);
 procedure AddStr(var S: String; C: Char);
   inline;
@@ -139,16 +140,26 @@ function SStr(a: LongInt; B: Byte; C: Char): String;
 function SSt2(a: LongInt; B: Byte; C: Char): String;
 function FStr(a: TSize): String;
 function FileSizeStr(X: TSize): String;
+  {` Строковое представление длины файла.
+    Длина результата - 9 символов, прижим вправо.
+    Триады разделяются в соответствии с настройками страны `}
 function Hex2(a: Byte): Str2;
 function Hex4(a: Word): Str4;
 function Hex8(a: LongInt): Str8;
 function HexChar(a: Byte): Char;
 function Replace(const Pattern, ReplaceString: String; var S: String)
   : Boolean;
+function Dec2(w: Word): Str2;
+  {` Ровно две десятичные цифры (младшие) `}
 function fReplace(const SubFrom, SubTo: String; S: String): String;
 function PosChar(C: Char; const S: String): Byte;
 function CharCount(C: Char; const S: String): Byte; {DataCompBoy}
+function SecToStr(t: Word): String;
+  {` время, с учётом разделителя времени, результат типа 12:34:56 `}
 function FormatTimeStr(H, M, SS: Word): String; {DataCompBoy}
+  {` время, с учётом формата и разделителя времени, результат может
+   быть типа 01:23:45pm `}
+function FormatDateTime(const DT: DateTime; Time: Boolean): String; {cat}
 procedure MakeCurrency(R: Real; var S: String);
 function GetDateTime(Time: Boolean): String;
 function Real2Str(X: Real; n: Byte): String;
@@ -167,6 +178,8 @@ procedure MakeDateFull(const Mode, Day, Month: Word; {-$VOL moidfied}
     const YFull: Boolean);
 function DumpStr(var B; Addr: LongInt; Count: Integer; Filter: Byte)
   : String;
+
+function MemEqual(var Buf1; var Buf2; Len: Word): Boolean;
 
 type
   BMTable = array[0..255] of Byte;
@@ -216,6 +229,7 @@ function SearchForAllCP(S: String; var B; l: LongInt;
 procedure CompressString(var S: LongString);
 {AK155}
 function PosLastDot(StrToMake: String): Byte;
+  {` Позиция точки расширения. Если расширения нет - длина плюс 1 `}
 function IsDummyDir(const DirName: String): Boolean;
 procedure CopyShortString(const s1, s2: ShortString);
   {` Копирует строку в соответствии с её длиной, независимо от того,
@@ -224,18 +238,19 @@ procedure CopyShortString(const s1, s2: ShortString);
   фактически продолжается в поле Dummy`}
 {/AK155}
 
+function SPos(SubStr, S: String; Start: Integer): Integer;
+  {` Аналог Pos, только поиск начинается с S[Start] `}
+
 implementation
 
 uses
   Advance2, Advance3, DnIni, Startup {Cat}
   ;
 
-function LeadingZero(w: Word): String;
-  var
-    s: String;
+function Dec2(w: Word): Str2;
   begin
-  Str(w: 0, s);
-  LeadingZero := Copy('00', 1, 2-Length(s))+s;
+  w := abs(w) mod 100;
+  Result := HexChar(w div 10) + HexChar(w mod 10);
   end;
 
 function StrGrd(AMax, ACur: TSize; Wide: Byte; Rev: Boolean): String;
@@ -252,12 +267,12 @@ function StrGrd(AMax, ACur: TSize; Wide: Byte; Rev: Boolean): String;
     StrGrd := Strg(#219, A)+Strg(#177, Wide-A);
   end;
 
-function Percent(AMax, ACur: TSize): TSize;
+function Percent(AMax, ACur: TSize): String;
   begin
   if AMax = 0 then
-    Percent := {0}100 {AK155}
+    Percent := {0}'100%' {AK155}
   else
-    Percent := (ACur*100)/AMax;
+    Percent := ItoS(Trunc((ACur*100)/AMax)) + '%';
   end;
 
 procedure Hex8Lo(L: LongInt; var HexLo);
@@ -897,40 +912,33 @@ function FStr(a: TSize): String;
 
 function FileSizeStr;
   var
-    S: String[40];
     J: TSize;
   label K;
   begin
-  if X >= 0
-  then
+  if X >= 0 then
+    begin
     if X < 10000000 then
-      FileSizeStr := FStr(X)
-    else
       begin
-      J := X/1024;
-      if J >= 10000000then
-        begin
-        J := X/1024;
-        Str(J:
-          0:
-          0, S);
-        if Length(S) > 3 then
-          Insert(',', S, Length(S)-2);
-        FileSizeStr := S+'M';
-        Exit;
-        end;
-        Str(J:
-          0:
-          0, S);
-        if Length(S) > 3 then
-          Insert(',', S, Length(S)-2);
-        if X = MaxLongInt then
-          FileSizeStr := '>='+S+'K'
-        else
-          FileSizeStr := S+'K';
-      end
-      else
-        FileSizeStr := '?'
+      Result := FStr(X);
+      goto K;
+      end;
+    J := X/1024;
+    if J < 10000000 then
+      begin
+      Result := FStr(J)+'K';
+      goto K;
+      end;
+    J := J/1024;
+    Result := FStr(J)+'M';
+    if X >= MaxLongInt then
+      Result := '>='+Result;
+    end
+  else
+    FileSizeStr := '?';
+K:
+  Result := PredSpace(Result, 9);
+  if Length(Result) > 9 then
+    Delete(Result, 2, 1); { удаляем первый разделитель}
   end { FileSizeStr };
 
 function Hex2;
@@ -1101,6 +1109,18 @@ function GetDateTime(Time: Boolean): String;
   GetDateTime := S;
   end;
 
+function SecToStr(t: Word {в секундах }): String;
+  var
+    s: word;
+  begin
+  s := t mod 3600;
+  Result :=
+    Dec2(t div 3600) + CountryInfo.TimeSep + { часы }
+    Dec2(s div 60) + CountryInfo.TimeSep + { минуты }
+    Dec2(s mod 60); { секунды }
+  end;
+
+
 function FormatTimeStr(H, M, SS: Word): String;
   var
     N: String[3];
@@ -1108,14 +1128,14 @@ function FormatTimeStr(H, M, SS: Word): String;
   begin
   if  (CountryInfo.TimeFmt = 0) and (H > 12) then
     begin
-    S := LeadingZero(H-12)+CountryInfo.TimeSep+LeadingZero(M)
-      +CountryInfo.TimeSep+LeadingZero(SS);
+    S := Dec2(H-12)+CountryInfo.TimeSep+Dec2(M)
+      +CountryInfo.TimeSep+Dec2(SS);
     N := 'pm';
     end
   else
     begin
-    S := LeadingZero(H)+CountryInfo.TimeSep+LeadingZero(M)
-      +CountryInfo.TimeSep+LeadingZero(SS);
+    S := Dec2(H)+CountryInfo.TimeSep+Dec2(M)
+      +CountryInfo.TimeSep+Dec2(SS);
     if CountryInfo.TimeFmt = 0
     then
       if  (H < 12) then
@@ -1127,6 +1147,33 @@ function FormatTimeStr(H, M, SS: Word): String;
     end;
   FormatTimeStr := S+N;
   end { FormatTimeStr };
+
+{cat}
+function FormatDateTime(const DT: DateTime; Time: Boolean): String; {cat}
+  begin
+  if Time then
+    Result := Dec2(DT.Hour)+CountryInfo.TimeSep+
+              Dec2(DT.Min)+CountryInfo.TimeSep+
+              Dec2(DT.Sec)
+  else
+    case CountryInfo.DateFmt of
+      0: {MM-DD-YY}
+        Result := Dec2(DT.Month)+CountryInfo.DateSep+
+                  ItoS(DT.Day)+CountryInfo.DateSep+
+                  ItoS(DT.Year);
+      1: {DD-MM-YY}
+        Result := ItoS(DT.Day)+CountryInfo.DateSep+
+                  Dec2(DT.Month)+CountryInfo.DateSep+
+                  ItoS(DT.Year);
+      2: {YY-MM-DD}
+        Result := ItoS(DT.Year)+CountryInfo.DateSep+
+                  Dec2(DT.Month)+CountryInfo.DateSep+
+                  ItoS(DT.Day);
+    else
+      Result := '';
+    end;
+  end;
+{/cat}
 
 procedure MakeCurrency;
   var
@@ -2069,11 +2116,17 @@ function PosLastDot(StrToMake: String): Byte;
     I: Byte;
   begin
   for I := Length(StrToMake) downto 1 do
-    if StrToMake[I] = '.' then
-      begin
-      PosLastDot := I;
-      Exit;
-      end;
+    begin
+    case StrToMake[I] of
+      '\', '/':
+        Break;
+      '.':
+        begin
+        PosLastDot := I;
+        Exit;
+        end;
+    end {case};
+    end;
   PosLastDot := Length(StrToMake)+1;
   end;
 
@@ -2098,6 +2151,27 @@ asm
   mov [edi],al
   loop @@1
 @@0:
+end;
+
+function SPos(SubStr, S: String; Start: Integer): Integer;
+  begin
+  Result := Pos(SubStr, Copy(S, Start, 255));
+  if Result <> 0 then
+    inc(Result, Start-1);
+  end;
+
+function MemEqual(var Buf1; var Buf2; Len: Word): Boolean;
+  assembler; {$USES esi,edi}// {&FRAME-}
+asm
+  mov al,1
+  mov ecx,[Len]
+  jcxz @@1
+  mov esi,Buf1
+  mov edi,Buf2
+  repe cmpsb
+  je @@1
+  xor eax,eax
+@@1:
 end;
 
 {/AK155}

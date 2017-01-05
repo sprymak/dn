@@ -62,9 +62,73 @@ uses
   Startup, Lfn, Messages, Defines, FilesCol, Advance2, Advance1, UserMenu,
   Advance, HistList, Commands, DNApp, DNUtil, Tree, Views, Drivers, Drives
   {, dnfuncs} {надо вставлять до Dos}
-  , Dos
+  , Dos, Dialogs, Objects2
   , ErrMess, FlPanelX
   ;
+type
+  { Диалог создания списка файлов. В ресурсе должны быть
+  DirectLink на строку ввода имени файла (1) и строку ввода
+  шаблона строки файла (2) }
+  PMakeListDlg = ^TMakeListDlg;
+  TMakeListDlg = object(TDialog)
+    procedure HandleEvent(var Event: TEvent); virtual;
+      { Для реакции на кнопки }
+    end;
+
+procedure InpLineReplace(P: PInputLine; const S: String);
+  begin
+  with P^ do
+    begin
+    Select;
+    SelStart := CurPos;
+    SelEnd := CurPos;
+    System.Insert(S, Data, 1+CurPos);
+    Inc(CurPos, Length(S));
+    SelStart := CurPos;
+    SelEnd := CurPos;
+    Draw;
+    end;
+  end;
+
+procedure TMakeListDlg.HandleEvent(var Event: TEvent);
+  var
+    i: Integer;
+  begin
+  if Event.What = evCommand then
+    begin
+    case Event.Command of
+      cmYes:
+        begin
+        InpLineReplace(PInputLine(DirectLink[2]), '!:!\!.!');
+        ClearEvent(Event);
+        Exit;
+        end;
+      cmNo:
+        begin
+        InpLineReplace(PInputLine(DirectLink[2]), '#:#\#.#');
+        ClearEvent(Event);
+        Exit;
+        end;
+      cmOK:
+        begin { Не выпускаем с пустым именем списка или
+          с пустым шаблоном обработки файла }
+        for i := 1 to 2 do
+        if PInputLine(DirectLink[i])^.Data = '' then
+          begin
+          PInputLine(DirectLink[i])^.Select;
+          ClearEvent(Event);
+          Exit;
+          end;
+        end;
+    end {case};
+    end;
+  inherited HandleEvent(Event);
+  end;
+
+procedure PrepareMakeListDialog(P: PDialog);
+  begin
+  ObjChangeType(P, TypeOf(TMakeListDlg));
+  end;
 
 function ParseAddress(Address: String; var Zone, Net, Node, Point: Word)
   : Boolean;
@@ -148,8 +212,7 @@ procedure MakeListFile;
       TheName := TheName+TheString[CurPos];
       Inc(CurPos)
       end;
-    while TheName[Length(TheName)] = ' ' do
-      SetLength(TheName, Length(TheName)-1);
+    DelRight(TheName);
     GetNextName := TheName <> ''
     end { GetNextName };
 
@@ -178,59 +241,6 @@ procedure MakeListFile;
     Replace('##', #2, D);
     Replace('$$', #3, D);
     Replace('&&', #4, D);
-    if  (PosChar('!', D) = 0) and (PosChar('#', D) = 0) then
-      if  (D[Length(D)] in [#8, ' '])
-             or ((Length(D) = 1) and (D[1] in ['^', #2]))
-      then
-        D := D+'!.!'
-      else
-        D := D+' !.!';
-    if  ( (S.Options and cmlAutoDetermine = cmlAutoDetermine) and
-        {$IFNDEF OS2}
-          (lfGetShortFileName(SR) <> lfGetShortFileName(dr)) and
-        {$ELSE}
-          (SR <> dr) and
-        {$ENDIF}
-          (Pos('!\', D) = 0) and
-          (Pos('!/', D) = 0) and
-          (Pos('!:', D) = 0) and
-          (Pos('#\', D) = 0) and
-          (Pos('#/', D) = 0) and
-          (Pos('#:', D) = 0))
-      or ((S.Options and cmlPathNames <> 0) and
-          (S.Options and cmlAutoDetermine = 0))
-    then
-      begin { Need to force insert !:!\ }
-      k := Pos('.!', D);
-      if k = 0 then
-        begin
-        k := PosChar('!', D);
-        if k = 0 then
-          begin
-          k := Pos('.#', D);
-          if k = 0 then
-            begin
-            k := PosChar('#', D);
-            if k = 0 then
-              goto Fail;
-            end
-          else if (k <> 1) and (D[k-1] in ['!', '#']) then
-            Dec(k)
-          else
-            goto Fail;
-          end
-        else if (k <> 1) and (D[k-1] in ['!', '#']) then
-          Dec(k)
-        else
-          goto Fail;
-        end
-      else if (k <> 1) and (D[k-1] in ['!', '#']) then
-        Dec(k)
-      else
-        goto Fail;
-      Insert('!:!\', D, k);
-      end;
-Fail: { Cannot find place to insert !\ }
     Replace(#1, '!!', D);
     Replace(#2, '##', D);
     Replace(#3, '$$', D);
@@ -252,33 +262,12 @@ Fail: { Cannot find place to insert !\ }
   {S.Header := '';}S.HeaderMode := hfmAuto;
   S.Footer := HistoryStr(hsMakeListFooter, 0); {JO}
   {S.Footer := '';}S.FooterMode := hfmAuto;
-  S.Options := MakeListFileOptions;
-  if S.Options and cmlPathNames <> 0 then
-    begin
-    BB := False;
-    PP := PFileRec(Files^.At(0))^.Owner;
-    for I := 1 to Files^.Count-1 do
-      begin
-      BB := BB or (PFileRec(Files^.At(I))^.Owner <> PP);
-      if BB then
-        Break;
-      end;
-    if BB then
-      S.Options := S.Options or cmlPathNames
-    else
-      S.Options := S.Options and not cmlPathNames;
-    end;
+  @PreExecuteDialog := @PrepareMakeListDialog;
   if  (ExecResource(dlgMakeList, S) <> cmOK) then
     Exit;
-  MakeListFileOptions := S.Options;
-  while S.Action[Length(S.Action)] = ' ' do
-    SetLength(S.Action, Length(S.Action)-1);
-  while S.Header[Length(S.Header)] = ' ' do
-    SetLength(S.Header, Length(S.Header)-1);
-  while S.Footer[Length(S.Footer)] = ' ' do
-    SetLength(S.Footer, Length(S.Footer)-1);
-  if S.Action <> '' then
-    S.Action := S.Action+' ';
+  DelRight(S.Action);
+  DelRight(S.Header);
+  DelRight(S.Footer);
   FileMode := 2;
   Abort := False;
   if S.FileName[1] in ['+', '%', '/'] then
@@ -342,7 +331,6 @@ AddrError:
     end {case};
     SS := MakeNormName(SS, Nm+Xt);
     S.FileName := SS;
-    S.Options := S.Options or cmlPathNames;
     end
   else
     FidoMode := False;
@@ -432,24 +420,15 @@ AddrError:
     if SR[Length(SR)] <> '\' then
       SR := SR+'\';
     SS := S.Action;
-    if SS <> '' then
+    Replace(';;', #1, SS);
+    while SS <> '' do
       begin
-      Replace(';;', #1, SS);
-      while SS <> '' do
-        begin
-        J := PosChar(';', SS);
-        if J = 0 then
-          J := Length(SS)+1;
-        MakeStr(fReplace(#1, ';', Copy(SS, 1, J-1)));
-        Delete(SS, 1, J);
-        end;
-      end
-    else if (S.Options and cmlPathNames <> 0)
-         or (S.Options and cmlAutoDetermine <> 0) and (SR <> FLD)
-    then
-      MakeStr('!:!\!.!')
-    else
-      MakeStr('!.!');
+      J := PosChar(';', SS);
+      if J = 0 then
+        J := Length(SS)+1;
+      MakeStr(fReplace(#1, ';', Copy(SS, 1, J-1)));
+      Delete(SS, 1, J);
+      end;
     end;
   if  (S.Footer <> '') and not FidoMode then
     begin

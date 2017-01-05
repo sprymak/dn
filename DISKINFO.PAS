@@ -53,7 +53,7 @@ interface
 uses
   Defines, Objects2, Streams, Drivers, Views, Dialogs, Dos, RStrings,
   Advance, Advance1, Advance2, Advance3, Collect
-  , VPUtils
+  , VPUtils, TopView_
   ; {JO}
 
 type
@@ -62,7 +62,7 @@ type
     Title: PString;
     Dir: PString;
     Files: PString;
-    Free: PString;
+    Free: PString; { см. TDrive.GetFreeSpace }
     Total: PString;
     VolumeID: PString;
     SerialNo: PString; { Rainbow }
@@ -70,35 +70,49 @@ type
     DirInfo: PCollection;
     Limit: TPoint;
     InfoFile: Byte;
+    ClusterSize: PString;
     end;
+
+  PDriveView = ^TDriveView;
 
   PDiskInfo = ^TDiskInfo;
   TDiskInfo = object(TView)
-    Dir: String;
-    FreeSpace, TotalSpace, DirLen: TSize;
-    FreeMemory, TotalMemory: TSize;
-    VolumeLabel: String[12];
-    SerialNo: String[9]; { Rainbow }
-    NumFiles: Integer;
     Info: TDiskInfoRec;
     Delta: TPoint;
-    constructor Init(R: TRect);
+    OtherPanel: PView{PFilePanelRoot};
+      { Файловая панель, с которой связана данная панель информации }
+    DriveView: PDriveView;
+      { Диск/шара в верхней рамке. См. InsertDriveView }
+    constructor Init(R: TRect; Panel: PView{PFilePanelRoot});
     constructor Load(var S: TStream);
     procedure Store(var S: TStream); virtual;
-    procedure ReadData(Loc: Boolean);
+    procedure InsertDriveView;
+      { Для инфо о диске создать DriveView и вставить в Owner }
+    procedure ReadData;
     procedure HandleEvent(var Event: TEvent); virtual;
     function GetPalette: PPalette; virtual;
     procedure Draw; virtual;
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
     destructor Done; virtual;
     end;
 
-procedure DispInfo(var Info: TDiskInfoRec); {DataCompBoy}
+  TDriveView = object(TTopView)
+    function GetText(MaxWidth: Integer): String; virtual;
+    end;
 
 function CountDirLen(const Dir: String; Recurse: Boolean;
-    {DataCompBoy, AK155}
+{` Подсчёт числа файлов (NumFiles) и их суммарного размера (Result)
+без захода в подкаталоги. NumFiles включает в себя и каталоги тоже.
+ClusterLen - суммарное занятое место (с учётом хвостов кластеров).
+  Вызывает GetDrInfo, так что все выходные переменные GetDrInfo
+также будут определены }
     var ClusterLen: TSize; var NumFiles, NumDirs: Integer): TSize;
-procedure ReadDiskInfo(const Dr: String; var B: TDiskInfoRec;
-     ShowFlags: Integer);
+{`}
+
+procedure GetDrInfo(CurDir: String);
+{` Определяет FreeSpc, TotalSpc, BytesPerCluster`}
+
+procedure ReadDiskInfo(Dr: String; var B: TDiskInfoRec);
 
 const
   CDiskInfo = #23#24;
@@ -127,14 +141,10 @@ type
     destructor Done; virtual;
     end;
 
-var
-  SerFileSys: Boolean; { Rainbow }
 const
   TeamView: PTeamView = nil;
-function GetRndBytes(B, Rnd: LongInt): LongInt;
 
 var
-  FreeSpc, TotalSpc: TSize;
   {-DataCompBoy-}
   DriveData: record
     {00}RecSize: Word;
@@ -149,14 +159,18 @@ var
     {20}TotalAllocUnits: LongInt;
     {24}Reserved: array[0..7] of Byte;
     end;
+  FreeSpc, TotalSpc: TSize;
+  {` Общий размер диска и свободное место на нём. Определяются для
+  полного пути каталога (в т.ч. сетвого), софтлинки NTFS отслеживаются.`}
   BytesPerCluster: LongInt;
-  {-DataCompBoy-}
+  {` Определяется для корня диска или сетевого пути. Софтлинки
+  не отслеживаются. `}
 
 implementation
 uses
   Startup, DNApp, Commands, DNHelp, Tree, xTime
   , VpSysLow, Lfn, U_KeyMap, Events
-  , FlTl
+  , FlTl, FlPanelX, PDSetup
   ;
 
 const
@@ -169,61 +183,6 @@ function ESC_Pressed: Boolean;
   Application^.Idle;
   GetKeyEvent(E);
   ESC_Pressed := (E.What = evKeyDown) and (E.KeyCode = kbESC)
-  end;
-
-{ Rainbow BEGIN }
-procedure GetSerFileSys(var SerialNo, FileSys: String);
-  {JO}
-  {$IFDEF OS2}
-  var
-    Ser1: LongInt;
-    DWord: array[1..2] of AWord absolute Ser1;
-    Vol1: String;
-    rc: LongInt;
-
-  function Word2Hex(I: AWord): String;
-    const
-      Values: array[0..15] of Char = '0123456789ABCDEF';
-    var
-      S, S1: String;
-      A: Byte;
-    begin
-    S := '';
-    S1 := '';
-    repeat
-      S := S+Values[I mod 16];
-      I := I div 16;
-    until I = 0;
-    for A := 3 downto Length(S) do
-      S1 := S1+'0';
-    for A := Length(S) downto 1 do
-      S1 := S1+S[A];
-    Word2Hex := S1;
-    end;
-  {$ENDIF}
-  begin { GetSerFileSys }
-  {$IFDEF OS2}
-  rc := GetVolSer((GetDrive+1), Ser1, Vol1);
-  if  (rc = 0) then
-    SerialNo := Word2Hex(DWord[2])+'-'+Word2Hex(DWord[1])
-  else
-    SerialNo := '';
-  FileSys := GetFSString(GetCurDrive);
-  SerFileSys := rc = 0;
-  {$ELSE} {$IFDEF Win32}
-  FileSys := GetFSString(GetCurDrive);
-  SerFileSys := FileSys <> '';
-  {$ELSE} {DPMI32}
-  FileSys := '';
-  SerFileSys := False;
-  {$ENDIF}
-  {$ENDIF}
-  end { GetSerFileSys };
-{/JO}
-
-function GetRndBytes(B, Rnd: LongInt): LongInt;
-  begin
-  GetRndBytes := (B div Rnd)*Rnd+Rnd*LongInt(B mod Rnd <> 0);
   end;
 
 constructor TTeamView.Init;
@@ -300,7 +259,32 @@ destructor TTeamView.Done;
   inherited Done;
   end;
 
-procedure DispInfo;
+function TDriveView.GetText(MaxWidth: Integer): String;
+  var
+    L: Word;
+    Share: String;
+    P: PFilePanelRoot;
+  begin
+  P := PFilePanelRoot(PDiskInfo(Panel)^.OtherPanel);
+  if P = nil then
+    Exit;
+  Result := P^.DirectoryName;
+  L := Max(2, GetShareEnd(Result));
+  SetLength(Result, L);
+  if L = 2 then
+    begin { Буква диска. Не сетевого ли?}
+    Share := GetShare(Result[1]);
+    if Share <> '' then
+      Result := Result + ' ' + Share; { Таки сетевой }
+    end;
+  if Length(Result) > MaxWidth then
+    begin
+    SetLength(Result, MaxWidth);
+    Result[MaxWidth] := FMSetup.RestChar[1];
+    end;
+  end;
+
+procedure DispInfo(var Info: TDiskInfoRec);
   begin
   with Info do
     begin
@@ -322,6 +306,8 @@ procedure DispInfo;
       DisposeStr(FileSys); { Rainbow }
     if DirInfo <> nil then
       Dispose(DirInfo, Done);
+    if ClusterSize <> nil then
+      DisposeStr(ClusterSize);
     end;
   FillChar(Info, SizeOf(Info), 0);
   end { DispInfo };
@@ -331,28 +317,61 @@ constructor TDiskInfo.Load;
   TObject.Init;
   inherited Load(S);
   S.Read(Delta, SizeOf(Delta));
+  GetPeerViewPtr(S, DriveView);
   end;
 
 procedure TDiskInfo.Store;
   begin
   inherited Store(S);
   S.Write(Delta, SizeOf(Delta));
+  PutPeerViewPtr(S, DriveView);
   end;
 
 constructor TDiskInfo.Init;
   begin
   TView.Init(R);
+  OtherPanel := Panel;
   HelpCtx := hcDiskInfo;
   EventMask := evCommand or evKeyDown;
   Options := Options or ofSelectable or ofTopSelect;
-  Delta.Assign(0, 0);
-  FillChar(Info, SizeOf(Info), 0);
   end;
 
+procedure TDiskInfo.InsertDriveView;
+  var
+    R: TRect;
+  begin
+  if PFilePanelRoot(OtherPanel)^.Drive^.DriveType <> dtDisk then
+    Exit;
+    { Такой анализ очень некрасив, лучше было бы виртуализировать
+    заголовок инфо-панели, как виртуализировано её содержимое }
+
+  R.Assign(0, Origin.Y-1, 0, Origin.Y);
+    { По Y - на рамку, а с X DriveView^.Draw разбирается каждый раз }
+  New(DriveView, Init(R));
+  DriveView^.Panel := @Self;
+  Owner^.Insert(DriveView);
+  MakeFirst; {Теперь Next=DriveView, см. Done }
+  end;
+
+{ При явном закрытии панели информации, например, при повторном Ctrl-L,
+DriveView тоже надо закрывать явно. А при завершении менеджера
+DriveView явно завершать не надо - он будет завершён, как член группы
+менеджера. Если его попытаться завершить и явно тоже, это будет
+ошибка обращения к памяти. Различаем эти две ситуации по полю
+Next. См. InsertDriveView. }
 destructor TDiskInfo.Done;
   begin
   DispInfo(Info);
+  if Next = DriveView then
+    DriveView^.Free;
   inherited Done;
+  end;
+
+procedure TDiskInfo.SetState(AState: Word; Enable: Boolean);
+  begin
+  inherited SetState(AState, Enable);
+  if (DriveView <> nil) and ((AState and sfSelected) <> 0) then
+    DriveView^.Draw;
   end;
 
 function TDiskInfo.GetPalette;
@@ -366,27 +385,17 @@ procedure TDiskInfo.ReadData;
   var
     MemBlocks, I: Word;
   begin
-  Abort := False;
-  {$IFNDEF OS_DOS}
-  TotalMemory := MemAvail;
-  {$ELSE}
-  asm
-  int $12
-  mov word ptr memBlocks,ax
- end;
-  TotalMemory := LongInt(LongInt(MemBlocks) shl 10);
-  {$ENDIF}
   DispInfo(Info);
-  Message(Owner, evCommand, cmGetDirInfo, @Info);
+  Abort := False;
+  with PFilePanelRoot(OtherPanel)^ do
+    Drive^.GetDirInfo(Info);
   Delta.Assign(0, 0);
   end;
 
 procedure TDiskInfo.HandleEvent;
   var
     S: String; {DataCompBoy}
-
-
-  begin { TDiskInfo.HandleEvent }
+  begin
   inherited HandleEvent(Event);
   if  (Event.What = evKeyDown) then
     case Event.KeyCode of
@@ -450,7 +459,7 @@ procedure TDiskInfo.HandleEvent;
           else {case}
             Exit;
         end {case};
-        S := MakeNormName(Dir, S);
+        S := MakeNormName(PFilePanelRoot(OtherPanel)^.DirectoryName, S);
         Message(Application, evCommand, cmFileEdit, @S);
         end;
       cmInfoPresent:
@@ -460,13 +469,7 @@ procedure TDiskInfo.HandleEvent;
         end;
       cmRereadInfo:
         begin
-        ReadData(False);
-        DrawView;
-        ClearEvent(Event);
-        end;
-      cmLocalReread:
-        begin
-        ReadData(True);
+        ReadData;
         DrawView;
         ClearEvent(Event);
         end;
@@ -477,6 +480,7 @@ procedure TDiskInfo.Draw;
   var
     B: TDrawBuffer;
     C, Y, X: Word;
+    R: TRect;
     S1, S2: String[20];
     CC: Boolean;
 
@@ -516,6 +520,8 @@ procedure TDiskInfo.Draw;
     end;
 
   begin { TDiskInfo.Draw }
+  if DriveView <> nil then
+    DriveView^.Draw;
   C := (GetColor(1) shl 8) or (GetColor(2) and 255);
   Y := 0;
   CC := False;
@@ -539,21 +545,15 @@ procedure TDiskInfo.Draw;
     XWrt(Info.Free, fdiVolumeFree);
     XWrt(Info.VolumeID, fdiVolumeLabel);
     end;
-  { Rainbow BEGIN }
-  if SerFileSys then
-    begin
-    {$IFNDEF WIN32} {временно!!!}
-    XWrt(Info.SerialNo, fdiSerialNo);
-    {$ENDIF}
-    XWrt(Info.FileSys, fdiFileSys);
-    end;
+  XWrt(Info.SerialNo, fdiSerialNo);
+  XWrt(Info.FileSys, fdiFileSys);
+  XWrt(Info.ClusterSize, fdiFileSys);
   Wrt('');
   { Rainbow END }
   if DriveInfoData and fdiMemAvail <> 0 then
     Wrt('~'+FStr(MemAvail/1024)+GetString(dlDIMemoryForDN));
   if DriveInfoData and fdiLowMemory <> 0 then
-    Wrt('~'+FStr(
-         {TotalMemory}PhysMemAvail/1024)+GetString(dlDIMemoryTotal));
+    Wrt('~'+FStr(PhysMemAvail/1024)+GetString(dlDIMemoryTotal));
   {$IFDEF OS_DOS}
   if  (EMSFound or XMSFound) and (Y > 0)
     and (DriveInfoData and (fdiEMSFree+fdiXMSFree) <> 0)
@@ -661,6 +661,9 @@ function CountDirLen;
     DosError := 0;
     Abort := False;
 
+    GetDrInfo(Dir); { Ради BytesPerCluster }
+    if Abort then
+      Exit;
     lFindFirst(MakeNormName(FreeStr, x_x), AnyFile, SR); {JO}
     while (DosError = 0) and not Abort do
       begin
@@ -713,15 +716,29 @@ function CountDirLen;
   end { CountDirLen };
 {-DataCompBoy-}
 
+procedure GetDrInfo(CurDir: String);
+  var
+    Buffer: array[0..255] of Char;
+    L: Integer;
+  begin
+  if CurDir[Length(CurDir)] <> '\' then
+    CurDir := CurDir + '\';
+  Strings.StrPCopy(@Buffer, CurDir);
+  FreeSpc := SysDiskFreeLongX(@Buffer);
+  TotalSpc := VpSysLow.SysDiskSizeLongX(@Buffer);
+  L := GetRootStart(CurDir);
+  Buffer[L] := #0;
+  BytesPerCluster := GetBytesPerCluster(@Buffer);
+  end;
+
 {-DataCompBoy-}
-procedure ReadDiskInfo;
+procedure ReadDiskInfo(Dr: String; var B: TDiskInfoRec);
   var
     VolumeLabel: String[12];
-    SerialNo: String[9]; { Rainbow }
+    SerialNo: Longint;
     FileSys: String[8]; { Rainbow }
     S: String;
     S1, S2: String[30];
-    Drv: Byte;
     F: PTextReader;
     DirLen: TSize;
     NumFiles, NumDirs: Integer;
@@ -729,34 +746,20 @@ procedure ReadDiskInfo;
   begin
   ClrIO;
   if Dr = '' then
-    lGetDir(0, S) {GetDir(0, S)} {Cat}
-  else
-    S := Dr;
+    lGetDir(0, Dr); {GetDir(0, S)} {Cat}
   if Abort then
     Exit;
 
   DispInfo(B);
+  B.Title := NewStr(GetString(dlDICurDir));
+  B.Dir := NewStr(Copy(Dr, GetRootStart(Dr), 255));
 
-  B.Title := NewStr(GetString(dlDICurDir)+':');
-  B.Dir := NewStr(S);
-  Drv := Byte(S[1])-64;
+  Strings.StrPCopy(@PathBuffer, Dr);
+  CountDirLen(Dr, False, DirLen, NumFiles, NumDirs);
 
-  Strings.StrPCopy(@PathBuffer, S);
-  FreeSpc := VpSysLow.SysDiskFreeLongX(@PathBuffer);
-  TotalSpc := VpSysLow.SysDiskSizeLongX(@PathBuffer);
-  BytesPerCluster := GetBytesPerCluster(Drv);
-  if Abort then
-    Exit;
-  BytesPerCluster := GetBytesPerCluster(Drv);
-
-  DirLen := 0;
-  NumFiles := 0;
-  CountDirLen(S, False, DirLen, NumFiles, NumDirs);
-
-  B.Total := NewStr('~'+FStr(TotalSpc)+GetString(dlDITotalDisk)+Copy(S, 1,
-         2)+'~');
-  B.Free := NewStr('~'+FStr(FreeSpc)+GetString(dlDIFreeDisk)+Copy(S, 1,
-       2)+'~');
+  B.Total := NewStr('~' + FStr(TotalSpc)+GetString(dlDITotalDisk)
+      + GetString(dlDIClusterSize) + ItoS(BytesPerCluster)
+      );
 
   if NumFiles = 0 then
     B.Files := NewStr(GetString(dlDINoFiles))
@@ -766,10 +769,7 @@ procedure ReadDiskInfo;
       S1 := GetString(dlDIFile)
     else
       S1 := GetString(dlDIFiles);
-    if DirLen = 1 then
-      S2 := GetString(dlDIByte)
-    else
-      S2 := GetString(dlDIBytes);
+    S2 := GetString(dlDIUsed);
     B.Files := NewStr
         ('~'+FStr(NumFiles)+'~ '+S1+GetString(dlDIWith)+'~'+FStr(DirLen)
         +'~ '+S2);
@@ -815,19 +815,14 @@ procedure ReadDiskInfo;
     Dispose(F, Done);
     F := nil;
     end;
-  VolumeLabel := {$IFDEF WIN32}CharToOemStr {$ENDIF}
-        (GetVolumeLabel(GetCurDrive)); {JO, Cat}
+  GetSerFileSys(Dr[1], SerialNo, VolumeLabel, FileSys);
   if VolumeLabel = '' then
     VolumeLabel := GetString(dlDINone); {JO}
-  B.VolumeID := NewStr
-      (GetString(dlDIVolumeID)+Char(Drv+64)+': '+VolumeLabel+'~');
-  { Rainbow BEGIN }
-  GetSerFileSys(SerialNo, FileSys);
-  B.SerialNo := NewStr
-      (GetString(dlDISerialNo)+Char(Drv+64)+': '+SerialNo+'~');
-  B.FileSys := NewStr
-      (GetString(dlDIFileSys)+Char(Drv+64)+': '+FileSys+'~');
-  { Rainbow END }
+  B.VolumeID := NewStr(GetString(dlDIVolumeID) + VolumeLabel+'~');
+  S := Int2Hex(LongRec(SerialNo).Hi, 4) + '-' +
+       Int2Hex(LongRec(SerialNo).Lo, 4);
+  B.SerialNo := NewStr(GetString(dlDISerialNo) + S + '~');
+  B.FileSys := NewStr(GetString(dlDIFileSys) + FileSys+'~');
   end { ReadDiskInfo };
 {-DataCompBoy-}
 

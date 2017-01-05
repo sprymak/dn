@@ -97,7 +97,7 @@ type
   TFilesCollection = object(TSortedCollection)
     SortMode: Byte;
     Selected: LongInt;
-    Owner: Pointer;
+    Panel: Pointer;
     {$IFDEF WIN32}
     LFNActive: Boolean;
     {$ENDIF}

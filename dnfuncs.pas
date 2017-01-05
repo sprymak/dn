@@ -15,7 +15,7 @@ interface
 
 uses
   Defines, Dos, RTPatch, Advance, Advance1, Advance7, Commands,
-   U_KeyMap, UFNMatch,
+   U_KeyMap,
   xTime, Objects2, Streams, Drivers, RegExp, Collect, FilesCol, FLTools,
    Lfn,
   Views, Menus, Scroller, Dialogs, Gauge, Messages, DNApp, Filelst,
@@ -24,6 +24,7 @@ uses
   Drives, FileFind, ArcView, Arvid,
   Plugin, PlugRez
   , DblWnd
+  , FileType
   ;
 
 type
@@ -162,7 +163,6 @@ type
     CnvLongString: function (P: PLongString): LongString;
 
     UpStr: procedure (var S: String);
-    UpLongStr: procedure (var S: LongString);
     LowStr: procedure (var S: String);
 
     FormatStr: procedure (var Result: String; const Format: String;
@@ -295,15 +295,16 @@ type
     ElapsedTime: function (ET: TEventTimer): LongInt;
 
     GetPossibleDizOwner: function (n: Integer): String;
-    GetDizOwner: function (const Path, LastOwner: String; Add: Boolean)
-    : String;
-    CalcDizPath: function (P: PDiz; Owen: PString): String;
-    ReplaceDiz: procedure (const DPath, Name: String; ANewName: PString;
-       ANewDescription: PString);
-    DeleteDiz: procedure (const DPath, Name: String);
-    GetDiz: function (const DPath: String;
-       const Name: String): String;
+    GetDizPath: function (const Path: String; PreferedName: String): String;
+    ExportDiz: procedure (const OldName: PFlName; const NewLongName: string;
+                          var NewDiz: PDiz; TargetPath: string);
+    DeleteDiz: procedure (FR: PFileRec);
+    GetDiz: procedure (FR: PFileRec);
     SetDescription: procedure (PF: PFileRec; DizOwner: String);
+    DizFirstLine: function (DIZ: PDiz): String;
+    OpenFileList: function (const AConatainerPath: string): Boolean;
+{   ReadFileList: procedure (ProcessDizName: TDizNameProc;
+              ProcessDizLine: TDizLineProc; ProcessDizEnd: TDizEndProc);}
 
     Reserved12: Integer;
     Reserved13: Integer;
@@ -339,7 +340,7 @@ type
     Reserved14: Integer;
     Reserved15: Integer;
 
-    ExecString: procedure (S: PString; WS: String);
+    ExecString: procedure (const S: AnsiString; const WS: String);
     SearchExt: function (FileRec: PFileRec; var HS: String): Boolean;
     ExecExtFile: function (const ExtFName: String;
        UserParams: PUserParams; SIdx: TStrIdx): Boolean;
@@ -354,7 +355,6 @@ type
     GetFileType: function (const S: String; Attr: Byte): Integer;
     DosReread: procedure (Files: PFilesCollection);
 
-    FnMatch: function (Pattern, Str: String): Boolean;
     SearchFileStr: function (F: PStream; var XLAT: TXlat;
        const What: String; Pos: LongInt;
       CaseSensitive, Display, WholeWords, Back, AllCP, IsRegExp: Boolean)
@@ -446,7 +446,6 @@ const
     CnvLongString: Advance1.CnvLongString;
 
     UpStr: Advance1.UpStr;
-    UpLongStr: Advance1.UpLongStr;
     LowStr: Advance1.LowStr;
 
     FormatStr: Drivers.FormatStr;
@@ -559,12 +558,14 @@ const
     ElapsedTime: xTime.ElapsedTime;
 
     GetPossibleDizOwner: Filediz.GetPossibleDizOwner;
-    GetDizOwner: Filediz.GetDizOwner;
-    CalcDizPath: Filediz.CalcDPath;
-    ReplaceDiz: Filediz.ReplaceDiz;
+    GetDizPath: Filediz.GetDizPath;
+    ExportDiz: Filediz.ExportDiz;
     DeleteDiz: Filediz.DeleteDiz;
     GetDiz: Filediz.GetDiz;
     SetDescription: Filediz.SetDescription;
+    DizFirstLine: Filediz.DizFirstLine;
+    OpenFileList: Filediz.OpenFileList;
+  { ReadFileList: Filediz.ReadFileList; }
 
     Reserved12: 0;
     Reserved13: 0;
@@ -609,10 +610,9 @@ const
     Reserved17: 0;
 
     SelectDrive: FilesCol.SelectDrive;
-    GetFileType: FilesCol.GetFileType;
+    GetFileType: FileType.GetFileType;
     DosReread: FilesCol.DosReread;
 
-    FnMatch: UFNMatch.FnMatch;
     SearchFileStr: FViewer.SearchFileStr;
     MakeListFile: Filelst.MakeListFile;
     ASCIITable: ASCIITab.ASCIITable;
@@ -896,6 +896,7 @@ type
     VMT: Pointer;
     Init: Pointer;
     Load: Pointer;
+    Store: Pointer;
     end;
 
   PTInputLine = ^TTInputLine;
@@ -943,6 +944,14 @@ type
 
   PTMultiCheckBoxes = ^TTMultiCheckBoxes;
   TTMultiCheckBoxes = packed record
+    VMT: Pointer;
+    Init: Pointer;
+    Load: Pointer;
+    Store: Pointer;
+    end;
+
+  PTComboBox = ^TTComboBox;
+  TTComboBox = packed record
     VMT: Pointer;
     Init: Pointer;
     Load: Pointer;
@@ -1239,6 +1248,7 @@ type
     _TRadioButtons: PTRadioButtons;
     _TCheckBoxes: PTCheckBoxes;
     _TMultiCheckBoxes: PTMultiCheckBoxes;
+    _TComboBox: PTComboBox;
     _TScroller: PTScroller;
     _TListViewer: PTListViewer;
     _TListBox: PTListBox;
@@ -1539,7 +1549,8 @@ const
     (
     VMT: TypeOf(TDialog);
     Init: @TDialog.Init;
-    Load: @TDialog.Load
+    Load: @TDialog.Load;
+    Store: @TDialog.Store
     );
 
   _TInputLine: TTInputLine =
@@ -1591,6 +1602,14 @@ const
     Init: @TMultiCheckBoxes.Init;
     Load: @TMultiCheckBoxes.Load;
     Store: @TMultiCheckBoxes.Store
+    );
+
+  _TComboBox: TTComboBox =
+    (
+    VMT: TypeOf(TComboBox);
+    Init: @TComboBox.Init;
+    Load: @TComboBox.Load;
+    Store: @TComboBox.Store
     );
 
   _TScroller: TTScroller =
@@ -1883,6 +1902,7 @@ const
     _TRadioButtons: @_TRadioButtons;
     _TCheckBoxes: @_TCheckBoxes;
     _TMultiCheckBoxes: @_TMultiCheckBoxes;
+    _TComboBox: @_TComboBox;
     _TScroller: @_TScroller;
     _TListViewer: @_TListViewer;
     _TListBox: @_TListBox;

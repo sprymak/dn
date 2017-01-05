@@ -330,6 +330,9 @@ procedure UpdateMouseWhere;
 // the scan code of the key. Otherwise, Event.What is set to evNothing.
 // GetKeyEvent is called by TProgram.GetEvent.
 
+const
+  Letters = [$10..$19, $1E..$26, $2C..$32]; // Сканкоды английских букв
+
 procedure GetKeyEvent(var Event: TEvent);
   var
     I: Integer;
@@ -408,8 +411,44 @@ WriteKey:
       if  ( (ShiftState and kbAltShift) <> 0) then
         DoubleAltUnlock := False; {JO}
       if  ( (ShiftState and kbCtrlShift) <> 0) then
+        begin { Комбинация включает Ctrl.
+          Что при этом творится с кодом символа (младший байт) -
+          это какой-то бред. Что под OS/2 и под Win оно работает
+          по-разному, это не удивительно. Но даже в разных версиях
+          Win CharCode бывает разным. К тому же этот код, похоже,
+          может зависеть от раскладки клавиатуры, что нам совершенно
+          не нужно. Поэтому хочется просто обнулить код символа, чтобы не
+          мешал, и работать только с сканкодом. Соответственно, в Commands
+          во всех кодах kb*Ctrl* младший байт обнулить. Но так глобально
+          это делать нельзя, так как команды редактора, опредедённые
+          в dn.dnr через COMMAND, распознаются через CharCode, а не
+          через KeyCode. Поэтому для Ctrl с буквами младший байт не
+          трогаем. С ними, к счастью, под всеми ОС всё одинаково.
+          AK155 25/11/05 }
         DoubleCtrlUnlock := False; {JO}
-      if  (CharCode = #$E0) and (ScanCode in
+        if not (Hi(LongRec(KeyCode).Lo) in Letters) then
+          KeyCode := KeyCode and $FFFFFF00;
+        end;
+      if  ((CharCode = #$E0 {Gray Keys})
+{AK155 1.03.2005}
+{$IFDEF OS2}
+            or (ShiftState and $03 <> 0)
+{   Под OS/2 Shift как бы инвертирует NumLock: без шифта
+при NumLock ненулевой CharCode, а без NumLock - нулевой,
+а при нажатом Shift - наоборот. Соответственно, NumLock+Shift
+приводят к вводу цифр. Возможно, это логичино и кошерно, но
+очень уж неудобно. И, например, редактор e или FC/2 так не делают:
+они по Shift без NumLoc делает выделение, а не вводят цифры.
+Будем и мы так делать.
+   Что касается влияния Shift при включённом NumLock, то под виндой
+Shift штатно приводит к курсорным действиям (без выделения), а под
+OS/2 - к выделению. И это работает именно так во всех программах,
+поэтому это оставляем, как есть, то есть по-разному под Win и OS/2.}
+{$ENDIF OS2}
+{/AK155}
+           )
+       and
+        (ScanCode in
           [Hi(kbLeft), Hi(kbRight), Hi(kbUp), Hi(kbDown),
           Hi(kbIns), Hi(kbDel), Hi(kbHome), Hi(kbEnd), Hi(kbPgUp),
              Hi(kbPgDn),
@@ -417,7 +456,7 @@ WriteKey:
           Hi(kbCtrlIns), Hi(kbCtrlDel), Hi(kbCtrlHome), Hi(kbCtrlEnd),
              Hi(kbCtrlPgUp), Hi(kbCtrlPgDn)])
       then
-        CharCode := #0; // Gray Keys
+        CharCode := #0;
       if KeyCode = $E00D then
         // Gray Enter
         KeyCode := kbEnter;
@@ -428,13 +467,16 @@ WriteKey:
         What := evNothing;
         KeyCode := 0;
         end;
+(* AK155 23/11/05 Теперь это не нужно, так как младший байт обнуляется
       if KeyCode = $41b1b then
         // Ctrl-]  в виндах с русской раскладкой
         KeyCode := kbCtrlSqBracketR; //       по дефолту
       if KeyCode = $71b1b then
         // Shift-Ctrl-] в виндах с русской
         KeyCode := kbCtrlShiftSqBracketR; //  раскладкой по дефолту
+*)
       {$ENDIF}
+(* AK155 23/11/05 Теперь это не нужно, так как младший байт обнуляется
       {$IFDEF OS2}
       // ниже идут возможные варианты клавиш Ctrl-[ и Ctrl-] под OS/2
       // при штатной русской раскладке
@@ -447,6 +489,7 @@ WriteKey:
       if  (KeyCode = $071B8A) or (KeyCode = $071B91) then
         KeyCode := kbCtrlShiftSqBracketR;
       {$ENDIF}
+*)
       PrevKey := KeyCode;
       PrevKeyTime := GetTimemSec;
       end;

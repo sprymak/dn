@@ -824,7 +824,7 @@ procedure TDBViewer.HandleEvent;
         if Abort then
           Break;
         V^.Write(1, StrGrd(DBFile^.NumRec, CurRow, 30, False));
-        V^.Write(2, ZtoS(Percent(DBFile^.NumRec, CurRow))+'%');
+        V^.Write(2, Percent(DBFile^.NumRec, CurRow)+'%');
         NewTimer(T, 50);
         end;
       P := GetRecord(CurRow);
@@ -884,33 +884,98 @@ procedure TDBViewer.HandleEvent;
     ContSearch(True);
     end;
 
+  { ------ Kirill Vodonosov Start -------}
+  function ReOpenInWriteMode : boolean;
+  var
+    RetValue : boolean;
+  begin
+    RetValue := false;
+    repeat
+      case DBFile^.WriteMode of
+        0 : begin
+              DBFile^.BaseFile.Done;
+              DBFile^.OpenMode(stOpen);
+              Inc(DBFile^.WriteMode);
+              if DBFile^.BaseFile.Status = stOK then Inc(DBFile^.WriteMode)
+              else DBFile^.OpenMode(stOpenRead);
+            end;
+        1 : begin
+              ErrMsg(dlDBCantEdit);
+              break;
+            end;
+        2 : RetValue := true;
+      end {case};
+    until RetValue;
+    ReOpenInWriteMode := RetValue;
+  end;
+
+  procedure InsertRecord;
+  var
+    BaseRec : LongInt;
+    CurRec : LongInt;
+    p : PByteArray;
+  begin
+    if not ReOpenInWriteMode then Exit;
+    BaseRec := Delta.Y;
+    CurRec := DBFile^.NumRec-1;
+    p := GetRecord(BaseRec);
+
+    while CurRec >= BaseRec do begin
+      DBFile^.Seek(CurRec);
+      DBFile^.BaseFile.Read(p^[0],DBFile^.RecLen);
+      DBFile^.Seek(CurRec);   { TBufStream bug ? }
+      DBFile^.Seek(CurRec+1); { если перед этим не сделать Seek(CurRec),        }
+                              { то позиционирование идёт на один байт дальше    }
+                              { чем нужо. Почему - так и не понял. Особенность. }
+      DBFile^.BaseFile.Write(p^[0], DBFile^.RecLen);
+      dec(CurRec);
+    end;
+    FillChar(p^[0], DBFile^.RecLen, ' ');
+    DBFile^.Seek(BaseRec);
+    DBFile^.BaseFile.Write(p^[0], DBFile^.RecLen);
+
+    inc(DBFile^.NumRec);
+    DBFile^.BaseFile.Seek(0);
+    DBFile^.BaseFile.Write(DBFile^.Date,32);
+    StartRec := DBFile^.NumRec; { for refresh records buffer }
+    p := GetRecord(BaseRec);
+  end;
+
+  procedure MoveRecordUpDown(UpFlag : boolean);
+  var
+    BaseRec : LongInt;
+    i : LongInt;
+    b : byte;
+  begin
+    if (UpFlag and (Delta.Y <= 0)) or
+       ((not UpFlag) and (Delta.Y >= (DBFile^.NumRec-1))) then
+      Exit;
+    if NumRec < 2 then Exit;
+    if not ReOpenInWriteMode then Exit;
+    BaseRec := Delta.Y;
+    if UpFlag then dec(BaseRec);
+    DBFile^.Seek(BaseRec);
+    DBFile^.BaseFile.Read(Buf^, DBFile^.RecLen * 2);
+    for i := 0 to DBFile^.RecLen - 1 do begin
+      b := PByteArray(Buf)^[i];
+      PByteArray(Buf)^[i] := PByteArray(Buf)^[i + DBFile^.RecLen];
+      PByteArray(Buf)^[i + DBFile^.RecLen] := b;
+    end;
+    DBFile^.Seek(BaseRec);
+    DBFile^.BaseFile.Write(Buf^, DBFile^.RecLen * 2);
+    StartRec := DBFile^.NumRec; { for refresh records buffer }
+    if UpFlag then dec(Delta.Y) else inc(Delta.Y);
+    GetRecord(Delta.Y);
+  end;
+  { ------- Kirill Vodonosov End --------}
+
   { -------- Eugeny Zvyagintzev ---------}
 
   procedure DeleteRecord;
     var
       p: PByteArray;
     begin
-    repeat
-      case DBFile^.WriteMode of
-        0:
-          begin
-          DBFile^.BaseFile.Done;
-          DBFile^.OpenMode(stOpen);
-          Inc(DBFile^.WriteMode);
-          if DBFile^.BaseFile.Status = stOK then
-            Inc(DBFile^.WriteMode)
-          else
-            DBFile^.OpenMode(stOpenRead);
-          end;
-        1:
-          begin
-          ErrMsg(dlDBCantEdit);
-          Exit
-          end;
-        2:
-          Break;
-      end {case};
-    until False;
+    if not ReOpenInWriteMode then Exit; { KV }
     p := GetRecord(Delta.Y);
     if p^[0] = $2A then
       p^[0] := $20
@@ -961,27 +1026,7 @@ procedure TDBViewer.HandleEvent;
 
     label redat;
     begin { EditField }
-    repeat
-      case DBFile^.WriteMode of
-        0:
-          begin
-          DBFile^.BaseFile.Done;
-          DBFile^.OpenMode(stOpen);
-          Inc(DBFile^.WriteMode);
-          if DBFile^.BaseFile.Status = stOK then
-            Inc(DBFile^.WriteMode)
-          else
-            DBFile^.OpenMode(stOpenRead);
-          end;
-        1:
-          begin
-          ErrMsg(dlDBCantEdit);
-          Exit
-          end;
-        2:
-          Break;
-      end {case};
-    until False;
+    if not ReOpenInWriteMode then Exit; { KV }
     PFR := DBFile^.GetFieldRec(Delta.X);
     if PFR^.Who = 'M' then
       Exit;
@@ -1186,6 +1231,21 @@ redat:
         cmDeleteDBRec:
           begin
           DeleteRecord;
+          CED;
+          end;
+        cmInsertDBRec:
+          begin
+          InsertRecord;
+          CED;
+          end;
+        cmUpDBRec:
+          begin
+          MoveRecordUpDown(true);
+          CED;
+          end;
+        cmDownDBRec:
+          begin
+          MoveRecordUpDown(false);
           CED;
           end;
         cmSwitchKeyMapping:

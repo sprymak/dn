@@ -9,7 +9,7 @@ interface
 type
 {<fltl.001>}
   TDrvTypeNew = ( dtnFloppy, dtnHDD, dtnInvalid,
-                 dtnCDRom, dtnLAN, dtnUnknown, dtnOptical, dtnProgram);
+    dtnCDRom, dtnLAN, dtnUnknown, dtnOptical, dtnProgram, dtRamDisk);
 
 const
 
@@ -42,10 +42,11 @@ function SetFileAges(S: String; Age_LWr, Age_Cr, Age_LAc: LongInt)
 {    время и дату создания (Age_Cr) и время и дату последнего доступа (Age_LAc) }
 {    файла или каталога по полному пути (S), принимает значение кода ошибки     }
 
-function GetVolSer(DriveNum: LongInt; var Serial: LongInt; VolLab: String)
-  : LongInt;
+procedure GetSerFileSys(Drive: Char; var SerialNo: Longint;
+  var VolLab, FileSys: String);
+
 function SetVolume(DriveNum: LongInt; VolLab: String): LongInt;
-function GetBytesPerCluster(DriveNum: LongInt): LongInt;
+function GetBytesPerCluster(Path: PChar): LongInt;
 
 procedure CopyEAs(FFromName, FToName: String);
 
@@ -253,9 +254,8 @@ function SetFileAges(S: String; Age_LWr, Age_Cr, Age_LAc: LongInt)
   SetFileAges := rc;
   end { SetFileAges };
 
-
-function GetVolSer(DriveNum: LongInt; var Serial: LongInt; VolLab: String)
-  : LongInt;
+procedure GetSerFileSys(Drive: Char; var SerialNo: Longint;
+  var VolLab, FileSys: String);
   type
     fsInfoBuf = record
       ulVolser: LongInt {ULong}; // Volume serial number
@@ -266,20 +266,20 @@ function GetVolSer(DriveNum: LongInt; var Serial: LongInt; VolLab: String)
     rc: LongInt {ApiRet};
 
   begin
-  rc := DosQueryFSInfo(DriveNum, fsil_VolSer, VolumeInfo,
-         SizeOf(fsInfoBuf));
+  FileSys := GetFSString(Drive);
+  rc := DosQueryFSInfo(Byte(Drive) - (Byte('A')-1),
+    fsil_VolSer, VolumeInfo, SizeOf(fsInfoBuf));
   if rc = 0 then
     begin
-    Serial := VolumeInfo.ulVolser;
+    SerialNo := VolumeInfo.ulVolser;
     VolLab := VolumeInfo.Vol;
     end
   else
     begin
-    Serial := 0;
+    SerialNo := 0;
     VolLab := '';
     end;
-  GetVolSer := rc;
-  end { GetVolSer };
+  end { GetSerFileSys };
 
 function SetVolume(DriveNum: LongInt; VolLab: String): LongInt;
   var
@@ -292,11 +292,13 @@ function SetVolume(DriveNum: LongInt; VolLab: String): LongInt;
   SetVolume := rc;
   end;
 
-function GetBytesPerCluster(DriveNum: LongInt): LongInt;
+function GetBytesPerCluster(Path: PChar): LongInt;
   var
+    DriveNum: Longint;
     aulFSInfoBuf: FsAllocate;
     rc: LongInt;
   begin
+  DriveNum := Byte(Upcase(Path^)) - (Byte('A') - 1);
   rc := DosQueryFSInfo(DriveNum, fsil_Alloc, aulFSInfoBuf,
          SizeOf(FsAllocate));
   if rc = 0 then

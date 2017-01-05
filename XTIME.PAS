@@ -399,8 +399,8 @@ function ElapsedTime(ET: TEventTimer): LongInt;
   begin
   with ET do
     begin
-    Result := ExpireMSecs;
-    dec(Result, GetCurMSec);
+    Result := GetCurMSec;
+    dec(Result, ExpireMSecs);
     end;
   end;
 

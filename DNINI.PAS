@@ -63,10 +63,6 @@ type
 
 const
 
-  INIstoredsize: LongInt = 0;
-  INIstoredtime: LongInt = 0;
-  INIstoredcrc: LongInt = 0; {DataCompBoy}
-
   { DO NOT CHANGE THIS LINE }iniparamblock_START: TBlockMarker = ();
   { ------------------------------ PLACE ALL INI VARIABLES BELOW }
 
@@ -84,6 +80,8 @@ const
   {; Variable name           ; Type       ; Default value      ;          Comments ;}
   {'.________________________;____________;____________________;___________________'}
   {} {Interface}
+
+  {}MenuOnError: Boolean = True;
   {}CutDriveInfo: Boolean = True;
   {}WinManagerSelectNext: Boolean = True;
   {}DriveSelectVCenter: Boolean = False; {-$X-Man}
@@ -96,7 +94,6 @@ const
   {} { 2 - do not open new}
   {}HistoryErrorBeep: Boolean = True; {DataCompBoy}
   {}PreserveMenuPositions: Boolean = False; {DataCompBoy}
-  {}LFNinBottom: Boolean = False; {JO}
   {}PanelDescrArvid: String = ''; {JO}
   {}PanelDescrArc: String = ''; {JO}
   {}PanelDescrTemp: String = ''; {JO}
@@ -151,9 +148,6 @@ const
   {$IFDEF WIN32}
   {}AltGrAsAlt               : Boolean    = True; {JO} {JO: эта переменная дублируется в VpKbdW32}
   {$ENDIF}
-  {$IFNDEF OS2}
-  {}DescrByShortNames: Boolean = True; {JO}
-  {$ENDIF}
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
   {'.________________________;____________;____________________;___________________'}
@@ -173,17 +167,8 @@ const
   {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
   {'.________________________;____________;____________________;___________________'}
   {} {FilePanels}
-  {}ShowFileMask: Boolean = True;
-  {}ShowLongName: Boolean = True;
   {}QuickRenameInDialog: Boolean = False;
   {}UpperCaseSorting: Boolean = True; {JO}
-  {}AutoRefreshDriveLine: Boolean = False; {Cat}
-  {}AutoRefreshPanels: Boolean = False; {Cat}
-  {}QuickSearchType: Byte = 0; {Cat}
-  {}BriefSelectedInfo: Boolean = True; {AK155}
-  {}BriefTotalInfo: Boolean = False; {AK155}
-  {}PackingInfoInBottom: Boolean = True; {AK155}
-  {}PathInfoInBottom: Boolean = True; {AK155}
   {$IFDEF OS2}
   {}ExecWin32GUI: String[30] = 'start /n /f pe';
   {}ExecWin32CUI: String[30] = 'pec';
@@ -251,17 +236,15 @@ const
   {'.________________________;_________;________________;___________________'}
 
   {} {SetupStorage}
-  {}SystemDataOpt: LongInt = 75; {SystemData.Options}
-  {}InterfaceDataOpt: LongInt = 8201; {InterfaceData.Options}
-  {}FMSetupOpt: LongInt = 11358; {FMSetup.Options}
-  {}EditorDefaultsOpt: LongInt = 8194; {EditorDefaults.EdOpt}
-  {}EditorDefaultsOpt2: LongInt = 3; {EditorDefaults.EdOpt2}
-  {}ViewerOpt: LongInt = 16; {EditorDefaults.ViOpt}
-  {}StartupDataLoad: LongInt = 2; {StartupData.Load}
-  {}StartupDataUnload: LongInt = 0; {StartupData.Unload}
-  {}ConfirmsOpt: LongInt =
-   cfSingleErase+cfMultiErase+cfEraseReadonly+cfEraseSubDir
-  +cfMouseConfirm+cfExitConfirm+cfChaneLngWarning; {Confirms}
+  {}SystemDataOpt: LongInt = 65535; {SystemData.Options}
+  {}InterfaceDataOpt: LongInt = 65535; {InterfaceData.Options}
+  {}FMSetupOpt: LongInt = 65535; {FMSetup.Options}
+  {}EditorDefaultsOpt: LongInt = 65535; {EditorDefaults.EdOpt}
+  {}EditorDefaultsOpt2: LongInt = 65535; {EditorDefaults.EdOpt2}
+  {}ViewerOpt: LongInt = 65535; {EditorDefaults.ViOpt}
+  {}StartupDataLoad: LongInt = 65535; {StartupData.Load}
+  {}StartupDataUnload: LongInt = 65535; {StartupData.Unload}
+  {}ConfirmsOpt: LongInt = 65535; {Confirms}
   {}NonVIOScreenMode: LongInt = 65535; {JO}
   {последний видеорежим в полноэкранной сессии}
   {}VIOScreenMode: LongInt = 65535; {JO}
@@ -279,18 +262,29 @@ procedure LoadDnIniSettings;
 procedure SaveDnIniSettings(PVar: Pointer);
 procedure DoneIniEngine;
 
-function ProbeINI(var INItime, INIsize, INIcrc: LongInt): Boolean;
+function ProbeINI(var INItime, INIsize: LongInt): Boolean;
 
 procedure ShowIniErrors;
 procedure ClearIniErrors;
+
+{JO: 21-04-2005 - кэш INI в отдельном файле}
+procedure WriteIniCache(INItime, INIsize: LongInt);
+function ReadIniCache(INItime, INIsize: LongInt): Boolean;
+{/JO}
 
 implementation
 uses
   Dos, Lfn, profile, Advance, Advance1, Collect, Messages, DNApp,
   {$IFDEF WIN32}VpSysLow, {$ENDIF}
   U_KeyMap, Country_,
-  Strings
+  Strings,
+  Streams
   ;
+
+const
+  IniCacheSign: array[1..60] of Char =
+    'This file is compiled binary cache of dn.ini; see dnini.txt ';
+  INIModified: Boolean = False; {JO}
 
 type
 
@@ -432,6 +426,8 @@ function DnIniFileName: String;
 procedure Proceed(RegisterVar: TDoProc);
   begin
   {Interface}
+  RegisterVar(CSInterface, 'MenuOnError', ikBool, SizeOf(MenuOnError),
+     @MenuOnError);
   RegisterVar(CSInterface, 'CutDriveInfo', ikBool, SizeOf(CutDriveInfo),
      @CutDriveInfo);
   RegisterVar(CSInterface, 'WinManagerSelectNext', ikBool,
@@ -454,8 +450,6 @@ procedure Proceed(RegisterVar: TDoProc);
        SizeOf(HistoryErrorBeep), @HistoryErrorBeep);
   RegisterVar(CSInterface, 'PreserveMenuPositions', ikBool,
        SizeOf(PreserveMenuPositions), @PreserveMenuPositions);
-  RegisterVar(CSInterface, 'LFNinBottom', ikBool, SizeOf(LFNinBottom),
-     @LFNinBottom); {JO}
   //  RegisterVar(CSInterface, 'DescriptionInBottom',  ikBool, SizeOf(DescriptionInBottom),  @DescriptionInBottom);{JO}
   RegisterVar(CSInterface, 'PanelDescrArvid', ikStr,
        SizeOf(PanelDescrArvid), @PanelDescrArvid); {JO}
@@ -521,10 +515,6 @@ procedure Proceed(RegisterVar: TDoProc);
   RegisterVar(CSKernel, 'AltGrAsAlt', ikBool,
       SizeOf(AltGrAsAlt), @AltGrAsAlt); {JO}
   {$ENDIF}
-  {$IFNDEF OS2}
-  RegisterVar(CSKernel, 'DescrByShortNames', ikBool,
-       SizeOf(DescrByShortNames), @DescrByShortNames); {JO}
-  {$ENDIF}
   {Editor}
   RegisterVar(CSEditor, 'UnlimitUnindent', ikBool,
      SizeOf(UnlimitUnindent), @UnlimitUnindent);
@@ -549,28 +539,10 @@ procedure Proceed(RegisterVar: TDoProc);
   RegisterVar(CSEditor, 'F6_DuplicatesLine', ikBool,
        SizeOf(F6_DuplicatesLine), @F6_DuplicatesLine); {JO}
   {FilePanels}
-  RegisterVar(CSFilePanels, 'ShowFileMask', ikBool,
-     SizeOf(ShowFileMask), @ShowFileMask);
-  RegisterVar(CSFilePanels, 'ShowLongName', ikBool,
-     SizeOf(ShowLongName), @ShowLongName);
   RegisterVar(CSFilePanels, 'QuickRenameInDialog', ikBool,
        SizeOf(QuickRenameInDialog), @QuickRenameInDialog);
   RegisterVar(CSFilePanels, 'UpperCaseSorting', ikBool,
        SizeOf(UpperCaseSorting), @UpperCaseSorting); {JO}
-  RegisterVar(CSFilePanels, 'AutoRefreshDriveLine', ikBool,
-       SizeOf(AutoRefreshDriveLine), @AutoRefreshDriveLine); {Cat}
-  RegisterVar(CSFilePanels, 'AutoRefreshPanels', ikBool,
-       SizeOf(AutoRefreshPanels), @AutoRefreshPanels); {Cat}
-  RegisterVar(CSFilePanels, 'QuickSearchType', ikUInt,
-       SizeOf(QuickSearchType), @QuickSearchType); {Cat}
-  RegisterVar(CSFilePanels, 'BriefSelectedInfo', ikBool,
-       SizeOf(BriefSelectedInfo), @BriefSelectedInfo); {AK155}
-  RegisterVar(CSFilePanels, 'BriefTotalInfo', ikBool,
-       SizeOf(BriefTotalInfo), @BriefTotalInfo); {AK155}
-  RegisterVar(CSFilePanels, 'PackingInfoInBottom', ikBool,
-       SizeOf(PackingInfoInBottom), @PackingInfoInBottom); {AK155}
-  RegisterVar(CSFilePanels, 'PathInfoInBottom', ikBool,
-       SizeOf(PathInfoInBottom), @PathInfoInBottom); {AK155}
   {$IFDEF OS2}
   RegisterVar(CSFilePanels, 'ExecWin32GUI', ikStr, SizeOf(ExecWin32GUI),
      @ExecWin32GUI);
@@ -924,36 +896,25 @@ procedure SaveDnIniSettings(PVar: Pointer);
 procedure DoneIniEngine;
   begin
   CloseProfile;
+  INIModified := True;
   end;
 
 {-DataCompBoy-}
-function ProbeINI(var INItime, INIsize, INIcrc: LongInt): Boolean;
+function ProbeINI(var INItime, INIsize: LongInt): Boolean;
   var
     SR: lSearchRec;
-    {F: TDosStream;}
-    {B: PByteArray;}
     Pos: LongInt;
     S: Word;
   begin
   INItime := 0;
   INIsize := 0;
-  INIcrc := 0;
   lFindFirst(DnIniFileName, AnyFile, SR);
   if  (DosError = 0) and ((SR.SR.Attr and Directory) = 0) then
     begin
     ProbeINI := True;
     INItime := SR.SR.Time;
     INIsize := 0; {AK155 на случай DPMI, где Size: longint}
-    Move(SR.SR.Size, INIsize, SizeOf(SR.SR.Size)); {AK155 Size: comp}
-    {F.Init(SourceDir+'DN.INI', stOpenRead);
-        S := Min(INIsize, 32767);
-        if S>0 then begin
-         GetMem(B, S);
-         F.Read(B^, S);
-         INIcrc := GetCrc(0, B^, S);
-         FreeMem(B, S);
-        end;
-        F.Done;}
+    Move(SR.SR.Size, INIsize, SizeOf(INIsize)); {AK155 Size: comp}
     end
   else
     ProbeINI := False;
@@ -961,4 +922,59 @@ function ProbeINI(var INItime, INIsize, INIcrc: LongInt): Boolean;
   end { ProbeINI };
 {-DataCompBoy-}
 
+{JO: 21-04-2005 }
+procedure WriteIniCache(INItime, INIsize: LongInt);
+  var
+    S: TBufStream;
+  begin
+  if INIModified then
+    begin
+    INIModified := False;
+    S.Init(SourceDir+'dnini.in_', stCreate, 8192);
+    if S.Status <> stOK then
+      begin
+      S.Done;
+      Exit;
+      end;
+    S.Write(IniCacheSign, SizeOf(IniCacheSign));
+    S.Write(INItime, SizeOf(INItime));
+    S.Write(INIsize, SizeOf(INIsize));
+    S.Write(iniparamblock_START,
+         Ofs(iniparamblock_END)-Ofs(iniparamblock_START));
+    S.Done;
+    end;
+  end;
+
+function ReadIniCache(INItime, INIsize: LongInt): Boolean;
+  var
+    S: TBufStream;
+    I: LongInt;
+    Sign: array[1..60] of Char;
+  begin
+  Result := False;
+  S.Init(SourceDir+'dnini.in_', stOpenRead, 8192);
+  if  (S.Status <> stOK) or (S.GetSize = 0) then
+    begin
+    S.Done;
+    Exit;
+    end;
+  S.Read(Sign, SizeOf(Sign));
+  if Sign <> IniCacheSign then begin S.Done; Exit; end;
+  S.Read(I, SizeOf(I));
+  if I <> INItime then begin S.Done; Exit; end;
+  S.Read(I, SizeOf(I));
+  if I <> INIsize then begin S.Done; Exit; end;
+  if (S.GetSize - S.GetPos) <>
+      (Ofs(iniparamblock_END)-Ofs(iniparamblock_START)) then
+    begin
+    S.Done;
+    Exit;
+    end;
+  S.Read(iniparamblock_START,
+         Ofs(iniparamblock_END)-Ofs(iniparamblock_START));
+  if S.Status = stOK then
+    Result := True;
+  S.Done;
+  end;
+{/JO}
 end.

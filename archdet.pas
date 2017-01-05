@@ -54,7 +54,7 @@ uses
   {$IFNDEF MINARCH}
   arc_ARC, arc_BSA, arc_BS2, arc_HYP, arc_LIM, arc_HPK, arc_TAR, arc_TGZ,
   arc_ZXZ, arc_QRK, arc_UFA, arc_IS3, arc_SQZ, arc_HAP, arc_ZOO, arc_CHZ,
-  arc_UC2, arc_AIN,
+  arc_UC2, arc_AIN, arc_7Z,
   {$ENDIF}
   profile, Defines, Streams, Advance, Advance1, Advance2
   ;
@@ -321,20 +321,20 @@ function HYPDetect: Boolean;
   end;
 
 function LIMDetect: Boolean;
+{4C 4D 1A 08 00 -- -- -- -- -- -- -- -- 23 F1}
+{check for these bytes at start of archive for detection}
   var
-    M: array[1..8] of Char;
+    ID: LongInt;
+    W: AWord;
   begin
   LIMDetect := False;
-  ArcFile^.Read(M, 8);
-  if  (ArcFile^.Status = stOK) and (Copy(M, 1, 5) = 'LM'#26#8#0)
-  then
+  ArcFile^.Read(ID, SizeOf(ID));
+  ArcFile^.Seek(ArcPos + 13);
+  ArcFile^.Read(W, SizeOf(W));
+  if (ArcFile^.Status = stOK) and (ID = $081A4D4C) and (W = $F123) then
     begin
-    ArcFile^.Read(M, 7);
-    if  (M[6] = #35) and (M[7] = #241) then
-      begin
       LIMDetect := True;
       ArcPos := ArcPos+13;
-      end;
     end;
   ArcFile^.Seek(ArcPos);
   end;
@@ -511,11 +511,13 @@ function IS3Detect: Boolean;
 
 function SQZDetect: Boolean;
   var
-    S: array[0..4] of Char;
+    ID: LongInt;
+    B: Byte;
   begin
-  ArcFile^.Read(S, 5);
+  ArcFile^.Read(ID, SizeOf(ID));
+  ArcFile^.Read(B, SizeOf(B));
   SQZDetect := False;
-  if  (ArcFile^.Status = stOK) and (S = 'HLSQZ')
+  if (ArcFile^.Status = stOK) and (ID = $51534C48) and (B = $5a)
   then
     begin
     SQZDetect := True;
@@ -600,6 +602,17 @@ function AINDetect: Boolean;
     end;
   ArcFile^.Seek(ArcPos);
   end;
+
+Function S7ZDetect: Boolean;
+  var
+    ID: LongInt;
+  begin
+  S7ZDetect := False;
+  ArcFile^.Read(ID, SizeOf(ID));
+  if (ArcFile^.Status = stOK) and (ID = $AFBC7A37)
+    then S7ZDetect := True
+    else ArcFile^.Seek(ArcPos);
+  end;
 {$ENDIF}
 
 function DetectArchive;
@@ -656,6 +669,8 @@ function DetectArchive;
     DetectArchive := New(PZXZArchive, Init)
   else if IS3Detect then
     DetectArchive := New(PIS3Archive, Init)
+  else if S7ZDetect then
+    DetectArchive := New(PS7ZArchive, Init)
   else
     {$ENDIF}
     {$IFDEF PLUGIN}
@@ -720,6 +735,8 @@ function GetArchiveTagBySign;
     GetArchiveTagBySign := arcZXZ
   else if Sign = sigIS3 then
     GetArchiveTagBySign := arcIS3
+  else if sign = sig7Z  then
+    GetArchiveTagBySign := arc7Z
   else
     {$ENDIF}
     {$IFDEF PLUGIN}
@@ -783,6 +800,8 @@ function GetArchiveByTag;
     GetArchiveByTag := New(PZXZArchive, Init)
   else if ID = arcIS3 then
     GetArchiveByTag := New(PIS3Archive, Init)
+  else if ID = arc7Z  then
+    GetArchiveByTag := New(PS7ZArchive, Init)
   else
     {$ENDIF}
     {$IFDEF PLUGIN}

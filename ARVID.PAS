@@ -195,12 +195,12 @@ type
     {this for AVT: location of directory cell.
                                CurDirPos for AVT is position of a root node}
 
-    constructor Init(const AName: String; Num: Byte);
+    constructor Init(const AName: String);
     procedure lChDir(ADir: String); virtual;
     function GetDir: String; virtual;
-    function GetDirectory(SortMode, PanelFlags: Integer;
+    function GetDirectory(
          const FileMask: String;
-        var FreeSpace: String; var TotalInfo: TSize): PCollection; virtual;
+        var TotalInfo: TSize): PFilesCollection; virtual;
     constructor Load(var S: TStream);
     procedure Store(var S: TStream); virtual;
     procedure RereadDirectory(S: String); virtual;
@@ -222,10 +222,10 @@ type
     procedure GetDirInfo(var B: TDiskInfoRec); virtual;
     procedure EditDescription(PF: PFileRec); virtual;
     procedure GetDirLength(PF: PFileRec); virtual;
-    procedure GetParam(n: Byte); virtual; {DataCompBoy}
     destructor Done; virtual;
     procedure SeekDirectory;
-    function OpenDirectory(const Dir: String): PDrive; virtual;
+    function OpenDirectory(const Dir: String;
+                                 PutDirs: Boolean): PDrive; virtual;
   private
     procedure Kill;
     end;
@@ -242,48 +242,8 @@ uses
   Advance, Advance2, Advance1, Advance3, FlPanel, Commands, Startup, DNApp,
   Drivers, Messages, Dialogs, Memory, FileFind, DNUtil, FileCopy, U_KeyMap,
   ArvidAvt, ArvidTdr
+  , PDSetup
   ;
-
-{-DataCompBoy-}
-procedure TArvidDrive.GetParam;
-  begin
-  Param := n;
-  with ColumnsDefaultsArvd do
-    begin
-    Flags := Params[n].Param;
-    LFNLen := StoI(Params[n].LFNLen);
-    if  (LFNLen = 0) or (LFNLen > 252) then
-      LFNLen := 252;
-    EXTLen := StoI(Params[n].EXTLen);
-    if EXTLen > 252 then
-      EXTLen := 252;
-    case FileCase of
-      0:
-        FilFLP := 0;
-      1:
-        FilFLP := flnLowCase;
-      2:
-        FilFLP := flnCapitalCase;
-      3:
-        FilFLP := flnUpCase;
-      4:
-        FilFLP := 65535;
-    end {case};
-    case DirsCase of
-      0:
-        DirFLP := 0;
-      1:
-        DirFLP := flnLowCase;
-      2:
-        DirFLP := flnCapitalCase;
-      3:
-        DirFLP := flnUpCase;
-      4:
-        DirFLP := 65535;
-    end {case};
-    end;
-  end { TArvidDrive.GetParam };
-{-DataCompBoy-}
 
 constructor TArvidDrive.Init;
   var
@@ -311,12 +271,6 @@ constructor TArvidDrive.Init;
 
   begin { TArvidDrive.Init }
   TObject.Init;
-  if Num < 1 then
-    GetParam(1)
-  else
-    GetParam(Num);
-  innum := Num;
-
   i := PosChar(':', Copy(AName, 3, MaxStringLength))+2;
   if i > 2 then
     begin
@@ -362,6 +316,8 @@ constructor TArvidDrive.Init;
     goto 1;
   Name := NewStr(lFExpand(AName));
   DriveType := dtArvid;
+  ColAllowed := PanelFileColAllowed[pcArvid];
+
   KillAfterUse := TempFile <> '';
   TempFile := '';
   if i > 2 then
@@ -401,12 +357,8 @@ function TArvidDrive.GetDirectory;
     TAttr: Word;
   begin
   New(FC, Init($80, $40));
-  FC^.SortMode := SortMode;
-  {$IFDEF Win32}
-  FC^.LFNActive := False;
-  {$ENDIF}
-  if ArvidWithDN then
-    GetFreeSpace(FreeSpace);
+{  if ArvidWithDN then
+    GetFreeSpace(FreeSpace);}
   TotFiles := 0;
   TotLen := 0;
 
@@ -636,7 +588,7 @@ procedure TArvidDrive.CopyFiles;
     S1 := Dr+'AVT:'+Nm+'\';
   Message(Application, evCommand, cmPushFirstName, @CopyDirName);
   if not CopyDialog(CopyDir, Mask, CopyOpt, CopyMode, CopyPrn,
-      MoveMode, AFiles, 0, Owner, True)
+      MoveMode, AFiles, 0, Panel, True)
   then
     Exit;
 
@@ -816,20 +768,22 @@ procedure TArvidDrive.ChangeUp;
     lChDir('..');
     Exit
     end;
-  if Owner = nil then
+  if Panel = nil then
     Exit;
   if Prev = nil then
     begin
-    New(Prev, Init(0, Owner, Flags));
+    New(Prev, Init(0, Panel));
     if Prev = nil then
       Exit;
     end;
-  PFilePanel(Owner)^.Drive := Prev;
+  PFilePanel(Panel)^.Drive := Prev;
   Prev^.lChDir(Prev^.CurDir);
+{AK155 Если GetState(sfSelected+sfActive), то и так ActivePanel = Panel
   if  (Prev^.DriveType = dtDisk) and
-      (PView(Owner)^.GetState(sfSelected+sfActive))
+      (PView(Panel)^.GetState(sfSelected+sfActive))
   then
-    ActivePanel := Owner;
+    ActivePanel := Panel;
+/AK155}
   GlobalMessage(evCommand, cmRereadInfo, nil);
   Prev := nil;
   S := GetName(Name^);
@@ -1448,7 +1402,7 @@ procedure TArvidDrive.HandleCommand;
       F := FindList^.At(R.A.Y);
       if F^.TT = ttFile then
         FreeStr := MakeNormName(FreeStr, CnvString(PFindFile(F)^.Name));
-      Message(Owner, evCommand, cmFindGotoFile, @FreeStr);
+      Message(Panel, evCommand, cmFindGotoFile, @FreeStr);
       end;
 
     end { ExecuteFindDialog };
@@ -1534,7 +1488,8 @@ procedure TArvidDrive.GetDirLength(PF: PFileRec);
   SeekDirectory;
   end { TArvidDrive.GetDirLength };
 
-function TArvidDrive.OpenDirectory(const Dir: String): PDrive;
+function TArvidDrive.OpenDirectory(const Dir: String;
+                                         PutDirs: Boolean): PDrive;
   begin
   OpenDirectory := nil;
   end;

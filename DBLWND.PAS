@@ -51,7 +51,8 @@ unit DblWnd;
 interface
 
 uses
-  Lfn, Views, Defines, Streams, Drivers, FlPanel, Tree, FViewer
+  Lfn, Views, Defines, Streams, Drivers, FlPanelX, FlPanel, Tree, FViewer
+  , PDSetup
   ;
 type
   TPanelDescr = record
@@ -104,6 +105,9 @@ type
     NonFilePanel: TPanelNum;
       {`Которая из панелей нефайловая; мусор, если обе файловые `}
     PanelZoomed: Boolean;
+      {` Одна из панелей максимизирована `}
+    SinglePanel: Boolean;
+      {` Была ли панель до максимизации единственной `}
     isValid: Boolean;
     constructor Init(Bounds: TRect; ANumber, ADrive: Integer);
     procedure InitPanel(N: TPanelNum; R: TRect);
@@ -122,6 +126,12 @@ type
       {`скрыть/показать панель`}
     procedure ChangeDrv(N: TPanelNum);
       {`сменить диск с диалогом (Alt-F1/F2)`}
+    procedure SetMaxiState(P: PFilePanelRoot);
+      {` Установить состояние максимизированности активной файловой
+        панели в соответствии с её настройкой `}
+    procedure ToggleViewMaxiState(P: PView; Other: TPanelNum);
+      {` Инвертировать состояние максимизированности активной панели
+        (возможно, нефайловой). Номер другой панели - Other `}
     end;
     {`}
 
@@ -163,12 +173,11 @@ uses
 constructor TDoubleWindow.Init;
   var
     P: PFilePanel;
-    P2: PTopView;
     R: TRect;
     PV: PView;
+    i: TPanelNum;
   begin
   inherited Init(Bounds, '', ANumber);
-  isValid := True;
   Options := Options or ofTileable;
   EventMask := $FFFF;
   Abort := False;
@@ -180,13 +189,13 @@ constructor TDoubleWindow.Init;
   R.Grow(-1, 0);
   R.A.X := R.B.X div 2;
   R.B.X := R.A.X+2;
-  PanelZoomed := False;
   Separator := New(PSeparator, Init(R, Size.X));
   Insert(Separator);
   InitInterior;
-  if Abort then
-    isValid := False;
-  case PanelDefaults.LeftPanel of
+  PassivePanel := Panel[pLeft].FilePanel;
+  if not Abort then
+    isValid := True;
+  case FMSetup.LeftPanelType of
     fdoInfoDrive:
       Message(@Self, evCommand, cmDiskInfo, nil);
     fdoTreeFrive:
@@ -201,7 +210,7 @@ procedure TDoubleWindow.InitPanel(N: TPanelNum; R: TRect);
     PV: PSpecScroll;
     P: PFilePanel;
     P1: PInfoView;
-    P2: PTopView;
+    P2: PDirView;
     PD: PDriveLine;
     B: TRect;
   begin
@@ -224,6 +233,7 @@ procedure TDoubleWindow.InitPanel(N: TPanelNum; R: TRect);
 
   New(P1, Init(R));
   P1^.Panel := P;
+  P1^.CompileShowOptions;
   P^.InfoView := P1;
 
   New(P2, Init(R));
@@ -246,6 +256,7 @@ procedure TDoubleWindow.InitPanel(N: TPanelNum; R: TRect);
     AnyPanel := P;
     FilePanel := PFilePanel(P);
     PanelType := dtPanel;
+    FilePanel.SelfNum := N;
     P^.Select;
     end;
   end { TDoubleWindow.InitPanel };
@@ -324,7 +335,8 @@ constructor TDoubleWindow.Load;
       SizeOf(OldPanelBounds) +
       SizeOf(NonFilePanelType) +
       SizeOf(NonFilePanel) +
-      SizeOf(PanelZoomed);
+      SizeOf(PanelZoomed) +
+      SizeOf(SinglePanel);
   var
     N: TPanelNum;
   begin
@@ -339,7 +351,9 @@ constructor TDoubleWindow.Load;
       if FilePanel = nil then
         Fail;
       AnyPanel := FilePanel;
+      FilePanel.SelfNum := N;
       end;
+  PassivePanel := OtherFilePanel(ActivePanel);
 
   if NonFilePanelType <> 0 then
     GetSubViewPtr(S, Panel[NonFilePanel].AnyPanel);
@@ -364,7 +378,11 @@ constructor TDoubleWindow.Load;
         ReadAfterLoad;
 
     dtInfo:
-      PDiskInfo(Panel[NonFilePanel].AnyPanel)^.ReadData(False);
+      with PDiskInfo(Panel[NonFilePanel].AnyPanel)^ do
+        begin
+        OtherPanel := Panel[not NonFilePanel].FilePanel;
+        ReadData;
+        end;
   end {case};
 
   isValid := True;
@@ -377,7 +395,8 @@ procedure TDoubleWindow.Store;
       SizeOf(OldPanelBounds) +
       SizeOf(NonFilePanelType) +
       SizeOf(NonFilePanel) +
-      SizeOf(PanelZoomed);
+      SizeOf(PanelZoomed) +
+      SizeOf(SinglePanel);
   var
     N: TPanelNum;
   begin
@@ -434,7 +453,8 @@ procedure InsertView(var P: PView; S: PView; Manager: PDoubleWindow);
 
 { Построители нефайловых панелей }
 
-function InsertQView(R1: TRect; Manager: PDoubleWindow): PView;
+function InsertQView(R1: TRect;
+    Manager: PDoubleWindow; Other: PFilePanelRoot): PView;
   var
     S: PViewScroll;
   begin
@@ -444,7 +464,8 @@ function InsertQView(R1: TRect; Manager: PDoubleWindow): PView;
   InsertView(Result, S, Manager);
   end { InsertQView };
 
-function InsertDizView(R1: TRect; Manager: PDoubleWindow): PView;
+function InsertDizView(R1: TRect;
+    Manager: PDoubleWindow; Other: PFilePanelRoot): PView;
   var
     S: PViewScroll;
   begin
@@ -454,7 +475,8 @@ function InsertDizView(R1: TRect; Manager: PDoubleWindow): PView;
   InsertView(Result, S, Manager);
   end { InsertDizView };
 
-function InsertTree(R1: TRect; Manager: PDoubleWindow): PView;
+function InsertTree(R1: TRect;
+    Manager: PDoubleWindow; Other: PFilePanelRoot): PView;
   var
     S: PMyScrollBar;
     P: PView;
@@ -477,30 +499,23 @@ function InsertTree(R1: TRect; Manager: PDoubleWindow): PView;
       Insert(S);
       end;
     end;
-  R1.A.Y := R1.B.Y;
-  Inc(R1.B.Y, 2);
-  P := New(PTreeInfoView, Init(R1, PHTreeView(Result)));
-  PHTreeView(Result)^.Info := P;
-  with Manager do
-    begin
-    Insert(P);
-    Insert(Result);
-    Insert(S);
-    end;
   end { InsertTree };
 
-function InsertInfo(R1: TRect; Manager: PDoubleWindow): PView;
+function InsertInfo(R1: TRect;
+    Manager: PDoubleWindow; Other: PFilePanelRoot): PView;
   begin
-  Result := New(PDiskInfo, Init(R1));
+  Result := New(PDiskInfo, Init(R1, Other));
   Result^.Hide;
   Manager.Insert(Result);
-  PDiskInfo(Result)^.ReadData(False);
+  PDiskInfo(Result)^.InsertDriveView;
+  PDiskInfo(Result)^.ReadData;
   // Это надо делать после Insert
   end { InsertTree };
 
 
 type
-  TPanelConstructor = function(R1: TRect; Manager: PDoubleWindow): PView;
+  TPanelConstructor = function(R1: TRect;
+    Manager: PDoubleWindow; Other: PFilePanelRoot): PView;
 
 { В этот массив кто угодно (плагин, к примеру) может добавить свой
 элемент вместо любого nil, после чего этот новый тип нефайловой панели
@@ -529,6 +544,14 @@ procedure TDoubleWindow.SwitchView(dtType: Byte);
   label Ex;
   begin
   Lock;
+
+  if PanelZoomed then
+    Message(@Self, evCommand, cmMaxi, nil);
+      { При PanelZoomed может потребоваться SwitchView только если
+       максимизированная панель - файловая. То есть это что-то вроде
+       Ctrl-Q при максимизированной панели. Чтобы было где открывать
+       нефайловую панель, максимизацию надо убрать. }
+
   Selected := Panel[pRight].AnyPanel^.GetState(sfSelected);
   N := not Selected;
   VisibleN := Panel[N].AnyPanel^.GetState(sfVisible);
@@ -550,7 +573,7 @@ procedure TDoubleWindow.SwitchView(dtType: Byte);
   if NonFilePanelType <> dtType then
     begin
     NonFilePanelType := 0;
-    V := PanelConstructor[dtType](R1, @self);
+    V := PanelConstructor[dtType](R1, @self, Panel[not N].FilePanel);
     if V = nil then
       goto Ex;
     NonFilePanel := N;
@@ -722,6 +745,51 @@ procedure TDoubleWindow.ChangeDrv(N: TPanelNum);
   UnLock;
   end { TDoubleWindow.ChangeDrv };
 
+procedure TDoubleWindow.SetMaxiState(P: PFilePanelRoot);
+  var
+    Other: TPanelNum;
+  begin
+  if PanelZoomed and (P = PassivePanel) then
+    begin { Попытка максимизировать пассивную панель, когда активная уже
+      максимизирована. В этом случае не максимизируем её, а наоборот,
+      сбрасываем в её настройках флаг максимизации. Выявление этой ситуации
+      делается сравнением с PassivePanel, а не проверкой видимости,
+      так как во время Load панель вполне может быть невидимой. }
+    with P^.PanSetup^.Show do
+      MiscOptions := MiscOptions and not 1;
+    end
+  else if ((P^.PanSetup^.Show.MiscOptions and 1) <> 0) <>
+     PanelZoomed
+  then
+    ToggleViewMaxiState(P, not P^.SelfNum);
+  end;
+
+procedure TDoubleWindow.ToggleViewMaxiState(P: PView; Other: TPanelNum);
+  begin
+  Lock;
+  if not PanelZoomed then
+    begin { Максимизировать }
+    SinglePanel := not Panel[Other].AnyPanel^.GetState(sfVisible);
+    if not SinglePanel then
+      SwitchPanel(Other);
+    GetBounds(OldPanelBounds);
+    ChangeBounds(OldBounds);
+    PanelZoomed := True;
+    end
+  else
+    begin { Убрать максимизацию }
+    if SinglePanel then
+      Hide; {AK155 Почему-то без этого не стираются
+        остатки распахнутой панели }
+    ChangeBounds(OldPanelBounds);
+    Show;
+    PanelZoomed := False;
+    if not SinglePanel then
+      SwitchPanel(Other);
+    end;
+  UnLock;
+  end;
+
 procedure TDoubleWindow.HandleCommand;
   var
     Selected: Boolean;
@@ -746,11 +814,14 @@ procedure TDoubleWindow.HandleCommand;
       S: string;
     begin
     S := '';
-    Message(Panel[N].AnyPanel, evCommand, cmGetName, @S);
-    if not (S[Length(S)] in ['\', '/']) then
-      AddStr(S, '\');
-    S := SquashesName(S);
-    Message(CommandLine, evCommand, cmInsertName, @S);
+    Message(Panel[N].AnyPanel, evCommand, cmGetDirName, @S);
+    if S <> '' then
+      begin
+      if not (S[Length(S)] in ['\', '/']) then
+        AddStr(S, '\');
+      S := SquashesName(S);
+      Message(CommandLine, evCommand, cmInsertName, @S);
+      end;
     CE;
     end;
 
@@ -802,15 +873,16 @@ procedure TDoubleWindow.HandleCommand;
       case Event.KeyCode of
         kbCtrlLeft, kbCtrlRight,
         kbCtrlShiftLeft, kbCtrlShiftRight:
-          if  (FMSetup.Options and fmoCtrlDifference <> 0) then
-            if  (Visible[pLeft] and Visible[pRight]) then
-              begin
-              N := (ShiftState2 and 1 = 0);
-              if (FMSetup.Options and fmoAlternCtrlDiff <> 0) then
-                N := N xor not Selected;
-              Panel[N].AnyPanel^.HandleEvent(Event);
-              Exit;
-              end;
+          if  not QuickSearch and
+              (FMSetup.LRCtrlInDriveLine <> fdlNoDifference) and
+              (Visible[pLeft] and Visible[pRight]) then
+            begin
+            N := (ShiftState2 and 1 = 0);
+            if (FMSetup.LRCtrlInDriveLine = fdlPassive) then
+              N := N xor not Selected;
+            Panel[N].AnyPanel^.HandleEvent(Event);
+            Exit;
+            end;
 
         kbAlt1, kbAlt2, kbAlt3, kbAlt4, kbAlt5, kbAlt0,
         kbAlt6, kbAlt7, kbAlt8, kbAlt9:
@@ -883,13 +955,6 @@ procedure TDoubleWindow.HandleCommand;
             CE;
             SwitchPanel(not Selected);
             end;
-
-        cmGetDirInfo:
-          begin
-          Panel[Selected = (Panel[Selected].PanelType = dtPanel)].
-            AnyPanel^.HandleEvent(Event);
-          ClearEvent(Event);
-          end;
         cmZoom:
           begin
           { Flash 05-02-2004 >>> }
@@ -902,37 +967,33 @@ procedure TDoubleWindow.HandleCommand;
             end;
           { Flash 05-02-2004 <<< }
           end;
-        {Knave 11.09.99 --------------- begin 1}
-        {DataCompBoy}cmMaxi:
+        cmMaxi:
           begin
-          Lock;
           CE;
-          if Visible[pRight] and Visible[pLeft] then
-            begin
-            SwitchPanel(not Selected);
-            GetBounds(OldPanelBounds);
-            ChangeBounds(OldBounds);
-            PanelZoomed := True;
+          if (NonFilePanelType <> 0) and (NonFilePanel = Selected) then
+            begin { работа с нефайловой панелью }
+            ToggleViewMaxiState(Panel[Selected].AnyPanel, not Selected);
             end
-          else if PanelZoomed then
-            begin
-            ChangeBounds(OldPanelBounds);
-            PanelZoomed := False;
-            SwitchPanel(not Selected);
+          else
+            begin { работа с файловой панелью }
+            with ActivePanel^.PanSetup^.Show do
+              MiscOptions := MiscOptions xor 1;
+            SetMaxiState(ActivePanel);
             end;
-          UnLock;
           end;
-        {Knave 11.09.99 --------------- end 1}
         cmGetName:
           begin
           PString(Event.InfoPtr)^:= GetString(dlFileManager);
-          PString(Event.InfoPtr)^:= PString(Event.InfoPtr)^+Cut(
-              {$IFDEF RecodeWhenDraw}CharToOemStr
-                 {$ENDIF}(Panel[pLeft].FilePanel^.DirectoryName),
-                (55-Length(PString(Event.InfoPtr)^)) div 2)+','
-            +Cut( {$IFDEF RecodeWhenDraw}CharToOemStr
-                 {$ENDIF}(Panel[pRight].FilePanel^.DirectoryName),
-                (55-Length(PString(Event.InfoPtr)^)) div 2);
+          K := (55-Length(PString(Event.InfoPtr)^)) div 2;
+          for N := pLeft to pRight do
+            begin
+            S := '??'; // на случай, если окно не обработает cmGetName
+            Message(Panel[N].AnyPanel, evCommand, cmGetName, @S);
+            PString(Event.InfoPtr)^:= PString(Event.InfoPtr)^+
+              Cut({$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(S),K);
+            if N = pLeft then
+              PString(Event.InfoPtr)^:= PString(Event.InfoPtr)^+',';
+            end;
           CE
           end;
         cmPostHideRight, cmPostHideLeft: {Ctrl-F1/F2 из UserScreen}
@@ -945,6 +1006,7 @@ procedure TDoubleWindow.HandleCommand;
             end;
           if Visible[not N] then
             SwitchPanel(not N);
+          CE
           end;
         cmChangeInactive: {в панели поиска Shift-Enter }
           begin
@@ -961,22 +1023,23 @@ procedure TDoubleWindow.HandleCommand;
           Panel[not Selected].FilePanel^.HandleEvent(Event);
         cmDiskInfo:
           begin
-          CE;
-          if not PanelZoomed and isFilePanel then
-            {AK155}
+          if isFilePanel then
             begin
             SwitchView(dtInfo);
             Message(Panel[Selected].AnyPanel, evCommand, cmLViewFile, nil)
             end;
+          CE;
           end;
         {$IFDEF NETINFO}
         cmNetInfo:
-          if not PanelZoomed then
+          begin
+          if isFilePanel then
             begin {-$VIV start}
             SwitchView(dtNetInfo);
-            CE;
             Message(Panel[Selected].AnyPanel, evCommand, cmLViewFile, nil)
             end; {-$VIV end}
+          CE;
+          end;
         {$ENDIF}
         cmLoadViewFile:
           if not PanelZoomed then
@@ -1023,26 +1086,27 @@ procedure TDoubleWindow.HandleCommand;
         cmDirTree:
           begin
           if isFilePanel then
-            {AK155}
             SwitchView(dtTree);
           CE
           end;
         cmQuickView:
-          if isFilePanel and not PanelZoomed then
-            {AK155}
+          begin
+          if isFilePanel then
             begin
             SwitchView(dtQView);
             Message(Panel[Selected].AnyPanel, evCommand, cmLViewFile, nil);
-            CE
             end;
+          CE;
+          end;
         cmDizView:
-          if isFilePanel and not PanelZoomed then
-            {AK155}
+          begin
+          if isFilePanel then
             begin
             SwitchView(dtDizView);
             Message(Panel[Selected].AnyPanel, evCommand, cmLViewFile, nil);
-            CE
             end;
+          CE;
+          end;
         cmSwapPanels:
           if not PanelZoomed then
             begin
@@ -1063,6 +1127,7 @@ procedure TDoubleWindow.HandleCommand;
               Panel[N].AnyPanel^.ChangeBounds(WR[N]);
               if not Visible[not N] then
                 SwitchPanel(N);
+              Panel[N].FilePanel^.SelfNum := N;
               end;
             Redraw;
 //            UnLock;
@@ -1174,3 +1239,5 @@ procedure TSeparator.Draw;
   end { TSeparator.Draw };
 
 end.
+
+

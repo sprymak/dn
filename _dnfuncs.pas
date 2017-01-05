@@ -34,7 +34,6 @@ type
     LngStream: Pointer;
     LStringList: Pointer;
     Resource: PIdxResource;
-    StringCache: Pointer;
     end;
 
   PSomeObjects2 = ^TSomeObjects2;
@@ -303,15 +302,14 @@ type
     ElapsedTime: function (ET: TEventTimer): LongInt;
 
     GetPossibleDizOwner: function (n: Integer): String;
-    GetDizOwner: function (const Path, LastOwner: String; Add: Boolean)
-    : String;
-    CalcDizPath: function (P: PDiz; Owen: PString): String;
-    ReplaceDiz: procedure (const DPath, Name: String; ANewName: PString;
-       ANewDescription: PString);
-    DeleteDiz: procedure (const DPath, Name: String);
-    GetDiz: function (const DPath: String;
-       const Name: String): String;
+    GetDizPath: function (const Path: String; PreferedName: String): String;
+    ExportDiz: procedure (const OldName: Pointer; const NewLongName: String;
+                          var NewDiz: Pointer; TargetPath: String);
+    DeleteDiz: procedure (FR: PFileRec);
+    GetDiz: procedure (FR: PFileRec);
     SetDescription: procedure (PF: PFileRec; DizOwner: String);
+    DizFirstLine: function (DIZ: Pointer): String;
+    OpenFileList: function (const AConatainerPath: String): Boolean;
 
     Reserved12: Integer;
     Reserved13: Integer;
@@ -347,7 +345,7 @@ type
     Reserved14: Integer;
     Reserved15: Integer;
 
-    ExecString: procedure (S: PString; WS: String);
+    ExecString: procedure (const S: AnsiString; const WS: String);
     SearchExt: function (FileRec: PFileRec; var HS: String): Boolean;
     ExecExtFile: function (const ExtFName: String;
        UserParams: PUserParams; SIdx: Integer): Boolean;
@@ -362,7 +360,6 @@ type
     GetFileType: function (const S: String; Attr: Byte): Integer;
     DosReread: procedure (Files: PFilesCollection);
 
-    FnMatch: function (Pattern, Str: String): Boolean;
     SearchFileStr: function (F: PStream; var XLAT: TXlat;
        const What: String; Pos: LongInt;
       CaseSensitive, Display, WholeWords, Back, AllCP, IsRegExp: Boolean)
@@ -672,6 +669,7 @@ type
     Init: function (var Bounds: TRect; const ATitle: String;
        VMT, Obj: Pointer): Pointer;
     Load: function (var S: TStream; VMT, Obj: Pointer): Pointer;
+    Store: procedure (var S: TStream; Obj: Pointer);
     end;
 
   PTInputLine = ^TTInputLine;
@@ -726,6 +724,15 @@ type
     VMT: PMultiCheckBoxesVMT;
     Init: function (var Bounds: TRect; AStrings: PSItem;
        ASelRange: Byte; AFlags: Word; const AStates: String;
+       VMT, Obj: Pointer): Pointer;
+    Load: function (var S: TStream; VMT, Obj: Pointer): Pointer;
+    Store: procedure (var S: TStream; Obj: Pointer);
+    end;
+
+  PTComboBox = ^TTComboBox;
+  TTComboBox = packed record
+    VMT: PComboBoxVMT;
+    Init: function (var Bounds: TRect; AStrings: PSItem;
        VMT, Obj: Pointer): Pointer;
     Load: function (var S: TStream; VMT, Obj: Pointer): Pointer;
     Store: procedure (var S: TStream; Obj: Pointer);
@@ -969,7 +976,7 @@ type
   PTDrive = ^TTDrive;
   TTDrive = packed record
     VMT: PDriveVMT;
-    Init: function (ADrive: Byte; AOwner: Pointer; Num: Byte;
+    Init: function (ADrive: Byte; AOwner: Pointer;
        VMT, Obj: Pointer): Pointer;
     Load: function (var S: TStream; VMT, Obj: Pointer): Pointer;
     end;
@@ -978,7 +985,7 @@ type
   TTFindDrive = packed record
     VMT: PFindDriveVMT;
     Init: function (const AName: String; ADirs: PCollection;
-       AFiles: PFilesCollection; Num: Byte; VMT, Obj: Pointer): Pointer;
+       AFiles: PFilesCollection; VMT, Obj: Pointer): Pointer;
     InitList: function (const AName: String; VMT, Obj: Pointer): Pointer;
     Load: function (var S: TStream; VMT, Obj: Pointer): Pointer;
     NewUpFile: procedure (Obj: Pointer);
@@ -987,7 +994,7 @@ type
   PTTempDrive = ^TTTempDrive;
   TTTempDrive = packed record
     VMT: PTempDriveVMT;
-    Init: function (Num: Byte; VMT, Obj: Pointer): Pointer;
+    Init: function (VMT, Obj: Pointer): Pointer;
     Load: function (var S: TStream; VMT, Obj: Pointer): Pointer;
     end;
 
@@ -1012,7 +1019,7 @@ type
   PTArvidDrive = ^TTArvidDrive;
   TTArvidDrive = packed record
     VMT: PArvidDriveVMT;
-    Init: function (const AName: String; Num: Byte; VMT, Obj: Pointer)
+    Init: function (const AName: String; VMT, Obj: Pointer)
     : Pointer;
     SeekDirectory: procedure (Obj: Pointer);
     end;
@@ -1059,6 +1066,7 @@ var
   _TRadioButtons: ^TTRadioButtons;
   _TCheckBoxes: ^TTCheckBoxes;
   _TMultiCheckBoxes: ^TTMultiCheckBoxes;
+  _TComboBox: ^TTComboBox;
   _TScroller: ^TTScroller;
   _TListViewer: ^TTListViewer;
   _TListBox: ^TTListBox;

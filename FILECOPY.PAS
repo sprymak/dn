@@ -71,8 +71,8 @@ const
   CopyDirName: String = ''; {DataCompBoy}
   RevertBar: Boolean = False; {DataCompBoy}
 
-procedure CopyFiles(Files: PCollection; Owner: PView; MoveMode: Boolean;
-     FromTemp: Byte);
+procedure CopyFiles(Files: PCollection; SourcePanel: PView;
+     MoveMode: Boolean; FromTemp: Byte);
 function SelectDialog(Select: Boolean; var ST: String;
      var XORSelect: Boolean): Boolean;
 procedure BeepAftercopy;
@@ -82,10 +82,27 @@ function CopyDialog(var CopyDir: String; var Mask: String;
     var CopyOpt: Word; var CopyMode: Word;
     var CopyPrn: Boolean; {var Inheread: Byte;}
     MoveMode: Boolean; Files: PCollection;
-    FromTemp: Byte; Owner: PView; Link: Boolean): Boolean;
+    FromTemp: Byte; SourcePanel: PView; Link: Boolean): Boolean;
 
 procedure CopyDirContent(Source, Destination: String;
     MoveMode, Forced: Boolean); {JO}
+const
+  Marked = $4000;
+  Copied = $8000;
+    { AK155 28/11/05.
+       Биты Marked и Copied записывается в Attr файловой записи,
+    если файл (каталог) надо перемещать, и когда он успешно перемещён.
+    Кое-где эти быты пишутся независимо от того, copy или move, но
+    в случае copy они нигде не анализируются.
+    Использовались только в одном месте, для обновления файлов дерева
+    и для перечитывания каталогов. Работа с файлами дерева выброшена.
+       Раньше эти магические константы тихо использовалась прямо
+    в цифровом виде, и смысл этого был совершенно непонятен. Хуже
+    того, $8000 использовалась (flpanel) ещё и для отметки того,
+    что размер каталога известен, что могло приводить к путанице.
+       Теперь для размера каталога бит атрибута не используется,
+    а когда длина неизвестна, просто пишется длина -1, а не 0
+    (см. filescol.pas, TFileRec.Size). }
 
 implementation
 uses
@@ -103,6 +120,7 @@ uses
   , CmdLine
   {$ENDIF}
   , Events {AK155 для LongWorkBegin - LongWorkEnd}
+  , PDSetup
   ;
 
 const
@@ -235,23 +253,27 @@ procedure BeepAftercopy;
   SysBeepEx {PlaySound}(1259, 110);
   end;
 
+procedure PrepareSelectDialog(P: PDialog);
+  var
+    S: String;
+  begin
+  with P^ do
+    begin
+    if DirectLink[1] <> nil then
+      PInputline(DirectLink[1])^.SetValidator(New(PFilterValidator,
+          Init([#32..#255] - ['|', '>', '<'])));
+    end;
+  end;
+
 {-DataCompBoy-}
 function SelectDialog;
   var
-    I: Integer;
     P: record
       S: String;
       XorSel: Boolean;
       end;
     Idx: TDlgIdx;
-    D: PDialog;
-    V, V1: PView;
     R: TRect;
-
-  function FindLine(P: PView): Boolean;
-    begin
-    FindLine := (P <> nil) and (P^.DataSize > 5);
-    end;
 
   begin
   with P do
@@ -264,27 +286,13 @@ function SelectDialog;
       Idx := dlgSelect
     else
       Idx := dlgUnselect;
-    D := PDialog(Application^.ValidView(PDialog(LoadResource(Idx))));
-    if D = nil then
-      Exit;
     S := HistoryStr(hsSelectBox, 0);
     if S = '' then
       S := x_x;
-    V := D^.FirstThat(@FindLine);
-    if V <> nil then
-      PInputline(V)^.SetValidator(New(PFilterValidator,
-          Init([#32..#255]-
-            ['|', '>', '<'])));
-    D^.SetData(S);
-    if Desktop^.ExecView(D) = cmCancel then
-      begin
-      Dispose(D, Done);
-      HistoryAdd(hsSelectBox, S);
+    @PreExecuteDialog := @PrepareSelectDialog;
+    if ExecResource(Idx, P) = cmCancel then
       Exit;
-      end;
     SelectDialog := True;
-    D^.GetData(S);
-    Dispose(D, Done);
     ST := S;
     XORSelect := XorSel;
     end
@@ -494,7 +502,7 @@ function GetPercent(N: TSize): Str12;
   end;
 
 {-DataCompBoy-}
-procedure FilesCopy(Files: PCollection; Owner: PView;
+procedure FilesCopy(Files: PCollection; SourcePanel: PView;
     const CopyDir, Mask: String; CopyMode, CopyOptions: Word;
     CopyPrn, RR: Boolean);
 
@@ -508,6 +516,7 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
     BSize: Word;
     TRead, TWrite,
     ToRead, ToWrite: TSize;
+    CopyStartTime, CopyElapsedTime: LongInt; {John_SW 30-06-2005}
     CopyQueue, Dirs: PCollection;
     Info: PWhileView;
     SoftMode: Boolean;
@@ -682,6 +691,36 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
     DosErrorCode := IOResult;
     end;
 
+{--- start -------- Eugeny Zvyagintzev ---- 30-06-2005 -----}
+   function CopyTime: String;
+     var
+       s1, s2, s3: String;
+       M: Array [1..3] Of Pointer;
+       Speed: TSize;
+       Time: Comp;
+       D: Longint;
+    begin
+    Result := '';
+    if (ToWrite = 0) and (ToRead = 0) then
+      Exit;
+    D := GetCurMSec - CopyStartTime;
+    if D - CopyElapsedTime < 1000 then
+      Exit;
+    CopyElapsedTime := D;
+    s1 := SecToStr((CopyElapsedTime + 500) div 1000);
+    Time := ((2*ToDo-ToRead-ToWrite)*CopyElapsedTime)/(ToRead+ToWrite);
+    s2 := SecToStr(Trunc(Time / 1000));
+
+    Speed := 1000*ToDo/(CopyElapsedTime+Time);
+    if Speed > 1024 then
+      s3 := ZtoS(Speed/1024)+' K'
+    else
+      s3 := ZtoS(Speed)+' ';
+    M[1] := @s1; M[2] := @s2; M[3] := @s3;
+    FormatStr(Result, GetString(dlCopyTimeSpeed), M);
+    end;
+{--- finish -------- Eugeny Zvyagintzev ---- 30-06-2005 -----}
+
   procedure MaxWrite;
     label DoRewrite, DoAppend, 1, 2, lbStartWrite, lbStartCheck, DoNotUse40
       , lRetryToReset;
@@ -837,9 +876,14 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
       WPWas: Boolean;
 
     procedure WriteProgress;
+      var
+        CT: String;
       begin
       Info^.Write(6, StrGrd(P^.Size, Wrote, Info^.Size.X-6, RevertBar));
       Info^.Write(7, WriteCount);
+      CT := CopyTime;
+      if CT <> '' then
+        Info^.Write(9, CT); {John_SW 30-06-2005}
       end;
 
     { **************** }
@@ -849,6 +893,8 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
     var
       NFBigger: Boolean; {John_SW}
       WorkS: String;
+      DirInfo : lSearchRec; {John_SW}
+
     begin { MaxWrite }
     SkipRequested := False;
     I := -1;
@@ -879,10 +925,9 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
           if  (P^.Owner <> nil) then
             begin
             if IOResult = 0 then
-              P^.Owner^.Attr := P^.Owner^.Attr or
-                 $8000;
-            if  (Owner <> nil) then
-              Message(Owner, evCommand, cmCopyUnselect, P^.Owner);
+              P^.Owner^.Attr := P^.Owner^.Attr or Copied;
+            if  (SourcePanel <> nil) then
+              Message(SourcePanel, evCommand, cmCopyUnselect, P^.Owner);
             end;
           Continue;
           end
@@ -924,19 +969,16 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
           FileMode := $42;
 
           if  (CopyOptions and cpoCheckFree <> 0)
-             and (SysDiskSizeLongX(@PathBuffer) < P^.Size)
+             and (SysDiskFreeLongX(@PathBuffer) < P^.Size)
           then
             begin
             {--- start -------- Eugeny Zvyagintzev ---- 29-08-2002 ----}
             {We have to check for existing file's size when not enough free space}
-            NFBigger := True;
-            if ExistFile(CnvString(P^.NewName)) then
-              begin
-              lResetFile(WriteStream, 1);
-              if P^.Size <= FileSize(WriteStream.F) then
-                NFBigger := False;
-              Close(WriteStream.F);
-              end;
+            lFindFirst(CnvString(P^.NewName), AnyFile and not VolumeID, DirInfo);
+            NFBigger := (DosError <> 0) or
+                        (P^.Size > DirInfo.FullSize +
+                                   SysDiskFreeLongX(@PathBuffer));
+            lFindClose(DirInfo);
             if NFBigger then
               begin
               {--- finish -------- Eugeny Zvyagintzev ---- 29-08-2002 ----}
@@ -1352,9 +1394,9 @@ lbStartWrite:
           end {case};
           if  (P^.Owner <> nil) then
             begin
-            P^.Owner^.Attr := P^.Owner^.Attr or $8000;
-            if  (Owner <> nil) then
-              Message(Owner, evCommand, cmCopyUnselect, P^.Owner);
+            P^.Owner^.Attr := P^.Owner^.Attr or Copied;
+            if  (SourcePanel <> nil) then
+              Message(SourcePanel, evCommand, cmCopyUnselect, P^.Owner);
             if  (P^.Owner^.DIZ <> nil) and
                 (CopyOptions and cpoDesc <> 0)
             then
@@ -1376,8 +1418,7 @@ lbStartWrite:
           if CopyOptions and cpoFromTemp <> 0 then
             RemoveFromTemp(P^.Owner);
           if CopyOptions and cpoMove <> 0 then
-            {Есть подозрение, что сюда попасть невозможно.
-            Во всяком случае, по F6 на файле не попадаем. }
+            {move выделенных; по F6 на файле сюда не попадаем. }
             begin
             Info^.Write(6, GetString(dlDeletingSource));
             DeleteDiz(P^.Owner);
@@ -1498,7 +1539,7 @@ lbStartWrite:
         RenameFile;
       if not CopyCancel and (Own <> nil) then
         begin
-        Own^.Attr := Own^.Attr or $8000;
+        Own^.Attr := Own^.Attr or Copied;
         if  (Own^.DIZ <> nil) and
             (CopyOptions and cpoDesc <> 0)
         then
@@ -1520,8 +1561,8 @@ lbStartWrite:
    { Это на случай если стоим как раз на этом имени.
    Чтобы при перечитывании каталога курсор ушёл на новое имя,
    а не остался на старой позиции }
-        if  (Owner <> nil) then
-          Message(Owner, evCommand, cmCopyUnselect, Own);
+        if  (SourcePanel <> nil) then
+          Message(SourcePanel, evCommand, cmCopyUnselect, Own);
         ToWrite := ToWrite+ln;
         ToRead := ToRead+ln;
         end;
@@ -1541,9 +1582,14 @@ lbStartWrite:
       end;
 
     procedure ReadProgress;
+      var
+        CT: String;
       begin
       Info^.Write(2, StrGrd(ln, ReadPos, Info^.Size.X-6, RevertBar));
       Info^.Write(3, ReadCount);
+      CT := CopyTime;
+      if CT <> '' then
+        Info^.Write(9, CT); {John_SW 30-06-2005}
       end;
 
     begin { CopyFile }
@@ -1919,14 +1965,18 @@ FileRead:
       begin
       if P^.CopyIt then
         CopyDirectory(P^.DOld, P^.DNew, P^.Own)
-      else
+      else if P^.Own <> nil then
 {!RLN}        CopyShortString(GetName(P^.DOld), P^.Own^.FlName[True]);
-   { Это на случай если стоим как раз на этом каталоге. Чтобы
+   { Это на случай, если стоим как раз на этом каталоге. Чтобы
    при перечитывании каталога курсор ушёл на новое имя,
-   а не остался на старой позиции }
+   а не остался на старой позиции.
+     А nil бывает, например, на подкаталогах при переименовании
+   объемлющего каталога по F6 при погашенной другой панели.
+   При этом, кстати, P^.OldName^ =  P^.NewName^. }
       end;
 
     begin
+    CopyStartTime := GetCurMSec; CopyElapsedTime := 0; {John_SW 30-06-2005}
     for I := 0 to Files^.Count-1 do
       begin
       P := Files^.At(I);
@@ -2045,8 +2095,6 @@ FileRead:
           CopyCancel := True;
           goto 2;
           end;
-        CreateDirectory(q, False);
-        CreateDirectory(SSS, True);
 
         Info^.Write(2, '');
         Info^.Write(4, '');
@@ -2077,8 +2125,8 @@ FileRead:
         CopyShortString(MakeNormName(GetPath(Source), Name),
            o^.FlName[True]);
 *)
-        if Owner <> nil then
-          Message(Owner, evCommand, cmCopyUnselect, o);
+        if SourcePanel <> nil then
+          Message(SourcePanel, evCommand, cmCopyUnselect, o);
         o^.Attr := o^.Attr or VolumeID;
         KillDescrOf := @o^.FlName;
           { При переименовании каталога описание со старым именем
@@ -2103,8 +2151,6 @@ FileRead:
         CopyCancel := True;
         goto 2;
         end;
-      if not CopyPrn then
-        CreateDirectory(q, False);
 1:
       if CopyPrn then
         begin
@@ -2159,10 +2205,7 @@ FileRead:
         begin
         CheckMkDir(Dest);
         if not Abort then
-          begin
           SetFileAttr(Dest, Attr and not Directory);
-          CreateDirectory(Dest, False);
-          end;
         ClrIO;
         end;
       {/AK155}
@@ -2192,8 +2235,6 @@ FileRead:
           then
             begin
             ToDoCopy := ToDoCopy+SR.FullSize;
-            if BytesPerCluster = 0 then
-              BytesPerCluster := 1;
             if SR.FullSize > 0 then
               begin
               ToDoClusCopyTemp := SR.FullSize/BytesPerCluster;
@@ -2335,8 +2376,6 @@ TryGetInfo:
         then
           begin
           ToDoCopy := ToDoCopy+P^.Size;
-          if BytesPerCluster = 0 then
-            BytesPerCluster := 1;
           if P^.Size > 0 then
             begin
             ToDoClusCopyTemp := P^.Size/BytesPerCluster;
@@ -2358,7 +2397,7 @@ TryGetInfo:
       PD := Dirs^.FirstThat(@NoCheck);
       if PD = nil then
         Break;
-      CopyF(PD^.DNew, PD^.DOld, PD^.CopyIt, PD^.Attr and $3FFF);
+      CopyF(PD^.DNew, PD^.DOld, PD^.CopyIt, PD^.Attr and $3FFF0);
       {JO EAs - dirs }
       {$IFNDEF DPMI32}
       if not CopyPrn then
@@ -2383,21 +2422,13 @@ TryGetInfo:
       procedure MakeMark(P: PFileRec);
         begin
         if  (Copy(P^.Owner^, 1, Length(SSS)) = SSS) then
-          P^.Attr := P^.Attr or $4000;
+          P^.Attr := P^.Attr or Marked;
         end;
 
       begin
-      if  (P^.Attr and $8000 <> 0) then
-        begin
-        if P^.Attr and (Directory+VolumeID) = Directory then
-          begin
-          CreateDirectory(MakeNormName(P^.Owner^, P^.FlName[True]), True);
-          end;
-        end;
-
       {Cat: раньше следующий кусок выполнялся только для успешно скопированных
-      каталогов, т.е. (P^.Attr and $8000 <> 0), а надо бы перечитывать все}
-      if P^.Attr and $4000 = 0 then
+      каталогов, т.е. (P^.Attr and Copied <> 0), а надо бы перечитывать все}
+      if P^.Attr and Marked = 0 then
         begin
         SSS := CnvString(P^.Owner);
         if SSS[Length(SSS)] = '\' then
@@ -2448,8 +2479,11 @@ TryGetInfo:
   label qqqq;
   begin { FilesCopy }
   Strings.StrPCopy(@PathBuffer, CopyDir);
-  {$IFNDEF OS2}
-  CondLfn := not DescrByShortNames;
+  BytesPerCluster := GetBytesPerCluster(@PathBuffer);
+  if BytesPerCluster = 0 then
+    BytesPerCluster := 1;
+  {$IFDEF DualName}
+  CondLfn := (FMSetup.Options and fmoDescrByShortNames) = 0;
   {$ELSE}
   CondLfn := True;
   {$ENDIF}
@@ -2495,7 +2529,7 @@ qqqq:
   ToDo := 0;
   ToDoCopy := 0;
   ToDoClusCopy := 0;
-  R.Assign(0, 0, 40, 13);
+  R.Assign(0,0,60,15); {John_SW 30-06-2005}
   New(Info, Init(R));
   if CopyOptions and cpoMove <> 0 then
     Info^.Top := GetString(dlFCMove)
@@ -2530,7 +2564,7 @@ qqqq:
   Info^.DrawView;
   DrvC := Drv+64;
   if  (CopyOptions and cpoCheckFree <> 0) and (Files^.Count > 1)
-    and (ToDoClusCopy > SysDiskSizeLongX(@PathBuffer))
+    and (ToDoClusCopy > SysDiskFreeLongX(@PathBuffer))
     and (MessageBox(GetString(erNoDiskSpacePre),
         @DrvC, mfYesButton+mfNoButton) <> cmYes)
   then
@@ -2593,20 +2627,18 @@ qqqq:
   SSS := Copy(lFExpand(CopyDir), 1, InhR);
   if  (InhR <> 0) and RR then
     RereadDirectory(SSS);
-  if Owner <> nil then
+  if SourcePanel <> nil then
     begin
     { Nil бывает, например, в случае разархивирования по F4 из панели
     архива. Наверно, просто поставить такое условие - неправильно, а надо
     бы таки добраться до подвала и перерисовать его, но я не сумел
     добраться. 17.01.2005}
-    Message(Owner, evCommand, cmRecountDirs, nil);
-{AK155 10.01.2005 После того, как перерисовка панелей при групповых
+    {AK155 10.01.2005 После того, как перерисовка панелей при групповых
 операциях стала делаться по таймеру, возникла проблема отрисовки
 результатов того, что произошло после последнего тика таймера.
-На панели эта проблема не отражается, так как cmRecountDirs приводит
-к перерисовке панели, но только панели. А в подвале информация о
-выделенных файлах остаётся необновлённой. Поэтому обновляем её явно.}
-    PFilePanelRoot(Owner)^.InfoView^.DrawView;
+}
+    SourcePanel^.DrawView;
+    PFilePanelRoot(SourcePanel)^.InfoView^.DrawView;
     end;
   {$IFDEF OS_DOS}
   if Flush then
@@ -2663,13 +2695,26 @@ function CopyDialog;
         Inc(Fl)
     end;
 
-  {JO}
-  { нужна, чтобы делать недоступными чекбоксы в диалоге копирования }
-  function IsCheckboxes(P: PView): Boolean;
+  procedure PrepareDialog(P: PDialog);
+    var
+      R: TRect;
     begin
-    IsCheckboxes := TypeOf(P^) = TypeOf(TCheckBoxes);
+    with P^ do
+      begin
+      R.Assign(2, 1, Size.X-3, 2);
+      Insert(New(PLabel, Init(R, DialogLabel, DirectLink[1])));
+      {JO}
+      if  (FMSetup.Options and fmoAlwaysCopyDesc = 0) and
+          (SourcePanel <> nil) and
+          (PFilePanelRoot(SourcePanel)^.Drive <> nil) and
+          (PFilePanelRoot(SourcePanel)^.Drive^.DriveType = dtDisk) and
+          (PFilePanelRoot(SourcePanel)^.
+            PanSetup^.Show.ColumnsMask and psShowDescript = 0)
+      then
+        PCheckBoxes(DirectLink[2])^.SetButtonState(cpoDesc, False);
+      {/JO}
+      end;
     end;
-  {/JO}
 
   begin { CopyDialog }
   CopyDialog := False;
@@ -2735,8 +2780,8 @@ function CopyDialog;
   else
     GlobalMessageL(evCommand, cmPushName, hsFileCopyName);
   S4 := '';
-  if Owner <> nil then
-    Message(Owner^.Owner, evCommand, cmPushFirstName, @S4);
+  if SourcePanel <> nil then
+    Message(SourcePanel^.Owner, evCommand, cmPushFirstName, @S4);
   if CopyDirName <> '' then
     S4 := CopyDirName;
   CopyDirName := '';
@@ -2768,15 +2813,11 @@ function CopyDialog;
     else
       C := GetCurDrive;
     {Cat:warn могут быть проблемы с сетевыми путями}
-    if  (SystemData.Drives[C] {$IFNDEF OS_DOS} shl 1 {$ENDIF})
-       and ossVerify <> 0
-    then
+    if  SystemData.Drives[C] and ossVerify <> 0  then
       WW1 := WW1 or cpoVerify
     else
       WW1 := WW1 and not cpoVerify;
-    if  (SystemData.Drives[C] {$IFNDEF OS_DOS} shl 1 {$ENDIF})
-       and ossCheckFreeSpace <> 0
-    then
+    if SystemData.Drives[C] and ossCheckFreeSpace <> 0 then
       WW1 := WW1 or cpoCheckFree
     else
       WW1 := WW1 and not cpoCheckFree;
@@ -2784,33 +2825,11 @@ function CopyDialog;
 
   if not SkipCopyDialog then
     begin {AK155 6-12-2001. Собрал до кучи всю работу с диалогом }
-    D := PDialog(Application^.ValidView(PView(LoadResource(Idx))));
-    if D = nil then
+    @PreExecuteDialog := @PrepareDialog;
+    if ExecResource(Idx, DT) = cmCancel then
       Exit;
-    R.Assign(2, 1, D^.Size.X-1, 2);
-    P1 := New(PLabel, Init(R, DialogLabel, D^.Current));
-    D^.Insert(P1);
-    {JO}
-    if  (FMSetup.Options and fmoAlwaysCopyDesc = 0) and (Owner <> nil) and
-        (PFilePanelRoot(Owner)^.Drive <> nil) and
-        (PFilePanelRoot(Owner)^.Drive^.DriveType = dtDisk) and
-        (PFilePanelRoot(Owner)^.Drive^.Flags and psShowDescript = 0)
-    then
-      begin
-      P2 := D^.FirstThat(@IsCheckboxes);
-      PCheckBoxes(P2)^.SetButtonState(cpoDesc, False);
-      end;
-    {/JO}
-    D^.SetData(DT);
-    if Desktop^.ExecView(D) = cmCancel then
-      begin
-      Dispose(D, Done);
-      Exit
-      end;
-    D^.GetData(DT);
-    Dispose(D, Done);
-    SkipCopyDialog := False;
     end;
+  SkipCopyDialog := False;
 
   {$IFDEF RecodeWhenDraw}
   DT.S3 := OemToCharStr(DT.S3);
@@ -2870,10 +2889,12 @@ AK155. При этом то восстанавливалось зацикливание, то становилось
   ccCopyMode := DT.WW;
   ccCopyOpt := DT.WW1;
 
-  if  (FMSetup.Options and fmoAlwaysCopyDesc = 0) and (Owner <> nil) and
-      (PFilePanelRoot(Owner)^.Drive <> nil) and
-      (PFilePanelRoot(Owner)^.Drive^.DriveType = dtDisk) and
-      (PFilePanelRoot(Owner)^.Drive^.Flags and psShowDescript = 0)
+  if  (FMSetup.Options and fmoAlwaysCopyDesc = 0) and
+      (SourcePanel <> nil) and
+      (PFilePanelRoot(SourcePanel)^.Drive <> nil) and
+      (PFilePanelRoot(SourcePanel)^.Drive^.DriveType = dtDisk) and
+      (PFilePanelRoot(SourcePanel)^.
+        PanSetup^.Show.ColumnsMask and psShowDescript = 0)
   then
     CopyOpt := CopyOpt and not cpoDesc; {JO}
 
@@ -2882,15 +2903,15 @@ AK155. При этом то восстанавливалось зацикливание, то становилось
     Exit;
   if not Link then
     begin
-    if ArchiveFiles(S, Files, MoveMode, Owner) then
+    if ArchiveFiles(S, Files, MoveMode, SourcePanel) then
       Exit;
     {$IFDEF ARVID}
-    if CopyFilesToArvid(S, Files, MoveMode, Owner) then
+    if CopyFilesToArvid(S, Files, MoveMode, SourcePanel) then
       Exit;
     {$ENDIF}
     if UpStrg(Copy(S, 1, PosChar(':', S))) = cTEMP_ then
       begin
-      CopyToTempDrive(Files, Owner, '');
+      CopyToTempDrive(Files, SourcePanel, '');
       Exit;
       end;
     {$IFDEF MODEM}
@@ -2904,7 +2925,7 @@ AK155. При этом то восстанавливалось зацикливание, то становилось
         Mask := ''
         end;
       Delete(CopyDir, 1, 5);
-      CopyToLinkDrive(Files, Owner, CopyDir, Mask);
+      CopyToLinkDrive(Files, SourcePanel, CopyDir, Mask);
       Exit;
       end;
     {$ENDIF}
@@ -2989,7 +3010,7 @@ AK155. При этом то восстанавливалось зацикливание, то становилось
   if  (I <> 0) then
     begin
     CopyMode := cpmOverwrite;
-    CopyDir := Mask;
+    CopyDir := SSS;
     Mask := '';
     CopyPrn := True;
     {$IFDEF OS_DOS}
@@ -3027,7 +3048,7 @@ procedure CopyFiles;
   if Files^.Count <= 0 then
     Exit;
   if not CopyDialog(CopyDir, Mask, CopyOpt, CopyMode, CopyPrn,
-      MoveMode, Files, FromTemp, Owner, False)
+      MoveMode, Files, FromTemp, SourcePanel, False)
   then
     Exit;
   if  (CopyDir[Length(CopyDir)] <> '\') and (CopyDir <> '') then
@@ -3044,7 +3065,8 @@ procedure CopyFiles;
   Inc(SkyEnabled);
   LongWorkBegin;
   NotifySuspend; {Cat}
-  FilesCopy(Files, Owner, CopyDir, Mask, CopyMode, CopyOpt, CopyPrn, True);
+  FilesCopy(Files, SourcePanel, CopyDir, Mask, CopyMode, CopyOpt,
+            CopyPrn, True);
   NotifyResume; {Cat}
   LongWorkEnd;
   Dec(SkyEnabled);

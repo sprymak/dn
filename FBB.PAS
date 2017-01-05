@@ -50,20 +50,13 @@ unit FBB;
 
 interface
 
-uses
-  Dos, Tree
-  ;
-
-function LongCopy(Fn1: String): Boolean; {DataCompBoy}
+procedure LongCopy(Fn1: String);
 
 implementation
 uses
-  VPSysLow,
-  Lfn, {DataCompBoy}
-  Advance, Advance1, Advance2, Advance3, FileCopy, DNApp, Messages, Views,
-  Defines, Dialogs, Commands, Drivers, Memory, FilesCol, RStrings,
-  HistList, Gauge, Startup, DNUtil, xTime, DiskInfo
-  , ErrMess
+  Lfn, Dos, Tree, VPSysLow, Advance, Advance1, Advance2, FileCopy, DNApp,
+  Messages, Views, Defines, Dialogs, Commands, Drivers, Memory, HistList,
+  Gauge, Startup, xTime, ErrMess
   ;
 
 type
@@ -120,15 +113,8 @@ procedure ClearMem;
     FreeMem(Bf[i].Buf, Bf[i].Num);
   NBf := 0;
   end;
-{DataCompBoy
- procedure DskOn;
- begin
-  if dr1<=NumFloppy then DiskOn(dr1);
-  if dr2<=NumFloppy then DiskOn(dr2);
- end;
-}
-{-DataCompBoy-}
-function LongCopy(Fn1: String): Boolean;
+
+procedure LongCopy(Fn1: String);
   label Ex, _Abort_;
   type
     OHdr = record
@@ -143,10 +129,8 @@ function LongCopy(Fn1: String): Boolean;
       end;
 
   const
-    OldStdHdr: OHdr = (Nm: 'Navigator Long Copy '#13#10#26; XT: '   ';
-       ln: 0);
-    NewStdHdr: NHdr = (Nm: 'Navigator NLong Copy'#13#10#26; ln: 0; XT: '');
-    NStr: String[40] = '123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    OldStdHdr : array[1..23] of Char='Navigator Long Copy '#13#10#26;
+    NewStdHdr : array[1..23] of Char='Navigator NLong Copy'#13#10#26;
 
   var
     F1, F2: lFile;
@@ -170,16 +154,20 @@ function LongCopy(Fn1: String): Boolean;
     DiskVerify: Boolean;
     LastPos: LongInt;
     Olddate: LongInt;
-    AlarmTimer: TEventTimer;
     PartSize: LongInt;
     PartWrt: LongInt;
+    CopyDir: String;
+    R: TRect;
+    PP: Pointer;
+    RC: LongInt;
+    csv: Byte;
 
   procedure DsplInfo;
     begin
     PInfo^.Write(5, GetString(dlRead)+
-      Copy(Strg(#219, (LongInt(WL)*Cs) div LS)+Strg(#177, WL), 1, WL));
+      Copy(Strg(#219, (LongInt(WL)*Cs) div (Ls + Byte(Ls=0)))+Strg(#177, WL), 1, WL));
     PInfo^.Write(6, GetString(dlWrite)+
-      Copy(Strg(#219, (LongInt(WL)*CD) div LS)+Strg(#177, WL), 1, WL));
+      Copy(Strg(#219, (LongInt(WL)*CD) div (Ls + Byte(Ls=0)))+Strg(#177, WL), 1, WL));
     end;
 
   procedure MaxRead;
@@ -191,7 +179,6 @@ function LongCopy(Fn1: String): Boolean;
     DsplInfo;
     for i := 1 to NBf do
       begin
-      {DataCompBoy      DskOn;}
       if b then
         BlockRead(F1.F, Bf[i].Buf^, Bf[i].Num, Bf[i].NR)
       else
@@ -202,9 +189,7 @@ function LongCopy(Fn1: String): Boolean;
            mfError+mfOKButton);
         Abort := True;
         NewTimer(Timer, 0);
-        NewTimer(AlarmTimer, 20*1000);
         end;
-      {DataCompBoy      DskOn;}
       DispatchEvents(PInfo, CopyCancelled);
       if Abort or CopyCancelled then
         begin
@@ -240,7 +225,6 @@ function LongCopy(Fn1: String): Boolean;
             (GetString(dlFBBOver1)+SR.FullName+GetString(dlFBBOver2), nil,
           mfQuery+mfYesButton+mfNextDButton+mfCancelButton);
       NewTimer(Timer, 0);
-      NewTimer(AlarmTimer, 20*1000);
       Abort := i = cmCancel;
       if i = cmYes
       then
@@ -253,18 +237,17 @@ function LongCopy(Fn1: String): Boolean;
 
   procedure RequireDisk;
     begin
-    Abort := MessageBox(GetString(dlFBBInsertDisk)+SStr(Count, 2, '0'),
+    Abort := MessageBox(GetString(dlFBBInsertDisk)+Dec2(Count),
          nil,
         mfConfirmation+mfOKButton+mfCancelButton) <> cmOK;
     NewTimer(Timer, 0);
-    NewTimer(AlarmTimer, 20*1000);
     end;
 
   procedure RequireNew;
     label 1;
     begin
     PartWrt := 0;
-    Inc(Count); {DataCompBoy DskOn;}
+    Inc(Count);
 1:
     repeat
       if Count > 1 then
@@ -278,7 +261,7 @@ function LongCopy(Fn1: String): Boolean;
         end;
       lFSplit(Fn2, d, n, X);
       Strings.StrPCopy(@PathBuffer, d);
-      Fn2 := d+n+'.d'+SStr(Count, 2, '0');
+      Fn2 := d+n+'.d'+Dec2(Count);
     until OverWr or Abort or CopyCancelled;
     if Abort or CopyCancelled then
       Exit;
@@ -294,9 +277,7 @@ function LongCopy(Fn1: String): Boolean;
         Abort := True;
         Exit;
         end;
-      {DataCompBoy     DskOn;}
       end;
-    {DataCompBoy   DskOn;}
     CreateDirInheritance(D, False);
     lAssignFile(F2, Fn2);
     PInfo^.Write(3, {$IFDEF RecodeWhenDraw}CharToOemStr {$ENDIF}(Fn2));
@@ -307,13 +288,11 @@ function LongCopy(Fn1: String): Boolean;
         BlockWrite(F2.F, ohd, SizeOf(OHdr))
       else
         BlockWrite(F2.F, nhd, SizeOf(NHdr)-254+Length(nhd.XT));
-    {DataCompBoy   DskOn;}
     if IOResult <> 0 then
       begin
-      i := MessageBox(GetString(dlFBBNoCreate)+SStr(Count, 2, '0'), nil,
+      i := MessageBox(GetString(dlFBBNoCreate)+Dec2(Count), nil,
           mfError+mfOKButton+mfCancelButton);
       NewTimer(Timer, 0);
-      NewTimer(AlarmTimer, 20*1000);
       if i <> cmOK then
         begin
         Abort := True;
@@ -335,7 +314,6 @@ Rep:
     for i := 1 to NBf do
       if Bf[i].NW < Bf[i].NR then
         begin
-        {DataCompBoy      DskOn;}
         wr := LongInt(Bf[i].NR)-LongInt(Bf[i].NW);
 2:
         LastPos := FilePos(F2.F);
@@ -369,7 +347,6 @@ Rep:
           end;
         if Abort then
           goto 33;
-        {DataCompBoy      DskOn;}
         if  (NumW = 0) or ((PartSize <> 0) and (PartWrt = PartSize))
         then
           begin
@@ -405,11 +382,11 @@ Rep:
             end
           else
             begin
-            if TimerExpired(AlarmTimer) and
+            if (ElapsedTime(Timer) > 20*1000) and
                 (FMSetup.Options and fmoBeep <> 0)
             then
               BeepAftercopy;
-            RequireNew;
+            if Cd < Ls then ReQuireNew;
             goto Rep;
             end;
         if Bf[i].NR > Bf[i].NW then
@@ -424,24 +401,17 @@ Rep:
     b := 0;
     FillChar(nhd, SizeOf(NHdr), 0);
     Seek(F1.F, 0);
-    BlockRead(F1.F, nhd, SizeOf(NHdr));
-    if IOResult = 0 then
+    BlockRead(F1.F, nhd, Min(FileSize(F1.F), SizeOf(NHdr)));
+    if ohd.nm=OldStdHdr then
       begin
-      if ohd.Nm = OldStdHdr.Nm then
-        b := 1
-      else if nhd.Nm = NewStdHdr.Nm then
-        b := 2
-      else
-        b := 0;
-      end
-    else
-      b := 0;
-    case b of
-      1:
-        Seek(F1.F, SizeOf(OHdr));
-      2:
-        Seek(F1.F, SizeOf(NHdr)-254+Length(nhd.XT));
-    end {case};
+       b:=1;
+       Seek(F1.f, SizeOf(OHdr));
+      end;
+    if nhd.nm=NewStdHdr then
+      begin
+       b:=2;
+       Seek(F1.f, SizeOf(NHdr) - 254 + Length(nhd.xt));
+      end;
     CheckSvoi := b;
     end { CheckSvoi: };
 
@@ -470,12 +440,11 @@ Rep:
     Dispose(D, Done);
     Fn1 := MakeNormName(S, K+L);
     NewTimer(Timer, 0);
-    NewTimer(AlarmTimer, 20*1000);
     end { RequirePath };
 
   procedure InsCor;
     var
-      s, j: Byte;
+      j: Byte;
     begin
     Inc(Count);
     j := 0;
@@ -491,13 +460,12 @@ Rep:
       Inc(j);
       ClrIO;
       lFSplit(Fn1, D, n, X);
-      Fn1 := D+n+'.d'+SStr(Count, 2, '0');
+      Fn1 := D+n+'.d'+Dec2(Count);
       FileMode := 0;
       lAssignFile(F1, Fn1);
       lResetFile(F1, 1);
       PInfo^.Write(1, {$IFDEF RecodeWhenDraw}CharToOemStr {$ENDIF}(Fn1));
-      s := CheckSvoi;
-    until ((IOResult = 0) and ((s = 1) or (s = 2)))
+    until ((IOResult = 0) and (CheckSvoi <> 0))
      or Abort or CopyCancelled;
     end { InsCor };
 
@@ -512,9 +480,6 @@ Rep:
     if b and (CD < LS) then
       InsCor;
     end;
-
-  var
-    CopyDir: String;
 
   function CopyDialog: Boolean;
     var
@@ -684,23 +649,17 @@ Rep:
     else if NewMode then
       begin
       nhd.XT := S;
-      nhd.Nm := NewStdHdr.Nm;
+      Move(NewStdHdr, nhd.nm, SizeOf(NewStdHdr));
       end
     else
       begin
       Move(S[1], ohd.XT, 3);
-      ohd.Nm := OldStdHdr.Nm;
+      Move(OldStdHdr, ohd.nm, SizeOf(OldStdHdr));
       end;
     end { CopyDialog: };
 
-  var
-    R: TRect;
-    PP: Pointer;
-    RC: LongInt;
-    csv: Byte;
   begin { LongCopy }
   NewTimer(Timer, 0);
-  LongCopy := True;
   Count := 0;
   Tuda := False;
   Abort := False;
@@ -711,7 +670,7 @@ Rep:
   lFSplit(Fn1, d, n, x);
   dr1 := Byte(Fn1[1])-64;
   Cs := 0;
-  Cd := 0; {DataCompBoy DskOn;}
+  Cd := 0;
   FileMode := $40;
   lAssignFile(F1, Fn1);
   ClrIO;
@@ -720,7 +679,6 @@ Rep:
   if RC <> 0 then
     begin
     MessFileNotOpen(Fn1, RC);
-    LongCopy := False;
     Exit;
     end;
   GetFtime(F1.F, Olddate);
@@ -733,7 +691,6 @@ Rep:
     begin
     Close(F1.F);
     Message(Desktop, evCommand, cmSingleCopy, nil);
-    LongCopy := False;
     Exit;
     end;
 
@@ -751,10 +708,7 @@ Rep:
       RequirePath;
       lAssignFile(F1, Fn1);
       if Abort then
-        begin
-        LongCopy := False;
         Exit;
-        end;
       FileMode := 0;
       lResetFile(F1, 1);
       csv := CheckSvoi;
@@ -778,7 +732,6 @@ Rep:
 _Abort_:
     begin
     Close(F1.F);
-    LongCopy := False;
     Exit;
     end;
 
@@ -875,7 +828,7 @@ Ex:
     lEraseFile(F2);
   ClearMem;
   Abort := False;
-  if not DnIni.AutoRefreshPanels then
+  if not Startup.AutoRefreshPanels then
     begin
     GlobalMessage(evCommand, cmPanelReread, @CopyDir);
     {GlobalMessage(evCommand, cmRereadInfo, nil);}

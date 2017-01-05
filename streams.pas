@@ -119,12 +119,17 @@ type
 
   PBufStream = ^TBufStream;
   TBufStream = object(TDOSStream)
+  {`2}
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Buffer: PByteArray;
     BufSize: SW_Word;
-    BufPtr: SW_Word; { Buffer start }
+    BufPtr: SW_Word;
+      {` Индекс в Buffer^ первого необработанного байта, то есть
+      непрочитанного при чтении, не записанного при записи`}
     BufEnd: SW_Word;
-    LastMode: Byte; { Last buffer mode }
+      {` Индекс в Buffer^ первого незаполненного байта `}
+    ModBufStart, ModBufEnd: SW_Word;
+      {` в буфере модифицированы байты с ModBufStart по ModBufEnd-1 `}
     constructor Init(FileName: FNameStr; Mode: Word; Size: SW_Word);
     destructor Done; virtual;
     procedure Flush; virtual;
@@ -135,6 +140,7 @@ type
     procedure DoOpen(OpenMode: Word); virtual;
     procedure Close; virtual;
     end;
+  {`}
 
   PMemoryStream = ^TMemoryStream;
   TMemoryStream = object(TStream)
@@ -1036,6 +1042,7 @@ constructor TBufStream.Init(FileName: FNameStr; Mode: Word; Size: SW_Word);
     GetMem(Buffer, Size);
     if Buffer = nil then
       Error(stInitError, 0);
+    ModBufStart := $FFFF;
     end;
   end;
 
@@ -1053,9 +1060,10 @@ destructor TBufStream.Done;
 procedure TBufStream.Flush;
   var
     Success: Integer;
-    W: SW_Word;
+    W, Len: SW_Word;
+    Pos: LongInt;
   begin
-  if  (LastMode = 2) and (BufPtr <> 0) then
+  if ModBufEnd > ModBufStart then
     begin
     if Handle = -1 then
       Error(stError, 103)
@@ -1066,13 +1074,16 @@ procedure TBufStream.Flush;
     else
       {$ENDIF}
       begin
-      Success := AFileWrite(Handle, Buffer^, BufPtr, W);
-      if  (Success <> 0) or (W <> BufPtr) then
+      Len := ModBufEnd - ModBufStart;
+      Pos := Position;
+      inherited Seek(Position - BufPtr + ModBufStart);
+      Success := AFileWrite(Handle, Buffer^[ModBufStart], Len, W);
+      inherited Seek(Pos);
+      if  (Success <> 0) or (W <> Len) then
         Error(stError, Success);
       end;
+    ModBufStart := $FFFF; ModBufEnd := 0;
     end;
-  BufPtr := 0;
-  BufEnd := 0;
   end { TBufStream.Flush };
 
 procedure TBufStream.Read(var Buf; Count: SW_Word);
@@ -1088,9 +1099,6 @@ procedure TBufStream.Read(var Buf; Count: SW_Word);
     Error(stReadError, 0)
   else
     begin
-    if LastMode = 2 then
-      Flush;
-    LastMode := 1;
     while (Count > 0) and (Status = stOK) do
       begin
       if BufPtr = BufEnd then
@@ -1107,12 +1115,15 @@ procedure TBufStream.Read(var Buf; Count: SW_Word);
           end
         else
           {$ENDIF}
-          Success := AFileRead(Handle, Buffer^, Bw, W);
-        if  (Success <> 0) or (Bw <> W) then
-          Error(stReadError, Success)
-        else
           begin
-          BufPtr := 0;
+          Flush;
+          Success := AFileRead(Handle, Buffer^, Bw, W);
+          end;
+        BufPtr := 0;
+        BufEnd := W;
+        if  (Success <> 0) or (Bw <> W) then
+          begin
+          Error(stReadError, Success);
           BufEnd := W;
           end;
         end;
@@ -1134,11 +1145,24 @@ procedure TBufStream.Read(var Buf; Count: SW_Word);
   end { TBufStream.Read };
 
 procedure TBufStream.Seek(Pos: LongInt);
+  var
+    BufStart: LongInt; // файловый адрес начала буфера
   begin
-  if  (Status = stOK) and (Position <> Pos) then
+  Status := stOK;
+  BufStart := Position-BufPtr;
+  if (Pos >= BufStart) and (Pos < BufStart+BufEnd) then
+    begin { AK155 Установка в пределах буфера без обращения к файлу}
+    BufPtr := Pos - BufStart;
+    Position := Pos;
+    end
+  else
     begin
     Flush;
+    if  (Status <> stOK) then
+      Exit;
     inherited Seek(Pos);
+    BufPtr := 0;
+    BufEnd := 0;
     end;
   end;
 
@@ -1158,18 +1182,14 @@ procedure TBufStream.Write(const Buf; Count: SW_Word);
     Error(stWriteError, 103)
   else
     begin
-    if LastMode = 1 then
-      Flush;
-    LastMode := 2;
     P := @Buf;
     while (Count > 0) and (Status = stOK) do
       begin
       if BufPtr = BufSize then
         begin { Buffer is full }
-        Success := AFileWrite(Handle, Buffer^, BufSize, W);
-        if  (Success <> 0) or (W <> BufSize) then
-          Error(stError, Success);
+        Flush;
         BufPtr := 0;
+        BufEnd := 0;
         end;
       if Status = stOK then
         begin
@@ -1177,12 +1197,18 @@ procedure TBufStream.Write(const Buf; Count: SW_Word);
         if Count < W then
           W := Count;
         Move(P^, Buffer^[BufPtr], W);
+        if BufPtr < ModBufStart then
+          ModBufStart := BufPtr;
         Dec(Count, W);
         Inc(BufPtr, W);
+        if BufPtr > ModBufEnd then
+          ModBufEnd := BufPtr;
         P := Pointer(LongInt(P)+W);
         Inc(Position, W);
         if Position > StreamSize then
           StreamSize := Position;
+        if BufEnd < BufPtr then
+          BufEnd := BufPtr;
         end;
       end;
     end;

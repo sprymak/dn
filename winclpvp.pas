@@ -240,28 +240,27 @@ function GetWinClip(var PCL: PLineCollection {; NeedStream: boolean})
   {/Cat}
 
   begin { GetWinClip }
+  GetWinClip := False;
   {$IFDEF OS2}
   if not DN_XClipCanPaste then
   {$ELSE}
   if not SysClipCanPaste then
     {$ENDIF}
-    begin
-    GetWinClip := False;
     Exit;
-    end
-  else
-    GetWinClip := True;
+  {$IFDEF OS2}
+  Buf := DN_XClipPaste(Size);
+  {$ELSE}
+  Buf := SysClipPaste(Size);
+  {$ENDIF}
+  if Buf = nil then
+    Exit;
+  GetWinClip := True;
 
   if PCL <> nil then
     PCL^.FreeAll
   else
     New(PCL, Init($10, $10, True));
 
-  {$IFDEF OS2}
-  Buf := DN_XClipPaste(Size);
-  {$ELSE}
-  Buf := SysClipPaste(Size);
-  {$ENDIF}
   Start := Buf;
   Stop := Start;
 

@@ -53,7 +53,7 @@ uses
   ;
 
 const
-  VersionName: String = '2.07alpha';
+  VersionName: String = '2.08devel';
   VersionDate: String = '';
   VersionWord: AWord = 15198;
 

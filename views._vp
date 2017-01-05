@@ -55,7 +55,7 @@ procedure ShowBuffer(BufOfs, Len: Word);
                 mov     esi,ScreenBuffer
                 add     esi,BufOfs                // Pointer to screen
                 mov     edx,esi
-                mov     edi,OFFSET ScreenMirror
+                mov     edi,[ScreenMirror]
                 add     edi,BufOfs                // Pointer to mirror
                 mov     ecx,Len                   // Length of required update
                 mov     eax,ecx
@@ -728,4 +728,4 @@ end;
               @@2:
 end;
 
-                
+

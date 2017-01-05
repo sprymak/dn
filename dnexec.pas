@@ -55,8 +55,10 @@ uses
   {$IFDEF OS2}, Dn2PmApi {$ENDIF} {AK155 для перерисовки иконки}
   ;
 
-procedure ExecString(S: PString; WS: String);
-procedure ExecStringRR(S: PString; WS: String; RR: Boolean); {JO}
+procedure ExecString(const S: AnsiString; const WS: String);
+  {` Выполнить строку S^ через командный процессор. WS, если она
+  не пуста, выводится на экран перед вызовом ком. процессора `}
+procedure ExecStringRR(S: AnsiString; const WS: String; RR: Boolean); {JO}
 {JO:  отличается от ExecString наличием булевской переменной RR, которая}
 {     указывает, перечитывать панель после выполнения или нет           }
 
@@ -82,11 +84,11 @@ uses
   {$ENDIF}
   DNUtil, Advance, DNApp, Advance1, Lfn,
   Dos, Advance3, FlPanelX, CmdLine, Views, Advance2, Drivers, Advance4,
-  VideoMan, Memory, VpSysLow, VPSysLo2,
+  VideoMan, Memory, VpSysLow, VPSysLo2, Events,
   {$IFDEF UserSaver}
   UserSavr,
   {$ENDIF}
-  Messages, Strings
+  Messages, Strings, filetype
   ;
 
 {$IFDEF OS_DOS}
@@ -142,7 +144,7 @@ Path, так как это трудно сделать не криво. Например, если запускается
 }
 {Результат - код подсистемы для Win32 PE, или 100 для Win16 NE,
  или 0 для прочих }
-function Win32Program(S: PString): SmallWord;
+function Win32Program(const S: String): SmallWord;
   const
     PETag = $00004550; {'PE'#0#0}
     NETag = $454E; {'NE'}
@@ -166,7 +168,7 @@ function Win32Program(S: PString): SmallWord;
     l: LongInt;
   begin { Win32Program }
   Result := 0;
-  RealName := S^;
+  RealName := S;
   if  (RealName[1] = '"') and ((RealName[Length(RealName)] = '"')) then
     RealName := Copy(RealName, 2, Length(RealName)-2);
   DelRight(RealName);
@@ -181,7 +183,7 @@ function Win32Program(S: PString): SmallWord;
   if  (IOResult <> 0) and (Dir = '') then
     begin
     PathEnv := GetEnv('PATH');
-    RealName := FSearch(S^, PathEnv);
+    RealName := FSearch(S, PathEnv);
     if RealName = '' then
       Exit;
     Assign(f, RealName);
@@ -211,7 +213,7 @@ function Win32Program(S: PString): SmallWord;
   end { Win32Program };
 
 {$IFDEF Win32}
-function GUIProgram(S: PString): Boolean;
+function GUIProgram(const S: String): Boolean;
   begin
   Result := Win32Program(S) in [2 {IMAGE_SUBSYSTEM_WINDOWS_GUI}, 100];
   end;
@@ -228,13 +230,11 @@ function GUIProgram(S: PString): Boolean;
 переменной окружения Path). Конечно, нет гарантии, что это будет всегда
 работать правильно, но вряд ли вручную это удастся сделать лучше.
 }
-function GUIProgram(S: PString): Boolean;
+function GUIProgram(SS: String): Boolean;
   var
-    SS: String;
     Flags: LongInt;
     l: Integer;
   begin
-  SS := S^;
   l := 0;
   while SS[1+l] = '"' do
     Inc(l);
@@ -267,7 +267,7 @@ function GUIProgram(S: PString): Boolean;
 {$ENDIF}
 
 {-DataCompBoy-}
-procedure ExecStringRR(S: PString; WS: String; RR: Boolean);
+procedure ExecStringRR(S: AnsiString; const WS: String; RR: Boolean); {JO}
   var
     I: Integer;
     EV: TEvent;
@@ -283,35 +283,35 @@ procedure ExecStringRR(S: PString; WS: String; RR: Boolean);
   {$IFDEF OS_DOS}asm cld; mov eax,3; int $10; end; {$ENDIF}
   SwapVectors;
   if TimerMark then
-    DDTimer := Get100s
+    DDTimer := GetCurMSec
   else
     DDTimer := 0;
   if WS <> '' then
     Writeln(WS);
-  SetTitle(S^);
+  SetTitle(S);
   fExec := True;
   {$IFNDEF DPMI32}
   if GUIProgram(S) then
     {$IFDEF OS2}
-    S^:= 'start /PGM '+S^
+    S := 'start /PGM '+ S
   else
     case Win32Program(S) of
       2 {IMAGE_SUBSYSTEM_WINDOWS_GUI}:
-        S^:= ExecWin32GUI+' '+S^;
+        S := ExecWin32GUI+' ' + S;
       3 {IMAGE_SUBSYSTEM_WINDOWS_CUI}:
-        S^:= ExecWin32CUI+' '+S^;
+        S := ExecWin32CUI+' ' + S;
     end {case};
     {$ELSE}
     begin
     if opSys = opWNT then
-      S^:= 'start "" '+S^
+      S := 'start "" ' + S
     else
-      S^:= 'start '+S^
+      S := 'start ' + S
     end
     {$ENDIF}
     ;
   {$ENDIF}
-  AnsiExec(GetEnv('COMSPEC'), '/c '+S^);
+  AnsiExec(GetEnv('COMSPEC'), '/c ' + S);
   fExec := False;
   {AK155, Cat: чтобы комстрока и меню не налазили на вывод}
   SysGetCurPos(X, Y);
@@ -325,7 +325,7 @@ procedure ExecStringRR(S: PString; WS: String; RR: Boolean);
   {/AK155, Cat}
   if TimerMark then
     begin
-    DDTimer := Get100s-DDTimer;
+    DDTimer := GetCurMSec - DDTimer;
     EV.What := evCommand;
     EV.Command := cmShowTimeInfo;
     EV.InfoPtr := nil;
@@ -367,7 +367,7 @@ procedure ExecStringRR(S: PString; WS: String; RR: Boolean);
 {-DataCompBoy-}
 
 {JO}
-procedure ExecString(S: PString; WS: String);
+procedure ExecString(const S: AnsiString; const WS: String);
   begin
   ExecStringRR(S, WS, True);
   end;
@@ -385,14 +385,12 @@ function SearchExt(FileRec: PFileRec; var HS: String): Boolean;
     Local: Boolean;
     FName: String;
     UserParam: tUserParams;
-    D: TMaskData;
     {$IFDEF OS2}
     WriteEcho: Boolean;
     {$ENDIF}
   label RL;
 
   begin
-  FillChar(D, SizeOf(D), 0);
   First := True;
   Message(Desktop, evBroadcast, cmGetUserParams, @UserParam);
   UserParam.Active := FileRec;
@@ -438,9 +436,7 @@ RL:
       DelRight(s1);
       if s1[1] <> ';' then
         begin
-        D.Filter := s1;
-        MakeTMaskData(D);
-        if InExtFilter(FName, D) then
+        if InExtFilter(FName, s1) then
           begin
           lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$'+CmdExt);
           ClrIO;
@@ -448,7 +444,6 @@ RL:
           if IOResult <> 0 then
             begin
             Dispose(f, Done);
-            FreeTMaskData(D); {Cat}
             Exit;
             end;
           {$IFNDEF OS2}
@@ -519,7 +514,6 @@ RL:
     end;
   Dispose(f, Done);
   {D.Filter:=''; MakeTMaskData(D);}
-  FreeTMaskData(D); {Cat}
   if not EF and not Abort and Local then
     goto RL;
   if EF and (BgCh = '[') then
@@ -531,7 +525,6 @@ RL:
       lEraseText(F1);
     end;
   SearchExt := not Abort and EF;
-  FreeTMaskData(D); {Cat}
   end { SearchExt };
 {-DataCompBoy-}
 
@@ -541,23 +534,18 @@ function ExecExtFile(const ExtFName: String; UserParams: PUserParams;
   var
     F: PTextReader;
     S, S1: String;
-    FName, LFN: String;
+    FName: String;
     Event: TEvent;
     I, J: Integer;
     Success, CD: Boolean;
     Local: Boolean;
-    D: TMaskData;
   label 1, 1111, RepeatLocal;
 
   begin
-  FillChar(D, SizeOf(D), 0);
   ExecExtFile := False;
   FileMode := $40;
   Local := True;
-  LFN := UserParams^.Active^.FlName[True];
-  if CharCount('.', LFN) = 0 then
-    LFN := LFN+'.';
-  FName := UserParams^.Active^.FlName[True xor InvLFN];
+  FName := UserParams^.Active^.FlName[True];
 
   F := New(PTextReader, Init(ExtFName));
 
@@ -576,42 +564,39 @@ RepeatLocal:
     S1 := fDelLeft(Copy(S, 1, pred(PosChar(':', S))));
     if  (S1 = '') or (S1[1] = ';') then
       Continue;
-    D.Filter := S1;
-    MakeTMaskData(D);
-    if InExtFilter(FName, D) or InExtFilter(LFN, D) then
+    if InExtFilter(FName, S1) then
       goto 1111;
     end;
   ExecExtFile := False;
   Dispose(F, Done);
   {D.Filter := ''; MakeTMaskData(D);}
-  FreeTMaskData(D); {Cat}
   if Local then
     goto RepeatLocal;
-  FreeTMaskData(D); {Cat}
   Exit;
 1111:
   Delete(S, 1, Succ(Length(S1)));
   Dispose(F, Done);
+{$IFDEF OS_DOS} {AK155 27/08/05 Поскольку DN/2 не завершается при выполнении
+  внешней команды, то и незачем проверять Valid(cmQuit) }
   if not Application^.Valid(cmQuit) then
     begin
-    FreeTMaskData(D); {Cat}
     Exit;
     end;
+{$ENDIF}
   ClrIO;
   S1 := '';
   S := MakeString(S, UserParams, False, @S1);
   if S1 <> ''
   then
-    TempFile := '!'+S1+'|'+MakeNormName(UserParams^.Active^.Owner^, LFN)
+    TempFile := '!'+S1+'|'+MakeNormName(UserParams^.Active^.Owner^, FName)
   else if TempFile <> ''
   then
-    TempFile := MakeNormName(UserParams^.Active^.Owner^, LFN);
+    TempFile := MakeNormName(UserParams^.Active^.Owner^, FName);
   {if TempFile <> '' then SaveDsk;}
   TempFileSWP := TempFile;
   TempFile := '';
   if Abort then
     begin
-    FreeTMaskData(D); {Cat}
     Exit;
     end;
   if S[1] = '*' then
@@ -636,11 +621,10 @@ RepeatLocal:
     end;
   {$ENDIF}
   ExecExtFile := True;
-  Message(Desktop, evBroadcast, cmGetCurrentPosFiles, nil);
   {$IFDEF UserSaver}
   InsertUserSaver(False); {JO}
   {$ENDIF}
-  ExecString(@S, '');
+  ExecString(S, '');
   if TempFileSWP <> '' then
     Message(Application, evCommand, cmRetrieveSwp, nil);
   end { ExecExtFile };
@@ -649,11 +633,7 @@ RepeatLocal:
 {-DataCompBoy-}
 procedure ExecFile(const FileName: String);
   var
-    S,
-    {$IFNDEF OS2}
-    L,
-    {$ENDIF}
-    M: String;
+    S, M: String;
     fr: PFileRec;
 
   procedure PutHistory(B: Boolean);
@@ -692,25 +672,21 @@ procedure ExecFile(const FileName: String);
     CommandLine^.SetData(S);
     {/AK155}
     if B then
-      ExecString(@M, #13#10+ {$IFDEF RecodeWhenDraw}CharToOemStr
+      ExecString(M, #13#10+ {$IFDEF RecodeWhenDraw}CharToOemStr
            {$ENDIF}(ActiveDir)+'>'+ {$IFDEF RecodeWhenDraw}CharToOemStr
         {$ENDIF}(M))
     else
-      ExecString(@M, '');
+      ExecString(M, '');
     end { RunCommand };
 
   label ex;
   begin { ExecFile }
   fr := CreateFileRec(FileName);
   S := fr^.FlName[True];
-  {$IFNDEF OS2}
-  L := S;
-  {$ENDIF}
   FreeStr := '';
   M := '';
   if  (ShiftState and (3 or kbAltShift) <> 0) or
-      (not InExtFilter(S, Executables)
-      {$IFNDEF OS2} and not InExtFilter(L, Executables) {$ENDIF})
+      not InExtFilter(S, Executables)
   then
     begin
     if SearchExt(fr, M) then
@@ -727,14 +703,10 @@ procedure ExecFile(const FileName: String);
   {$IFNDEF Win32}
   M := S;
   {$ELSE}
-  M := {$IFDEF RecodeWhenDraw}CharToOemStr {$ENDIF}(L);
+  M := {$IFDEF RecodeWhenDraw}CharToOemStr {$ENDIF}(S);
   {$ENDIF}
   PutHistory(False);
-  {$IFNDEF Win32}
   M := S;
-  {$ELSE}
-  M := L;
-  {$ENDIF}
 
   if Pos(' ', M) <> 0 then
     {AK155}

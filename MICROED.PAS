@@ -142,9 +142,6 @@ type
     BlockVisible, SpecChar, MouseMark, UnMark,
     LineMarking, OptimalFill, RulerVisible, EnableMarking,
     TabReplace,
-    Replace,
-     {` Текущая операция поиска/замены - замена. Действительна только
-       во время поиска/замены`}
     SearchActive: Boolean;
     PrevSearchDir: byte;
       {`Эта переменная принимается во внимание
@@ -261,7 +258,7 @@ type
       Признаком поиска, а не замены является What = #0`}
     end;
   {`}
-  
+
   {Cat: параметры поиска (TSearchData.Options)}
   {необходимо согласовывать с константой SwapBits в модуле Editor}
 const
@@ -1713,11 +1710,11 @@ function TFileEditor.Search;
             ( (StX-1+I+Length(W) > Length(S1)) or (S1[StX-1+I+Length(W)]
                in BreakChars)))
       then
-        begin
+        begin { старт для следующего поиска базируем на найденном тексте:}
         if Dir > 0 then
-          D.X := StX+I
+          D.X := StX+I-1 { на 1 правее первого символа }
         else
-          D.X := StX+I-1;
+          D.X := StX+I+Length(W)-3; { на 1 левее последнего символа }
         goto 1;
         end;
 
@@ -1845,7 +1842,16 @@ function TFileEditor.Search;
       else
         begin
         Mark := OldMark;
-        LastPos.X := -1;
+//AK155        LastPos.X := -1;
+  {Наличие этого оператора приводит к следующему глюку: если сразу после
+поиска вперёд делать выделение, то в качестве начала выделения
+берётся не то, что надо (положение курсора), и не то, что можно было бы
+понять (начало подсвеченного текста), а нечто удивительное: начало строки.
+    Для сравнения: если нажать Ctrl-Ins сразу после поиска, то в буфер
+берётся ничего. И это правильно.
+    Для чего ещё нужен этот оператор, кроме генерации описанного глюка,
+я понять не смог. 20.05.2005.
+}
         goto _LExit;
         end;
       end;
@@ -1886,6 +1892,7 @@ LExit:
 _LExit:
   SearchActive := False;
   LongWorkEnd;
+  LastPos := Delta;
   end { TFileEditor.Search };
 {/Cat}
 
@@ -1997,6 +2004,16 @@ procedure TFileEditor.InsertBlock;
           Inc(MarkPos[L].Y, J);
     end;
   SetLimits;
+  {AK155 2005-10-07 Для вертикального блока курсор
+остаётся, где был (как и раньше), а для потокового блока
+переносим курсор после вставленного блока (это новое поведение,
+такое, как в большинстве редакторов). }
+  if not VertBlock then
+    begin
+    Delta := Mark.B;
+    ScrollTo(Delta.X, Delta.Y);
+    end;
+   {/AK155}
   if GetState(sfVisible) then
     DrawView;
   end { TFileEditor.InsertBlock };
@@ -3954,15 +3971,48 @@ Ex:
   var
     PC: PCollection;
     R: TRect;
+    UEditName, UEditPath: String;
+    GlobalConfigEdit: Boolean;
+
+  const { AK155 11-01-2006 Текстовые конфиги, к которым по F1 вызывается
+     специальный хелп. Значения FName надо записывать на верхнем регистре,
+     программа берёт их "как есть", без дополнительного перевода регистра.
+      } {<Microed.001>}
+    SpecialFile: array[1..6] of record
+      FName: string[13];
+      hcLocal, hcGlobal: Word;
+      end = (
+        (FName: 'DN.MNU'; hcLocal: hcLUserMenu; hcGlobal: hcGUserMenu)
+      , (FName: 'DN.EXT'; hcLocal: hcExtFile; hcGlobal: hcExtFile)
+      , (FName: 'DN.VWR'; hcLocal: 0; hcGlobal: hcViewFile)
+      , (FName: 'DNALT.WVR'; hcLocal: 0; hcGlobal: hcViewFile)
+      , (FName: 'DN.EDT'; hcLocal: 0; hcGlobal: hcViewFile)
+      , (FName: 'DN.XRN'; hcLocal: 0; hcGlobal: hcQuickRun)
+      );
 
   begin { TFileEditor.HandleEvent }
   if  (Event.What = evCommand) and (Event.Command = cmHelp2) then
     begin
-    {Cat:warn почему закомментировали?} {<Microed.001>}
-    { if UpStrg(EditName)=UpStrg(SourceDir+'dn.ini')
-   then HelpCtx:=hcDNIni
-   else}HelpCtx := hcEditor;
+    { Возможное изменение контекста хелпа по имени редактируемого файла }
     Event.Command := cmHelp;
+    UEditName := UpStrg(EditName);
+    UEditPath := GetPath(UEditName);
+    GlobalConfigEdit := UEditPath = Upstrg(SourceDir);
+    System.Delete(UEditName, 1, Length(UEditPath));
+    for i := 1 to High(SpecialFile) do
+      begin
+      with SpecialFile[i] do
+        if UEditName = FName then
+          begin
+          if GlobalConfigEdit then
+            HelpCtx := hcGlobal
+          else if hcLocal <> 0 then
+            HelpCtx := hcLocal;
+          Break;
+          end;
+      end;
+    {/AK155}
+
     Application^.HandleEvent(Event);
     HelpCtx := hcEditor;
     ClearEvent(Event);
@@ -4717,8 +4767,8 @@ Ex:
         {/AK155}
         else {case}
           if  (Event.KeyCode <> kbCtrlAltX) then
-            if  (Event.KeyCode = kbCtrlU) then
-              WordEnd
+            if  (Event.KeyCode and $CFFFF) = kbCtrlU then
+              WordEnd // Ctrl-U или Shift-Ctrl-U
             else {-$VIV}
               begin
               if DrawMode > 0 then

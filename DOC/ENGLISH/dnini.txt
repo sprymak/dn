@@ -86,17 +86,6 @@
                               choice window (Alt-F1/Alt-F2) will be shortened
                               (default: 1)
 
- LFNinBottom = bool         - When set to 1, in Win32 version the long file
-                              name will be always shown in the bottom of file
-                              panel. When set to 0, the name of different kind
-                              will be shown in the bottom of file panel as
-                              compared with names shown in file panel (i.e.
-                              if long file name is shown in panel, then
-                              short file name will be shown in botton of
-                              panel, and vice versa).
-                              In OS/2 version does not affect anything.
-                              (default: 0)
-
 ==============================================================================
 
  [Clock]
@@ -297,28 +286,6 @@
                               (0) case
                               (default: 0)
 
-
-AutoRefreshDriveLine = bool - When set to 1, then drives bar in file panel
-                              bottom will be refreshed automatically after
-                              each 3 seconds. Useful for those, who mounts
-                              drives very often.
-                              (default: 0)
-
-AutoRefreshPanels = bool    - When set to 1, then file system changes will be
-                              tracked and file panels will be automatically
-                              refreshed.
-                              Note: work in OS/2 version is not guaranteed.
-                              (default: 1 for Win32, 0 for OS/2)
-
-
-QuickSearchType = bool      - When set to 0, then the "new" method of quick
-                              file search in panel will be used (i.e. the dot
-                              will be treated as usual symbol), when set to 1
-                              - "old" one (i.e. pressing dot will be treated
-                              as changing to name extension search). The "old"
-                              method is not completely correct for long file
-                              names, but could be konvenient for somebody ;)
-                              (default: 0)
 
 ==============================================================================
 

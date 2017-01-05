@@ -70,7 +70,7 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
     DT: DateTime;
     I, J: Integer;
     Drv: PArcDrive;
-  label 1, 2;
+  label 1, 2, 3;
   begin
   S := TempFile;
   ID := Copy(S, 1, 4);
@@ -80,7 +80,7 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
   SetLength(S, I-1);
   ClrIO;
   TempFile := '';
-  if  (Pos(ID, 'UC2:AIN:')+3) mod 4 = 0 then
+  if (Pos(ID, 'UC2:AIN:7Z!:')+3) mod 4 = 0 then
     begin
     if ID = 'UC2:' then
       begin
@@ -194,7 +194,7 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
           end;
         end;
 1:
-      ID := 'UC2:';
+      ID := '';
       end;
     if ID = 'AIN:' then
       begin
@@ -243,12 +243,8 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
         DelLeft(S);
         DT.Month := StoI(Copy(S, 1, 2));
         DT.Day := StoI(Copy(S, 4, 2));
-        I := StoI('19'+fDelRight(Copy(S, 7, 3)));
-        if I < 1980 then
-          I := I+100;
-        DT.Year := I;
-        I := PosChar(' ', S);
-        Delete(S, 1, I);
+        DT.Year := 1900 + StoI(fDelRight(Copy(S,7,3)));
+        Delete(S, 1, 10);
         DelLeft(S);
         DT.Hour := StoI(Copy(S, 1, 2));
         DT.Min := StoI(Copy(S, 4, 2));
@@ -261,7 +257,45 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
         J := J-1;
         end;
 2:
-      ID := 'AIN:';
+      ID := '';
+      end;
+    if ID = '7Z!:' then
+      begin {piwamoto}
+        F := New(PTextReader, Init(S));
+        if F = nil then Exit;
+        P := nil;
+        New(PC, Init);
+        Repeat
+         S := F^.GetStr;
+        Until (S[1] = '-') or (F^.EOF);
+        if F^.EOF then Goto 3;
+        repeat
+         S := F^.GetStr;
+         if (S[1] = '-') or (Length(S) < 54) then Goto 3;
+         New(P);
+         DT.Year := StoI(Copy(S,1,4));
+         DT.Month := StoI(Copy(S,6,2));
+         DT.Day := StoI(Copy(S,9,2));
+         DT.Hour := StoI(Copy(S,12,2));
+         DT.Min := StoI(Copy(S,15,2));
+         DT.Sec := StoI(Copy(S,18,2));
+         PackTime(DT, P^.Date);
+         P^.USize := StoI(fDelLeft(Copy(S,27,12)));
+         P^.PSize := StoI(fDelLeft(Copy(S,40,12)));
+         if S[21] = 'D' {directory}
+           then begin
+            P^.Attr := Directory;
+            S := S + '\';
+           end
+           else P^.Attr := 0;
+         P^.FName := NewStr('\'+fDelRight(Copy(S, 54, 255)));
+         PC^.AddFile(P^.FName^, P^.USize, P^.PSize, P^.Date, P^.Attr);
+         DisposeStr(P^.FName);
+         Dispose(P);
+         P:=nil;
+        until F^.EOF;
+      3:
+      ID := '';
       end;
     {next archive}
 

@@ -59,6 +59,7 @@ uses
   Lfn, {DataCompBoy}DnIni, Collect, Defines, Streams, Drivers, Views,
    Advance6,
   Scroller, Validate, U_KeyMap
+  , Menus
   ;
 
 const
@@ -67,13 +68,13 @@ const
 
   CGrayDialog = #32#33#34#35#36#37#38#39#40#41#42#43#44#45#46#47+
   #48#49#50#51#52#53#54#55#56#57#58#59#60#61#62#63+
-  #178#179;
+  #178#179#128#129;
   CRedDialog = #32#214#214#35#36#215#38#39#40#216#216#217#218#219#220#47+
   #48#49#50#51#52#53#54#55#56#57#58#59#60#61#62#63+
-  #221#219;
+  #221#219#128#129;
   CCyanDialog = #96#97#98#99#100#101#102#103#104#105#106#107#108+
   #109#110#111#112#113#114#115#116#117#118#119#120+
-  #121#122#123#124#125#126#127;
+  #121#122#123#124#125#126#127#126#127#128#129;
 
   CDialog = CGrayDialog;
 
@@ -85,6 +86,7 @@ const
   CHistory = #22#23;
   CHistoryWindow = #19#19#21#24#25#19#20;
   CHistoryViewer = #6#6#7#6#6;
+  CComboBox = #35#36;
 
   { TDialog palette entires }
 
@@ -152,8 +154,15 @@ type
   PDialog = ^TDialog;
   TDialog = object(TWindow)
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
+    DirectLink: array [1..9] of PView;
+      {` Прямые ссылки на вставленные в диалог объекты. Используются
+      для диалогов, загруженных из ресурсов. Заполняются на основе меток
+      прямых ссылок в ресурсах (скажем, #3 в начале строки исходника
+      ресурса диалога даёт возможность ссылаться на соответствующий
+      объект через DirectLink[3].). См. rcp, CompileDialog `}
     constructor Init(var Bounds: TRect; const ATitle: TTitleStr);
     constructor Load(var S: TStream);
+    procedure Store(var S: TStream);
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     function Valid(Command: Word): Boolean; virtual;
@@ -531,6 +540,33 @@ type
     procedure Store(var S: TStream);
     end;
 
+  PComboBox = ^TComboBox;
+  {`2 Комбобкс с выбором только из списка, без возможности редактирования.
+        Допускается до 10 вариантов. Они соответствуют командам
+    1601..1610 строго согласно позиции в выпадающем меню.
+        Способа задизейблить некоторые из этих команд пока нет. Если
+    понадобится - надо будет разбираться с UpdateMenu в модуле Menus.
+    Можно попробовать виртуализировать TView.MenuEnabled. }
+  TComboBox = object(TView)
+    Selected: Word; // текущий номер варианта (нумерация от 1)
+    Count: Word; { не отрывать от Selected! См. Load,Store}
+    Menu: PMenu;
+    Items: array[1..10] of PMenuItem; // прямые ссылки в меню
+    constructor Init(var Bounds: TRect; AStrings: PSItem);
+    procedure BuildMenu(AStrings: PSItem);
+    destructor Done; virtual;
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
+    procedure Draw; virtual;
+    function GetPalette: PPalette; virtual;
+    procedure HandleEvent(var Event: TEvent); virtual;
+    function DataSize: Word; virtual;
+    procedure GetData(var Rec); virtual;
+    procedure SetData(var Rec); virtual;
+    constructor Load(var S: TStream);
+    procedure Store(var S: TStream);
+    end;
+  {`}
+
   { SItem routines }
 
 function NewSItem(const Str: String; ANext: PSItem): PSItem;
@@ -569,6 +605,8 @@ constructor TDialog.Init(var Bounds: TRect; const ATitle: TTitleStr);
   end;
 
 constructor TDialog.Load(var S: TStream);
+  var
+    I: Byte;
   begin
   inherited Load(S);
   if Options and ofVersion = ofVersion10 then
@@ -576,6 +614,27 @@ constructor TDialog.Load(var S: TStream);
     Palette := dpGrayDialog;
     Inc(Options, ofVersion20);
     end;
+  while True do
+    begin
+    S.Read(I, SizeOf(I));
+    if I = 0 then
+      Break;
+    GetSubViewPtr(S, DirectLink[I]);
+    end;
+  end;
+
+procedure TDialog.Store(var S: TStream);
+  var
+    I: Byte;
+  begin
+  inherited Store(S);
+  for I := Low(DirectLink) to High(DirectLink) do
+    if DirectLink[I] <> nil then
+      begin
+      S.Write(I, SizeOf(I));
+      PutSubViewPtr(S, DirectLink[I]);
+      end;
+  I := 0; S.Write(I, SizeOf(I));
   end;
 
 function TDialog.GetPalette: PPalette;
@@ -716,9 +775,10 @@ function TInputLine.CanScroll(Delta: Integer): Boolean;
 
 function TInputLine.DataSize: Word;
   begin
+  Result := 0;
   if Validator <> nil then
-    Result := Validator^.Transfer(Data, nil, vtDataSize)
-  else
+    Result := Validator^.Transfer(Data, nil, vtDataSize);
+  if Result = 0 then
     Result := MaxLen+1;
   end;
 
@@ -777,11 +837,16 @@ procedure TInputLine.Draw;
   end { TInputLine.Draw };
 
 procedure TInputLine.GetData(var Rec);
+  var
+    s: string absolute Rec;
   begin
   if (Data = '') or (Validator = nil) or
       (Validator^.Transfer(Data, @Rec, vtGetData) = 0)
   then
-    String(Rec) := Copy(Data, 1, MaxLen);
+    s := Copy(Data, 1, MaxLen);
+  FillChar(s[Length(s)+1], MaxLen-Length(s), 0);
+   { AK155 Чтобы не было мусора за концом строки, мешающего сравнивать
+     данные просто как неструктурированную память }
   end;
 
 function TInputLine.GetPalette: PPalette;
@@ -3065,5 +3130,206 @@ procedure THexLine.Draw;
   {-DataCompBoy}
   WriteLine(0, 0, Size.X, Size.Y, B);
   end { THexLine.Draw };
+
+{ /------------------ TComboBox ----------------\ }
+
+constructor TComboBox.Init(var Bounds: TRect; AStrings: PSItem);
+  begin
+  TView.Init(Bounds);
+  Options := ofSelectable;
+  BuildMenu(AStrings);
+  Selected := 1;
+  end;
+
+procedure TComboBox.BuildMenu(AStrings: PSItem);
+  var
+    i: Integer;
+    LastItem: PMenuItem;
+    Tail: ^PMenuItem;
+    PrevSItem: PSItem;
+  begin
+  Menu := NewMenu(nil);
+  Tail := @Menu^.Items;
+  Count := 0;
+  while AStrings <> nil do
+    begin
+    Inc(Count);
+    LastItem := NewItem(
+      CenterStr(Copy(AStrings^.Value^, 1, Size.X-2), Size.X-2),
+      '',  kbNoKey, 1600+i, 0, nil);
+    Items[Count] := LastItem;
+    Tail^ := LastItem;
+    Tail := @LastItem.Next;
+    DisposeStr(AStrings^.Value);
+    PrevSItem := AStrings;
+    AStrings := AStrings^.Next;
+    Dispose(PrevSItem);
+    end;
+  end;
+
+destructor TComboBox.Done;
+  begin
+  DisposeMenu(Menu);
+  TView.Done;
+  end;
+
+procedure TComboBox.SetState(AState: Word; Enable: Boolean);
+  begin
+  TView.SetState(AState, Enable);
+  DrawView;
+  end;
+
+function TComboBox.GetPalette: PPalette;
+  const
+    P: String[Length(CComboBox)] = CComboBox;
+  begin
+  GetPalette := @P;
+  end;
+
+procedure TComboBox.Draw;
+  var
+    B: TDrawBuffer;
+    C: Byte;
+    I: Word;
+  begin
+  I := 1 + 1*Ord(State and sfFocused <> 0);
+  C := GetColor(I);
+  MoveChar(B[0], '[', C, 1);
+  MoveChar(B[1], ' ', C, Size.x-2);
+  MoveStr(B[1], Items[Selected]^.Name^, C);
+  MoveChar(B[Size.x-1], ']', C, Size.x);
+  WriteLine(0, 0, Size.X, Size.Y, B);
+  end;
+
+
+procedure TComboBox.HandleEvent(var Event: TEvent);
+
+  procedure OpenList;
+    var
+      R: TRect;
+      MB: PMenuBox;
+      C: Word;
+    begin
+{ Меню-список открываем поверх строки, совмещая строку
+и соответствующий пункт меню. Меню вставляем в приложение, так
+как если его вставлять в диалог, то в некоторых палитрах цвета
+получаются очень странные.
+}
+    R.Assign(-2,-Selected,0,0);
+    MakeGlobal(R.A, R.A);
+    if R.A.Y < 0 then
+      begin
+      Dec(R.B.Y, R.A.Y);
+      R.A.Y := 0;
+      end;
+    New(MB, Init(R, Menu, nil));
+    MB^.Menu^.Default := Items[Selected];
+    C := Application^.ExecView(MB);
+    if C <> 0 then
+      begin
+      Selected := C-1600;
+      Draw;
+//      Owner^.SelectNext(False);
+      end;
+    ClearEvent(Event);
+    end;
+
+  begin
+  case Event.What of
+    evMouseDown:
+      begin
+      Select; { Вместо TView.HandleEvent }
+      OpenList;
+      end;
+    evKeyDown:
+      case Event.KeyCode of
+        kbSpace, kbPgDn:
+          begin
+          repeat
+            Selected := Selected mod Count + 1;
+          until not Items[Selected]^.Disabled;
+          ClearEvent(Event);
+          Draw;
+          end;
+        kbPgUp:
+          begin
+          repeat
+            if Selected <= 1
+              then Selected := Count
+                else Selected := Selected - 1;
+          until not Items[Selected]^.Disabled;
+          ClearEvent(Event);
+          Draw;
+          end;
+
+(*
+        kbDown, kbUp: { протез навигации стрелками }
+          begin
+          PGroup(Owner)^.SelectNext(Event.KeyCode = kbUp);
+          ClearEvent(Event);
+          end;
+*)
+        kbAltDown, kbCtrlDown:
+          OpenList;
+        else
+          if (Event.KeyCode and $FF0000 = 0) and (Event.CharCode > ' ')
+          then
+            OpenList;
+      end {case};
+  end {case};
+//  inherited HandleEvent делать больше нечего }
+  end { TComboBox.HandleEvent };
+
+function TComboBox.DataSize: Word;
+  begin
+  DataSize := SizeOf(Word);
+  end;
+
+procedure TComboBox.GetData(var Rec);
+  begin
+  Word(Rec) := Selected-1; // совместимость с TRadioButtons
+  end;
+
+procedure TComboBox.SetData(var Rec);
+  begin
+  Selected := Word(Rec)+1; // совместимость с TRadioButtons
+  DrawView;
+  end;
+
+constructor TComboBox.Load(var S: TStream);
+  var
+    i: Integer;
+    PLastItem: ^PMenuItem;
+    LastItem: PMenuItem;
+    P: PString;
+  begin
+  TView.Load(S);
+  S.Read(Selected, 2*SizeOf(Word)); // включая Count
+  Menu := NewMenu(nil);
+  PLastItem := @Menu^.Items;
+  for i := 1 to Count do
+    begin
+    P := S.ReadStr;
+    LastItem := NewItem(Copy(P^, 1, Size.X-2),
+      '',  kbNoKey, 1600+i, 0, nil);
+    DisposeStr(P);
+    PLastItem^ := LastItem;
+    Items[i] := LastItem;
+    PLastItem := @PLastItem^.Next;
+    end;
+  Selected := 1;
+  end;
+
+procedure TComboBox.Store(var S: TStream);
+  var
+    i: Integer;
+  begin
+  TView.Store(S);
+  S.Write(Selected, 2*SizeOf(Selected)); // включая Count
+  for i := 1 to Count do
+    S.WriteStr(Items[i]^.Name);
+  end;
+
+{ \------------------ TComboBox ----------------/ }
 
 end.

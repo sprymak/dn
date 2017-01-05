@@ -74,6 +74,7 @@ implementation
 uses
   Messages, RStrings, Drives, Startup, DnIni, VideoMan, Defines, DNApp,
   Drivers, Views, Memory, Commands, DNStdDlg, Advance, DNHelp, Advance2
+  , FileType
   ;
 
 procedure SetHighlightGroups;
@@ -84,97 +85,55 @@ procedure SetHighlightGroups;
   begin
   with D do
     begin
-    with CustomMask1^ do
-      begin
-      S1 := Copy(Filter, 2, Length(Filter)-2)
-      end;
-    with CustomMask2^ do
-      begin
-      S2 := Copy(Filter, 2, Length(Filter)-2)
-      end;
-    with CustomMask3^ do
-      begin
-      S3 := Copy(Filter, 2, Length(Filter)-2)
-      end;
-    with CustomMask4^ do
-      begin
-      S4 := Copy(Filter, 2, Length(Filter)-2)
-      end;
-    with CustomMask5^ do
-      begin
-      S5 := Copy(Filter, 2, Length(Filter)-2)
-      end;
-    with CustomMask6^ do
-      begin
-      S6 := Copy(Filter, 2, Length(Filter)-2)
-      end;
-    with CustomMask7^ do
-      begin
-      S7 := Copy(Filter, 2, Length(Filter)-2)
-      end;
-    with CustomMask8^ do
-      begin
-      S8 := Copy(Filter, 2, Length(Filter)-2)
-      end;
-    with CustomMask9^ do
-      begin
-      S9 := Copy(Filter, 2, Length(Filter)-2)
-      end;
-    with CustomMask10^ do
-      begin
-      S10 := Copy(Filter, 2, Length(Filter)-2)
-      end;
-    with Archives^ do
-      begin
-      S11 := Copy(Filter, 2, Length(Filter)-2)
-      end;
+    S1 := CustomMask1;
+    S2 := CustomMask2;
+    S3 := CustomMask3;
+    S4 := CustomMask4;
+    S5 := CustomMask5;
+    S6 := CustomMask6;
+    S7 := CustomMask7;
+    S8 := CustomMask8;
+    S9 := CustomMask9;
+    S10 := CustomMask10;
+    S11 := Archives;
     if ExecResource(dlgHighlightGroups, D) <> cmOK then
       Exit;
+
     while S1[Length(S1)] in [' ', ';'] do
       SetLength(S1, Length(S1)-1);
-    CustomMask1^.Filter := S1;
-    MakeTMaskData(CustomMask1^);
+    CustomMask1 := S1;
     while S2[Length(S2)] in [' ', ';'] do
       SetLength(S2, Length(S2)-1);
-    CustomMask2^.Filter := S2;
-    MakeTMaskData(CustomMask2^);
+    CustomMask2 := S2;
     while S3[Length(S3)] in [' ', ';'] do
       SetLength(S3, Length(S3)-1);
-    CustomMask3^.Filter := S3;
-    MakeTMaskData(CustomMask3^);
+    CustomMask3 := S3;
     while S4[Length(S4)] in [' ', ';'] do
       SetLength(S4, Length(S4)-1);
-    CustomMask4^.Filter := S4;
-    MakeTMaskData(CustomMask4^);
+    CustomMask4 := S4;
     while S5[Length(S5)] in [' ', ';'] do
       SetLength(S5, Length(S5)-1);
-    CustomMask5^.Filter := S5;
-    MakeTMaskData(CustomMask5^);
+    CustomMask5 := S5;
     {JO} while S6[Length(S6)] in [' ', ';'] do
       SetLength(S6, Length(S6)-1);
-    CustomMask6^.Filter := S6;
-    MakeTMaskData(CustomMask6^);
+    CustomMask6 := S6;
     while S7[Length(S7)] in [' ', ';'] do
       SetLength(S7, Length(S7)-1);
-    CustomMask7^.Filter := S7;
-    MakeTMaskData(CustomMask7^);
+    CustomMask7 := S7;
     while S8[Length(S8)] in [' ', ';'] do
       SetLength(S8, Length(S8)-1);
-    CustomMask8^.Filter := S8;
-    MakeTMaskData(CustomMask8^);
+    CustomMask8 := S8;
     while S9[Length(S9)] in [' ', ';'] do
       SetLength(S9, Length(S9)-1);
-    CustomMask9^.Filter := S9;
-    MakeTMaskData(CustomMask9^);
+    CustomMask9 := S9;
     {JO} while S10[Length(S10)] in [' ', ';'] do
       SetLength(S10, Length(S10)-1);
-    CustomMask10^.Filter := S10;
-    MakeTMaskData(CustomMask10^);
+    CustomMask10 := S10;
     while S11[Length(S11)] in [' ', ';'] do
       SetLength(S11, Length(S11)-1);
-    Archives^.Filter := S11;
-    MakeTMaskData(Archives^);
+    Archives := S11;
     end;
+  PrepareExtCollection;
   Message(Application, evCommand, cmUpdateConfig, nil);
   GlobalMessage(evCommand, cmPanelReread, nil);
   end { SetHighlightGroups };

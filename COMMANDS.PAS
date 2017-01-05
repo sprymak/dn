@@ -50,6 +50,11 @@ unit Commands;
 
 interface
 
+function Bit(N: Word): Word; inline;
+  begin
+  Result := Word(1) shl N;
+  end;
+
 const
   MaxStringLength = 255;
   MaxReasonableStringLength = 255;
@@ -67,9 +72,9 @@ const
   kbAltEsc = $080100;
   kbShiftEsc = $03011B;
   kbAltShiftEsc = $0B0100;
-  kbCtrlEsc = $04011B;
+  kbCtrlEsc = $040100;
   kbCtrlAltEsc = $0C0100;
-  kbCtrlShiftEsc = $07011B;
+  kbCtrlShiftEsc = $070100;
   kbCtrlAltShiftEsc = $0F0100;
 
   kbF1 = $003B00;
@@ -176,7 +181,7 @@ const
   kbAltTilde = $082900;
   kbBack = $000E08;
   kbShiftBack = $030E08;
-  kbCtrlBack = $040E7F;
+  kbCtrlBack = $040E00;
   kbAltBack = $080E00;
   kbTab = $000F09;
   kbShiftTab = $030F00;
@@ -184,23 +189,23 @@ const
   kbAltTab = $08A500;
   kbEnter = $001C0D;
   kbShiftEnter = $031C0D;
-  kbCtrlEnter = $041C0A;
+  kbCtrlEnter = $041C00;
   kbAltEnter = $081C00;
   kbSpace = $003920;
   kbShiftSpace = $033920;
-  kbCtrlSpace = $043920;
+  kbCtrlSpace = $043900;
   kbAltSpace = $083920;
   kbAltGrayEnter = $08A600;
 
   kbAltShiftTilde = $0B2900;
   kbCtrlAltTilde = $0C2900;
-  kbCtrlShiftBack = $070E7F;
+  kbCtrlShiftBack = $070E00;
   kbAltShiftBack = $0B0E00;
   kbCtrlShiftTab = $079400;
   kbAltShiftTab = $0BA500;
-  kbCtrlShiftEnter = $071C0A;
+  kbCtrlShiftEnter = $071C00;
   kbAltShiftEnter = $0B1C00;
-  kbCtrlShiftSpace = $073920;
+  kbCtrlShiftSpace = $073900;
   kbAltShiftSpace = $0B3920;
 
   kbCtrlAltShiftTilde = $0F2900;
@@ -210,8 +215,8 @@ const
   kbCtrlAltShiftTab = $0FA500;
   kbCtrlAltEnter = $0C1C00;
   kbCtrlAltShiftEnter = $0F1C00;
-  kbCtrlAltSpace = $0C3920;
-  kbCtrlAltShiftSpace = $0F3920;
+  kbCtrlAltSpace = $0C3900;
+  kbCtrlAltShiftSpace = $0F3900;
 
   kbIns = $005200;
   kbShiftIns = $035200;
@@ -319,6 +324,7 @@ const
   kbAlt9 = $088000;
   kbCtrl0 = $040B00;
   kbAlt0 = $088100;
+  kbCtrlEqual = $040D00;
   kbCtrlQ = $041011;
   kbAltQ = $081000;
   kbCtrlW = $041117;
@@ -412,107 +418,107 @@ const
   kbAltShift0 = $0B8100;
   kbCtrlAlt0 = $0C8100;
   kbCtrlAltShift0 = $0F8100;
-  kbCtrlShiftQ = $071011;
+  kbCtrlShiftQ = $071000;
   kbAltShiftQ = $0B1000;
   kbCtrlAltQ = $0C1000;
   kbCtrlAltShiftQ = $0F1000;
-  kbCtrlShiftW = $071117;
+  kbCtrlShiftW = $071100;
   kbAltShiftW = $0B1100;
   kbCtrlAltW = $0C1100;
   kbCtrlAltShiftW = $0F1100;
-  kbCtrlShiftE = $071205;
+  kbCtrlShiftE = $071200;
   kbAltShiftE = $0B1200;
   kbCtrlAltE = $0C1200;
   kbCtrlAltShiftE = $0F1200;
-  kbCtrlShiftR = $071312;
+  kbCtrlShiftR = $071300;
   kbAltShiftR = $0B1300;
   kbCtrlAltR = $0C1300;
   kbCtrlAltShiftR = $0F1300;
-  kbCtrlShiftT = $071414;
+  kbCtrlShiftT = $071400;
   kbAltShiftT = $0B1400;
   kbCtrlAltT = $0C1400;
   kbCtrlAltShiftT = $0F1400;
-  kbCtrlShiftY = $071519;
+  kbCtrlShiftY = $071500;
   kbAltShiftY = $0B1500;
   kbCtrlAltY = $0C1500;
   kbCtrlAltShiftY = $0F1500;
-  kbCtrlShiftU = $071615;
+  kbCtrlShiftU = $071600;
   kbAltShiftU = $0B1600;
   kbCtrlAltU = $0C1600;
   kbCtrlAltShiftU = $0F1600;
-  kbCtrlShiftI = $071709;
+  kbCtrlShiftI = $071700;
   kbAltShiftI = $0B1700;
   kbCtrlAltI = $0C1700;
   kbCtrlAltShiftI = $0F1700;
-  kbCtrlShiftO = $07180F;
+  kbCtrlShiftO = $071800;
   kbAltShiftO = $0B1800;
   kbCtrlAltO = $0C1800;
   kbCtrlAltShiftO = $0F1800;
-  kbCtrlShiftP = $071910;
+  kbCtrlShiftP = $071900;
   kbAltShiftP = $0B1900;
   kbCtrlAltP = $0C1900;
   kbCtrlAltShiftP = $0F1900;
-  kbCtrlShiftA = $071E01;
+  kbCtrlShiftA = $071E00;
   kbAltShiftA = $0B1E00;
   kbCtrlAltA = $0C1E00;
   kbCtrlAltShiftA = $0F1E00;
-  kbCtrlShiftS = $071F13;
+  kbCtrlShiftS = $071F00;
   kbAltShiftS = $0B1F00;
   kbCtrlAltS = $0C1F00;
   kbCtrlAltShiftS = $0F1F00;
-  kbCtrlShiftD = $072004;
+  kbCtrlShiftD = $072000;
   kbAltShiftD = $0B2000;
   kbCtrlAltD = $0C2000;
   kbCtrlAltShiftD = $0F2000;
-  kbCtrlShiftF = $072106;
+  kbCtrlShiftF = $072100;
   kbAltShiftF = $0B2100;
   kbCtrlAltF = $0C2100;
   kbCtrlAltShiftF = $0F2100;
-  kbCtrlShiftG = $072207;
+  kbCtrlShiftG = $072200;
   kbAltShiftG = $0B2200;
   kbCtrlAltG = $0C2200;
   kbCtrlAltShiftG = $0F2200;
-  kbCtrlShiftH = $072308;
+  kbCtrlShiftH = $072300;
   kbAltShiftH = $0B2300;
   kbCtrlAltH = $0C2300;
   kbCtrlAltShiftH = $0F2300;
-  kbCtrlShiftJ = $07240A;
+  kbCtrlShiftJ = $072400;
   kbAltShiftJ = $0B2400;
   kbCtrlAltJ = $0C2400;
   kbCtrlAltShiftJ = $0F2400;
-  kbCtrlShiftK = $07250B;
+  kbCtrlShiftK = $072500;
   kbAltShiftK = $0B2500;
   kbCtrlAltK = $0C2500;
   kbCtrlAltShiftK = $0F2500;
-  kbCtrlShiftL = $07260C;
+  kbCtrlShiftL = $072600;
   kbAltShiftL = $0B2600;
   kbCtrlAltL = $0C2600;
   kbCtrlAltShiftL = $0F2600;
-  kbCtrlShiftZ = $072C1A;
+  kbCtrlShiftZ = $072C00;
   kbAltShiftZ = $0B2C00;
   kbCtrlAltZ = $0C2C00;
   kbCtrlAltShiftZ = $0F2C00;
-  kbCtrlShiftX = $072D18;
+  kbCtrlShiftX = $072D00;
   kbAltShiftX = $0B2D00;
   kbCtrlAltX = $0C2D00;
   kbCtrlAltShiftX = $0F2D00;
-  kbCtrlShiftC = $072E03;
+  kbCtrlShiftC = $072E00;
   kbAltShiftC = $0B2E00;
   kbCtrlAltC = $0C2E00;
   kbCtrlAltShiftC = $0F2E00;
-  kbCtrlShiftV = $072F16;
+  kbCtrlShiftV = $072F00;
   kbAltShiftV = $0B2F00;
   kbCtrlAltV = $0C2F00;
   kbCtrlAltShiftV = $0F2F00;
-  kbCtrlShiftB = $073002;
+  kbCtrlShiftB = $073000;
   kbAltShiftB = $0B3000;
   kbCtrlAltB = $0C3000;
   kbCtrlAltShiftB = $0F3000;
-  kbCtrlShiftN = $07310E;
+  kbCtrlShiftN = $073100;
   kbAltShiftN = $0B3100;
   kbCtrlAltN = $0C3100;
   kbCtrlAltShiftN = $0F3100;
-  kbCtrlShiftM = $07320D;
+  kbCtrlShiftM = $073200;
   kbAltShiftM = $0B3200;
   kbCtrlAltM = $0C3200;
   kbCtrlAltShiftM = $0F3200;
@@ -559,13 +565,13 @@ const
   kbCtrlAltSlash = $0C3500;
   kbCtrlAltShiftSlash = $0F3500;
 
-  kbCtrlMinus = $040C1F;
-  kbCtrlBSlash = $042B1C;
-  kbCtrlShiftBSlash = $072B1C;
-  kbCtrlSqBracketL = $041A1B;
-  kbCtrlShiftSqBracketL = $071A1B;
-  kbCtrlSqBracketR = $041B1D;
-  kbCtrlShiftSqBracketR = $071B1D;
+  kbCtrlMinus = $040C00;
+  kbCtrlBSlash = $042B00;
+  kbCtrlShiftBSlash = $072B00;
+  kbCtrlSqBracketL = $041A00;
+  kbCtrlShiftSqBracketL = $071A00;
+  kbCtrlSqBracketR = $041B00;
+  kbCtrlShiftSqBracketR = $071B00;
 
   kbGrayPlus = $004E2B;
   kbShiftGrayPlus = $034E2B;
@@ -707,15 +713,20 @@ const
 
 const
   kbRightShift = $0001;
+    {` Нажат правый Shift `}
   kbLeftShift = $0002;
+    {` Нажат левый Shift `}
   kbCtrlShift = $0004;
+    {` Нажат Ctrl `}
   kbAltShift = $0008;
+    {` Нажат Alt `}
   kbScrollState = $0010;
   kbNumState = $0020;
   kbCapsState = $0040;
   kbInsState = $0080;
 
   kbAnyShift = $000F;
+    {` Нажат любой Shift, Alt или Ctrl `}
 
   { ViewMode constants }
   vmText = 0;
@@ -770,8 +781,7 @@ const
   ouiTrackEditors = $0200;
   ouiTrackViewers = $0400;
   ouiTrackDirs = $0800;
- {ouiHideDriveInfo = $1000;} {-$VIV}
-  ouiShowScrollBar = $1000;
+
 
   omsReverse = $01;
   omsCursor = $02;
@@ -796,19 +806,17 @@ const
 
   ossEditor = $01;
   ossUseSysClip = $02;
-  ossShowHidden = $04;
-  ossFastExec = $08;
-  ossDisableXMS = $10;
-  ossCheckDDA = $20;
-  ossRemoveCD_RO = $40;
-  ossAdvCopy = $80;
+//  ossShowHidden = $04;
+  ossFastExec = $04;
+  ossDisableXMS = $08;
+  ossCheckDDA = $10;
+  ossRemoveCD_RO = $20;
+  ossAdvCopy = $40;
   { ossFlushDsk    = $100; }
 
-  ossDirectAccess = $01;
-  ossTree = $02;
-  ossVerify = $04;
-  ossCheckFreeSpace = $08; {DataCompBoy}
-  ossUnarcToDirectly = $10; {JO}
+  ossVerify = $01;
+  ossCheckFreeSpace = $02; {DataCompBoy}
+  ossUnarcToDirectly = $04; {JO}
 
   cdnHideCmdLine = $0001; { DN Misc Information }
 
@@ -886,6 +894,7 @@ const
   hsKbdToggleLayot = 165; {AK155}
   hsWinCodeTable = 166; {AK155}
   hsCodeTables = 167; {AK155}
+  hsABCSortTable = 168; {AK155}
 
   {UU Encode options}
 
@@ -904,24 +913,29 @@ const
   pqsCtrl = 1;
   pqsCaps = 2;
 
+
   { Default interior for panels, may differs in instances }
-  fmiDirLen = $0001;
-  fmiCurrent = $0002;
-  fmiSelected = $0004;
-  fmiTotals = $0008;
+
+  { footer elements show options }
+  fseNotShow = 0;
+  { 1..4 - in lines 1..4 respectively }
+  fseInDivider = 5;
+  fseInDividerBrief = 6;
+
+//  fmiDirLen = $0001;
+//  fmiCurrent = $0002;
+//  fmiSelected = $0004;
+//  fmiTotals = $0008;
   fmiFree = $0010;
-  fmiHiliteFiles = $0020;
-  fmiExeFirst = $0040;
-  fmiArchivesFirst = $0080;
-  fmiExeBeforeArc = $0100;
-  fmiFullNameInBottom = $0200;
-  fmiDescriptionInBottom = $0400;
+  fmiFullNameInBottom = $0100;
+  fmiDescriptionInBottom = $0200;
 
   { Common panel interior, same for all instances }
   fmsColumnTitles = $0001;
   fmsDriveLine = $0002;
-  fmsDivider = $0004;
-  fmsTagChar = $0008;
+  fmsShowScrollBar = $0004;
+  fmsHiliteFiles = $0008;
+  fmsShowHidden = $0010;
 
   { Options for panels }
   fmoAutoChangeDir = $0001;
@@ -932,12 +946,18 @@ const
   fmoDelErase = $0020;
   fmoUseArrows = $0040;
   fmoAltDifference = $0080;
-  fmoCtrlDifference = $0100;
-  fmoAlternCtrlDiff = $0200;
-  fmoBackGoesBack = $0400;
-  fmoPreserveDesc = $0800;
-  fmoKillContainer = $1000;
-  fmoAlwaysCopyDesc = $2000;
+  fmoBackGoesBack = $0100;
+  fmoPreserveDesc = $0200;
+  fmoKillContainer = $0400;
+  fmoAlwaysCopyDesc = $0800;
+  fmoAutorefreshDriveLine = $1000; // вместо ini  AutoRefreshDriveLine=1
+  fmoAutorefreshPanels = $2000; // вместо ini  AutoRefreshPanels=1
+  fmoDescrByShortNames = $4000; // вместо ini DescrByShortNames
+
+  { L(R) Ctrl in DriveLine }
+  fdlNoDifference = 0;
+  fdlPassive = 1;
+  fdlLeft = 2;
 
   { New manager panel types }
   fdoDriveDrive = 0;
@@ -972,19 +992,38 @@ const
   cfFmtOs2Warning = $0100;
   cfChaneLngWarning = $0100;
 
-  { Column data items }
-  psShowLongName = $0001;
-  psShowSize = $0002;
-  psShowDate = $0004;
-  psShowTime = $0008;
-  psShowPacked = $0010;
-  psShowRatio = $0020;
-  psShowCrDate = $0010;
-  psShowCrTime = $0020;
-  psShowLADate = $0040;
-  psShowLATime = $0080;
-  psShowDir = $0100;
-  psShowDescript = $0100;
+  { Column data items. See also PDSetup.FixColWidht}
+
+type
+  TFileColNumber =
+    {` Номер колонки в описательных массивах;
+    колонка имени в нумерацию не входит.
+     }
+   (psnShowSize,
+    psnShowPacked,
+    psnShowRatio,
+    psnShowDate,
+    psnShowTime,
+    psnShowCrDate,
+    psnShowCrTime,
+    psnShowLADate,
+    psnShowLATime,
+    psnShowDescript,
+    psnShowDir);
+    {`}
+const
+  psShowSize = 1 shl Ord(psnShowSize);
+  psShowPacked = 1 shl Ord(psnShowPacked);
+  psShowRatio = 1 shl Ord(psnShowRatio);
+  psShowDate = 1 shl Ord(psnShowDate);
+  psShowTime = 1 shl Ord(psnShowTime);
+  psShowCrDate = 1 shl Ord(psnShowCrDate);
+  psShowCrTime = 1 shl Ord(psnShowCrTime);
+  psShowLADate = 1 shl Ord(psnShowLADate);
+  psShowLATime =  1 shl Ord(psnShowLATime);
+  psShowDescript = 1 shl Ord(psnShowDescript);
+  psShowDir = 1 shl Ord(psnShowDir);
+  psLFN_InColumns = psShowDir shl 1; {Win32 only}
 
   { Terminal emulation }
   emTTY = 0;
@@ -1239,7 +1278,8 @@ const
   cmInsertName = 10301;
   cmInfoPresent = 10302;
   cmGetDirName = 10303;
-  cmLocalReread = 10304;
+    {` Команда панели - дать путь к каталогу панели `}
+//  cmLocalReread = 10304;
   cmDlgNotFound = 10305;
 
   cmPrepareToDelete = 10401;
@@ -1286,6 +1326,9 @@ const
   cmEditDBField = 10807;
   cmDeleteDBRec = 10808;
   cmDBFGoto = 10809;
+  cmInsertDBRec = 10810;
+  cmUpDBRec = 10811;
+  cmDownDBRec = 10812;
 
   cmNewTable = 10901;
   cmChangeWidth = 10904;
@@ -1391,12 +1434,12 @@ const
   cmChangeInactive = 19010;
   cmMainMenu = 19011;
   cmAddFilter = 19012;
-  cmGetDirInfo = 19014;
+//  cmGetDirInfo = 19014;
   cmSinglePrint = 19015;
   { cmSingleAttr         = 19016;} {JO}
   cmSingleTag = 19017;
   cmSingleUntag = 19018;
-  cmGetCurrentPosFiles = 19019;
+//AK155  cmGetCurrentPosFiles = 19019;
   cmSyncClipOut = 19020;
   cmSyncClipIn = 19021;
   cmWindowsPaste = 19022;
@@ -1470,6 +1513,7 @@ const
   cmUserMenu = 3026;
   cmLocalMenuFileEdit = 3027;
   cmGetName = 3028;
+    {` Команда окна и панели - дать текст для списка окон `}
   cmPhoneBook = 3030;
   cmStoreColors = 3031;
   cmLoadColors = 3032;
@@ -1482,7 +1526,7 @@ const
   cmHistoryList = 3041;
   cmGame = 3043;
   cmKillUsed = 3044;
-  cmFMDefaults = 3045;
+//  cmFMDefaults = 3045;
   cmEditorDefaults = 3046;
   cmSetupArchive = 3047;
   cmUpdateConfig = 3048;
@@ -1531,7 +1575,8 @@ const
   cmConfigUFA = 3122;
   cmConfigZOO = 3124;
   cmConfigZXZ = 3125;
-  cmHiConfigArchiver = 3125;
+  cmConfig7Z  = 3126;
+  cmHiConfigArchiver = 3126;
   cmUpdateArcFile = 3200;
 
   cmGlobalUserMenu = 3220;
@@ -1554,7 +1599,7 @@ const
   cmFMSetup = 3246;
   cmDriveInfoSetup = 3247;
   cmHideCmdLine = 3248;
-  cmRecountDirs = 3249;
+//  cmRecountDirs = 3249;
   cmChLngId = 3250;
   cmIsRightPanel = 3251;
 
@@ -1621,7 +1666,7 @@ const
 
   { Panel Commands }
 
-  PanelCommands = [149..199];
+  PanelCommands = [149..199,230,231];
 
   cmForceRescan = 149;
   cmViewFile = 150;
@@ -1637,7 +1682,7 @@ const
   cmMakeList = 161;
   cmCompareDir = 162;
   cmSetFAttr = 163;
-  cmPanelSetup = 164;
+  cmPanelSortSetup = 164;
   cmSortBy = 165;
   cmPanelSelect = 166;
   cmPanelUnselect = 167;
@@ -1645,7 +1690,7 @@ const
   cmPanelReread = 169;
   cmChangeDrive = 170;
   cmChangeDir = 171;
-  cmSetupColumns = 172;
+  cmPanelShowSetup = 172;
   cmPanelPrint = 173;
   cmPanelArcFiles = 174;
   cmExtractArchive = 175;
@@ -1662,6 +1707,8 @@ const
   cmDirBranch = 186;
   cmChangeNameCase = 187;
   cmSetEALongname = 188;
+  cmSelectPreset = 230; {JO}
+  cmDirBranchFull = 231; {JO}
 
   { ??? Commands }
 
@@ -1681,32 +1728,45 @@ const
   NumSortModes = 8;
 
   { Sort commands }
-  cmSortName = 13001;
-  cmSortExt = 13002;
-  cmSortSize = 13003;
-  cmSortDate = 13004;
-  cmSortCrDate = 13005;
-  cmSortLADate = 13006;
-  cmSortDIZ = 13007;
-  cmSortType = 13060;
-  cmSortUnsorted = 13000;
+   {AK155: коды команд в этой секции должны идти подряд
+    и их порядок должен соответствовать порядку констант
+    dlSortName и далее, а также psmLongName и далее.
+    И этот порядок должен соответствовать порядку чекбоксов
+    в диалоге настроек сортировки. См. также CM_SortBy }
+  cmSortName = 13000;
+  cmSortExt = 13001;
+  cmSortSize = 13002;
+  cmSortDate = 13003;
+  cmSortCrDate = 13004;
+  cmSortLADate = 13005;
+  cmSortDIZ = 13006;
+  cmSortUnsorted = 13007;
 
   cmSortOwnerToggle = 13257; {JO}
-  cmSortInvToggle = 13258; {JO}
+  cmSortGrpToggle = 13258;
+  cmSortInvToggle = 13259; {JO}
 
   { Panel sort mode }
-  psmLongName = 1;
-  psmLongExt = 2;
-  psmSize = 3;
-  psmTime = 4;
-  psmCrTime = 5;
-  psmLATime = 6;
-  psmDIZ = 7;
-  psmUnsorted = 0;
-  psmOrdered = 60;
+  psmLongName = 0;
+  psmLongExt = 1;
+  psmSize = 2;
+  psmTime = 3;
+  psmCrTime = 4;
+  psmLATime = 5;
+  psmDIZ = 6;
+  psmUnsorted = 7;
 
   psfOwnerFirst = 1; {JO: сортировать сначала пути к файлам}
-  psfInverted = 2; {JO: сортировать в обратном порядке}
+  psfSortByType = 2; {JO: сортировать сначала по группе}
+  psfInverted = 4; {JO: сортировать в обратном порядке}
+  psfDirsByName = 8; {JO: сортировать каталоги всегда по имени}
+
+  { Groups of files placed to the top during panel sorting }
+  upsNone = 0;
+  upsDirs = 1;
+  upsArchives = 2;
+  upsExecutables = 3;
+  upsHidSysFiles = 4;
 
   { DblWnd Commands }
 
@@ -1842,7 +1902,6 @@ type
     erNoDiskSpacePre,
     erTextNotFound,
     erNoQuickDirs,
-    erInvalidOvrSize,
 
     eruuNoStuff,
     eruuUnknownMode,
@@ -1905,7 +1964,6 @@ type
     dlCancelButton,
     dlHelpButton,
     dlTreeButton,
-    dlReanimateButton,
     dlDriveButton,
     dlViewButton,
     dlHexASCIIButton,
@@ -1963,6 +2021,8 @@ type
     dlDIVolumeID,
     dlDISerialNo, { Rainbow }
     dlDIFileSys, { Rainbow }
+    dlDIUsed,
+    dlDIClusterSize,
     dlDIMemoryTotal,
     dlDIMemoryForUser,
     dlDIMemoryForDN,
@@ -2038,16 +2098,18 @@ type
     dlFilesFound,
     dlChangeDir,
     dlSetAttr,
-    dlSortName,
+
+    dlSortName, {AK155: порядок в этой секции менять нельзя! См. CM_SortBy }
     dlSortExt,
-    dlSortType,
+    dlSortSize,
     dlSortDate,
     dlSortCrDate,
     dlSortLADate,
     dlSortDIZ,
-    dlSortSize,
     dlSortUnsorted,
+
     dlSortOwner, {JO}
+    dlSortGroup, {JO}
     dlSortInverted, {JO}
     dlViewQuery,
     dlViewSearchFor,
@@ -2084,6 +2146,8 @@ type
     dlTopSplit,
     dlTopName,
     dlTopSize,
+    dlTopPacked,
+    dlTopRatio,
     dlTopTime,
     dlTopDate,
     dlTopCrTime,
@@ -2092,8 +2156,6 @@ type
     dlTopLADate,
     dlTopPath,
     dlTopOriginal,
-    dlTopPacked,
-    dlTopRatio,
     dlASCIIChart,
     dlWorkSheet,
     dlNotSaved,
@@ -2169,17 +2231,6 @@ type
     dlWritingFile,
     dlQueryReplace,
     dlEditTitle,
-    dlReanimateTitle,
-    dlReanimateView,
-    dlReanimateHead,
-    dlReanimateScan,
-    dlReanimateDirectory,
-    dlReanimateRecovered,
-    dlReanimateGood,
-    dlReanimatePoor,
-    dlReanimateAverage,
-    dlReanimateWrite,
-    dlCantReanimate,
     dlGameTitle,
     dlNewButton,
     dlSetupButton,
@@ -2236,35 +2287,6 @@ type
     dl_F_oreground,
     dl_I_tem,
     dl_G_roup,
-    dlFmtOs2Warning,
-    dlFmtAdvWarning,
-    dlFmtMsgStr,
-    dlFmtTimeStr,
-    dlFmtNewDisk,
-    dlFmtContQuery,
-    dlFmtErrorSysAreas,
-    dlFmtNoDisk,
-    dlFmtDiskProtected,
-    dlFmtDiskFormatted,
-    dlFmtNonDos,
-    dlFmtQuickFormat,
-    dlFmtTrack0Bad,
-    dlFmtNoSysFiles,
-    dlFmtBadInterleave,
-    dlFmtNoFloppy,
-    dlFmt_F_astFormat,
-    dlFmt_D_OSFormat,
-    dlFmt_S_afeFormat,
-    dlFmt_Q_uickFormat,
-    dlFmt_M_akeDiskBootable,
-    dlFmtFo_r_cedFormatting,
-    dlFmtMarkFullTrack,
-    dlFmtOptimi_z_eSectors,
-    dlFmtAdvButton,
-    dlFmtStartButton,
-    dlFmtAreYou,
-    dlFmtDriveHas1,
-    dlFmtDriveHas2,
     dlFBBBinary,
     dlFBBVerify,
     dlQueryCreateDir,
@@ -2400,6 +2422,7 @@ type
     dlTerminalTitle,
     dlScanningDirs,
     dlTreeFilesWith,
+    dlTreeTitle,
     dlTree1FileWith,
     dlMNUNotFound,
     dlMenuParams,
@@ -2411,11 +2434,6 @@ type
     dlEnvAddTitle,
     dlEnvVariable,
     dlEnvRenVar,
-    dlFmtDriveLabel,
-    dlFmtCapacityLabel,
-    dlFmtVolumeL,
-    dlFmtFTypeLabel,
-    dlFmtTitle,
 
     dlTeamHint,
 
@@ -2588,43 +2606,6 @@ type
     dlHelp,
     dlOutputTitle,
 
-    dlCDPlayer,
-    dlCDPlayerNoCD,
-    dlCDTrack,
-    dlCDPlayTrack,
-    dlCDSelectTrack,
-
-    dlCDTrackButton,
-    dlCDAddButton,
-    dlCDDeleteButton,
-    dlCDSaveButton,
-    dlCD_R_Button,
-    dlCD_C_Button,
-
-    dlCDTrackTime,
-    dlCDTrackLeft,
-    dlCDDiskTime,
-    dlCDDiskLeft,
-
-    dlCDButtonRew,
-    dlCDButtonPrev,
-    dlCDButtonPlay,
-    dlCDButtonNext,
-    dlCDButtonFFwd,
-    dlCDButtonPause,
-    dlCDButtonStop,
-    dlCDButtonEject,
-
-    dlCDButtonSet,
-    dlCDButtonTime,
-    dlCDButtonMode,
-    dlCDButtonMix,
-    dlCDButtonOrder,
-    dlCDButtonTitle,
-
-    dlNoCD,
-    dlCloseCD,
-
     dlDITemporary,
     dlDIFileFind,
     dlDIFFMask,
@@ -2727,8 +2708,6 @@ type
     dlColors_C13,
     dlColors_C14,
     dlColors_C15,
-    dlReanimateNone,
-    dlCantReanimateDirectory,
     dlAutoexecWarning,
     dlSelectXLT,
     dlSetDirHistory,
@@ -2801,9 +2780,6 @@ type
     dlSE_Dir2Long, {-VOL}
 
     stDaysWeek, {-SSK}
-
-    dlOldFiles,
-    dlOldFilesNoWarn,
 
     dlPresent,
     dlAbsent,
@@ -3013,6 +2989,7 @@ type
     dlInvalidRecNumber1, {JOHN_SW}
     dlInvalidRecSize, {JOHN_SW}
     dlUseCalcRecNumber, {JOHN_SW}
+    dlCopyTimeSpeed,    {John_SW}
     dlNotValidForCurSession, {JO}
     dlCreateObject, {JO}
     dlObjectTitle,
@@ -3060,8 +3037,11 @@ type
     dlPressF1, {JO}
     dlLayoutErr,
     dlWinErr,
+    dlSortError,
     dlCodetablesErr,
-    dlCoutrySetupErr
+    dlCoutrySetupErr,
+    dlOtherPanel,
+    dlUndoPanelSetup
     );
 
   TDlgIdx = (
@@ -3074,12 +3054,10 @@ type
     dlgCompareDirs,
     dlgFilesAttr,
     dlgFileAttr,
-    dlgFindParms,
-    dlgArcParms,
-    dlgDiskParms,
     dlgFMSetup,
-    dlgFMDefaults,
-    dlgPanelSetup,
+    dlgPanelShowSetup,
+    dlgPanelSortSetup,
+    dlgSavePanelSetup,
     dlgDriveInfoSetup,
     dlgDiskError,
     dlgMakeList,
@@ -3170,3 +3148,4 @@ type
 
 implementation
 end.
+

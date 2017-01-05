@@ -173,11 +173,37 @@ function TranslateKeyCode(KeyCode,ScanCode,CharCode: Byte; ShiftState: Integer):
 const
   // Table for CTRL + some special keys
   CtrlTable: array[71..83] of Byte =
-    (119, 141, 132, 142, 115, 143, 116, 144, 117, 145, 118, 146, 147);
-  // Table for ALT + some special keys
+    (119, 141, 132, 142, 115, {71..75: Home, Up, PgUp, GrayMinus, Left}
+    143, 116, 144, 117, 145,{76..80: NumPad5, Right, GrayPlus, End, Down}
+    118, $92, 147); {PgDn, Ins, Del}
+  // Table for ALT (or Alt+Ctrl) + some special keys
   AltTable: array[71..83] of Byte =
-    (151, 152, 153, 74, 155, 76, 157, 78, 159, 160, 161, 162, 163);
+    ($97, $98, $99, $4A, $9B,
+    $4C, $9D, $4E, $9F, $A0,
+    $A1, $A2, $A3);
 begin
+
+  if  (ScanCode  = $1C) then
+    begin { Enter }
+    if ((ShiftState and Ctrl_Pressed) <> 0) then
+      begin
+      if (ShiftState and Shift_Pressed) <> 0 then
+        CharCode := $A  {AK155  Ctrl-Shift-Enter under NT}
+      else if (ShiftState and Alt_Pressed) <> 0 then
+        CharCode := 0;  {AK155  Ctrl-Alt-Enter under W98}
+      end;
+    Result := ScanCode shl 8 or CharCode;
+    Exit;
+    end;
+
+  if  ScanCode  in [$1A, $1B] then
+    begin { '[', ']' }
+    if (ShiftState and Alt_Pressed) <> 0 then
+      CharCode := 0;  {AK155  Ctrl-Alt-[ under W98}
+    Result := ScanCode shl 8 or CharCode;
+    Exit;
+    end;
+
   // First we check whether the system suggests a printable character
   if (CharCode <> 0) and (ShiftState and Left_Alt_Pressed = 0) and
   // JO: On some national keyboard layouts we need to treat Right Alt
@@ -257,11 +283,6 @@ begin
       Exit;
     end;
 }
-    28:
-      // ALT + Grey Enter
-      if ShiftState and Alt_Pressed <> 0 then
-        Result := $a600;
-
     14, 16..27, 29..52:
       // ALT + BS, ALT + characters, ALT + COLON, ALT + DOT
       if ShiftState and Alt_Pressed <> 0 then
@@ -301,11 +322,11 @@ begin
         Result := ScanCode shl 8;
 
     71..83:
-      // INS, DEL, HOME, END, PGUP, PGDN and CURSOR keys
-      if (ShiftState and Ctrl_Pressed <> 0) then
-        Result := CtrlTable[ScanCode] shl 8
-      else if ShiftState and Alt_Pressed <> 0 then
-        Result := AltTable[ScanCode] shl 8
+      // INS, DEL, HOME, END, PGUP, PGDN, Gray+, Gray-, Num5 and CURSOR keys
+      if ShiftState and Alt_Pressed <> 0 then
+        Result := AltTable[ScanCode] shl 8 // Alt or Alt+Ctrl
+      else if (ShiftState and Ctrl_Pressed <> 0) then
+        Result := CtrlTable[ScanCode] shl 8 // Ctrl w/o Alt
       else
         Result := ScanCode shl 8;
 
@@ -551,8 +572,6 @@ End и т.п. на _некоторых_ компьютерах тоже недопустимо при использовании
                 {SysShiftState := skeShiftState;} {Cat}
                 skeShiftState := SysShiftState; {Cat}
 
-                if  (wVirtualScanCode  = $1C) and (SysShiftState and 7 = 7) then
-                  AsciiChar   :=  #$A;  {AK155  Ctrl-Shift-Enter under NT}
                 {$IFDEF OLDCRT}
                 skeKeyCode := TranslateKeyCode(wVirtualKeyCode, wVirtualScanCode, Ord(AsciiChar), skeShiftState);
                 {$ELSE}

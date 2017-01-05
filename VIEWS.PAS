@@ -285,7 +285,7 @@ type
     procedure WriteLine(X, Y, W, H: Integer; var Buf);
     procedure WriteStr(X, Y: Integer; Str: String; Color: Byte);
     procedure Update; virtual;
-    function MenuEnabled(Command: Word): Boolean; {-$VOL}
+    function MenuEnabled(Command: Word): Boolean; {-$VOL} {<Views.003>}
     //  private
     procedure DrawCursor;
     procedure DrawHide(LastView: PView);
@@ -524,9 +524,27 @@ const
   [0..255]-[cmZoom, cmClose, cmResize, cmNext, cmPrev, cmMaxi];
 
 procedure RegisterToPrior(P: PView);
+  {` Точный аналог RegisterToBackground, но работает со списком
+   UpdatePrior. Фактически не используется и смысла в нём нет никакого. `}
+
 procedure RegisterToBackground(P: PView);
+  {` Включает P в начало списка периодического обновления UpdateViews.
+  При включении не контролируется, не включён ли P уже, то есть
+  повторное включение возможно.
+     Период задаёт P^.UpdTicks, счёт идёт в P^.UpTmr.
+     См. также Deregister, UpdateAll.
+      `}
+
 procedure Deregister(P: PView);
+  {` Исключает P из обоих списков периодического обновления, если он
+  там был. Если он там был не один раз, будет исключён только один.
+  См. RegisterToBackground `}
+
 procedure UpdateAll(All: Boolean);
+  {` Проверить списки периодического обновления. Для каждлого элемента,
+  у которого таймер истёк, вызывается Update и таймер перезапускается.
+  Сначала делается проход по списку UpdateViews, а затем по UpdatePrior.
+  `} {<Views.002>}
 
 function GetNum: AInt;
 
@@ -1721,7 +1739,7 @@ procedure TMyScrollBar.Draw;
   var
     chrs: TScrollChars;
   begin
-  if ShowScrollBar then
+  if Startup.FMSetup.Show and fmsShowScrollBar <> 0 then
     DrawPos(GetPos)
   else
     begin
@@ -1739,7 +1757,7 @@ procedure TMyScrollBar.DrawPos(Pos: LongInt);
     col1, col2, col3: Byte;
   begin
   S := GetSize-1;
-  if ShowScrollBar then
+  if Startup.FMSetup.Show and fmsShowScrollBar <> 0 then
     begin
     col1 := GetColor(1);
     col2 := GetColor(2);
@@ -2088,9 +2106,7 @@ destructor TGroup.Done;
       P := P^.Prev;
     until P = Last;
     repeat
-      T := P^.Prev;
-      Dispose(P, Done);
-      P := T;
+      Dispose(Last, Done);
     until Last = nil;
     end;
   FreeBuffer;

@@ -19,15 +19,24 @@ procedure CopyIniVarsToCfgVars;
   var
     i: Integer;
   begin
-  SystemData.Options := SystemDataOpt;
-  InterfaceData.Options := InterfaceDataOpt;
-  Startup.FMSetup.Options := FMSetupOpt;
-  EditorDefaults.EdOpt := EditorDefaultsOpt;
-  EditorDefaults.EdOpt2 := EditorDefaultsOpt2;
-  EditorDefaults.ViOpt := ViewerOpt;
-  StartupData.Load := StartupDataLoad;
-  StartupData.Unload := StartupDataUnload;
-  Confirms := ConfirmsOpt;
+  if SystemDataOpt <> 65535 then
+    SystemData.Options := SystemDataOpt;
+  if InterfaceDataOpt <> 65535 then
+    InterfaceData.Options := InterfaceDataOpt;
+  if FMSetupOpt <> 65535 then
+    Startup.FMSetup.Options := FMSetupOpt;
+  if EditorDefaultsOpt <> 65535 then
+    EditorDefaults.EdOpt := EditorDefaultsOpt;
+  if EditorDefaultsOpt2 <> 65535 then
+    EditorDefaults.EdOpt2 := EditorDefaultsOpt2;
+  if ViewerOpt <> 65535 then
+    EditorDefaults.ViOpt := ViewerOpt;
+  if StartupDataLoad <> 65535 then
+    StartupData.Load := StartupDataLoad;
+  if StartupDataUnload <> 65535 then
+    StartupData.Unload := StartupDataUnload;
+  if ConfirmsOpt <> 65535 then
+    Confirms := ConfirmsOpt;
   SystemData.CopyLimitBuf := CopyLimit;
   SystemData.ForceDefArch := ForceDefaultArchiver;
   for i := 0 to 8 do
@@ -44,8 +53,6 @@ procedure CopyIniVarsToCfgVars;
     {$IFDEF Win32}
     AltGreyAsAlt := AltGrAsAlt; {JO}
     {$ENDIF}
-  if DnIni.AutoRefreshPanels then
-    NotifyInit; {JO}
   end { CopyIniVarsToCfgVars };
 
 end.

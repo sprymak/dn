@@ -10,12 +10,11 @@
 unit FlTl;
 interface
 
-{<fltl.001>}
 type
   TDrvTypeNew = ( dtnFloppy, dtnHDD, dtnInvalid,
-                 dtnCDRom, dtnLAN, dtnUnknown, dtnOptical, dtnProgram);
+    dtnCDRom, dtnLAN, dtnUnknown, dtnOptical, dtnProgram, dtRamDisk);
 
-function GetBytesPerCluster(Drive: Byte): LongInt;
+function GetBytesPerCluster(Path: PChar): LongInt;
 procedure CopyEAs(FFromName, FToName: String);
 {$IFDEF WIN32}
 procedure CopySAs(FFromName, FToName: String);
@@ -33,6 +32,9 @@ function SetFileAges(S: ShortString; Age_LWr, Age_Cr, Age_LAc: LongInt)
 {    время и дату создания (Age_Cr) и время и дату последнего доступа (Age_LAc) }
 {    файла или каталога по полному пути (S), принимает значение кода ошибки     }
 
+procedure GetSerFileSys(Drive: Char; var SerialNo: Longint;
+  var VolLab, FileSys: String);
+
 function GetFSString(Dr: Char): String; {JO}
 function GetShare(Drive: Char): string; {AK155}
 function GetDriveTypeNew(Drive: Char): TDrvTypeNew; {JO} {<fltl.001>}
@@ -48,12 +50,17 @@ uses
   Windows, Strings, Lfn
   ;
 
-function GetBytesPerCluster(Drive: Byte): LongInt;
+function GetBytesPerCluster(Path: PChar): LongInt;
   var
     RootPath: array[0..3] of Char;
     RootPtr: PChar;
     SectorsPerCluster, BytesPerSector, FreeClusters, TotalClusters: DWord;
+    i: Longint;
+    c: Char;
   begin
+(*  i := GetRootStart+1;
+  c :=
+  Buffer^[i] := #0; // получается что-то вроде \\server\share\ или C:\
   RootPtr := nil;
   if Drive > 0 then
     begin
@@ -63,7 +70,8 @@ function GetBytesPerCluster(Drive: Byte): LongInt;
     RootPath[3] := #0;
     RootPtr := RootPath;
     end;
-  if GetDiskFreeSpace(RootPtr, SectorsPerCluster, BytesPerSector,
+*)
+  if GetDiskFreeSpace(Path, SectorsPerCluster, BytesPerSector,
        FreeClusters, TotalClusters)
   then
     GetBytesPerCluster := SectorsPerCluster*BytesPerSector
@@ -293,6 +301,18 @@ function SetFileAges(S: ShortString; Age_LWr, Age_Cr, Age_LAc: LongInt)
   CloseHandle(Handle);
   end { SetFileAges };
 
+var
+  VolName: array[0..11] of Char;
+  SerialNumber: Longint;
+
+procedure GetSerFileSys(Drive: Char; var SerialNo: Longint;
+    var VolLab, FileSys: String);
+  begin
+  FileSys := GetFSString(Drive);
+  SerialNo := SerialNumber;
+  VolLab := StrPas(VolName);
+  end;
+
 function GetFSString(Dr: Char): String;
   const
     Root: array[0..4] of Char = 'C:\'#0;
@@ -303,35 +323,45 @@ function GetFSString(Dr: Char): String;
   begin
   GetFSString := '';
   Root[0] := Dr;
-  if GetVolumeInformation(Root, nil, 0, nil, MaxLength, FSFlags, FSName,
-       SizeOf(FSName))
+  if GetVolumeInformation(Root, @VolName, 12, @SerialNumber,
+    MaxLength, FSFlags, FSName, SizeOf(FSName))
   then
-    GetFSString := StrPas(FSName);
+    GetFSString := StrPas(FSName)
+  else
+    begin
+    SerialNumber := 0;
+    VolName[0] := #0;
+    end;
   end;
 
 {/JO}
 
-function GetShare(Drive: Char): string;
   const
     LocDrive: array[0..2] of char = 'C:'#0;
-    NetPath: record
-      lpPath: PChar;
-      Buf: array[0..255] of Char;
-      end = (lpPath: @LocDrive);
-    lNetPath: DWORD = SizeOf(NetPath);
+
+function GetShare(Drive: Char): string;
+  type
+    PREMOTE_NAME_INFO = ^TREMOTE_NAME_INFO ;
+    TREMOTE_NAME_INFO = record
+      lpUniversalName, lpConnectionName, lpRemainingPath: PChar;
+      end;
   var
+    Buf: array[0..500] of Char;
     RC: Longint;
+    lNetPath: DWORD;
   begin
   Result := '';
   LocDrive[0] := Drive;
+  lNetPath := SizeOf(Buf);
   RC := WNetGetUniversalName(
     @LocDrive,  // path for network resource
-    UNIVERSAL_NAME_INFO_LEVEL,    // level of information
-    @NetPath,      // name buffer
+    REMOTE_NAME_INFO_LEVEL,    // level of information
+    @Buf,      // name buffer
     lNetPath  // size of buffer
   );
+
   if RC = 0 then
-    Result := StrPas(NetPath.lpPath);
+    Result := StrPas(PREMOTE_NAME_INFO(@Buf)^.lpConnectionName);
   end;
 
 function GetDriveTypeNew(Drive: Char): TDrvTypeNew; {<fltl.001>}
@@ -342,17 +372,25 @@ begin
   Root[0] := Drive;
   Result := dtnInvalid;
   case GetDriveType(Root) of
-    Drive_Fixed     : Result := dtnHDD;
-    Drive_Removable : Result := dtnFloppy;
-    Drive_CDRom     : Result := dtnCDROM;
-    Drive_Remote    :
-                      begin
-                      if GetShare(Drive) = '' then
-                             Result := dtnProgram
-                        else Result := dtnLAN;
-                      end;
-    0, 1            : Result := dtnInvalid;
-  else                Result := dtnUnknown;
+    Drive_Fixed:
+      Result := dtnHDD;
+    Drive_Removable:
+      Result := dtnFloppy;
+    Drive_CDRom:
+      Result := dtnCDROM;
+    Drive_Remote:
+      begin
+      if GetShare(Drive) = '' then
+             Result := dtnProgram
+        else Result := dtnLAN;
+      end;
+    0, 1:
+      Result := dtnInvalid;
+    drive_RamDisk:
+      Result := dtRamDisk
+
+    else
+      Result := dtnUnknown;
   end;
 end;
 

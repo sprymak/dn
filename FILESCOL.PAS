@@ -85,6 +85,7 @@ type
   PFileRec = ^TFileRec;
   TFileRec = record
     Size: TSize;
+      { Если размер неизвестнен, Size=-1 (типично для каталогов) }
     PSize: TSize;
     Owner: PString;
     DIZ: PDiz;
@@ -149,10 +150,7 @@ type
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     SortMode: Byte;
     Selected: LongInt;
-    Owner: Pointer;
-    {$IFDEF Win32}
-    LFNActive: Boolean;
-    {$ENDIF}
+    Panel: Pointer; {PFilePanel}
     constructor Load(var S: TStream);
     procedure Store(var S: TStream); virtual;
     procedure FreeItem(Item: Pointer); virtual;
@@ -194,27 +192,21 @@ procedure StoreFileRecOwn(var s: TStream; fr: PFileRec; Dirs: PCollection);
 function PackedDate(P: PFileRec): LongInt; {DataCompBoy}
 function PackedCreationDate(P: PFileRec): LongInt; {JO}
 function PackedLastAccDate(P: PFileRec): LongInt; {JO}
-function GetFileType(const S: String; Attr: Byte): Integer;
+//function GetFileType(const S: String; Attr: Byte): Integer;
 procedure DosReread(Files: PFilesCollection);
 {procedure ReplaceLongName(var fr: PFileRec; const NewName: string);}
 
-const
-  Executables: TMaskData = (Filter: 'exe;bat;com');
-  {JO: дополнительные расширения для поиска в архивах}
-  AddArchives: TMaskData = (Filter:
-    'exe;com;@;pk[0-9];mo[0-9];tu[0-9];we[0-9];th[0-9];fr[0-9];sa[0-9];su[0-9]'
-    );
-
 implementation
 uses
-  DNApp, Menus, Views, FlPanel, Drives,
+  DNApp, Menus, Views, FlPanelX, FlPanel, Drives,
   Commands, Messages,
   {!!}CmdLine
   {$IFDEF MODEM} {$IFDEF LINK}, NavyLink {$ENDIF} {$ENDIF}
   {$IFDEF NETINFO}, Novell {$ENDIF}
   , VpSysLow, VPUtils
   {$IFDEF PLUGIN}, Plugin {$ENDIF}
-  , FlTl, DnIni, Dos
+  , FlTl, DnIni, Dos, FileType, PDSetup, U_KeyMap
+
   ;
 
 const
@@ -309,6 +301,8 @@ function CreateFileRec(Name: String): PFileRec;
   PS  и следует ещё раз посмотреть и проверить - нужна ли вообще эта функция
      if fr^.Attr and Directory <> 0 then UpStr(fr^.Name) else LowStr(fr^.Name);}
     {/Cat}
+    if fr^.Attr and Directory <> 0 then
+      fr^.Size := -1;
     end
   else
     begin
@@ -517,12 +511,16 @@ function TFilesCollection.Compare;
     P1: PFileRec absolute Key1;
     P2: PFileRec absolute Key2;
     C: Integer;
-    SM, I1, I2: Integer;
+    SM, I1, I2, UpN: Integer;
     P1P, P2P: Boolean;
-    PanelFlags: Word;
     SortFlags: Byte;
-    {OneIsFile: Boolean;}
+    CmpMethod: Word;
     ST1, ST2: String;
+    NameDirsSortEnabled: Boolean;
+
+  const
+    Ups: array[1..4] of Word = (0, 0, 0, 0);
+
   label Lab1;
 
   function CmpName(const S1: String; const S2: String;
@@ -592,23 +590,31 @@ function TFilesCollection.Compare;
     Name1, Name2: String; {UpStrg(P2^.Name)  // AK155}
     Own1, Own2: String;
     Branched: Boolean; {идёт ли сравнение в панели представляющей ветвь}
+  const
+    CompareXlat: array[0..2] of PXLat =
+      (@ABCSortXlat, @UpCaseArray, @LowCaseArray);
 
   begin { TFilesCollection.Compare }
-  if Owner <> nil then
+  NameDirsSortEnabled := False;
+  if Panel <> nil then
     begin
-    PanelFlags := PFilePanel(Owner)^.PanelFlags;
-    SortFlags := PFilePanel(Owner)^.SortFlags;
-    if PFilePanel(Owner)^.Drive <> nil then
+    SortFlags := PFilePanel(Panel)^.PanSetup^.Sort.SortFlags;
+    Move(PFilePanel(Panel)^.PanSetup^.Sort.Ups, Ups, SizeOf(Ups));
+    CmpMethod := PFilePanel(Panel)^.PanSetup^.Sort.CompareMethod;
+    if PFilePanel(Panel)^.Drive <> nil then
       {JO: все типы панели, представляющие собой раскрытую ветвь}
-      Branched := PFilePanel(Owner)^.Drive^.DriveType
+      Branched := PFilePanel(Panel)^.Drive^.DriveType
         in [dtFind, dtTemp, dtList, dtArcFind]
     else
       Branched := False;
     end
   else
     begin
-    PanelFlags := PanelDefaults.Show;
+      {! Раньше флаги брались из установок для новой панели,
+       интересно, зачем? А ещё интереснее, бывает ли и нужна
+       ли сортировка без панели?}
     SortFlags := 0;
+    CmpMethod := 1;
     Branched := False;
     end;
   {Move(Key1^,T1,SizeOf(T1));}
@@ -630,16 +636,8 @@ function TFilesCollection.Compare;
     Name1 := P1^.FlName[uLfn];
     Name2 := FlName[uLfn];
 
-    if UpperCaseSorting then
-      begin
-      UpStr(Name1);
-      UpStr(Name2);
-      end
-    else
-      begin
-      LowStr(Name1);
-      LowStr(Name2);
-      end;
+    XLatStr(Name1, CompareXlat[CmpMethod]^);
+    XLatStr(Name2, CompareXlat[CmpMethod]^);
 
     if P1^.Owner <> nil then
       Own1 := P1^.Owner^
@@ -658,7 +656,8 @@ function TFilesCollection.Compare;
         SetLength(Own1, Length(Own1)-1);
       if Own2[Length(Own2)] = '\' then
         SetLength(Own2, Length(Own2)-1);
-      if UpperCaseSorting then
+{JO: вpеменно метод с весовой таблицей не используется!}
+      if (CmpMethod and 1 <> 0) then
         begin
         UpStr(Own1);
         UpStr(Own2);
@@ -682,31 +681,29 @@ function TFilesCollection.Compare;
         C1 := 1;
       end;
 
-    if  (Owner <> nil)
-         and not (SM in [psmSize, psmTime {$IFNDEF DPMI32}, psmCrTime,
-         psmLATime {$ENDIF}])
-    then
-      if PanelFlags and fmiExeBeforeArc <> 0 then
-        begin
-        if PanelFlags and fmiExeFirst <> 0 then
+    if  (Owner <> nil) then
+      begin
+      for UpN := 1 to 4 do
+        case Ups[UpN] of
+     upsDirs:
           begin
-          if  ( (P1^.Attr xor Attr) and Directory = 0) then
+//JO: если каталоги пеpемещаются в начало панели, то их соpтиpовка
+//    по имени пpи соpтиpовке файлов по другим критериям осмысленна
+          NameDirsSortEnabled := True;
+          if  (P1^.TType = ttDirectory) and (TType <> ttDirectory) then
             begin
-            if  (P1^.TType = ttExec) and (TType <> ttExec) then
-              begin
-              Compare := -1;
-              Exit;
-              end;
-            if  (P1^.TType <> ttExec) and (TType = ttExec) then
-              begin
-              Compare := 1;
-              Exit;
-              end;
+            Compare := -1;
+            Exit;
+            end;
+          if  (P1^.TType <> ttDirectory) and (TType = ttDirectory) then
+            begin
+            Compare := 1;
+            Exit;
             end;
           end;
-        if PanelFlags and fmiArchivesFirst <> 0 then
-          begin
-          if  ( (P1^.Attr xor Attr) and Directory = 0) then
+ upsArchives:
+          if not (SM in [psmSize, psmTime {$IFNDEF DPMI32}, psmCrTime,
+                         psmLATime {$ENDIF}]) then
             begin
             if  (P1^.TType = ttArc) and (TType <> ttArc) then
               begin
@@ -719,29 +716,9 @@ function TFilesCollection.Compare;
               Exit;
               end;
             end;
-          end;
-        end
-      else
-        begin
-        if PanelFlags and fmiArchivesFirst <> 0 then
-          begin
-          if  ( (P1^.Attr xor Attr) and Directory = 0) then
-            begin
-            if  (P1^.TType = ttArc) and (TType <> ttArc) then
-              begin
-              Compare := -1;
-              Exit;
-              end;
-            if  (P1^.TType <> ttArc) and (TType = ttArc) then
-              begin
-              Compare := 1;
-              Exit;
-              end;
-            end;
-          end;
-        if PanelFlags and fmiExeFirst <> 0 then
-          begin
-          if  ( (P1^.Attr xor Attr) and Directory = 0) then
+ upsExecutables:
+          if not (SM in [psmSize, psmTime {$IFNDEF DPMI32}, psmCrTime,
+                         psmLATime {$ENDIF}]) then
             begin
             if  (P1^.TType = ttExec) and (TType <> ttExec) then
               begin
@@ -754,8 +731,49 @@ function TFilesCollection.Compare;
               Exit;
               end;
             end;
+ upsHidSysFiles:
+          if not (SM in [psmSize, psmTime {$IFNDEF DPMI32}, psmCrTime,
+                         psmLATime {$ENDIF}]) then
+            begin
+            if  ((P1^.Attr and (Hidden+SysFile)) <> 0) and
+                ((Attr and (Hidden+SysFile)) = 0) then
+              begin
+              Compare := -1;
+              Exit;
+              end;
+            if  ((P1^.Attr and (Hidden+SysFile)) = 0) and
+                ((Attr and (Hidden+SysFile)) <> 0) then
+              begin
+              Compare := 1;
+              Exit;
+              end;
+            end;
+        end; {case}
+
+      if SortFlags and psfSortByType <> 0 then
+        begin
+//JO: поскольку при сортировке по типу все каталоги оказываются заведомо
+//    собраны вместе, то их соpтиpовка по имени пpи соpтиpовке файлов по
+//    другим критериям является осмысленной
+        NameDirsSortEnabled := True;
+        I1 := P1^.TType;
+        I2 := TType;
+        if I1 = 0 then
+          I1 := 100; // файлы без типа - в конец
+        if I2 = 0 then
+          I2 := 100; // файлы без типа - в конец
+        if I1 < I2 then
+          begin
+          Compare := -1;
+          Exit;
+          end
+        else if I1 > I2 then
+          begin
+          Compare := 1;
+          Exit;
           end;
         end;
+      end; {Owner <> nil}
 
     if SortFlags and psfOwnerFirst <> 0 then
       begin
@@ -769,25 +787,15 @@ function TFilesCollection.Compare;
     else
       begin
 Lab1:
-      if  (SM in [psmLongName..psmDIZ, 141])
-        {JO: пpи psmOrdered каталоги и так оказываются вначале, }
-        {    но пpи обpатной соpтиpовке это не pаботает         }
-        or ((SortFlags and psfInverted <> 0) and (SM = psmOrdered))
-      then
-        begin
-        if  (P1^.Attr xor Attr) and Directory <> 0 then
-          if P1^.Attr and Directory <> 0 then
-            begin
-            Compare := -1;
-            Exit;
-            end
-          else
-            begin
-            Compare := 1;
-            Exit;
-            end;
-        end;
 
+      if (SortFlags and psfDirsByName <> 0) and
+//JO: если каталоги не пеpемещаются в начало панели, то их
+//    соpтиpовка по имени пpи соpтиpовке файлов по pасшиpению
+//    не только бессмысленна, но и вpедна
+         NameDirsSortEnabled and
+           ((P1^.Attr or Attr) and Directory <> 0) then
+               C := CmpName(Name1, Name2, Own1, Own2)
+      else
       case SM of
         psmUnsorted:
           if P1^.Owner^ = Owner^
@@ -800,25 +808,6 @@ Lab1:
             C := -1
           else
             C := 1;
-        psmOrdered:
-          begin
-          I1 := P1^.TType;
-          I2 := TType;
-          if I1 = 0 then
-            I1 := 100;
-          if I2 = 0 then
-            I2 := 100;
-          if I1 < I2 then
-            C := -1
-          else if I1 > I2 then
-            C := 1
-          else if C1 = -1 then
-            C := -1
-          else if C1 = 1 then
-            C := 1
-          else
-            C := CmpName(Name1, Name2, Own1, Own2);
-          end;
         {LFN}psmLongName:
           C := CmpName(Name1, Name2, Own1, Own2);
         141:
@@ -920,14 +909,22 @@ Lab1:
           if  (P1^.DIZ <> nil) then
             begin
             ST1 := P1^.DIZ^.DIZText;
-            UpLowStr(ST1);
+{JO: вpеменно метод с весовой таблицей не используется!}
+            if (CmpMethod and 1 <> 0) then
+              UpStr(ST1)
+            else
+              LowStr(ST1);
             end
           else
             ST1 := '';
           if  (P2^.DIZ <> nil) then
             begin
             ST2 := P2^.DIZ^.DIZText;
-            UpLowStr(ST2);
+{JO: вpеменно метод с весовой таблицей не используется!}
+            if (CmpMethod and 1 <> 0) then
+              UpStr(ST2)
+            else
+              LowStr(ST2);
             end
           else
             ST2 := '';
@@ -1092,8 +1089,8 @@ function SelectDrive; {-$VIV, JO}
     if not CutDriveInfo then
       Exit;
     (* X-Man *)
-    CutLongString := FormatLongName(S, 30, 0, flnPreferName+flnHighlight+
-        flnUseCutChar+flnHandleTildes, nfmNull, nil)
+    CutLongString := FormatLongName(S, 30, 0,
+        flnHighlight+flnHandleTildes, nfmNull)
     end;
 
   var
@@ -1253,6 +1250,9 @@ function SelectDrive; {-$VIV, JO}
           dtnHDD:
             if  (InterfaceData.DrvInfType.TypeShowFor and ditHDD <> 0) then
               FullS := FullS+GetString(sdtFixed);
+          dtRamDisk:
+            if  (InterfaceData.DrvInfType.TypeShowFor and ditProgr <> 0) then
+              FullS := FullS+GetString(sdtRAMDrive);
           dtnUnknown:
             FullS := FullS+GetString(sdtError);
         end {case};
@@ -1472,60 +1472,6 @@ function SelectDrive; {-$VIV, JO}
     SelectDrive := CnvString(DirsToChange[N-cmQuickChange1]);
   end { SelectDrive };
 
-function GetFileType(const S: String; Attr: Byte): Integer;
-  begin
-  if S = '..' then
-    GetFileType := ttUpDir
-  else {AK155}
-   if Attr and Directory <> 0 then
-    GetFileType := ttDirectory
-  else
-    begin
-    GetFileType := 0;
-    if InExtFilter(S, Executables) then
-      GetFileType := ttExec
-    else if InExtFilter(S, Archives^) then
-      GetFileType := ttArc
-    else if InExtFilter(S, CustomMask1^) then
-      GetFileType := ttCust1
-    else if InExtFilter(S, CustomMask2^) then
-      GetFileType := ttCust2
-    else if InExtFilter(S, CustomMask3^) then
-      GetFileType := ttCust3
-    else if InExtFilter(S, CustomMask4^) then
-      GetFileType := ttCust4
-    else if InExtFilter(S, CustomMask5^) then
-      GetFileType := ttCust5
-        {JO}
-    else if InExtFilter(S, CustomMask6^) then
-      GetFileType := ttCust6
-    else if InExtFilter(S, CustomMask7^) then
-      GetFileType := ttCust7
-    else if InExtFilter(S, CustomMask8^) then
-      GetFileType := ttCust8
-    else if InExtFilter(S, CustomMask9^) then
-      GetFileType := ttCust9
-        {JO}
-    else if InExtFilter(S, CustomMask10^) then
-      GetFileType := ttCust10
-        (*
-{JO} {работает, но имхо притормаживает}
-    else if InFilter(S, Archives   ^.Filter)  then GetFileType := ttArc
-    else if InFilter(S, CustomMask1^.Filter)  then GetFileType := ttCust1
-    else if InFilter(S, CustomMask2^.Filter)  then GetFileType := ttCust2
-    else if InFilter(S, CustomMask3^.Filter)  then GetFileType := ttCust3
-    else if InFilter(S, CustomMask4^.Filter)  then GetFileType := ttCust4
-    else if InFilter(S, CustomMask5^.Filter)  then GetFileType := ttCust5
-    else if InFilter(S, CustomMask6^.Filter)  then GetFileType := ttCust6
-    else if InFilter(S, CustomMask7^.Filter)  then GetFileType := ttCust7
-    else if InFilter(S, CustomMask8^.Filter)  then GetFileType := ttCust8
-    else if InFilter(S, CustomMask9^.Filter)  then GetFileType := ttCust9
-    else if InFilter(S, CustomMask10^.Filter) then GetFileType := ttCust10
-{/JO}
-*)
-    end;
-  end { GetFileType };
-
 {-DataCompBoy-}
 function NewFileRec;
   var
@@ -1555,7 +1501,18 @@ function NewFileRec;
   {$ELSE}
   CopyShortString(Name, T.FlName[True]);
   {$ENDIF}
-  T.Size := Size;
+  if (Attr and Directory <> 0) and (Size = 0) then
+    T.Size := -1 {AK155 28-11-2005.
+      Вообще-то, это не очень хорошо, менять тот размер, который
+      задан в вызове. Но очень уж много этих вызовов, чтобы везде
+      вставлять такой анализ и -1 в качестве размера.
+      Если когда-то окажется, что этим мы испортим имеющуюся
+      информацию о нулевом размере, то ничего страшного от этого
+      не будет: на общем размере 0 не сказывается, а повторный подсчёт
+      этого нуля, если потребуется, будет выполнен достаточно быстро.
+      }
+  else
+    T.Size := Size;
   T.PSize := Size;
   if Date = 0 then
     begin

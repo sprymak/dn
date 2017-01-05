@@ -24,6 +24,7 @@ procedure NotifyDeleteWatcher(const Path: String);
 procedure NotifyAsk(var S: String);
 procedure NotifySuspend;
 procedure NotifyResume;
+procedure NotifyDone;
 
 implementation
 
@@ -81,6 +82,7 @@ procedure NotifyDone;
   begin
   if NotifierCollection <> nil then
     Dispose(NotifierCollection, Done);
+  NotifierCollection := nil;
   end;
 
 procedure NotifyInit;

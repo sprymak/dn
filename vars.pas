@@ -97,7 +97,6 @@ type
     ReuseEditors: Byte;
     HistoryErrorBeep: Boolean;
     PreserveMenuPositions: Boolean;
-    LFNinBottom: Boolean;
     PanelDescrArvid: String[255];
     PanelDescrArc: String[255];
     PanelDescrTemp: String[255];
@@ -199,7 +198,6 @@ type
 
   {function ChangeNamesCaseOptions: PNamesCaseOptions;}
   {function UUDecodeOptions: AWord;}
-  {function MakeListFileOptions: AWord;}
   {function UUEncodeData: PUUEncodeData;}
   {function DriveInfoData: AWord;}
   {function StartupData: PStartupData;}
@@ -538,8 +536,6 @@ flpanelx
   ActivePanel: Pointer;
   CtrlWas: Boolean;
   DirsToChange: array [0..9] of PString;
-  CurFileActive: PString;
-  CurFilePassive: PString;
   CurrentDirectory: String;
   PShootState: Word;
 

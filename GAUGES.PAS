@@ -114,7 +114,6 @@ type
     constructor Init(var Bounds: TRect);
     procedure Draw; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-    function FormatTimeStr(H, M, SS: Word): String; virtual;
     procedure Update; virtual;
     end;
 
@@ -388,7 +387,7 @@ procedure TClockView.Update;
         Year := y;
         end;
       LastSemi := Semi;
-      TimeStr := FormatTimeStr(h, m, s);
+      TimeStr := ' ' + FormatTimeStr(h, m, s) + ' ';
       if not ShowSeconds then
         TimeStr := Copy(TimeStr, 1, 6)+' '; {-$VIV}
       {-SSK}
@@ -417,33 +416,6 @@ procedure TClockView.Update;
   else
     UpdTicks := 1
   end { TClockView.Update };
-
-function TClockView.FormatTimeStr;
-  var
-    N: String[3];
-    S: String[20];
-  begin
-  if  (CountryInfo.TimeFmt = 0) and (H > 12) then
-    begin
-    S := ' '+LeadingZero(H-12)+CountryInfo.TimeSep+LeadingZero(M)
-      +CountryInfo.TimeSep+LeadingZero(SS);
-    N := 'pm ';
-    end
-  else
-    begin
-    S := ' '+LeadingZero(H)+CountryInfo.TimeSep+LeadingZero(M)
-      +CountryInfo.TimeSep+LeadingZero(SS);
-    if CountryInfo.TimeFmt = 0
-    then
-      if  (H < 12) then
-        N := 'am '
-      else
-        N := 'pm '
-    else
-      N := ' ';
-    end;
-  FormatTimeStr := S+N;
-  end { TClockView.FormatTimeStr };
 
 {$IFDEF TrashCan}
 const

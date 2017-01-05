@@ -83,7 +83,7 @@ procedure TXDoubleWindow.SetState(AState: Word; Enable: Boolean);
     Separator^.Draw;
   if ((AState and sfDragging) <> 0) and not Enable then
     with Separator do
-      OldX := Origin.X;
+      OldX := Origin.X+1;
   if AState = sfSelected then
     begin
     SetState(sfActive, Enable);
@@ -91,7 +91,11 @@ procedure TXDoubleWindow.SetState(AState: Word; Enable: Boolean);
     TrashCan^.Hide;
     {$ENDIF}
     if Enable then
+      begin
+      Current^.SetState(sfSelected, True);
+        // чтобы установились ActivePanel и PassivePanel
       EnableCommands(DblWndCommands)
+      end
     else
       DisableCommands(DblWndCommands);
     end
@@ -140,6 +144,7 @@ procedure TXDoubleWindow.HandleEvent;
         kbAltLeft, kbAltRight,
         kbAltShiftLeft, kbAltShiftRight,
         kbCtrlAltZ, {Knave 11.09.99} {DataCompBoy}
+        kbAltCtrlSqBracketL, kbAltCtrlSqBracketR,
         kbCtrlSqBracketL, kbCtrlSqBracketR:
           begin
           HandleCommand(Event);
@@ -191,7 +196,6 @@ procedure TXDoubleWindow.HandleEvent;
           ClearEvent(Event);
           end;
         cmPushName,
-        cmGetDirInfo,
         cmZoom,
         cmMaxi,
         cmGetName,

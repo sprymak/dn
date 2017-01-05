@@ -78,8 +78,6 @@ const
   mbLeftButton = $01;
   mbRightButton = $02;
 
-  ShowScrollBar: Boolean = True;
-
   ShiftState: Byte = 0;
   ShiftState2: Byte = 0;
   OldShiftState: Byte = 0;
@@ -196,6 +194,8 @@ var
   CursorLines: SmallWord;
   OldCursorShape: Word;
   OldCursorPos: Word;
+  DownButtons: Byte; // moved from implementation section
+    {` Последняя нажатая кнопка мыши; сохраняется и после отпускания `}
 
   { ******** SYSTEM ERROR HANDLER ******** }
 
@@ -321,7 +321,7 @@ var
   OldSymbols: array[0..5] of Byte;
   SaveFont: array[0..5] of CharDef;
   LastButtons: Byte;
-  DownButtons: Byte;
+//  DownButtons: Byte; // moved to interface section
   LastDouble: Boolean;
 const
   LastWhere: TPoint = (X: 0; Y: 0);

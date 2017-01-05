@@ -195,7 +195,7 @@ procedure TPrintStatus.Draw;
       S1 := '~'+Copy(Strg(#219, ((Size.X-6)*Print^.FilePos) div
              Print^.FileLen)
           +Strg(#177, Size.X-6), 1, Size.X-6)+' ~'+
-        SStr((100*(Print^.FilePos+1)) div (Print^.FileLen+1), 2, ' ')+'%';
+          Percent(Print^.FilePos+1, Print^.FileLen+1);
     end;
   MoveCStr(B, '~'+S+'~', C);
   WriteLine(0, 0, Size.X, 1, B);

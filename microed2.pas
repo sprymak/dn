@@ -329,15 +329,10 @@ procedure MISaveFile(AED: PFileEditor);
       begin
       LoadDnIniSettings;
       DoneIniEngine;
-      ProbeINI(INIstoredtime, INIstoredsize, INIstoredcrc);
 
       CopyIniVarsToCfgVars;
 
-      ConfigModified := True;
       ShowIniErrors;
-      GlobalMessage(evCommand, cmReboundPanel, nil);
-      {AK155 Это временно, пока есть переменные, управляющие подвалом панели.
-      Конкретно - PackingInfoInBottom и PathInfoInBottom }
       end;
     end
   end { MISaveFile };

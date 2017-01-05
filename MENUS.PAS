@@ -110,6 +110,12 @@ type
     constructor Init(var Bounds: TRect);
     constructor Load(var S: TStream);
     function Execute: Word; virtual;
+      { AK155 21.05.2005 (ak50521a.dif) Добавил учёт поля Disabled.
+        До этого Disabled-элемент в Draw отображался бледно, но
+        в Execute выбирался наравне с доступными. Это может понадобиться
+        для элемента, команда которого не может быть отключена, так как
+        имеет слишком большой номер. Например, для отключения элемента
+        комбобокса. }
     function FindItem(Ch: Char): PMenuItem;
     procedure GetItemRect(Item: PMenuItem; var R: TRect); virtual;
     function GetHelpCtx: Word; virtual;
@@ -804,6 +810,7 @@ q:
               kbESC:
                 begin
                 Action := DoReturn;
+                Result := 0;
                 if  (ParentMenu = nil) or (ParentMenu^.Size.Y <> 1) then
                   ClearEvent(E);
                 end;
@@ -884,7 +891,7 @@ q:
               Result := Owner^.ExecView(Target);
               Dispose(Target, Done);
               end
-            else if Action = DoSelect then
+            else if (Action = DoSelect) and not Disabled {ak50521a.dif} then
               Result := Command;
     if  (Result <> 0) and CommandEnabled(Result) then
       begin

@@ -19,32 +19,26 @@ uses
 type
   PDrive = ^TDrive;
   TDrive = object(TObject)
-    Owner: Pointer;
+    Panel: Pointer;
     Prev: PDrive;
     DriveType: TDriveType;
     CurDir: String;
     DizOwner: String;
     NoMemory: Boolean;
-    Flags: AWord;
-    LFNLen: Byte;
-    EXTLen: Byte;
-    DirFLP, FilFLP: AWord;
-    Param, OldParam: Byte;
-    innum: Byte;
     SizeX: LongInt;
+    ColAllowed: array [0..10] of Boolean;
     {$IFDEF OS2}
     ShowLogNames: Boolean;
     {$ENDIF}
-    constructor Init(ADrive: Byte; AOwner: Pointer; Num: Byte);
+    constructor Init(ADrive: Byte; AOwner: Pointer);
     constructor Load(var S: TStream);
     procedure Store(var S: TStream); virtual;
     procedure KillUse; virtual;
     procedure lChDir(ADir: String); virtual;
     function GetDir: String; virtual;
-    function GetDirectory(SortMode, PanelFlags: Integer;
-         const FileMask: String;
-        var TotalInfo: TSize; var FreeSpace: String; Obj: Pointer)
-      : PCollection; virtual;
+    procedure ReadDescrptions(FilesC: PFilesCollection);
+    function GetDirectory(const FileMask: String;
+        var TotalInfo: TSize): PFilesCollection; virtual;
     procedure CopyFiles(Files: PCollection; Own: PView; MoveMode: Boolean)
       ; virtual;
     procedure CopyFilesInto(Files: PCollection; Own: PView;
@@ -56,11 +50,8 @@ type
     function GetRealName: String; virtual;
     function GetInternalName: String; virtual;
     procedure GetFull(var B; P: PFileRec; C, Sc: Word); virtual;
-    procedure GetEmpty(var B; SC: Word); virtual;
-    function CalcLengthWithoutName: Integer; virtual;
-    function CalcLength: Integer; virtual;
-    procedure RereadDirectory(S: String); virtual;
     procedure MakeTop(var S: String); virtual;
+    procedure RereadDirectory(S: String); virtual;
     procedure GetDown(var B; C: Word; P: PFileRec); virtual;
     procedure HandleCommand(Command: Word; InfoPtr: Pointer); virtual;
     procedure GetDirInfo(var B: TDiskInfoRec); virtual;
@@ -72,9 +63,9 @@ type
     function GetFullFlags: Word; virtual;
     procedure EditDescription(PF: PFileRec); virtual;
     procedure GetDirLength(PF: PFileRec); virtual;
-    procedure GetParam(N: Byte); virtual;
-    function OpenDirectory(const Dir: String): PDrive; virtual;
-    {destructor Done; virtual;}
+    destructor Done; virtual;
+    function OpenDirectory(const Dir: String;
+                                 PutDirs: Boolean): PDrive; virtual;
     end;
 
   PFindDrive = ^TFindDrive;
@@ -86,7 +77,7 @@ type
     UpFile: PFileRec;
     AMask, AWhat: PString;
     constructor Init(const AName: String; ADirs: PCollection;
-         AFiles: PFilesCollection; Num: Byte);
+         AFiles: PFilesCollection);
     constructor InitList(const AName: String);
     constructor Load(var S: TStream);
     {procedure Store(var S: TStream); virtual;}
@@ -104,8 +95,6 @@ type
     {procedure GetFull(var B; P: PFileRec; C, SC: Word); virtual;}
     {procedure GetEmpty(var B; SC: Word); virtual;}
     {procedure GetFreeSpace(var S: String); virtual;}
-    {function CalcLengthWithoutName: Integer; virtual;}
-    {function CalcLength: Integer; virtual;}
     {procedure MakeTop(var S: String); virtual;}
     {function IsUp: Boolean; virtual;}
     {procedure ChangeUp(var S: String); virtual;}
@@ -118,7 +107,7 @@ type
 
   PTempDrive = ^TTempDrive;
   TTempDrive = object(TFindDrive)
-    constructor Init(Num: Byte);
+    constructor Init;
     constructor Load(var S: TStream);
     {procedure Store(var S: TStream); virtual;}
     {destructor Done; virtual;}
@@ -164,8 +153,6 @@ type
     {procedure EraseFiles(AFiles: PCollection); virtual;}
     {procedure GetFull(var B; P: PFileRec; C, SC: Word); virtual;}
     {procedure GetEmpty(var B; SC: Word); virtual;}
-    {function CalcLengthWithoutName: Integer; virtual;}
-    {function CalcLength: Integer; virtual;}
     {function GetRealName: String; virtual;}
     {function GetInternalName: String; virtual;}
     {procedure MakeTop(var S: String); virtual;}
@@ -204,7 +191,7 @@ type
     TotFiles: LongInt;
     TotLen: LongInt;
     CurDirCellPos: LongInt;
-    constructor Init(const AName: String; Num: Byte);
+    constructor Init(const AName: String);
     {destructor Done; virtual;}
     {procedure lChDir(ADir: String); virtual;}
     {function GetDir: String; virtual;}
@@ -267,9 +254,9 @@ uses
   _DNFuncs
   ;
 
-constructor TDrive.Init(ADrive: Byte; AOwner: Pointer; Num: Byte);
+constructor TDrive.Init(ADrive: Byte; AOwner: Pointer);
   begin
-  _TDrive^.Init(ADrive, AOwner, Num, nil, @Self);
+  _TDrive^.Init(ADrive, AOwner, nil, @Self);
   end;
 
 constructor TDrive.Load(var S: TStream);
@@ -297,10 +284,8 @@ function TDrive.GetDir: String;
 asm
 end;
 
-function TDrive.GetDirectory(SortMode, PanelFlags: Integer;
-     const FileMask: String;
-    var TotalInfo: TSize; var FreeSpace: String; Obj: Pointer)
-  : PCollection;
+function TDrive.GetDirectory(const FileMask: String;
+        var TotalInfo: TSize): PFilesCollection;
   assembler; {&Frame-}
 asm
 end;
@@ -348,21 +333,6 @@ asm
 end;
 
 procedure TDrive.GetFull(var B; P: PFileRec; C, Sc: Word);
-  assembler; {&Frame-}
-asm
-end;
-
-procedure TDrive.GetEmpty(var B; SC: Word);
-  assembler; {&Frame-}
-asm
-end;
-
-function TDrive.CalcLengthWithoutName: Integer;
-  assembler; {&Frame-}
-asm
-end;
-
-function TDrive.CalcLength: Integer;
   assembler; {&Frame-}
 asm
 end;
@@ -432,21 +402,26 @@ procedure TDrive.GetDirLength(PF: PFileRec);
 asm
 end;
 
-procedure TDrive.GetParam(N: Byte);
+procedure TDrive.ReadDescrptions(FilesC: PFilesCollection);
   assembler; {&Frame-}
 asm
 end;
 
-function TDrive.OpenDirectory(const Dir: String): PDrive;
+function TDrive.OpenDirectory(const Dir: String; PutDirs: Boolean): PDrive;
+  assembler; {&Frame-}
+asm
+end;
+
+destructor  TDrive.Done;
   assembler; {&Frame-}
 asm
 end;
 
 constructor TFindDrive.Init(const AName: String; ADirs: PCollection;
-     AFiles: PFilesCollection; Num: Byte);
+     AFiles: PFilesCollection);
   begin
   _TFindDrive^.Init(AName, _Model1.PCollection(ADirs),
-     _Model1.PFilesCollection(AFiles), Num, nil, @Self);
+     _Model1.PFilesCollection(AFiles), nil, @Self);
   end;
 
 constructor TFindDrive.InitList(const AName: String);
@@ -464,9 +439,9 @@ procedure TFindDrive.NewUpFile;
   _TFindDrive^.NewUpFile(@Self);
   end;
 
-constructor TTempDrive.Init(Num: Byte);
+constructor TTempDrive.Init;
   begin
-  _TTempDrive^.Init(Num, nil, @Self);
+  _TTempDrive^.Init(nil, @Self);
   end;
 
 constructor TTempDrive.Load(var S: TStream);
@@ -520,9 +495,9 @@ procedure TArcDrive.StdMsg4;
   _TArcDrive^.StdMsg4(@Self);
   end;
 
-constructor TArvidDrive.Init(const AName: String; Num: Byte);
+constructor TArvidDrive.Init(const AName: String);
   begin
-  _TArvidDrive^.Init(AName, Num, nil, @Self);
+  _TArvidDrive^.Init(AName, nil, @Self);
   end;
 
 procedure TArvidDrive.SeekDirectory;

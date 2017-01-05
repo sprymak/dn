@@ -21,6 +21,7 @@ procedure NotifyDeleteWatcher(const Path: String); inline; begin end;
 procedure NotifyAsk(var S: String); inline; begin end;
 procedure NotifySuspend; inline; begin end;
 procedure NotifyResume; inline; begin end;
+procedure NotifyDone; inline; begin end;
 
 implementation
 end.

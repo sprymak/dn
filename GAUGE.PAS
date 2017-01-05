@@ -392,7 +392,7 @@ procedure TWhileView.Draw;
       end absolute B;
     C1, C2: Byte;
     I: Integer;
-    S: String;
+    PS: PString;
     R: TRect;
   begin
   if Length(Top) > Size.X-4 then
@@ -453,29 +453,24 @@ procedure TWhileView.Draw;
   B1[0].C := #200;
   B1[Size.X-1].C := #188;
   WriteLine(0, Size.Y-1, Size.X, 1, B);
-  for I := 0 to Size.Y-5 do
-    begin
-    MoveChar(B, ' ', C2, Size.X);
-    if I < Lines^.Count then
-      begin
-      if Lines^.At(I) <> nil then
-        S := PString(Lines^.At(I))^
-      else
-        S := '';
-      MoveStr(B[(Size.X-Length(S)) div 2], S, C2);
-      end;
-    B1[0].C := #186;
-    B1[Size.X-1].C := #186;
-    B1[0].A := C1;
-    B1[Size.X-1].A := C1;
-    WriteLine(0, I+1, Size.X, 1, B);
-    end;
-  MoveChar(B, ' ', C1, Size.X);
+
   B1[0].C := #186;
   B1[Size.X-1].C := #186;
+  for I := 0 to Size.Y-5 do
+    begin
+    MoveChar(B[1], ' ', C2, Size.X-2);
+    if I < Lines^.Count then
+      begin
+      PS := Lines^.At(I);
+      if PS <> nil then
+        MoveStr(B[(Size.X-Length(PS^)) div 2], PS^, C2);
+      end;
+    WriteLine(0, I+1, Size.X, 1, B);
+    end;
+  MoveChar(B[1], ' ', C2, Size.X-2);
   WriteLine(0, But^.Origin.Y, But^.Origin.X, 2, B);
   WriteLine(But^.Origin.X+But^.Size.X, But^.Origin.Y, Size.X, 2,
-     B[But^.Origin.X+But^.Size.X]);
+    B[But^.Origin.X+But^.Size.X]);
   But^.Draw;
   end { TWhileView.Draw };
 

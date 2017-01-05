@@ -58,8 +58,15 @@ uses
 procedure MakeCRCTable;
 function GetLineNumberForOffset(const FName: String; Offset: LongInt)
   : LongInt;
-function GetOffsetForLineNumber(const FName: String; LineNm: LongInt)
-  : LongInt;
+function GetOffsetForLineNumber
+  {` При установке номера, превышающего размер файла, результат -1.
+   Эта функция правильно работает, если разделитель строк - Lf или
+   CrLf. А голый Cr в качестве разделителя она не понимает, то есть
+   выдаст -1.
+     Ни анализа IOResult в процессе, ни ClrIO в конце не делается. }
+    (const FName: String; LineNm: LongInt): LongInt;
+  {`}
+
 procedure ResourceAccessError;
 function HotKey(const S: String): Char;
 
@@ -115,18 +122,19 @@ function GetOffsetForLineNumber(const FName: String; LineNm: LongInt)
   ln := 1;
   fp := 0;
   lResetFileReadOnly(F, 1);
-  repeat
+  while (ln < LineNm) and not Eof(F.F) do
+    begin
     BlockRead(F.F, q^, 4096, bl);
     bp := 0;
-    repeat
+    while (bp < bl) and (ln < LineNm) do
+      begin
       if q^[bp] = 10 then
         Inc(ln);
       Inc(bp);
       Inc(fp);
-    until (bp >= bl) or (ln >= LineNm);
-  until (ln >= LineNm) or Eof(F.F);
-  if ln >= LineNm
-  then
+      end;
+    end;
+  if ln >= LineNm then
     GetOffsetForLineNumber := fp
   else
     GetOffsetForLineNumber := -1;

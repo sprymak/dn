@@ -50,7 +50,10 @@ unit VideoMan;
 interface
 
 var
-  ScreenMirror: array[0..16383] of Byte;
+  ScreenMirror: Pointer;
+   {` Выводимая информаци сравнивается с содержимым, и, если всё совпадает,
+    вывод в консоль не производится. См. Views._vp.ShowBuffer `}
+
 procedure DetectVideo;
 
 procedure SetScrMode(Mode: Word);
@@ -246,6 +249,33 @@ function FixCrtMode(Mode: Word): Word;
   end {case};
   end;
 
+procedure ReallocBuffers;
+  var
+    NewUserScreenSize: Word;
+  begin
+  NewUserScreenSize := ScreenWidth*ScreenHeight*2;
+  if NewUserScreenSize <> UserScreenSize then
+    begin
+    UserScreenSize := NewUserScreenSize;
+    if UserScreen <> nil then
+      begin
+      FreeMem(UserScreen);
+      UserScreen := nil;
+      end;
+    if ScreenMirror <> nil then
+      begin
+      FreeMem(ScreenMirror);
+      ScreenMirror := nil;
+      end;
+    end;
+  UserScreenWidth := ScreenWidth;
+  if UserScreen = nil then
+    GetMem(UserScreen, UserScreenSize);
+  if ScreenMirror = nil then
+    GetMem(ScreenMirror, UserScreenSize);
+  FillChar(ScreenMirror^, UserScreenSize, 0);
+  end;
+
 // Updates the CRT-related variables
 
 procedure SetCrtData;
@@ -256,6 +286,7 @@ procedure SetCrtData;
     SrcSize: TSysPoint;
   begin
   SysTvGetScrMode(@SrcSize, True);
+(*
   {AK155 при SrcSize.Y=300 (w2k, wXP) DN падает}
   if  (SrcSize.Y > 100) or (SrcSize.X*SrcSize.Y*2 > 32768) then
     begin
@@ -263,8 +294,10 @@ procedure SetCrtData;
     SysTvGetScrMode(@SrcSize, True);
     end;
   {/AK155}
+*)
   ScreenHeight := SrcSize.Y;
   ScreenWidth := SrcSize.X;
+  ReallocBuffers;
   {JO}
   if SrcSize.X = 80 then
     case SrcSize.Y of
@@ -354,6 +387,7 @@ function SetVideoMode(Mode: Word): Boolean;
       Drivers.CursorLines := GetCursorSize;
       {/AK155}
       end;
+//  ReallocBuffers;
   end { SetVideoMode };
 
 // Initializes Turbo Vision's video manager. Saves the current screen
@@ -401,6 +435,7 @@ procedure InitVideo;
   WordRec(OldCursorPos).Hi := Y; {KV}
   {JO}
   DetectVideoType;
+//  ReallocBuffers;
   if  (StartupData.Load and osuRestoreScrMode <> 0) then
     begin
     {$IFDEF OS2}
@@ -419,11 +454,6 @@ procedure InitVideo;
   SetCrtData;
   if not ScreenSaved then
     begin
-    if UserScreen <> nil then
-      FreeMem(UserScreen, UserScreenSize);
-    UserScreenSize := ScreenWidth*ScreenHeight*2;
-    UserScreenWidth := ScreenWidth;
-    GetMem(UserScreen, UserScreenSize);
     {$IFDEF WIN32} {?} {DataCompBoy: how to do this in OS/2 ???}
     GetMem(Bf, UserScreenSize shl 1);
     s.X := ScreenWidth;
@@ -481,7 +511,6 @@ procedure DoneVideo;
   {$IFDEF Win32}
   SysCtrlSleep(1); {KV}
   {$ENDIF}
-  FillChar(ScreenMirror, SizeOf(ScreenMirror), 0);
   {$IFDEF OS2}
   {JO: это работает действеннее, чем SysTVSetCurPos, который }
   {перестаёт нормально работать после смены видеорежима      }

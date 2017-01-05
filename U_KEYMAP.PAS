@@ -123,6 +123,9 @@ var
   же клавиши в другой раскладке.
   Определяется xlt-файлом, заданным ini-переменной KbdToggleLayout `}
 
+  ABCSortXlat: TXLat;
+    {' Таблица весов для алфавитной сортировки; без одинаковых весов '}
+
  {Следующие три таблицы используются вместо XlatCP для "перекодировки"
   Ascii-Ascii (см. первые элементы KeyMapDescr). Поэтому они должны
   присутствовать все три, и именно в таком порядке. }
@@ -159,12 +162,30 @@ procedure AcceptToAscii(var XLatCP: TXLatCP);
   {` В XLatCP на основе готовой таблицы [ToAscii] заполнить остальные `}
 
 function ReadXlt(FN: string; var N: Integer): PCodeConv;
+  {` Прочитать xlt-файл. Память под результат резервируется.
+  N - длина прочитанного файла. Если прочитать не удалось,
+  результат nil, а N = 0 `}
+
+procedure ConvToXlat(Conv: PCodeConv; L: Integer; var Xlat: TXLat);
+  {` Преобразование PCodeConv длиной L в Xlat. Начальное заполнение
+  XLat должна сделать вызывающая программа. Conv освобождается.`}
 
 function BuildCodeTable(const S: string; var XlatCP: TXLatCP): Boolean;
   {` Строится XlatCP для кодировки S. S может представлять собой
   либо число (тогда это номер кодовой страницы), либо имя
   xlt-файла. Если имя файла не содержит пути (распознаётся по '\'),
   то файл ищется в стандартном XLT-каталоге. Результат - успех. `}
+
+function BuildABCSortXlat(const FN: string): Boolean;
+  {` Строится ABCSortXlat для кодировки FN. FN может представлять собой
+  либо число (тогда это номер кодовой страницы), либо имя
+  xlt-файла. Если имя файла не содержит пути (распознаётся по '\'),
+  то файл ищется в стандартном XLT-каталоге.
+  Если FN='' ил ошибка, то ABCSortXlat - тождественная перекодировка.
+  Результат - успех.
+  !! Внимание: в настоящий момент (04.05.2005) реализован только
+     xlt-вариант FN.
+  `}
 
 function BuildLayoutConvXlat(const FN: string): Boolean;
   {` Строится LayoutConvXlat для кодировки FN. FN может представлять собой
@@ -399,6 +420,25 @@ function BuildLayoutConvXlat(const FN: string): Boolean;
     Result := False;
   end;
 
+function BuildABCSortXlat(const FN: string): Boolean;
+  var
+    L: Integer;
+    Conv: PCodeConv;
+  begin
+  Result := True;
+  NullXlat(ABCSortXlat);
+  if FN = '' then
+    Exit;
+  NullXlat(ABCSortXlat);
+  Conv := ReadXlt(FN, L);
+  if Conv = nil then
+    begin
+    Result := False;
+    Exit;
+    end;
+  ConvToXlat(Conv, L, ABCSortXlat);
+  end;
+
 procedure XLatStr(var S: String; const XLat: TXLat);
   var
     i: Longint;
@@ -426,12 +466,27 @@ procedure InitUpcase;
     end;
   end { InitUpcase };
 
+procedure ConvToXlat(Conv: PCodeConv; L: Integer; var Xlat: TXLat);
+  var
+    I: Integer;
+    Conv0: PCodeConv;
+  begin
+  Conv0 := Conv;
+  for I := 1 to L div 2 do
+    begin
+    if not (Conv^.A in [#$0D, #$0A]) then
+      Xlat[Conv^.A] := Conv^.B;
+    Inc(Conv);
+    end;
+  FreeMem(Conv0);
+  end;
+
 function BuildCodeTable(const S: string; var XlatCP: TXLatCP): Boolean;
   var
     CP: Integer;
     Err: Integer;
-    I, J: Integer;
-    Conv, Conv0: PCodeConv;
+    I, L: Integer;
+    Conv: PCodeConv;
     C: Char;
   begin
   Result := False;
@@ -440,21 +495,13 @@ function BuildCodeTable(const S: string; var XlatCP: TXLatCP): Boolean;
     Result := QueryToAscii(CP, XlatCP[ToAscii])
   else
     begin { должно быть имя xlt-файла}
-    Conv0 := ReadXlt(S, J);
-    Conv := Conv0;
-    if J >= 2 then
+    NullXLAT(XlatCP[ToAscii]);
+    Conv := ReadXlt(S, L);
+    if Conv <> nil then
       begin
+      ConvToXlat(Conv, L, XlatCP[ToAscii]);
       Result := True;
-      NullXLAT(XlatCP[ToAscii]);
-      for I := 1 to J div 2 do
-        begin
-        if not (Conv^.A in [#$0D, #$0A]) then
-          XlatCP[ToAscii][Conv^.A] := Conv^.B;
-        Inc(Conv);
-        end;
       end;
-    if Conv0 <> nil then
-      FreeMem(Conv0);
     end;
   if Result then
     AcceptToAscii(XlatCP);

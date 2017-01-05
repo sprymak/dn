@@ -47,8 +47,6 @@
 
 dlAltTable            'QWERTYUIOP'#0#0#0#0'ASDFGHJKL'#0#0#0#0#0'ZXCVBNM'
 
-erInvalidOvrSize      ^C'Overlay size must be in interval'^M+
-                      ^C'from 64 to 200 Kbytes.'
 erInvalidFormula,     ^M^C'Invalid formula in'
 erInvalidCell,        ^M^C'Invalid cell number in'
 erInvalidValue,       ^M^C'Invalid value in'
@@ -147,7 +145,6 @@ dlAllButton,          '~A~ll'
 dlCancelButton,       'Cancel'
 dlHelpButton,         'Help'
 dlTreeButton,         '~T~ree'
-dlReanimateButton,    '~R~eanimate'
 dlDriveButton,        '~D~rive...'
 dlViewButton,         '~V~iew...'
 dlHexASCIIButton,     '~H~ex/ASCII'
@@ -205,11 +202,13 @@ dlDIFile,             'file'
 dlDIDirectory,        'directory'
 dlDIByte,             'byte'
 dlDIWith,             ' with '
-dlDITotalDisk,        '~ total bytes on drive ~'
-dlDIFreeDisk,         '~ free bytes on drive ~'
-dlDIVolumeID,         'Volume label on drive ~'
-dlDISerialNo,         'Serial number on drive ~' { Rainbow }
-dlDIFileSys,          'File system on drive ~' { Rainbow }
+dlDITotalDisk,        '~ total bytes'
+dlDIFreeDisk,         '~ free bytes'
+dlDIVolumeID,         'Volume label: ~'
+dlDISerialNo,         'Serial number: ~' { Rainbow }
+dlDIFileSys,          'File system: ~' { Rainbow }
+dlDIUsed,             'bytes used'
+dlDIClusterSize,      ', Cluster ~'
 dlDIMemoryTotal,      '~K Bytes free physical memory'
 dlDIMemoryForUser,    '~ Bytes memory for user'
 dlDIMemoryForDN,      '~K Bytes free virtual memory'
@@ -313,15 +312,15 @@ dlChangeDir,          'Change directory'
 dlSetAttr,            ' Setting Attributes '
 dlSortName,           '~N~ame'
 dlSortExt,            '~E~xtension'
-dlSortType,           '~G~roup'
 dlSortDate,           '~T~ime'
 dlSortCrDate,         '~C~reation time'
 dlSortLADate,         'Last ~a~ccess time'
 dlSortDIZ,            '~D~escription'
 dlSortSize,           '~S~ize'
 dlSortUnsorted,       '~U~nsorted'
-dlSortOwner,          'Sort by path'
-dlSortInverted,       'Inverted order'
+dlSortOwner,          'Sort by ~p~ath'
+dlSortGroup,          'Sort by ~g~roup'
+dlSortInverted,       'In~v~erted order'
 
 dlViewQuery,          ^C'Information was modified. Save changes?'
 dlViewSearchFor,      '~S~earch for'
@@ -360,15 +359,15 @@ dlPercentComplete,     '% complete'
 dlTopName,             ' Short Name ~³~'
 dlTopLFN,              'Name'
 dlTopSplit,            '~³~'
-dlTopSize,             '   Size   ~³~'
-dlTopTime,             ' Time~³~'
+dlTopSize,             '  Size   ~³~'
+dlTopTime,             '  Time~³~'
 dlTopDate,             '  Date  ~³~'
-dlTopCrTime,           'CTime~³~'
+dlTopCrTime,           ' CTime~³~'
 dlTopCrDate,           ' CDate  ~³~'
-dlTopLATime,           'ATime~³~'
+dlTopLATime,           ' ATime~³~'
 dlTopLADate,           ' ADate  ~³~'
 dlTopPath,             '  Path'
-dlTopOriginal,         ' Original ~³~'
+dlTopOriginal,         ' Original~³~'
 dlTopPacked,           '  Packed  ~³~'
 dlTopRatio,            ' % ~³~'
 
@@ -455,24 +454,6 @@ dlReadingFile,         'Reading file'
 dlWritingFile,         'Writing file'
 dlQueryReplace,        ^C'Replace this occurence?'
 dlEditTitle,           'Edit'
-dlReanimateTitle,      'Reanimator'
-dlReanimateView,       'View of recoverable file'
-dlReanimateHead,       'Name             Size    Attr   Date   Time  Cluster Prognosis'
-dlReanimateScan,       'Scanning directory...'
-dlReanimateDirectory,  'DIRECTORY'
-dlReanimateRecovered,  'RECOVERED'
-dlReanimateGood,       'good'
-dlReanimatePoor,       'poor'
-dlReanimateAverage,    'average'
-dlReanimateWrite,       ^M^C'DOS has overwritten the first'^M+
-                        ^C'letter of the file name'^M^M+
-                        ^C'Please supply a new first letter'^M^M+
-                        ^C' %s'^M^M^C'Unavailable letters'^M^C'%s'
-dlCantReanimate,       ^C'Can''t reanimate this file'^M+
-                       ^C'because first cluster of it'^M+
-                       ^C'has been overwritten'
-dlCantReanimateDirectory, ^C'Can''t reanimate this directory'^M^C'because this may garbage'^M^C'the structure of FAT.'
-dlReanimateNone,       'None'
 
 dlGameTitle,          'Navigator''s game'
 dlNewButton,          '~N~ew'
@@ -541,59 +522,6 @@ dl_B_ackground              '~B~ackground'
 dl_F_oreground              '~F~oreground'
 dl_I_tem                    '~I~tem'
 dl_G_roup                   '~G~roup'
-
-dlFmtOs2Warning             ^C'Under OS/2 DN Disk format may not work properly'^M+
-                            ^C'(OS/2 floppy emulation problems)'^M+
-                            ^C'so don''t get confused with strange errors'^M+
-                            ^C'and try use only ''standard'' disk formats'
-dlFmtAdvWarning             ^C'Improper using Advanced Format'^M+
-                            ^C'options may cause physical damage'^M+
-                            ^C'of your drive.'
-dlFmtMsgStr                 ' Total space   %6s K'^M' System space -%6s K'^M' Bad space    -%6s K'^M'                ÄÄÄÄÄÄÄ'^M' Usable space  %6s K'
-dlFmtTimeStr                ^C'Estimated time  %2d:%02d:%02d'^M+
-                            ^C' Elapsed time   %2d:%02d:%02d'
-dlFmtNewDisk                ^C'Insert %s floppy disk in drive %c:'
-dlFmtContQuery              ^C'Operation terminated'^M^M^C'Continue?'
-dlFmtErrorSysAreas          ^C'An error occured during update'^M^C'system areas :'^M^M+
-                            ^C'%s.'^M^M^C'Procedure terminated.'
-dlFmtNoDisk                 ^C'There is not disk in drive %c:'^M^M^C'operation terminated.'
-
-dlFmtDiskProtected          ^C'Disk in drive %c:'^M+
-                            ^C'is write-protected'^M+
-                            ^C'Remove protection and try again.'
-dlFmtDiskFormatted          ^C'Disk in drive %c:'^M^M^C'Volume name : %s'^M^M^C+
-                            '%10s bytes total disk space'^M^C'%10s bytes in bad sectors  '+
-                            ^M^C'%10s bytes in system space '^M+
-                            ^C'%10s bytes free disk space '^M^M+
-                            ^C'Volume serial number : %x'^M^M+
-                            ^C'Format another disk?'
-dlFmtNonDos                 ^C'NON - DOS format mode.'^M^C'All DOS-related procedures'^M+
-                            ^C'during this format will not'^M^C'be performed.'^M
-dlFmtQuickFormat            ^C'This Disk can''t be '^M^C'Quick formatted.'
-dlFmtTrack0Bad              ^C' Track 0 bad.'^M^M+
-                            ^C'This Disk can''t be '^M^C'formatted.'
-dlFmtNoSysFiles             ^C'Can''t find system files'^M+
-                            ^C'on drive C:'
-dlFmtBadInterleave          ^C'Invalid Interleave factor'^M+
-                            ^C'or hardware / software'^M^C'incompatibility.'^M^M+
-                            ^C'Make sure that all settings'^M+
-                            ^C'are supported by your hardware/software'
-dlFmtNoFloppy               ^C' No floppy present '
-
-dlFmt_F_astFormat          '~F~ast format'
-dlFmt_D_OSFormat           '~D~OS format'
-dlFmt_S_afeFormat          '~S~afe format '
-dlFmt_Q_uickFormat         'Q~u~ick format'
-
-dlFmt_M_akeDiskBootable    '~M~ake disk bootable'
-dlFmtFo_r_cedFormatting    'Fo~r~ced formatting'
-dlFmtMarkFullTrack         'Mark full track if ~b~ad'
-dlFmtOptimi_z_eSectors     'Optimi~z~e sectors'
-dlFmtAdvButton             '~A~dvanced'
-dlFmtStartButton           'Start'
-dlFmtAreYou                ^C' OK to format it?'
-dlFmtDriveHas1             ^C' Drive '
-dlFmtDriveHas2             ': has the following'^M^C' files and subdirs on it:'
 
 dlFBBBinary                '~B~inary splitting only'
 dlFBBVerify                '~V~erify disk writes'
@@ -749,6 +677,7 @@ dlTerminalTitle            'Terminal'
 
 dlScanningDirs             ^M^M^C'Scanning directories'
 dlTreeFilesWith            ' files with '
+dlTreeTitle                'Directory tree'
 dlTree1FileWith            '1 file with '
 
 dlMNUNotFound              ^C'File DN.MNU not found'
@@ -767,51 +696,7 @@ dlEnvAddTitle              'Add Environment Variable'
 dlEnvVariable              '~V~ariable'
 dlEnvRenVar                'Rename variable "%s"'
 
-dlFmtDriveLabel            'Dri~v~e'
-dlFmtCapacityLabel         '~C~apacity'
-dlFmtVolumeL               'Volume ~L~abel'
-dlFmtFTypeLabel            'Format Type'
-dlFmtTitle                 'Floppy Formatter'
-
-dlCDPlayer                 'CD Player'
-dlCDPlayerNoCD             'CD is not present'
-dlCDTrack                  'Track'
-dlCDPlayTrack              'Play track'
-dlCDSelectTrack            'Tracks'
-
-dlCDTrackButton            '~T~racks'
-dlCDAddButton              '~A~dd'
-dlCDDeleteButton           '~D~elete'
-dlCDSaveButton             '~S~ave'
-dlCD_R_Button              '~R~'
-dlCD_C_Button              '~C~'
-
-dlCDTrackTime              'Track Time'
-dlCDTrackLeft              'Track Left'
-dlCDDiskTime               'Disk Time'
-dlCDDiskLeft               'Disk Left'
-
 dlBytesOf                  ' bytes of '
-
-dlCDButtonRew              '~~'
-dlCDButtonPrev             '~<~'
-dlCDButtonPlay             '~~'
-dlCDButtonNext             '~>~'
-dlCDButtonFFwd             '~~'
-dlCDButtonPause            '~*~'
-dlCDButtonStop             '~þ~'
-dlCDButtonEject            '~'#30'~'
-
-dlCDButtonSet              'S~e~t'
-dlCDButtonTime             '~T~ime'
-dlCDButtonMode             '~M~ode'
-dlCDButtonMix              'Mi~x~'
-dlCDButtonOrder            '~O~rder'
-dlCDButtonTitle            'Tit~l~e'
-
-
-dlNoCD                     ^C'No CD drive found'^M^C'or (NW)%s not installed.'
-dlCloseCD                  ^C'OK to close CD-player?'
 
 dlHelp                     'Help'
 dlOutputTitle              'Output'
@@ -1190,12 +1075,6 @@ dlSPF24 '; i:\vex\atl\'
 dlSPF25 ';------------------------------------------------------------- (c) Viv''99 -'
 dlSPFht 'To search files need configuration DN.SPF. Example of DN.SPF created.'
 
-dlOldFiles              ^C'These files are no longer used'^M+
-                        ^C'by the new version of DN and may'^M+
-                        ^C'cause improper functionality.'^M^M+
-                        ^C'Delete these files? (recommended)'
-dlOldFilesNoWarn        ^C'This warning will not appear in the future'
-
 ;{-$Excelence}
 dlPresent                 'present'
 dlAbsent                  'absent'
@@ -1447,6 +1326,7 @@ dlInvalidRecNumber,  ^M^C'Records number in header: '
 dlInvalidRecNumber1, ^M^C'Actually records number : '
 dlInvalidRecSize,    ^M^C'Record''s size in header: %d'^M^C'Actually record''s size : %d'
 dlUseCalcRecNumber,  ^M^M^C'Use header value?'
+dlCopyTimeSpeed,     'Elapsed: %s   Left: %s   Speed: %sb/s'
 ;JOHN_SW end
 
 ;KV+
@@ -1490,6 +1370,9 @@ dlPressF1 ^M^C'Press F1 for more detailed information'
 ;AK155
 dlLayoutErr 'Error in "Keyboard" field'
 dlWinErr 'Error in "WIN:" field'
+dlSortError 'Error in "Sort order" field'
 dlCodetablesErr 'Error in "Additional codetables" field'
 dlCoutrySetupErr 'Error in country setups (Options - Configuration - Country support...)'
+dlOtherPanel 'Other Panel'
+dlUndoPanelSetup 'Undo panel setup'
 ;/AK155

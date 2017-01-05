@@ -49,7 +49,7 @@ type
     end;
 
   LongRec = record
-    Lo, Hi: Word;
+    Lo, Hi: SmallWord;
     end;
 
   SW_Word = LongInt;

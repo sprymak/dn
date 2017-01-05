@@ -66,17 +66,23 @@ uses
 {$ENDIF}
 
 type
-  TNameFormatMode = (nfmNull, nfmSelected, nfmCut, nfmHidden, nfmSystem,
-     nfmHiddenSystem);
+  TNameFormatMode = (nfmNull, nfmHidden, nfmSystem, nfmHiddenSystem);
 
 const
-  NameFormatChar: array[TNameFormatMode] of Char = (#46, #251, #16,
-     #176, #177, #178);
+  NameFormatChar: array[TNameFormatMode] of Char =
+    ('.', #176, #177, #178);
 
-  flnPreferName = 1;
-  flnHardExtArea = 2;
-  flnAutoHideDot = 4;
-  flnUseCutChar = 8;
+(*  flnPreferName = 1;  { Не табулированное расширение;
+        при этом всегда ExtSize = 0}
+  flnHardExtArea = 2; { Табулировать расширение
+        при этом всегда ExtSize <> 0}
+{  flnUseCutChar = 8; Он всегда нужен }
+*)
+  flnPreserveExt = 1; { если при нетабулированном показе расширение
+    целиком не помещается, то сохранить ExtSize символов для
+    поля расширения (включая символ обрезки)}
+  flnAutoHideDot = 4; { Заменять точку перед расширением на пробел;
+    бывает только при ExtSize <> 0}
   flnHighlight = 16;
   flnUpCase = 32;
   flnLowCase = 64;
@@ -136,6 +142,7 @@ type
       {` 0:'$123.00', 1:'123.00$', 2:'$ 123.00', 3:'123.00 $' 4: 123$00 `}
     Currency: String[4]; {Inputline}
     KbdToggleLayout: String[79]; {Inputline}
+    ABCSortTable: String[79]; {Inputline}
     WinCodeTable: String[79]; {Inputline}
     CodeTables: String[255]; {Inputline}
     end; {`}
@@ -146,17 +153,6 @@ var
 const
 
   ColorIndexes: PColorIndex = nil;
-
-  { Keyboard state and shift masks }
-
-  kbRightShift = $0001;
-  kbLeftShift = $0002;
-  kbCtrlShift = $0004;
-  kbAltShift = $0008;
-  kbScrollState = $0010;
-  kbNumState = $0020;
-  kbCapsState = $0040;
-  kbInsState = $0080;
 
   NumFloppy: Byte = 0;
 
@@ -206,9 +202,29 @@ function Max(x, y: LongInt): LongInt;
 function Sgn(x: Integer): Integer;
 procedure TinySlice;
 
-function FormatLongName(const Name: String; Size, ExtSize: Byte;
+function FormatLongName(Name: String; Size, ExtSize: Byte;
+  {` Форматировать длинное имя под общую длину Size, в том числе
+  под табулированное расширение - ExtSize.
+    Отдельные биты Options задают особенности форматирования (константы
+  с именами вроде flnHighlight.
+    FormatMode определяет символ, выводимый вместо точки.}
      Options: Word;
-    FormatMode: TNameFormatMode; Delim: PChar): String; (* X-Man *)
+    FormatMode: TNameFormatMode): String; (* X-Man *)
+    {`}
+{ Переменные FormatLongName, остаточные значения которых могут
+  представлять интерес: }
+var
+  flnNLength: Integer;
+    {` После FormatLongName длина собственно имени, без обрезания `}
+  flnNSize: Integer;
+    {` После FormatLongName  длина имени после обрезания `}
+  flnDotPos: Integer;
+    {` После FormatLongName  результирующая позиция точки (если
+      не табулируем) или последнего пробела перед полем расширения
+      (если табулируем) `}
+  flnPanelName: String;
+    {` После FormatLongName отформатированное имя (без добавочных
+      символов управления подсветкой `}
 
 const
   BreakChars: set of Char = [',', ' ', '[', ']', '{', '}', '(', ')',
@@ -235,7 +251,6 @@ var
   { is running                                    }
   FreeStr: String;
   FreeLongStr: LongString;
-  PanelViewMode: Byte; // меняется по Ctrl-цифра
   ActiveDir: String; {DataCompBoy}
   DNNumber: Byte;
 
@@ -273,6 +288,7 @@ const
     CurrencyFmt: 0;
     Currency: '$';
     KbdToggleLayout: 'ru441.xlt';
+    ABCSortTable: 'sort866.xlt';
     WinCodeTable: '1251';
     CodeTables: 'KOI:koi8-r.xlt'
     );
@@ -301,8 +317,7 @@ function Cut;
   (* X-Man *)
   if len < 0 then
     len := 0;
-  Cut := FormatLongName(p, len, 0, flnPreferName+flnUseCutChar, nfmNull,
-       nil)
+  Cut := FormatLongName(p, len, 0, 0, nfmNull)
   end;
 
 function CutH;
@@ -310,9 +325,7 @@ function CutH;
   (* X-Man *)
   if len < 0 then
     len := 0;
-  CutH := FormatLongName(p, len, 0,
-      flnHighlight+flnPreferName+flnUseCutChar+flnHandleTildes, nfmNull,
-       nil)
+  CutH := FormatLongName(p, len, 0, flnHighlight+flnHandleTildes, nfmNull)
   end;
 
 {-DataCompBoy-}
@@ -451,309 +464,186 @@ destructor TTextReader.Done;
   end;
 {-DataCompBoy-}
 
-function FormatLongName(const Name: String; Size, ExtSize: Byte;
+{AK155 19.05.05 Все динамические PString заменил на стековые String.
+Я сомневаюсь в полезности этих PString даже в 16bit версии,
+а в 32bit - это совершенно лишнее.
+   А также ввёл пару мелких оптимизаций и добавил комментариев.}
+function FormatLongName(Name: String; Size, ExtSize: Byte;
      Options: Word;
-    FormatMode: TNameFormatMode; Delim: PChar): String;
+    FormatMode: TNameFormatMode): String;
 
   var
-    P, N, E, R: ^String;
-    PSize, NSize, ESize: Integer;
-    Hi1, Hi2, Hi3, DotPos, EFlag, i: Byte;
-
-  procedure FillR(A, B: Byte; Value: Char);
-    begin
-    while A <= B do
-      begin
-      R^[A] := Value;
-      Inc(A)
-      end
-    end;
-
-  function MakeResult: String;
-    var
-      i: Byte;
-      Res: ^String;
-    begin
-    New(Res);
-    SetLength(Res^, 0);
-    if  (Options and flnPadRight) = 0
-    then
-      while R^[Length(R^)] = #32 do
-        SetLength(R^, Length(R^)-1);
-    if  ( (Options and flnSelected) <> 0) and
-        ( (Options and flnHighlight) <> 0)
-    then
-      AddStr(Res^, '~');
-    for i := 1 to Length(R^) do
-      begin
-      if  ( (i = Hi1) or (i = Hi2) or (i = Hi3)) and
-          ( (Options and flnHighlight) <> 0)
-      then
-        AddStr(Res^, '~');
-      if  (R^[i] = '~') and ((Options and flnHandleTildes) <> 0)
-      then
-        AddStr(Res^, #0);
-      AddStr(Res^, R^[i]);
-      {AK155: зачем этот второй #0 - придумать не смог, поэтому убрал его.
- А относительно первого #0 догадался, что он должен обеспечивать
- отрисовку тильды. И внес соответствующую коррекцию в
- drivers._vp.MoveCStr. 06.01.2001}
-      {
-            if (R^[i]='~') and ((Options and flnHandleTildes)<>0)
-            then AddStr(Res^,#0);}
-
-      {/AK155}
-      if  ( (i = Hi1) or (i = Hi2) or (i = Hi3)) and
-          ( (Options and flnHighlight) <> 0)
-      then
-        AddStr(Res^, '~');
-      end;
-    if  ( (Options and flnSelected) <> 0) and
-        ( (Options and flnHighlight) <> 0)
-    then
-      AddStr(Res^, '~');
-    MakeResult := Res^;
-    Dispose(Res)
-    end { MakeResult: };
-
+    PSize, ESize: Integer; {PathSize, ExtensionSize}
+    P, N, E: String; { Path, Name, Extension }
+    EFlag, i: Byte;
+    Hi: Boolean; { признак того, что данный сим}
+    Hi1, Hi2, Hi3: Integer; { Позиции, которые должны быть выдедены цветом.
+      Hi1 - символ обрезки пути (подозреваю, что реально не нужен,
+        так как путь никогда не бывает вместе с цветом);
+      Hi2 - символ отметки файла или обрезки имени перед расширением;
+      Hi3 - символ обрезки на правом конце поля.
+      }
+    l: Integer;
+  label
+    MakeResult;
   begin { FormatLongName }
-  New(P);
-  New(N);
-  New(E);
-  New(R);
-
-  {-DataCompBoy-}
-  if FMSetup.TagChar <> '' then
-    NameFormatChar[nfmSelected] := FMSetup.TagChar[1];
-  if FMSetup.RestChar <> '' then
-    NameFormatChar[nfmCut] := FMSetup.RestChar[1];
-  {-DataCompBoy-}
-
-  {-DataCompBoy-}
-  if Name <> '..' then
-    lFSplit(Name, P^, N^, E^)
-  else
+  if Name = '..' then
     begin
-    P^:= '';
-    N^:= '..';
-    E^:= '';
+    Result := AddSpace(Name, Size);
+    Exit;
     end;
-  if  (Length(E^) > 0) and (E^[1] = '.') then
-    begin
-    for i := 1 to Length(E^)-1 do
-      E^[i] := E^[i+1];
-    SetLength(E^, Length(E^)-1)
-    end;
-  {-DataCompBoy-}
   if  (Options and flnUpCase) <> 0 then
-    begin
-    UpStr(P^);
-    UpStr(N^);
-    UpStr(E^)
-    end
+    UpStr(Name)
   else if (Options and (flnLowCase or flnCapitalCase)) <> 0 then
-    begin
-    LowStr(P^);
-    LowStr(N^);
-    LowStr(E^);
-    if  (Options and flnCapitalCase) <> 0 then
-      N^[1] := UpCase(N^[1])
-    end;
-  SetLength(R^, Size);
-  if Size < 5+ExtSize then
-    begin
-    FillR(1, Size, NameFormatChar[nfmCut]);
-    if Delim <> nil then
-      Delim^:= NameFormatChar[nfmCut]
-    else
-      Hi1 := Size;
-    FormatLongName := MakeResult;
-    Dispose(R);
-    Dispose(E);
-    Dispose(N);
-    Dispose(P);
-    Exit
-    end;
-  PSize := Length(P^);
-  NSize := Length(N^);
-  ESize := Length(E^);
-  EFlag := Byte(ESize > 0);
-  if  (Options and flnHardExtArea) <> 0 then
-    begin
-    if ESize > ExtSize then
-      ESize := ExtSize;
-    if PSize+NSize+1 > Size-ExtSize then
-      begin
-      PSize := Size-1-ExtSize-NSize;
-      if PSize < 3 then
-        PSize := 3;
-      if PSize > Length(P^) then
-        PSize := Length(P^)
-      end;
-    if PSize+NSize+1 > Size-ExtSize then
-      begin
-      NSize := Size-1-ExtSize-PSize;
-      if NSize < 1 then
-        NSize := 1;
-      if NSize > Length(N^) then
-        NSize := Length(N^)
-      end
-    end
-  else
-    begin
-    if PSize+NSize+ESize+EFlag > Size then
-      begin
-      PSize := Size-EFlag-ESize-NSize;
-      if PSize < 3 then
-        PSize := 3;
-      if PSize > Length(P^) then
-        PSize := Length(P^)
-      end;
-    if  (Options and flnPreferName) <> 0 then
-      begin
-      if PSize+NSize+ESize+EFlag > Size then
-        begin
-        ESize := Size-EFlag-PSize-NSize;
-        if ESize < 0 then
-          ESize := 0;
-        if ESize > Length(E^) then
-          ESize := Length(E^)
-        end;
-      if PSize+NSize+ESize+EFlag > Size then
-        begin
-        NSize := Size-EFlag-PSize-ESize;
-        if NSize < 1 then
-          NSize := 1;
-        if NSize > Length(N^) then
-          NSize := Length(N^)
-        end
-      end
-    else
-      begin
-      if PSize+NSize+ESize+EFlag > Size then
-        begin
-        NSize := Size-EFlag-PSize-ESize;
-        if NSize < 1 then
-          NSize := 1;
-        if NSize > Length(N^) then
-          NSize := Length(N^)
-        end;
-      if PSize+NSize+ESize+EFlag > Size then
-        begin
-        ESize := Size-EFlag-PSize-NSize;
-        if ESize < 0 then
-          ESize := 0;
-        if ESize > Length(E^) then
-          ESize := Length(E^)
-        end
-      end
-    end;
-
-  FillR(1, Size+1, #32);
+    LowStr(Name);
+  lFSplit(Name, P, N, E);
+  Delete(E, 1, 1);
+  if  (Options and flnCapitalCase) <> 0 then
+    N[1] := UpCase(N[1]);
+  SetLength(flnPanelName, Size);
   Hi1 := 0;
   Hi2 := 0;
   Hi3 := 0;
-  if ExtSize > 0 then
+  if Size < 5+ExtSize then
     begin
-    if  (Options and flnHardExtArea) <> 0 then
-      DotPos := Size-ExtSize
-    else
-      DotPos := Size-ESize
-    end
-  else
-    DotPos := PSize+NSize+1;
-  if DotPos > Size then
-    begin
-    if Delim = nil then
-      DotPos := Size
-    else
-      DotPos := Size+1
+    FillChar(flnPanelName[1], Size, FMSetup.RestChar[1]);
+    Hi1 := Size;
+    goto MakeResult;
     end;
-  for i := 1 to PSize do
-    R^[i] := P^[i];
-  for i := 1 to NSize do
-    R^[PSize+i] := N^[i];
-  for i := 1 to ESize do
-    R^[DotPos+i] := E^[i];
-  if  ( ( (Options and flnAutoHideDot) <> 0) and (DotPos = Size-ExtSize)
-      and (ExtSize > 0) or (Length(E^) = 0))
-    and (FormatMode = nfmNull)
-  then
+  flnNLength := Length(N);
+  flnNSize := flnNLength;
+  ESize := Length(E); { уже без точки }
+  EFlag := Byte(ESize > 0);
+
+  if Options and flnPreserveExt <> 0 then
     begin
-    end
-  else if R^[DotPos] = #32 then
-    R^[DotPos] := NameFormatChar[FormatMode];
-  if PSize < Length(P^) then
-    begin
-    if  (Options and flnUseCutChar) <> 0
+    l := (Length(N) + Min(3, Length(P)));
+      { сколько хочется на путь и имя при максимальной обрезке пути }
+    if (Size - l > ESize) { Расширение помещается } or
+       (l < Size-ExtSize) { Имя не нужно обрезать }
     then
-      R^[PSize] := NameFormatChar[nfmCut];
+      ExtSize := 0 { Не табулируем }
+    else if ESize < ExtSize then
+      ExtSize := ESize; { Табулируем, но минимизируем обрезку имени }
+    end;
+
+  if (ExtSize <> 0) and (ESize > ExtSize) then
+    begin { Обрезка расширения при табулированном показе }
+    ESize := ExtSize;
+    Hi3 := Size;
+    end;
+
+  PSize := Max(3, Size-(ESize+EFlag)-flnNSize);
+  if PSize >= Length(P) then
+    PSize := Length(P)
+  else
+    begin { Обрезка пути }
+    P[PSize] := FMSetup.RestChar[1];
     Hi1 := PSize
     end;
-  if ESize < Length(E^) then
+
+  {  Обрезка расширения при нетабулированном показе.
+  Её нельзя объединить с обрезкой имени, так как в позицию последней
+  точки может заноситься признак скрытого-системного файла.}
+  if (ExtSize <> 0) then
+    i := ExtSize+1
+  else
     begin
-    if  (Options and flnUseCutChar) <> 0 then
-      begin
-      if Delim <> nil then
-        Delim^:= NameFormatChar[nfmCut]
-      else
-        begin
-        if DotPos+ESize <= Size then
-          begin
-          R^[DotPos+ESize] := NameFormatChar[nfmCut];
-          Hi3 := DotPos+ESize
-          end
-        else
-          begin
-          if Delim <> nil then
-            Delim^:= NameFormatChar[nfmCut]
-          else
-            begin
-            R^[Size] := NameFormatChar[nfmCut];
-            Hi3 := DotPos+ESize
-            end;
-          end
-        end
-      end
-    else
-      Hi3 := DotPos+ESize
+    ESize := Min(Length(E), Max(0, Size-EFlag-PSize-flnNSize));
+    EFlag := Byte(ESize > 0);
+    i := ESize+EFlag;
+    if ESize < Length(E) then
+      Hi3 := Size;
     end;
-  if NSize < Length(N^) then
+  { Сейчас i - ширина поля расширения, включая позицию точки }
+
+  { Обрезка имени }
+  flnNSize := Min(Length(N), Max(1, Size-i-PSize));
+
+  FillChar(flnPanelName[1], Size, ' ');
+  if ExtSize = 0 then
+    flnDotPos := PSize+flnNSize+1
+  else
+    flnDotPos := Size-ExtSize;
+  { Сейчас flnDotPos - это позиция точки, если она в пределах поля,
+    либо Size+1, если точка выходит за поле из-за слишком длинного
+    имени в режиме без табуляции расширений }
+  for i := 1 to PSize do
+    flnPanelName[i] := P[i];
+  for i := 1 to flnNSize do
+    flnPanelName[PSize+i] := N[i];
+  for i := 1 to ESize do
+    flnPanelName[flnDotPos+i] := E[i];
+  if (FormatMode <> nfmNull) or
+     ((Options and flnAutoHideDot = 0) and (ESize <> 0))
+  then
+    flnPanelName[flnDotPos] := NameFormatChar[FormatMode];
+      { Занесение признака атрибутов или восстановление точки.
+        Если позиция точки вне поля (то есть будет обрезка), то атрибуты
+        не будут индицироваться. Может, это и неправильно, но так
+        было всегда.}
+  if flnNSize < Length(N) then
+    begin { Обрезка имени }
+    Hi2 := PSize+flnNSize + byte(flnDotPos <= Size);
+      {Если позиция точки индицируется, то обрезку ставим вместо неё, а
+      если нет - приходится обрезать на 1 символ больше }
+    flnPanelName[Hi2] := FMSetup.RestChar[1];
+    end;
+  if Hi3 <> 0 then {Обрезка расширения. Она может на самом деле
+      обрезать имя, если показ нетабулированный. В этом случае отметка
+      (если он есть) должна лечь поверх обрезки, поэтому
+      данный фрагмент должен стоять до занесения символа отметки. }
+    flnPanelName[Hi3] := FMSetup.RestChar[1];
+  if (Options and flnSelected) <> 0 then
+    begin { Отметка }
+    Hi2 := flnDotPos - byte(flnDotPos > Size);
+      {Если позиция точки индицируется, то отметку ставим вместо неё, а
+      если нет - на последний индицируемый символ. Обрезка при этом
+      подавляется }
+    flnPanelName[Hi2] := FMSetup.TagChar[1];
+    end;
+
+MakeResult:
+  Result := '';
+  if  (Options and flnPadRight) = 0 then
+    DelRight(flnPanelName);
+{AK155 13.05.2005 Здесь, и в конце подпрограммы, тильды добавляются,
+а в GetFull с ними ведётся борьба при помощи кода цвета. Проще не
+добавлять и не бороться.
+  if  ( (Options and flnSelected) <> 0) and
+      ( (Options and flnHighlight) <> 0)
+  then
+    AddStr(Res^, '~');
+/AK155}
+
+  for i := 1 to Length(flnPanelName) do
     begin
-    if  (Options and flnUseCutChar) <> 0 then
-      begin
-      if Delim <> nil then
-        begin
-        Delim^:= NameFormatChar[nfmCut];
-        R^[DotPos] := N^[NSize+1]
-        end
-      else
-        begin
-        R^[DotPos] := NameFormatChar[nfmCut];
-        Hi2 := DotPos
-        end;
-      end
-    else
-      Hi2 := PSize+NSize
+    Hi := { признак того, что данный символ надо подсветить }
+       ( (Options and flnHighlight) <> 0) and
+       ( (i = Hi1) or (i = Hi2) or (i = Hi3));
+    if Hi then
+      AddStr(Result, '~');
+    if  (flnPanelName[i] = '~') and ((Options and flnHandleTildes) <> 0) then
+      AddStr(Result, #0);
+    AddStr(Result, flnPanelName[i]);
+    {AK155: зачем этот второй #0 - придумать не смог, поэтому убрал его.
+А относительно первого #0 догадался, что он должен обеспечивать
+отрисовку тильды. И внес соответствующую коррекцию в
+drivers._vp.MoveCStr. 06.01.2001}
+    {
+          if (flnPanelName[i]='~') and ((Options and flnHandleTildes)<>0)
+          then AddStr(Res^,#0);}
+
+    {/AK155}
+    if Hi then
+      AddStr(Result, '~');
     end;
-  if  ( (Options and flnSelected) <> 0) then
-    begin
-    if DotPos <= Size then
-      begin
-      R^[DotPos] := NameFormatChar[nfmSelected];
-      Hi2 := DotPos
-      end
-    else
-      begin
-      R^[Size] := NameFormatChar[nfmSelected];
-      Hi2 := Size
-      end;
-    end;
-  FormatLongName := MakeResult;
-  Dispose(R);
-  Dispose(E);
-  Dispose(N);
-  Dispose(P)
+{AK155 13.05.2005 - см. выше
+  if  ( (Options and flnSelected) <> 0) and
+      ( (Options and flnHighlight) <> 0)
+  then
+    AddStr(Res^, '~');
+/AK155}
   end { FormatLongName };
 
 procedure CheckOS;

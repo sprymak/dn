@@ -59,6 +59,8 @@ function LngId: String;
 
 implementation
 
+uses Dos, lfn;
+
 function ValidLngId(LI: String; CheckForHelp: Boolean): Boolean;
   var
     S1, S2: String;
@@ -108,6 +110,7 @@ function HelpLngId: String;
 
 function LngId: String;
   var
+    SR: lSearchRec;
     S: String;
   begin
   S := ActiveLanguage;
@@ -115,6 +118,19 @@ function LngId: String;
     S := GetEnv('DNLNG');
   if not ValidLngId(S, False) then
     S := 'English';
+  if not ValidLngId(S, False) then
+    begin
+     lFindFirst(StartupDir+'*.LNG', AnyFile - Directory, SR);
+     S := SR.FullName;
+     if S <> '' then
+       SetLength(S, Length(s)-4);
+     lFindClose(SR);
+    end;
+  if not ValidLngId(ActiveLanguage, False) then
+    begin
+      ActiveLanguage := S;
+      SaveDnIniSettings ( @ActiveLanguage );
+    end;
   LngId := S
   end;
 

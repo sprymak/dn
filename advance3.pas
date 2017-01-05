@@ -54,8 +54,6 @@ uses
   Advance, DnIni, Dos, xTime, Objects2
   ;
 
-function Get100s: LongInt;
-
 function GetSTime: LongInt;
 
 function XRandom(N: Integer): Integer; { Rnd -N..N }
@@ -116,16 +114,6 @@ procedure DisableAppend;
    end
   end;
 {$ENDIF}
-
-function Get100s: LongInt;
-  var
-    DD, MM, YY, HH, Mn, Sc, Sc100: Word;
-  begin
-  GetDate(YY, MM, DD, Sc100);
-  GetTime(HH, Mn, Sc, Sc100);
-  Get100s := Sc100+LongInt(Sc)*100+LongInt(Mn)*6000+
-    LongInt(HH)*360000+LongInt(DD)*8640000;
-  end;
 
 function GetSTime: LongInt;
   var
