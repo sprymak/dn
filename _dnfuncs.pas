@@ -8,6 +8,7 @@ Copyright (C) 2002 Aleksej Kozlov (Cat)
 ******)
 
 {&Delphi+}
+{&Use32+}
 
 interface
 
@@ -56,6 +57,11 @@ type
   TSimpleHooks = packed record
     SetEditorEventHook: function(EditorEventHook: TEditorEventHook): Boolean;
     RemoveEditorEventHook: procedure(EditorEventHook: TEditorEventHook);
+  end;
+
+  PSpecialFunctions = ^TSpecialFunctions;
+  TSpecialFunctions = packed record
+    RuntimePatch: function(OldFunc, NewFunc: Pointer): Boolean;
   end;
 
   {&AlignRec+}
@@ -115,7 +121,7 @@ type
     SomeObjects3: PSomeObjects3;
     Reserved2: Integer;
     Reserved3: Integer;
-    Reserved4: Integer;
+    SpecialFunctions: PSpecialFunctions;
     TryExcept: function(Proc: TProcedure): Pointer;
     SimpleHooks: PSimpleHooks;
 
@@ -127,7 +133,7 @@ type
 
     TinySlice: procedure;
 
-    Evalue: function(const S: String; VGF: Pointer): Extended;
+    Evalue: function(const s: String; CCV: Pointer): Extended;
     EvalueError: ^Boolean;
 
     DosError: function: Integer;
@@ -147,7 +153,7 @@ type
 
     GetActivePanel: function: Pointer;
     GetPassivePanel: function: Pointer;
-    GetSelection: function(AFP: Pointer; Single: Boolean): Pointer;
+    GetSelection: function(P: Pointer; Single: Boolean): PFilesCollection;
     ClearSelection: procedure(AFP: Pointer; FC: Pointer);
 
     NewStr: function(const S: String): PString;
@@ -171,7 +177,7 @@ type
     CStrLen: function(const S: String): Integer;
 
     ExecView: function(P: Pointer): Integer;
-    Reserved8: Integer;
+    Reserved4: Integer;
 
     GetString: function(Index: Integer): String;
     ExecResource: function(Key: Integer; var Data): Word;
@@ -222,6 +228,122 @@ type
     InputBox: function(Title: String; ALabel: String; var S: String; Limit: Word; HistoryID: Word): Word;
     BigInputBox: function(Title: String; ALabel: String; var S: String; Limit: Word; HistoryID: Word): Word;
     InputBoxRect: function(var Bounds: TRect; Title: String; ALabel: String; var S: String; Limit: Word; HistoryID: Word): Word;
+
+    GetFileNameDialog: function(Mask, Title, Name: String; Buttons, HistoryID: Word): String;
+    GetFileNameMenu: function(Path, Mask, Default: String; PutNumbers: Boolean; var More, None: Boolean): String;
+
+    Reserved5: Integer;
+    Reserved6: Integer;
+
+    UpdateWriteView: procedure(P: Pointer);
+    GlobalMessage: function(What, Command: Word; InfoPtr: Pointer): Pointer;
+    GlobalMessageL: function(What, Command: Word; InfoLng: LongInt): Pointer;
+    GlobalEvent: procedure(What, Command: Word; InfoPtr: Pointer);
+    ViewPresent: function(Command: Word; InfoPtr: Pointer): PView;
+    WriteMsg: function(Text: String): PView;
+    ForceWriteShow: procedure(P: Pointer);
+    ToggleCommandLine: procedure(OnOff: Boolean);
+    AdjustToDesktopSize: procedure(var R: TRect; OldDeskSize: TPoint);
+
+    Reserved7: Integer;
+    Reserved8: Integer;
+
+    HistoryAdd: procedure(Id: Byte; const Str: String);
+    HistoryCount: function(Id: Byte): Word;
+    HistoryStr: function(Id: Byte; Index: Integer): String;
+    DeleteHistoryStr: procedure(Id: Byte; Index: Integer);
+
+    Reserved9: Integer;
+    Reserved10: Integer;
+
+    GetMouseEvent: procedure(var Event: TEvent);
+    GetKeyEvent: procedure(var Event: TEvent);
+
+    DispWhileViewEvents: procedure(InfoView: PWhileView; var CancelParam: Boolean);
+
+    Reserved11: Integer;
+
+    SetTitle: procedure(Text: String);
+
+    SetWinClip: function(PC: PLineCollection): Boolean;
+    GetWinClip: function(var PCL: PLineCollection): Boolean;
+    GetWinClipSize: function: Boolean;
+    SyncClipIn: procedure;
+    SyncClipOut: procedure;
+    CopyLines2Stream: procedure(PC: PCollection; var PCS: PStream);
+    CopyStream2Lines: procedure(PCS: PStream; var PC: PCollection);
+
+    NewTimerSecs: procedure(var ET: TEventTimer; Secs: LongInt);
+    NewTimer: procedure(var ET: TEventTimer; Tics: LongInt);
+    TimerExpired: function(ET: TEventTimer): Boolean;
+    ElapsedTime: function(ET: TEventTimer): LongInt;
+    ElapsedTimeInSecs: function(ET: TEventTimer): LongInt;
+
+    GetPossibleDizOwner: function(N: Integer): String;
+    GetDizOwner: function(const Path, LastOwner: String; Add: Boolean): String;
+    CalcDizPath: function(P: PDiz; Owen: PString): String;
+    ReplaceDiz: procedure(const DPath, Name: String; ANewName: PString; ANewDescription: PString);
+    DeleteDiz: procedure(const DPath, Name: String);
+    GetDiz: function(const DPath: String; var Line: LongInt; const Name: String): String;
+    SetDescription: procedure(PF: PFileRec; DizOwner: String);
+
+    Reserved12: Integer;
+    Reserved13: Integer;
+
+    SelectFiles: function(AFP: Pointer; Select, XORs: Boolean): Boolean;
+    InvertSelection: procedure(AFP: Pointer; Dr: Boolean);
+    DragMover: procedure(AP: Pointer; Text: String; AFC, AC: Pointer);
+    CM_AdvancedFilter: procedure(AFP: Pointer);
+    CM_ArchiveFiles: procedure(AFP: Pointer);
+    CM_Branch: procedure(AFP: Pointer);
+    CM_ChangeDirectory: function(AFP: Pointer): string;
+    CM_ChangeCase: procedure(AFP: Pointer);
+    CM_CompareDirs: procedure(AFP, IP: Pointer);
+    CM_CopyFiles: procedure(AFP: Pointer; MoveMode, Single: Boolean);
+    CM_CopyTemp: procedure(AFP: Pointer);
+    CM_DragDropper: procedure(AFP: Pointer; CurPos: Integer; Ev: Pointer);
+    CM_Dropped: procedure(AFP, EI: Pointer);
+    CM_EraseFiles: procedure(AFP: Pointer; Single: Boolean);
+    CM_LongCopy: procedure(AFP: Pointer);
+    CM_MakeDir: procedure(AFP: Pointer);
+    CM_MakeList: procedure(AFP: Pointer);
+    CM_RenameSingleL: procedure(AFP, PEV: Pointer);
+    CM_RenameSingleDialog: procedure(AFP, PEV: Pointer);
+    CM_SelectColumn: procedure(AFP: Pointer);
+    CM_SetAttributes: procedure(AFP: Pointer; Single: Boolean; CurPos: Integer);
+    CM_SetShowParms: procedure(AFP: Pointer);
+    CM_SortBy: procedure(AFP: Pointer);
+    CM_ToggleLongNames: procedure(AFP: Pointer);
+    CM_ToggleShowMode: procedure(AFP: Pointer);
+    CM_ToggleDescriptions: procedure(AFP: Pointer);
+
+    Reserved14: Integer;
+    Reserved15: Integer;
+
+    ExecString: procedure(S: PString; WS: String);
+    SearchExt: function(FileRec: PFileRec; var HS: String): Boolean;
+    ExecExtFile: function(const ExtFName: string; UserParams: PUserParams; SIdx: Integer): Boolean;
+    ExecFile: procedure(const FileName: string);
+    AnsiExec: procedure(const Path: String; const ComLine: AnsiString);
+
+    Reserved16: Integer;
+    Reserved17: Integer;
+
+    SelectDrive: function(X, Y: Integer; Default: Char; IncludeTemp: Boolean): String;
+    GetFileType: function(const S: String; Attr: Byte): Integer;
+    DosReread: procedure(Files: PFilesCollection);
+
+    FnMatch: function(Pattern, Str: String): Boolean;
+    SearchFileStr: function(F: PStream; var Xlat: TXlat; const What: String; Pos: LongInt;
+                            CaseSensitive, Display, WholeWords, Back, AllCP, IsRegExp: Boolean): LongInt;
+    MakeListFile: procedure(APP: Pointer; Files: PCollection);
+    AsciiTable: procedure;
+    InsertCalendar: procedure;
+    InsertCalc: procedure;
+    ChangeColors: procedure;
+    WindowManager: procedure;
+    SetHighlightGroups: procedure;
+    UnpackDiskImages: procedure(AOwner: Pointer; Files: PFilesCollection);
   end;
 
 type

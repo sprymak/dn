@@ -357,6 +357,7 @@ var {$IFDEF DiskEdit}
 
         {-DataCompBoy-}
 begin
+ {Cat:warn надо добавить вывод дерева для сетевых путей}
  NewTimer(Tmr, 1);
  C := UpCase(C); if not (C in ['A'..'Z']) then Exit;
  if DrvTrees[C].C<>nil then Dispose(DrvTrees[C].C,Done); DrvTrees[C].C:=nil;
@@ -1279,6 +1280,7 @@ begin
                              end;
               cmChangeTree: begin
                              if PString(Event.InfoPtr)^[2] <> ':' then
+                             {Cat:warn могут быть проблемы с сетевыми путями}
                                begin CE; Exit; end;
                              CurPath[1] :=UpCase(CurPath[1]);
                              LastPath[1]:=UpCase(LastPath[1]);
@@ -1317,7 +1319,8 @@ begin
                             end;
              end;
   evKeyDown: case Event.KeyCode of
-                kbAlt1..kbAlt9: begin QuickChange(CnvString(DirsToChange[Event.ScanCode-Hi(kbAlt1)])); CE end;
+                kbAlt1, kbAlt2, kbAlt3, kbAlt4, kbAlt5, kbAlt6, kbAlt7, kbAlt8, kbAlt9:
+                     begin QuickChange(CnvString(DirsToChange[Event.ScanCode-Hi(kbAlt1)])); CE end;
                 kbEnter: if Parital then begin SendLocated; CE end;
                 kbDel: if (FMSetup.Options and fmoDelErase <> 0) then EraseDir;
                 kbGrayAst: begin

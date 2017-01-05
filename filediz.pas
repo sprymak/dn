@@ -148,10 +148,12 @@ procedure ReplaceT(P: PTextReader; var F: lText; Del: boolean);
 var
   I: Integer;
   FName: String;
+  Attr: Word;
 begin
   FName := P^.FileName;
   Dispose(P,Done); ClrIO;
   Close(F.T); ClrIO;
+  Attr := GetFileAttr(FName); ClrIO;
   EraseByName(FName);
   I := IOResult; ClrIO;
   if not Del then begin
@@ -160,7 +162,8 @@ begin
    begin
      if (I<>0) then Erase(F.T);
      CantWrite(FName);
-   end;
+   end
+   else SetFileAttr(FName, Attr);
   end else lEraseText(F);
   ClrIO;
 end;

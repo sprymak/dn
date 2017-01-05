@@ -12,14 +12,15 @@ interface
 
 function GetBytesPerCluster(Drive: Byte): Longint;
 
-function GetHFileAges(Handle: Longint; Var Age_LWr, Age_Cr, Age_LAc: Longint): Longint; {JO}
+function GetFileAges(S: ShortString; Var Age_LWr, Age_Cr, Age_LAc: Longint): Longint;
   {JO: возвращает время и дату последней модификации (Age_LWr),                   }
   {    время и дату создания (Age_Cr) и время и дату последнего доступа (Age_LAc) }
-  {    файла по хэндлу файла (Handle), принимает значение кода ошибки             }
-function SetHFileAges(Handle: Longint; Age_LWr, Age_Cr, Age_LAc: Longint): Longint;     {JO}
+  {    файла или каталога по полному пути (S), принимает значение кода ошибки     }
+
+function SetFileAges(S: String; Age_LWr, Age_Cr, Age_LAc: Longint): Longint;
   {JO: устанавливает время и дату последней модификации (Age_LWr),                }
   {    время и дату создания (Age_Cr) и время и дату последнего доступа (Age_LAc) }
-  {    файла по хэндлу файла (Handle), принимает значение кода ошибки             }
+  {    файла или каталога по полному пути (S), принимает значение кода ошибки     }
 
 implementation
 
@@ -41,16 +42,15 @@ begin
     SetResult := 1;
 end;
 
-function GetHFileAges(Handle: Longint; Var Age_LWr, Age_Cr, Age_LAc: Longint): Longint;
+function GetFileAges(S: ShortString; Var Age_LWr, Age_Cr, Age_LAc: Longint): Longint;
 begin
-  GetHFileAges := 0;
+  GetFileAges := 0;
 end;
 
-function SetHFileAges(Handle: Longint; Age_LWr, Age_Cr, Age_LAc: Longint): Longint;
+function SetFileAges(S: ShortString; Age_LWr, Age_Cr, Age_LAc: Longint): Longint;
 begin
-  SetHFileAges := 0;
+  SetFileAges := 0;
 end;
 {/JO}
 
-begin
 end.

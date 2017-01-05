@@ -763,7 +763,7 @@ end;
 procedure TLineViewer.InitCol(Buffer:PCharArray);
 begin
   IsValid := True;
-  FileLines := New(PLineCollection, Init(5,5));
+  FileLines := New(PLineCollection, Init(5,5,False));
   Buffer2Strs(Buffer,FileLines);
   Limit.X := 255;
   Limit.Y := FileLines^.Count;
@@ -790,7 +790,7 @@ begin
   Options:=Options or {ofCentered}ofSelectable;
   GrowMode:=gfGrowHiX + gfGrowHiY;
   EventMask:=$FFFF;
-  FileLines:=New(PLineCollection, Init(5,5));
+  FileLines:=New(PLineCollection, Init(5,5,False));
   Msg2Strs(FName,s1,s2,s3,s4,FileLines);
   FromUser:=NewStr(s1);
   ToUser:=NewStr(s2);

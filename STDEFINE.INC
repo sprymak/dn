@@ -17,7 +17,6 @@
 
 {$IFDEF DEBUG}
  {$IFDEF VIRTUALPASCAL}
-  {$IFDEF WIN32} {.$DEFINE NETWORK} {$ENDIF} {Cat: панелька "Network"}
   {$IFDEF OS2} {.$DEFINE DEBUGMEM} {$ENDIF} {Cat: проверяем на выходе и пишем в лог, сколько памяти скушалось и в каком месте}
   {.$DEFINE LOGOBJLOADSTORE} {Cat: пишем в лог все вызовы методов Load и Store}
   {$DEFINE SHOWRC} {Cat: добавлять ли к сообщениям об ошибках числовые коды ошибок (RC)}
@@ -121,6 +120,11 @@
  {$DEFINE ARVID}
  {.$DEFINE NETINFO}
  {$DEFINE FileNotify}
+ {$IFNDEF DPMI32}
+  {$IFNDEF WIN32} {JO: временно, в Win32 ещё не совсем готов}
+   {$DEFINE Tasklist}
+  {$ENDIF}
+ {$ENDIF}
  {.$DEFINE CHDIRTIMER}
  {.$DEFINE SORTTIMER}
  {.$DEFINE COPYTIMER}
@@ -198,7 +202,7 @@
 {$IFNDEF DNPRG} {$UNDEF PLUGIN} {$ENDIF}
 {$IFDEF PLUGIN} {$IFDEF OS2} {$DEFINE PLUGIN_OS2} {$DEFINE TRUE_DYNAMIC} {$ENDIF} {$IFDEF WIN32} {$DEFINE PLUGIN_WIN32} {$IFNDEF VPBETA} {$DEFINE TRUE_DYNAMIC} {$ENDIF} {$ENDIF} {$ENDIF} {Cat}
 
-{$IFDEF PLUGIN} {$UNDEF GAME} {$ENDIF} {Cat}
+{.$IFDEF PLUGIN} {.$UNDEF GAME} {.$ENDIF} {Cat}
 {$IFDEF PLUGIN} {.$DEFINE MINARCH} {$ENDIF} {Cat}
 {$IFDEF PLUGIN_WIN32} {$DEFINE MIRRORVARS} {$ENDIF} {Cat}
 {$IFNDEF BIT_32} {$UNDEF USEANSISTRING} {$UNDEF USELONGSTRING} {$ENDIF} {Cat}

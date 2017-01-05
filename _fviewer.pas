@@ -8,6 +8,7 @@ Copyright (C) 2002 Aleksej Kozlov (Cat)
 ******)
 
 {&Delphi+}
+{&Use32+}
 
 interface
 
@@ -57,7 +58,7 @@ type
     KillAfterUse, IsValid, QuickView, Loaded, HexEdit, BufModified: Boolean;
     FakeKillAfterUse: Boolean;
     Filter: Byte;
-    Xlat: array[Char] of Char;
+    Xlat: TXlat;
     UseXlat: Boolean;
     XlatFile: PString;
     KeyMap: TKeyMap;

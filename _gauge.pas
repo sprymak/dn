@@ -39,7 +39,7 @@ type
     Lines: PCollection;
     But: PButton;
     QuitNormal: Boolean;
-    Top, Bottom: String[255];
+    Top, Bottom: String;
     constructor Init(Bounds: TRect);
     procedure Write(N: Integer; S: String);
     {function GetPalette: PPalette; virtual;}

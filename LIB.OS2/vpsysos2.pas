@@ -829,6 +829,18 @@ begin
     Result := -1;
 end;
 
+{Cat: пока что просто заглушки, потом надо переделать для поддержки сетевых путей}
+function SysDiskFreeLongX(Path: PChar): TQuad;
+begin
+  Result := SysDiskFreeLong(Byte(UpCase(Path^))-Byte('A')+1);
+end;
+
+function SysDiskSizeLongX(Path: PChar): TQuad;
+begin
+  Result := SysDiskSizeLong(Byte(UpCase(Path^))-Byte('A')+1);
+end;
+{/Cat}
+
 function SysGetFileAttr(FileName: PChar; var Attr: Longint): Longint;
 var
   Info: FileStatus3;

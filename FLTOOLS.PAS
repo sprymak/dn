@@ -162,9 +162,6 @@ begin
   if Event.What <> evNothing then inherited HandleEvent(Event);
 end;
 
-const
-  AdvFWPos : TPoint = (X:-1;Y:-1);
-
 procedure CM_AdvancedFilter;
 var
    P: PFilePanelRoot absolute AFP;
@@ -259,15 +256,7 @@ begin
     PC^.AtInsert(0, NewStr(' *.*'));
     D := MakeDialog; D^.Options := D^.Options or ofCentered;
     PL^.FocusItem(FItem);
-
-    if AdvFWPos.X <> -1 then
-    begin
-      D^.MoveTo(AdvFWPos.X, AdvFWPos.Y);
-      D^.Options := D^.Options and not ofCentered;
-    end;
     I := Desktop^.ExecView(D);
-    AdvFWPos.X := D^.Origin.X;  AdvFWPos.Y := D^.Origin.Y;
-
 
     if I <> cmCancel then
       begin
@@ -559,6 +548,7 @@ procedure CM_CompareDirs(AFP, IP: Pointer);
      D: PDialog; {JO}
      P1: PView;  {JO}
 {$ENDIF}
+     DialRes: Byte; {JO}
  const
    CompareName = 1;
    CompareDat = 2;
@@ -587,7 +577,9 @@ procedure CM_CompareDirs(AFP, IP: Pointer);
  label 1,2;
 
 begin
- DT.FMask:=x_x; DT.O := 3; DT.S := 0;
+ DT.FMask := ComareDirsOptions.FMask;
+ DT.O := ComareDirsOptions.O;
+ DT.S := ComareDirsOptions.S;
 {$IFDEF Win32}
  D := PDialog(LoadResource(dlgCompareDirs));
    if D = nil then Exit;
@@ -597,11 +589,21 @@ begin
       PCheckBoxes(P1)^.SetButtonState(16, False);
     end;
  D^.SetData(DT);
- if Desktop^.ExecView(D) = cmCancel then begin Dispose(D,Done); Exit end;
+ DialRes := Desktop^.ExecView(D);
+ if DialRes = cmCancel then begin Dispose(D,Done); Exit end;
  D^.GetData(DT);
 {$ELSE}
-if ExecResource( dlgCompareDirs, DT) <> cmOK then Exit;
+ DialRes := ExecResource( dlgCompareDirs, DT);
+ if DialRes = cmCancel then Exit;
 {$ENDIF}
+ if DialRes = cmYes then
+   begin
+     ConfigModified := True;
+     ComareDirsOptions.FMask := DT.FMask;
+     ComareDirsOptions.O := DT.O;
+     ComareDirsOptions.S := DT.S;
+   end;
+
  if DelSpaces(DT.FMask)='' then DT.FMask := x_x;
 
  DD := IP;
@@ -676,7 +678,6 @@ procedure CM_SetAttributes;
      I,UU,DD: LongInt;
      K: Word;
      S: String;
-     F: lFile;
      R: TRect;
      PInfo: PWhileView;
      DTT, DTT1, DTT_Cr, DTT1_Cr, DTT_LAc, DTT1_LAc : LongInt;
@@ -712,14 +713,7 @@ procedure CM_SetAttributes;
         ok := j=0;
         CutNumber := I;
       end ;
-{$IFNDEF OS2}
-  procedure DoHideInputLines( AP: PView ); {$IFDEF BIT_16}far;{$ENDIF}
-  begin
-    If ( TypeOf( AP^ ) = TypeOf( TInputLine ))
-    or ( TypeOf( AP^ ) = TypeOf( TLabel ))
-    or ( TypeOf( AP^ ) = TypeOf( TStaticText )) then AP^.State := ( AP^.State or sfDisabled ) and not sfVisible;
-  end;
-{$ENDIF}
+
 begin
  if (P^.Files^.Count = 0) or (P^.Drive^.DriveType >= dtArc) then Exit;
  NotifySuspend; {Cat}
@@ -775,22 +769,11 @@ CurTime1:
    AddStr(S, #0); SetLength(S, Length(S)-1);
    Dlg := PDialog( LoadResource( dlgFileAttr ));
    D.C := GetFileAttr(S);
-{$IFNDEF DPMI32}{!}
-{$IFNDEF OS2}
-   if D.C and Directory = 0 then
-    begin
-     lAssignFile(F, S);
-     FileMode := $40;
-     ClrIO; lResetFile(F,1);
-     if IOResult <> 0 then
+     if GetFileAges(S, DTT, DTT_Cr, DTT_LAc) <> 0 then
       begin
        NotifyResume; {Cat}
        Exit;
       end;
-     GetHFileAges(FileRec(F.F).Handle, DTT, DTT_Cr, DTT_LAc); Close(F.F);
-{$ELSE}
-    if GetFileAges(S, DTT, DTT_Cr, DTT_LAc) <> 0 then Exit;
-{$ENDIF}
      UnpackTime(DTT, DT);
      UnpackTime(DTT_Cr, DT_Cr);
      UnpackTime(DTT_LAc, DT_LAc);
@@ -800,16 +783,6 @@ CurTime1:
      D.D_Cr := ItoS(DT_Cr.Day)+'-'+SStr(DT_Cr.Month, 2, '0')+'-'+ItoS(DT_Cr.Year);
      D.T_LAc := SStr(DT_LAc.Hour, 2, '0')+':'+SStr(DT_LAc.Min, 2, '0')+':'+SStr(DT_LAc.Sec, 2, '0');
      D.D_LAc := ItoS(DT_LAc.Day)+'-'+SStr(DT_LAc.Month, 2, '0')+'-'+ItoS(DT_LAc.Year);
-{$IFNDEF OS2}
-    end
-   else
-    begin
-      Dlg^.ForEach(@DoHideInputLines);
-      Dlg^.DisableCommands([cmYes, cmNo]);
-    end;
-{$ENDIF}
-{$ENDIF}{DPMI32!}
-   ;
    D.S:=D.C;
 CurTime:
    Dlg^.SetData(D);
@@ -963,23 +936,13 @@ CurTime:
      S := Cut(PF^.FlName[uLfn], 40);
      PInfo^.Write(1, S);
      S := MakeNormName(PF^.Owner^, PF^.FlName[uLfn]);
-     {$IFNDEF OS2}
-     lAssignFile(F, S);
-     {$ENDIF}
      AddStr(S, #0); SetLength(S, Length(S)-1);
      K := (GetFileAttr(S) and (not D.C)) or D.S;
-     if {$IFNDEF OS2} (K and Directory = 0) and {$ENDIF} TimeSet or DateSet or
-                                                         CrTimeSet or CrDateSet or
-                                                         LAcTimeSet or LAcDateSet then
+     if {$IFNDEF OS2} (K and Directory = 0) and {$ENDIF}
+       TimeSet or DateSet or CrTimeSet or CrDateSet or LAcTimeSet or LAcDateSet
+     then
       begin
-       {$IFNDEF OS2}
-       FileMode := $42 ;
-       lSetFAttr(F,Archive);
-       lResetFile(F,1);
-       GetHFileAges(FileRec(F.F).Handle, DTT, DTT_Cr, DTT_LAc);
-       {$ELSE}
        GetFileAges(S, DTT, DTT_Cr, DTT_LAc);
-       {$ENDIF}
        UnPackTime(DTT, DT);
        UnpackTime(DTT_Cr, DT_Cr);
        UnpackTime(DTT_LAc, DT_LAc);
@@ -1027,13 +990,7 @@ CurTime:
        UnPackTime(DTT1, DT);
        UnPackTime(DTT1_Cr, DT_Cr);
        UnPackTime(DTT1_LAc, DT_LAc);
-       {$IFNDEF OS2}
-      {SetFTime(F.F, DTT1);}
-       SetHFileAges(FileRec(F.F).Handle, DTT1, DTT1_Cr, DTT1_LAc);
-       Close(F.F);
-       {$ELSE}
        SetFileAges(S, DTT1, DTT1_Cr, DTT1_LAc);
-       {$ENDIF}
       end;
      SetFileAttr(S, K and not Directory and not VolumeID);
      if not Single then PF^.Selected := false;
@@ -1061,7 +1018,7 @@ begin
    begin
    Old := Flags;
    case DriveType of
-    dtFind, dtTemp: Idx := dlgFindParms;
+    dtFind, dtTemp, dtList: Idx := dlgFindParms;
     dtArc: Idx := dlgArcParms;
     else Idx := dlgDiskParms;
    end;
@@ -1135,7 +1092,7 @@ procedure CM_Print;
   var N: Integer;
       P: PFilePanelRoot absolute AFP;
 begin
-  if (P^.Drive^.DriveType  in [ dtDisk, dtFind, dtTemp ] ) then
+  if (P^.Drive^.DriveType  in [ dtDisk, dtFind, dtTemp, dtList ] ) then
      PrintFiles(GetSelection(P, False), P);
 end;
 {$ENDIF}
@@ -1380,7 +1337,10 @@ begin
   S2 := S;
  {$IFNDEF OS2}
   if DescrByShortNames then Nm := PF^.FlName[false]
-                else Nm := PF^.FlName[true];
+    else
+ {$ENDIF}
+      Nm := PF^.FlName[true];
+ {$IFNDEF OS2}
   if (P^.Drive^.Flags and psShowLongName = 0)
     then R.Assign(0,0,13,1)
    else
@@ -1452,6 +1412,7 @@ begin
     begin
       lGetDir(0, SSS);
       lChDir(PF^.Owner^);
+      ClrIO;
       lChangeFileName(S2, S);
       DOSE:=IOResult;
       if DOSE <> 0 then
@@ -1481,6 +1442,7 @@ begin
       Dispose(PIF,Done);
       if not DNIni.AutoRefreshPanels then
         GlobalMessage(evCommand, cmRereadDir, PF^.Owner);
+      ClrIO;
       if DlgRes <> cmOK then
          begin
            Event^.What := evKeyDown; Event^.KeyCode := DlgRes;
@@ -1538,6 +1500,7 @@ begin
     begin
       lGetDir(0, SSS);
       lChDir(PF^.Owner^);
+      ClrIO;
       lChangeFileName(S2, S);
       DOSE:=IOResult;
       if DOSE <> 0 then
@@ -1562,6 +1525,7 @@ begin
       lChDir(SSS);
       if not DNIni.AutoRefreshPanels then
         GlobalMessage(evCommand, cmRereadDir, PF^.Owner);
+      ClrIO;
       if DlgRes <> cmOK then
          begin
            Event^.What := evKeyDown; Event^.KeyCode := DlgRes;

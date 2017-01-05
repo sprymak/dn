@@ -1086,6 +1086,13 @@ begin
   GetSubViewPtr(S, BWSel);
   GetSubViewPtr(S, BWSelBack);
   GetSubViewPtr(S, DefaultColors);
+  {Cat}
+  if (Display = nil) or (Groups = nil) or (ForLabel = nil)
+  or (ForSel = nil) or (BakLabel = nil) or (BakSel = nil)
+  or (MonoSel = nil) or (MonoLabel = nil) or (BWSel = nil)
+  or (BWSelBack = nil) or (DefaultColors = nil) then
+    Fail;
+  {/Cat}
   S.ReadStrV(Pal); {S.Read(Len, SizeOf(Byte)); S.Read(Pal[1], Len); SetLength(Pal, Len);}
   if VGASystem {$IFDEF OS2} and not PMWindowed {$ENDIF} then EnableCommands([cmPalVGA])
                else DisableCommands([cmPalVGA]);

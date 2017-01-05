@@ -281,27 +281,52 @@ begin
  S.Read(OldBounds, sizeof(OldBounds)*2+sizeof(LType)+sizeof(RType));
  GetSubViewPtr(S, Separator);
  GetSubViewPtr(S, LeftView);
- if TypeOf(LeftView^) = TypeOf(TFilePanel) then
-   PSpecScroll(PFilePanel(LeftView)^.ScrollBar)^.Panel :=
-     PFilePanel(LeftView);
  GetSubViewPtr(S, RightView);
- if TypeOf(RightView^) = TypeOf(TFilePanel) then
-   PSpecScroll(PFilePanel(RightView)^.ScrollBar)^.Panel :=
-     PFilePanel(RightView);
  GetSubViewPtr(S, LPanel);
  GetSubViewPtr(S, RPanel);
  GetSubViewPtr(S, Info);
 {$IFDEF NETINFO}
  GetSubViewPtr(S, NetInfo); {-$VIV}
 {$ENDIF}
+ {Cat}
+ if (Separator = nil) or (LeftView = nil) or (RightView = nil)
+ or (LPanel = nil) or (RPanel = nil) then
+   Fail;
+ {/Cat}
+ if TypeOf(LeftView^) = TypeOf(TFilePanel) then
+   PSpecScroll(PFilePanel(LeftView)^.ScrollBar)^.Panel :=
+     PFilePanel(LeftView);
+ if TypeOf(RightView^) = TypeOf(TFilePanel) then
+   PSpecScroll(PFilePanel(RightView)^.ScrollBar)^.Panel :=
+     PFilePanel(RightView);
  S.Read(B, 1); LTree := nil;
- if B then GetSubViewPtr(S, LTree);
+ if B then
+   begin
+     GetSubViewPtr(S, LTree);
+     if LTree = nil then {Cat}
+       Fail;
+   end;
  S.Read(B, 1); QView := nil;
- if B then GetSubViewPtr(S, QView);
+ if B then
+   begin
+     GetSubViewPtr(S, QView);
+     if QView = nil then {Cat}
+       Fail;
+   end;
  if (LTree <> nil) and (LTree^.Size.X > 0) then LTree^.ReadAfterLoad;
- if (RType = dtInfo) or (LType = dtInfo) then PDiskInfo(Info)^.ReadData(False);
+ if (RType = dtInfo) or (LType = dtInfo) then
+   begin
+     if Info = nil then {Cat}
+       Fail;
+     PDiskInfo(Info)^.ReadData(False);
+   end;
 {$IFDEF NETINFO}
- if (RType = dtNetInfo) or (LType = dtNetInfo) then PNetInfo(NetInfo)^.ReadData(False); {-$VIV}
+ if (RType = dtNetInfo) or (LType = dtNetInfo) then
+   begin
+     if NetInfo = nil then {Cat}
+       Fail;
+     PNetInfo(NetInfo)^.ReadData(False); {-$VIV}
+   end;
 {$ENDIF}
  if (RType = dtView) or (LType = dtView) then
     Message(@Self, evCommand, cmEnableView, nil);
@@ -371,16 +396,15 @@ procedure TDoubleWindow.HandleCommand;
   if LVisible then
    begin
     GetBounds(R); OldBounds := R;
-    R.A.X := RightView^.Origin.X + R.A.X - 1;
+    { Flash >>> }
+    R.A.X := RightView^.Origin.X - R.A.X - 1;
+    if R.B.X - R.A.X <= 16 then
+     Dec(R.A.X, 16 - (R.B.X - R.A.X));
+    { Flash <<< }
     Lock; LeftView^.HideView; RightView^.Select; Locate(R); Redraw; UnLock;
    end else
    begin
-    GetBounds(R);
-    K := (Sp^.OldW - Sp^.OldX);
-    if K > 0 then
-       I := ((10 * (Size.X * Sp^.OldX)) div K) div 10
-     else I := 0;
-    Dec(R.A.X, I);
+    GetBounds(R); R.A.X := OldBounds.A.X; R.B.X := OldBounds.B.X; { Flash }
     Lock; LeftView^.ShowView; Redraw; Locate(R); UnLock;
     Owner^.Redraw;
    end
@@ -396,11 +420,7 @@ procedure TDoubleWindow.HandleCommand;
     Lock; RightView^.HideView; LeftView^.Select; Locate(R); Redraw; UnLock;
    end else
    begin
-    GetBounds(R); {R.A.X := OldBounds.A.X; R.B.X := OldBounds.B.X;}
-    if Sp^.OldX > 0 then
-       I := ((Size.X * 10 * (Sp^.OldW - Sp^.OldX)) div Sp^.OldX) div 10
-      else I := 1;
-    Inc(R.B.X, I);
+    GetBounds(R); R.A.X := OldBounds.A.X; R.B.X := OldBounds.B.X; { Flash }
     Lock; RightView^.ShowView; Redraw; Locate(R); UnLock;
     Owner^.Redraw;
    end
@@ -673,11 +693,9 @@ begin
                              then AP := RPanel
                              else AP := LPanel
                            ;
-                           if AP^.LineLength < AP^.Size.X
-                            then D:=AP^.LineLength
-                            else D:=10
+                           D:=AP^.LineLength; { Flash }
                           end;
-                          if Sp^.OldX > D-1 then Dec(Sp^.OldX, D);
+                          if Sp^.OldX > D then Dec(Sp^.OldX, D); { Flash }
                           Sp^.OldW := Size.X;
                           R.A := Origin;
                           R.B.X := Origin.X + Size.X;
@@ -700,9 +718,7 @@ begin
                              then AP := RPanel
                              else AP := LPanel
                            ;
-                           if AP^.LineLength < AP^.Size.X
-                            then D:=AP^.LineLength
-                            else D:=10
+                           D:=AP^.LineLength; { Flash }
                           end;
                           Sp^.OldW := Size.X;
                           if Sp^.OldX < Sp^.OldW - D then Inc(Sp^.OldX,D);

@@ -666,8 +666,9 @@ procedure TFilePanel.Draw;
          NormalCursor
         end;
       MoveChar(B[JJ], ' ', C, LineLength);
-      if Idx=CurPos then GetFull(B[JJ], P,  C shl 8+C, CS and $00FF + C shl 8)
-                    else GetFull(B[JJ], P, CC shl 8+C, CS);
+      if (Idx=CurPos) and GetState(sfFocused) then
+             GetFull(B[JJ], P,  C shl 8+C, CS and $00FF + C shl 8)
+        else GetFull(B[JJ], P, CC shl 8+C, CS);
     end else
      begin
       MoveChar(B[JJ], ' ', C1, LineLength);
@@ -846,18 +847,14 @@ procedure TInfoView.HandleEvent;
  end;
 
  procedure DragTotals;
-  var I: LongInt;
-      PF: PFileRec; {DataCompBoy}
+  var N, I: LongInt;
  begin
-  New(FC, Init(Panel^.SelNum, 100));
-  for I := 1 to Panel^.Files^.Count do
-   begin
-    PF := Panel^.Files^.At(I-1); {DataCompBoy}
-    if PF^.TType <> ttUpDir
-    then FC^.Insert(CopyFileRec(PF)); {DataCompBoy}
-   end;
+  N := Panel^.Files^.Count-1;
+  New(FC, Init(N, 100));
+  for I := 1 to N do with Panel^.Files^ do
+    FC^.AtInsert(I-1, CopyFileRec(PFileRec(At(I))));
   MakeGlobal(P, P);
-  DragMover(@P, ItoS(Panel^.Files^.Count)+' '+GetString(dlDIFiles), FC, @C);
+  DragMover(@P, ItoS(N)+' '+GetString(dlDIFiles), FC, @C);
   CE;
  end;
 
@@ -871,10 +868,11 @@ begin
    if FMSetup.Show and fmsDivider <> 0 then
     begin if Y = P.Y then
             begin
-             if Panel^.GetState(sfActive+sfSelected) then
+             if Panel^.GetState(sfActive) then
               begin
                with Panel^ do
                 begin
+                 if not GetState(sfSelected) then Select; {AK155}
                  if Files^.Count = 0 then Exit;
                  MSelect := Event.Buttons and mbRightButton <> 0;
                  if MSelect then
@@ -895,12 +893,34 @@ begin
             end;
           Inc(Y);
     end;
-   if Panel^.PanelFlags and fmiCurrent <> 0 then
-    begin if Y = P.Y then begin DragCurrent; Exit end; Inc(Y);end;
-   if Panel^.PanelFlags and fmiSelected <> 0 then
-    begin if Y = P.Y then begin DragSelected; Exit end; Inc(Y);end;
-   if Panel^.PanelFlags and fmiTotals <> 0 then
-    begin if Y = P.Y then begin DragTotals; Exit end; Inc(Y);end;
+   { D&D из подвала панели }
+   with Panel^ do
+    begin
+     if PanelFlags and fmiCurrent <> 0 then
+      begin
+       if Y = P.Y then begin DragCurrent; Exit end;
+       Inc(Y);
+       if TypeOf(Drive^) = TypeOf(TArcDrive) then
+        begin {сжатие, показывается только вместе с тек. файлом}
+         if Y = P.Y then begin DragCurrent; Exit end;
+         inc(Y);
+        end;
+       end;
+     if PanelFlags and (fmiSelected or fmiFullNameInBottom) <> 0 then
+      begin {выделенные и длинное имя делят одну строку}
+       if Y = P.Y then
+         begin
+         if (PanelFlags and fmiSelected <> 0) and (SelNum <> 0) then
+           DragSelected
+         else if (PanelFlags and fmiFullNameInBottom) <> 0 then
+           DragCurrent;
+         exit;
+         end;
+       Inc(Y);
+      end;
+     if PanelFlags and fmiTotals <> 0 then
+      begin if Y = P.Y then begin DragTotals; Exit end; Inc(Y);end;
+    end;
    CE;
   end;
 end;
@@ -914,7 +934,6 @@ procedure TInfoView.Draw;
      PF, PPF: PFileRec;
      S, S1, S2, S3: String;
      Y: LongInt;
-     CurFile: PFileRec;
      L: longint;
      ShowSelected, ShowFullName: boolean;
      ShowFree, DescriptionInBottom: boolean;
@@ -1001,39 +1020,41 @@ begin
    Inc(Y);
   end;
 
+ { описатель текущего файла }
+ PF := Panel^.Files^.At(Panel^.ScrollBar^.Value);
+
 { информация о текущем файле }
  C1 := GetColor(1);
  if Panel^.PanelFlags and fmiCurrent <> 0 then
   begin
    MoveChar(B, ' ', C1, Size.X);
-   PF := nil;
-   if Panel^.ScrollBar^.Value < Panel^.Files^.Count then
-    begin
-      PF := Panel^.Files^.At(Panel^.ScrollBar^.Value);
+   if PF <> nil then
       Panel^.Drive^.GetDown(B, C1, PF);
-    end;
    WriteLine(0,Y,Size.X,1,B);
    Inc(Y);
-   if (Panel^.Drive^.DriveType = dtFind) or (Panel^.Drive^.DriveType = dtTemp) then
-    begin
-     MoveChar(B, ' ', C1, Size.X);
-     if (Panel^.ScrollBar^.Value < Panel^.Files^.Count) and
-        (PF^.Owner <> nil) then MoveStr(B, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(PF^.Owner^), C1);
-     WriteLine(0,Y,Size.X,1,B);
-     Inc(Y);
-    end else
-    if (Panel^.Drive^.DriveType = dtArc) then
-     begin
+   case Panel^.Drive^.DriveType of
+    dtFind, dtTemp, dtList:
+      begin
       MoveChar(B, ' ', C1, Size.X);
-      C3 := GetColor($0302);
-      if Panel^.ScrollBar^.Value < Panel^.Files^.Count then begin
-       if PF^.Size = 0 then S := '100%' else S := ZtoS(Percent(PF^.Size, PF^.PSize))+'%';
-       MoveCStr(B, GetString(dlArcPSize) + ' ' + AddSpace(FStr(PF^.PSize),14) +
-                  GetString(dlArcRatio) + S, C3);
-      end;
+      if (PF <> nil) and (PF^.Owner <> nil) then
+        MoveStr(B, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(PF^.Owner^), C1);
       WriteLine(0,Y,Size.X,1,B);
       Inc(Y);
-     end;
+      end;
+    dtArc:
+      begin
+      MoveChar(B, ' ', C1, Size.X);
+      C3 := GetColor($0302);
+      if PF <> nil then
+        begin
+             S := ZtoS(Percent(PF^.Size, PF^.PSize))+'%';
+        MoveCStr(B, GetString(dlArcPSize) + ' ' + AddSpace(FStr(PF^.PSize),14) +
+                   GetString(dlArcRatio) + S, C3);
+        end;
+      WriteLine(0,Y,Size.X,1,B);
+      Inc(Y);
+    end { case};
+    end;
   end;
 
 { Выделенные файлы, маска панели, маска быстрого поиска, длинное имя }
@@ -1106,21 +1127,45 @@ begin
       begin
       S1 := Panel^.FreeSpace;
       L := CStrLen(S1)+2;
-      S3 := GetString(dlDIFreeDisk) +Copy(Panel^.Drive^.CurDir, 1, 2);
-      System.delete(S3, 1, 2); { убрать ненужные '~ '}
+      {Cat: 1) если возвращена пустая строка, то не должны ничего пририсовывать
+            2) если это не диск, а сетевой путь, то вместо буквы диска выводим имя ресурса}
+      if S1 = '' then
+        S3 := ''
+      else
+        begin
+          with Panel^.Drive^ do
+            if CurDir[2] = ':' then
+              S3 := GetString(dlDIFreeDisk)+CurDir[1]+':'
+            else
+              if (CurDir[1] = '\') and (CurDir[2] = '\') then
+                begin
+                  for I := 3 to Length(CurDir) do
+                    if CurDir[I] = '\' then
+                      begin
+                        for I := I+1 to Length(CurDir) do
+                          if CurDir[I] = '\' then
+                            begin
+                              Dec(I);
+                              Break;
+                            end;
+                        Break;
+                      end;
+                  S3 := GetString(dlDIFreeDisk)+Copy(CurDir, 1, I);
+                end
+              else
+                S3 := '';
+          System.Delete(S3, 1, 2); { убрать ненужные '~ '} {Cat:warn надо бы это с ресурсами увязать по-человечески}
+        end;
+      {/Cat}
       I := (Size.X - (L-2+CStrLen(S3))) div 2 - 1;
       if I < 0 then I := 0;
         { центрируем обычный показ свободного места }
       end;
     if DescriptionInBottom then
     begin
-      CurFile := PFileRec(Panel^.Files^.At(Panel^.ScrollBar^.Value));
-      if (CurFile <> nil) and
-         (CurFile^.DIZ <> nil) and
-         (CurFile^.DIZ^.DIZ <> nil)
-      then
+      if (PF <> nil) and (PF^.DIZ <> nil) and (PF^.DIZ^.DIZ <> nil) then
       begin
-        S2 := CurFile^.DIZ^.DIZ^;
+        S2 := PF^.DIZ^.DIZ^;
         if Panel^.Drive^.Flags and psShowDescript <> 0 then
           begin
           { выводим в подвале то, что не поместилось в панели }

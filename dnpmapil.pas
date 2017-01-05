@@ -158,6 +158,26 @@ begin
   XCheckPM := PMStatus;
 end;
 
+function WinSwitchToProgramSh(Pid: LongInt): Longint;
+ var
+   wnd: HWND;
+begin
+  wnd := 0;
+  Result := WinSwitchToProgram(WinQuerySwitchHandle(wnd, Pid));
+end;
+
+function WinQueryTaskTitleSh(PSessId: LongInt; var Title: String): Longint;
+ var
+   PTitle: PChar;
+   PTitleArr: array[0..255] of Char;
+begin
+  PTitle := PTitleArr;
+  Result := WinQueryTaskTitle(PSessId, PTitle, 255);
+  Title := StrPas(PTitle);
+end;
+
+
+
 {&Cdecl-}
 function CheckPM: Boolean; {Cat}
 {
@@ -239,7 +259,9 @@ exports
   XClipPaste name 'XClipPaste',
   XClipCanPaste name 'XClipCanPaste',
   XCheckPM name 'XCheckPM',
-  IsBGWindow name 'IsBGWindow'; {AK155}
+  IsBGWindow name 'IsBGWindow', {AK155}
+  WinSwitchToProgramSh name 'WinSwitchToProgramSh', {JO}
+  WinQueryTaskTitleSh name 'WinQueryTaskTitleSh'; {JO}
 
 initialization {Cat}
   if PMStatus = 0 {ещё не проверяли} then

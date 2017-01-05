@@ -471,10 +471,10 @@ MENU dlgMainMenu
     MenuItem 'Custom video mode ~1~', 'Alt-F10', kbAltF10, cmChangeUserMode1, hcMenuBox,
     MenuItem 'Custom video mode ~2~', 'Ctrl-F10', kbCtrlF10, cmChangeUserMode2, hcMenuBox,
     MenuItem 'C~h~ange Screen  Mode', 'Shift-F12 ', kbShiftF12, cmChScreenMode, hcMenuBox,
-;$IFNDEF PLUGINRES
+;.$IFNDEF PLUGINRES
     MenuLine
     MenuItem '~G~ame', 'Alt-F9', kbAltF9, cmGame, hcMenuBox,
-;$ENDIF
+;.$ENDIF
   END
  SubMenu '~F~ile', hcFileMenu,
     SubMenu '~V~iew', hcFileMenu,
@@ -537,6 +537,9 @@ MENU dlgMainMenu
     MenuItem '~M~emory Information', 'Alt-Y', kbAltY, cmMemoryInfo, hcUtilMenu,
     MenuItem 'S~y~stem Information', '', kbNoKey, cmSystemInfo, hcUtilMenu,
     MenuLine
+;$ENDIF
+;$IFDEF Tasklist
+    MenuItem '~T~asklist', 'F11', kbF11, cmTasklist, hcNoContext,
 ;$ENDIF
     MenuItem '~C~alculator', 'Ctrl-F6', kbCtrlF6, cmCalculator, hcUtilMenu,
     MenuItem 'Cale~n~dar', 'Ctrl-F12', kbCtrlF12, cmCalendar, hcUtilMenu,
@@ -2637,7 +2640,8 @@ DIALOG dlgCompareDirs, 40, 17, 'Compare directories'
     END
     Label 3, 12, 'Selection mode', ofPostProcess, ofPreProcess
     Button 28, 3, 38, 5, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 28, 6, 38, 8, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
+    Button 28, 5, 38, 7, 'Sa~v~e', cmYes, ofPostProcess, ofPreProcess
+    Button 28, 7, 38, 9, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
     Button 28, 13, 38, 15, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
 END
 
@@ -3467,9 +3471,10 @@ EDITOR COMMANDS
     COMMAND       cmInsLine,      0,             0,         ^N#0,      #0#0
     COMMAND       cmEnd,          kbEnd,      kbShiftEnd,   #0#0,      #0#0
     COMMAND       cmTab,          kbTab,         0,         ^I#0,      #0#0
-    COMMAND       cmWordLeft,     kbCtrlLeft, kbCtrlShiftLeft, ^A#0,   #0#0
-    COMMAND       cmWordRight,    kbCtrlRight, kbCtrlShiftRight, ^F#0, #0#0
-    COMMAND       cmDelBackChar,  kbBack,        0,         ^H#0,      #0#0
+    COMMAND       cmWordLeft,     kbCtrlLeft, kbCtrlShiftLeft, #0#0,   #0#0
+    COMMAND       cmWordRight,    kbCtrlRight, kbCtrlShiftRight, #0#0, #0#0
+    COMMAND       cmSelectAll,    kbCtrlNumpad5, 0,         ^A#0,      #0#0
+    COMMAND       cmDelBackChar,  kbBack,        0,         #0#0,      #0#0
     COMMAND       cmDelChar,      kbDel,         0,         ^G#0,      #0#0
     COMMAND       cmMoveRight,    kbRight,    kbShiftRight, ^D#0,      #0#0
     COMMAND       cmMoveLeft,     kbLeft,     kbShiftLeft,  ^S#0,      #0#0
@@ -3506,7 +3511,7 @@ EDITOR COMMANDS
     COMMAND       cmClear,        kbCtrlDel,     0,         ^K^Y,      #0#0
     COMMAND       cmCopyBlock,    0,             0,         ^K^C,      #0#0
     COMMAND       cmMoveBlock,    0,             0,         ^K^V,      #0#0
-    COMMAND       cmHideBlock,    kbAltH,        0,         ^K^H,      #0#0
+    COMMAND       cmHideBlock,    kbAltH,  kbCtrlH,         ^K^H,      #0#0
     COMMAND       cmMarkWord,     0,             0,         ^K^T,      #0#0
     COMMAND       cmMarkLine,     0,             0,         ^K^L,      #0#0
     COMMAND       cmBlockStart,   0,             0,         ^K^B,      #0#0
@@ -4491,10 +4496,6 @@ DIALOG dlgChScreenMode, 34, 12, 'Change Screen Mode'
 ;$ENDIF
 END
 ;JO
-;Cat
-DIALOG dlgPlugins0, 1, 1, ''
-END
-;Cat
 
 ;KV
 DIALOG dlgSetExportCsvFormat, 46, 16, 'CSV Export Format'

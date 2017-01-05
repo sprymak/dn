@@ -46,6 +46,18 @@
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 {AK155 = Alexey Korop, 2:461/155@fidonet}
+{Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
+
+{Cat
+   07-11-2002 - Для представления дисков используются псевдо-каталоги вида
+                "[-C-]". Раньше это приводило к такой проблеме: если в
+                каком-либо каталоге создать подкаталог, начинающийся с "[",
+                то мы не сможем в него войти, т.к. ДН посчитает, что надо
+                перейти на какой-то диск, что и попытается сделать. Для
+                решения этой проблемы к имени псевдо-каталога добавляем
+                #0 и отличаем диск от каталога не по квадратной скобке в
+                начале, а по этому символу #0 в конце
+}
 
 unit DNStdDlg;
 
@@ -380,7 +392,7 @@ begin
     (State and sfSelected = 0) then
   begin
      Dir := PSearchRec(Event.InfoPtr)^.Name + '\';
-     if Dir[1] = '[' then Dir := Dir[3] + ':';
+     if Dir[Length(Dir)] = #0 {Dir[1] = '['} then Dir := Dir[3] + ':'; {Cat 07-11-2002}
      if PSearchRec(Event.InfoPtr)^.Attr and Directory <> 0 then
         Data^ := Dir +
           PFileDialog(Owner)^.WildCard^
@@ -403,8 +415,8 @@ begin
   S1 := UpLowStrg(K1^.Name);
   S2 := UpLowStrg(K2^.Name);
   if S1 = S2 then Compare := 0
-  else if S1[1] = '[' then Compare := 1
-  else if S2[1] = '[' then Compare := -1
+  else if S1[Length(S1)] = #0 {S1[1] = '['} then Compare := +1 {Cat 07-11-2002}
+  else if S2[Length(S2)] = #0 {S2[1] = '['} then Compare := -1 {Cat 07-11-2002}
   else if S1 = '..' then Compare := -1
   else if S2 = '..' then Compare := 1
   else if (K1^.Attr and Directory <> 0) and
@@ -699,8 +711,8 @@ begin
   SR := PSearchRec(List^.At(Item));
   if IsMixedCase(SR^.Name) then S := SR^.Name else S := UpStrg(SR^.Name);
   if Length(S) > 12 then begin SetLength(S, 12); S[12] := FMSetup.RestChar[1]; end;
-  if SR^.Name[1] <> '[' then GetText := S+'\'
-                        else GetText := SR^.Name;
+  if SR^.Name[Length(SR^.Name)] <> #0 {SR^.Name[1] <> '['} then GetText := S+'\' {Cat 07-11-2002}
+                                                           else GetText := SR^.Name;
 end;
         {-DataCompBoy-}
 
@@ -777,7 +789,7 @@ begin
    if ValidDrive(C) then
      begin
        P := MemAlloc(SizeOf(P^));
-       P^.Name := '[-'+C+'-]';
+       P^.Name := '[-'+C+'-]'#0; {Cat 07-11-2002 добавил #0}
        P^.Size := 0;
        P^.Time := $210000;
        P^.Attr := Directory;
@@ -849,8 +861,8 @@ begin
   if S.Attr and Directory <> 0 then
   begin
     FmtId := sDirectoryLine;
-    if S.Name[1] <> '[' then D := GetString(dlDirectory)
-                         else D := GetString(dlDrive);
+    if S.Name[Length(S.Name)] <> #0 {S.Name[1] <> '['} then D := GetString(dlDirectory) {Cat 07-11-2002}
+                                                       else D := GetString(dlDrive);
     Params{$IFNDEF OS2}[1]{$ELSE}[0]{$ENDIF} := LongInt(@D);
 
   end else
@@ -1020,6 +1032,8 @@ begin
   WildCard := S.ReadStr;
   GetSubViewPtr(S, FileName);
   GetSubViewPtr(S, FileList);
+  if (FileName = nil) or (FileList = nil) then {Cat}
+    Fail;
 
   ReadDirectory;
 end;
@@ -1297,7 +1311,7 @@ var
 
 function CheckDirectory(var S: String): Boolean;
 begin
-  if S[1] = '[' then S := S[3]+':';
+  if S[Length(S)] = #0 {S[1] = '['} then S := S[3]+':'; {Cat 07-11-2002}
   if not PathValid(S) then
   begin
     ErrMsg(erInvalidDrive);

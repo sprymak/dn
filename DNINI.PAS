@@ -147,6 +147,8 @@ const
 {}ForceDefaultArchiver     : String[3]  = '';                         {JO}
 {$IFDEF WIN32}
 {}RecodeCyrillicNames      : Byte       = 0;  {JO} {Cat: эта переменная дублируется в VpSysLow}
+{$ENDIF}
+{$IFNDEF OS2}
 {}DescrByShortNames        : Boolean    = True; {JO}
 {$ENDIF}
 {$IFDEF CHDIRTIMER}
@@ -187,6 +189,22 @@ const
 {`.________________________;____________;____________________;___________________'}
 {}{NetInfo}
 {}NoLevelsInfo             : Boolean    = False;
+{,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
+{;      Variable name      ;   Type     ; Default value      ;          Comments ;}
+{`.________________________;____________;____________________;___________________'}
+{}{TaskList}
+{}KillAllowed              : Boolean    = False;        {JO}
+{}ShowExePaths             : Boolean    = False;        {JO}
+{}FilteredList             : Boolean    = True;         {JO}
+{$IFDEF OS2}
+{}UserTaskFilter           : String     = 'pmshell.exe#filebar.exe#clipvdm.exe'; {JO}
+{$ENDIF}
+{$IFDEF Win32}
+{}UserTaskFilter           : String     = 'msgsrv32.exe#mmtask.tsk#mstask.exe#systray.exe#internat.exe#winoa386.mod'; {JO}
+{$ENDIF}
+{$IFDEF DPMI32}
+{}UserTaskFilter           : String     = '';                        {JO}
+{$ENDIF}
 {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
 {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
 {`.________________________;____________;____________________;___________________'}
@@ -292,6 +310,7 @@ const
  CSEditor               :PChar = 'Editor';
  CSFilePanels           :PChar = 'FilePanels';
  CSNetInfo              :PChar = 'NetInfo';
+ CSTaskList             :PChar = 'TaskList';
  CSLanguage             :PChar = 'Language';
  CSRegExp               :PChar = 'RegExp';
  CSSetupStorage         :PChar = 'SetupStorage';
@@ -443,6 +462,8 @@ begin
   RegisterVar(CSKernel,    'ForceDefaultArchiver', ikStr,  SizeOf(ForceDefaultArchiver), @ForceDefaultArchiver); {JO}
 {$IFDEF WIN32}
   RegisterVar(CSKernel,    'RecodeCyrillicNames',  ikUInt, SizeOf(RecodeCyrillicNames),  @RecodeCyrillicNames);  {JO}
+{$ENDIF}
+{$IFNDEF OS2}
   RegisterVar(CSKernel,    'DescrByShortNames',    ikBool, SizeOf(DescrByShortNames),    @DescrByShortNames);    {JO}
 {$ENDIF}
 {$IFDEF CHDIRTIMER}
@@ -474,6 +495,11 @@ begin
   RegisterVar(CSFilePanels,'QuickSearchType',      ikUInt, SizeOf(QuickSearchType),      @QuickSearchType); {Cat}
   {NetInfo}
   RegisterVar(CSNetInfo,   'NoLevelsInfo',         ikBool, SizeOf(NoLevelsInfo),         @NoLevelsInfo);
+  {TaskList}
+  RegisterVar(CSTaskList,  'KillAllowed',          ikBool, SizeOf(KillAllowed),          @KillAllowed);  {JO}
+  RegisterVar(CSTaskList,  'ShowExePaths',         ikBool, SizeOf(ShowExePaths),         @ShowExePaths); {JO}
+  RegisterVar(CSTaskList,  'FilteredList',         ikBool, SizeOf(FilteredList),         @FilteredList); {JO}
+  RegisterVar(CSTaskList,  'UserTaskFilter',       ikStr,  SizeOf(UserTaskFilter),       @UserTaskFilter); {JO}
   {Language}
   RegisterVar(CSLanguage,  'ActiveLanguage',       ikStr,  SizeOf(ActiveLanguage),       @ActiveLanguage);
   RegisterVar(CSLanguage,  'HelpLanguageOverride', ikStr,  SizeOf(HelpLanguageOverride), @HelpLanguageOverride);
@@ -767,7 +793,8 @@ begin
     if (DosError=0) and ((SR.SR.Attr and Directory)=0) then begin
         ProbeINI:=True;
         INItime:=SR.SR.Time;
-        move(SR.SR.Size, INIsize, SizeOf(INIsize));{AK155 Size: comp}
+        INIsize := 0; {AK155 на случай DPMI, где Size: longint}
+        move(SR.SR.Size, INIsize, SizeOf(SR.SR.Size));{AK155 Size: comp}
         INIcrc :=0;
         {F.Init(SourceDir+'DN.INI', stOpenRead);
         S := Min(INIsize, 32767);

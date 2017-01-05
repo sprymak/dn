@@ -981,13 +981,15 @@ dlTeamAll  ^Z'~Dos Navigator (C) Team:~'
 dlTeam2_000  ^Z'~Dos Navigator/2 (C) Open Source Team:~'
 dlTeam2_001  ^Z'~Programming (by alphabet order):~'
 dlTeam2_002  ^Z'Oleg Antoshkiv'
-dlTeam2_003  ^Z'Victor Klochko'
-dlTeam2_004  ^Z'Alexey Korop'
-dlTeam2_005  ^Z'Aleksej Kozlov'
-dlTeam2_006  ^Z'Jaroslaw Osadtchiy'
-dlTeam2_007  ^Z'Max Vasilyev'
-dlTeam2_008  ^Z'Kirill Vodonosov'
-dlTeam2_009  ^Z'Eugeny Zvyagintzev'
+dlTeam2_003  ^Z'Sergey Biryukov'
+dlTeam2_004  ^Z'Victor Klochko'
+dlTeam2_005  ^Z'Alexey Korop'
+dlTeam2_006  ^Z'Aleksej Kozlov'
+dlTeam2_007  ^Z'Jaroslaw Osadtchiy'
+dlTeam2_008  ^Z'Max Vasilyev'
+dlTeam2_009  ^Z'Kirill Vodonosov'
+dlTeam2_010  ^Z'Pawel Ziemian'
+dlTeam2_011  ^Z'Eugeny Zvyagintzev'
 
 dlTeam000  ^Z'~Dos Navigator (C) Open Source Team:~'
 dlTeam001  ^Z'~Programming:~'
@@ -1465,3 +1467,15 @@ dlWrongComma 'Wrong comma'
 ;JO+
 dlOperationNotValidForDdrive 'This operation is not valid for current drive'
 ;JO-
+
+;JOHN_SW begin
+dlHistDelCurDir,     ^C'Could not delete current directory'
+;JOHN_SW end
+
+;JO+
+dlTasklist 'Tasklist'
+dlSwitchButton 'Switch'
+;JO-
+;Flash+
+dlSpacesInPassword = 'The password cannot contain spaces.'
+;Flash-

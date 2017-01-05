@@ -8,6 +8,7 @@ Copyright (C) 2002 Aleksej Kozlov (Cat)
 ******)
 
 {&Delphi+}
+{&Use32+}
 
 interface
 

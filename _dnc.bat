@@ -22,6 +22,8 @@ set T=O
 if [%Target%]==[OS2] goto end_Target
 set T=W
 if [%Target%]==[W32] goto end_Target
+set T=D
+if [%Target%]==[D32] goto end_Target
 goto Help
 :end_Target
 
@@ -32,8 +34,8 @@ if not exist EXE.%Target% md EXE.%Target%
 
 Echo        Compiling VERSION.EXE for %Host%
 if exist EXE.%Host%\version.exe goto dover
-vpc version /b /q /c%T%
-if errorlevel 1 pause Error
+vpc version /b /q /c%H%
+@if errorlevel 1 pause Error
 if exist EXE.%Host%\tvhc.exe del EXE.%Host%\thvc.exe
 :dover
 EXE.%Host%\version.exe EXE.%Target%\version.inc %Target%  %rplugin%
@@ -41,8 +43,8 @@ EXE.%Host%\version.exe EXE.%Target%\version.inc %Target%  %rplugin%
 
 if exist EXE.%Host%\tvhc.exe goto comphelp
 Echo        Compiling TVHC.EXE for %Host%
-vpc tvhc /m  /q /c%T%
-if errorlevel 1 pause Error
+vpc tvhc /m  /q /c%H%
+@if errorlevel 1 pause Error
 
 :comphelp
 Echo   Compiling help files for %Target%
@@ -55,7 +57,7 @@ rem EXE.%Target%\tvhc resource\hungary\dnhelp.htx EXE.%Target%\hungary.hlp EXE.%
 if exist EXE.%Host%\rcp.exe goto dores
 Echo        Compiling RCP.EXE for %Host%
 vpc rcp /b /dRCP /q %plugin% /c%H%
-if errorlevel 1 pause Error
+@if errorlevel 1 pause Error
 :dores
 
 Echo        Compiling resource files for %Target% %rplugin%
@@ -71,25 +73,35 @@ rem vpc dn2CAT /b /dDN /dDNPRG /dPLUGIN /q /c%T%
 rem if not errorlevel 1 goto end_dn2cat
 rem @echo Это что-то переполняется в VP, со второго раза получится.
 rem vpc dn2CAT /m /dDN /dDNPRG /dPLUGIN /q /c%T%
-rem if errorlevel 1 pause Error
+rem @if errorlevel 1 pause Error
 rem :end_dn2cat
 rem %pause%
 
 if not %Target%==OS2 goto end_dnpmapil
 Echo        Compiling dnpmapil.dll for %Target%
 vpc dnpmapil /q /b %plugin% /c%T%
-if errorlevel 1 pause Error
+@if errorlevel 1 pause Error
 %pause%
 :end_dnpmapil
 
 Echo        Compiling DN.EXE for %Target%  %rplugin%
 del exe.%Target%\advance.*
 del exe.%Target%\drivers.*
+
+if not [%Target%]==[D32] goto OS2W32
+vpc dn -m -q -vVPD.VPO
+@if errorlevel 1 pause Error
+PE2LE.EXE EXE.D32\dn.EXE /* /S:WDOSXLE.EXE /Q'
+@if errorlevel 1 pause Error
+del EXE.D32\dn.exe
+goto end_dn
+
+:OS2W32
 vpc dn /m /dDN /dDNPRG /q %plugin% /c%T%
 if not errorlevel 1 goto end_dn
 @echo Это что-то переполняется в VP, со второго раза получится.
 vpc dn /m /dDN /dDNPRG /q %plugin% /c%T%
-if errorlevel 1 pause Error
+@if errorlevel 1 pause Error
 :end_dn
 if [%Target%]==[OS2] if [%Host%]==[OS2] rc -p -x2 exe.os2\dn.res exe.os2\dn.exe
 
@@ -99,7 +111,7 @@ vpc plugman /m /q /c%T%
 if not errorlevel 1 goto end_plgman
 @echo Это что-то переполняется в VP, со второго раза получится.
 vpc plugman /m /q /c%T%
-if errorlevel 1 pause Error
+@if errorlevel 1 pause Error
 :end_plgman
 %pause%
 

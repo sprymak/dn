@@ -708,6 +708,10 @@ const
   cmPrev    = 8;
   cmHelp    = 9;
   cmHelp2   = $DCB;
+  cmNext2   = 101;
+  cmPrev2   = 102;
+  cmNext3   = 103;
+  cmPrev3   = 104;
 
 { Application command codes }
 
@@ -838,10 +842,7 @@ const
   cmEditCrLfMode       = 12191;
   cmEditLfMode         = 12192;
   cmEditCrMode         = 12193;
-  cmNext2              = 12194;
-  cmPrev2              = 12195;
-  cmNext3              = 12196;
-  cmPrev3              = 12197;
+
   cmGotoLineNumber2    = 12198;
   cmSwitchSmartTab     = 12199;
   cmPlaceMarker1       = 14001;
@@ -1194,7 +1195,6 @@ const
   cmHiConfigArchiver  = 3125;
   cmUpdateArcFile     = 3200;
 
-  cmForceRescan       = 3217;
   cmGlobalUserMenu    = 3220;
   cmEditMenu          = 3221;
   cmClearData         = 3222;
@@ -1250,6 +1250,7 @@ const
   cmRSearchAdvance    = 24123;
 
   cmCalendar          = 27000;
+  cmTasklist          = 27001;
 
 { Open/Save commands }
 
@@ -1285,8 +1286,9 @@ const
 
 { Panel Commands }
 
-  PanelCommands = [150..199];
+  PanelCommands = [149..199];
 
+  cmForceRescan       = 149;
   cmViewFile          = 150;
   cmEditFile          = 151;
   cmIntViewFile       = 153;
@@ -1462,6 +1464,21 @@ Type
 
 TYPE
   TStrIdx = (
+{Cat: эти индексы поставлены в начало списка, чтобы в будущем не возникало
+      несоответствий индексов ресурсов, когда файлы DN.EXE и PLUGMAN.DLL
+      взяты из разных версий ДН-а}
+    dlPlugins0,
+    dlPlugins1,
+    dlPlugins2,
+    dlPlugins3,
+    dlPlugins4,
+    dlPlugins5,
+    dlPlugins6,
+    dlPlugins7,
+    dlPlugins8,
+    dlPlugins9,
+{/Cat}
+
     dlAltTable,
     erInvalidFormula,
     erInvalidCell,
@@ -2071,6 +2088,8 @@ TYPE
     dlTeam2_007,
     dlTeam2_008,
     dlTeam2_009,
+    dlTeam2_010,
+    dlTeam2_011,
     dlTeam000,
     dlTeam001,
     dlTeam002,
@@ -2675,16 +2694,7 @@ TYPE
     dlResTrailingBackSlash,
     {PZ end - regular expressions }
 
-    dlPlugins0,       {Cat}
-    dlPlugins1,       {Cat}
-    dlPlugins2,       {Cat}
-    dlPlugins3,       {Cat}
-    dlPlugins4,       {Cat}
-    dlPlugins5,       {Cat}
-    dlPlugins6,       {Cat}
-    dlPlugins7,       {Cat}
-    dlPlugins8,       {Cat}
-    dlPlugins9,       {Cat}
+    dlHistDelCurDir,    {John_SW}
     dlWkzQuerySeparatorTitle, {KV}
     dlWkzQuerySeparatorLabel, {KV}
     dlWkzWarningClear,
@@ -2700,7 +2710,12 @@ TYPE
     dlMissingOperation,
     dlWrongComma,
 {/AK155}
-    dlOperationNotValidForDdrive {JO}
+    dlOperationNotValidForDdrive, {JO}
+{JO}
+    dlTasklist,
+    dlSwitchButton,
+{/JO}
+    dlSpacesInPassword { Flash >>> }
       );
 
       TDlgIdx = (
@@ -2801,7 +2816,6 @@ TYPE
     dlgNextSection,
     dlgNameCase,
     dlgChScreenMode, {JO}
-    dlgPlugins0,      {Cat}
     dlgSetExportCsvFormat {KV}
   );
 

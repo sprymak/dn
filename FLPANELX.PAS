@@ -146,9 +146,8 @@ uses
    {$IFDEF OS2} ,Dn2PmApi {$ENDIF}
    {$IFDEF WIN32} ,U_KeyMap {$ENDIF}
   {$ENDIF}
-  {$IFDEF NETWORK} ,Network {$ENDIF}
-  , DblWnd , flpanel
-  ;
+  {$IFDEF PLUGIN} ,Plugin {$ENDIF}
+  , DblWnd, FlPanel;
 
 procedure TFilePanelRoot.IncDrawDisabled;
 begin
@@ -413,7 +412,7 @@ begin
      Inc(I);
    end;
  ReadDirectory;
- B := (Drive^.DriveType <> dtTemp) and (Drive^.DriveType <> dtFind);
+ B := not (Drive^.DriveType in [dtTemp, dtFind, dtList]);
  if (FC^.Count > 0) then
   begin
    SelNum := 0; SelectedLen := 0; PackedLen := 0; BB := false;
@@ -623,6 +622,27 @@ var
   Rebound;
  end;
 
+ function ReplaceDrive(C: char): Boolean;
+ var
+   PDr: PDrive;
+ begin
+    ReplaceDrive := false;
+    New(PDr, Init(Byte(C)-64, @Self, Drive^.Param));
+    if Abort then
+     begin Dispose(PDr,Done); Exit; end;
+    Dispose(Drive,Done);
+    Drive := PDr;
+    DeltaX := 0;
+    {if WasFull then Drive^.Flags := Drive^.GetFullFlags
+               else Drive^.Flags := 0;}
+    Drive^.SizeX := Size.X;
+    DirectoryName := Drive^.GetDir;
+    if GetState(sfActive+sfSelected) then
+       SetState(sfActive+sfSelected, true);
+    Rebound;
+    ReplaceDrive := true;
+ end;
+
  procedure GotoFile(FileName: String);
   var Dr: String;
       Nm: String;
@@ -631,6 +651,8 @@ var
       A: LongInt;
       I: Byte;
       PathInside: String; {JO}
+      Drv: PDrive; {JO}
+ label WrongArc;
  begin
   if ChangeLocked then Exit;
 
@@ -650,6 +672,7 @@ var
   if Copy(Dr, 1, 5) = cLINK_ then  Delete(Dr, 1, 5);
   if (Dr[Length(Dr)] = '\') and ((Dr[2] <> ':') or (Length(Dr) > 3)) then SetLength(Dr, Length(Dr)-1);
   if (Dr[2] = ':') and not(Drive^.DriveType in [dtDisk,dtLink,dtArc]) then
+  {Cat:warn могут быть проблемы с сетевыми путями}
     begin
      Dispose(Drive,Done);
      New(Drive, Init(Byte(Upcase(Dr[1]))-64, @Self, Drive^.Param));
@@ -664,19 +687,26 @@ var
   ReadDirectory;
   AddToDirectoryHistory(DirectoryName,integer(Drive^.DriveType));
   DecDrawDisabled;
+
 {JO: переходим к найденному файлу в архиве}
-  if (PathInside <> '') and ArcViewer(FileName, FileName ,FreeByte) then
+  if (PathInside <> '') then
     begin
-     {Message(@Self, evKeyDown, kbEnter, nil);}
-      if (GetPath(PathInside) <> '\') and (Drive^.DriveType = dtArc) then
-        begin
-          Drive^.lChDir(Copy(GetPath(PathInside), 2, 255));
-          ReadDirectory;
-        end;
-      GotoSingle(GetName(PathInside));
-      Exit;
+      Drv := nil;
+      Drv := New(PArcDrive,Init(FileName, FileName, FreeByte));
+       if Drv = nil then goto WrongArc;
+       if Drive^.DriveType <> dtDisk then ReplaceDrive(FileName[1]);
+       Message(@Self, evCommand, cmInsertDrive, Drv);
+       if (GetPath(PathInside) <> '\') and (Drive^.DriveType = dtArc) then
+         begin
+           Drive^.lChDir(Copy(GetPath(PathInside), 2, 255));
+           ReadDirectory;
+         end;
+       GotoSingle(GetName(PathInside));
+       Exit;
     end;
+WrongArc:
 {/JO}
+
   if (Nm = '') and (Xt='') then Name := '..'
                            else Name := Nm+Xt;
   GotoSingle(Name);
@@ -901,27 +931,6 @@ var
     end;
  end;
 
- function ReplaceDrive(C: char): Boolean;
- var
-   PDr: PDrive;
- begin
-    ReplaceDrive := false;
-    New(PDr, Init(Byte(C)-64, @Self, Drive^.Param));
-    if Abort then
-     begin Dispose(PDr,Done); Exit; end;
-    Dispose(Drive,Done);
-    Drive := PDr;
-    DeltaX := 0;
-    {if WasFull then Drive^.Flags := Drive^.GetFullFlags
-               else Drive^.Flags := 0;}
-    Drive^.SizeX := Size.X;
-    DirectoryName := Drive^.GetDir;
-    if GetState(sfActive+sfSelected) then
-       SetState(sfActive+sfSelected, true);
-    Rebound;
-    ReplaceDrive := true;
- end;
-
  var
    ExecLFN: TUseLFN;
 
@@ -1088,12 +1097,13 @@ var
      Event.InfoPtr := New(PTempDrive, Init(Drive^.Param));
      InsertDrive; Exit;
    end else
-   {$IFDEF NETWORK}
-   if S = cNET_ then
+   {$IFDEF PLUGIN}
+   if S[1] = #26 then
    begin
-     Event.InfoPtr := New(PNetDrive, Init(@self, Drive^.Param));
-     messages.messagebox('alpha state!',nil,messages.mfwarning+messages.mfokbutton);;;;
-     InsertDrive; Exit;
+     Event.InfoPtr := CreateDriveObject(Byte(S[2]), @Self, Drive^.Param);
+     if Event.InfoPtr <> nil then
+       InsertDrive;
+     Exit;
    end else
    {$ENDIF}
    {$IFDEF MODEM}
@@ -1157,16 +1167,19 @@ var
  procedure _DoDirHistory;
  var
    S: string;
-   Q: string;
+  {Q: string;}
    Dr: PDrive;
  begin
    CE;
    S := DirHistoryMenu;
    if S <> '' then
    begin
-     if Drive^.DriveType <> dtDisk then ReplaceDrive(S[1]);
      FreeByte:=PosChar(':', Copy(S, 3, MaxStringLength))+2;
      if FreeByte>2 then begin
+(* {JO: закоментированный кусок реально никогда не работал, т.к. перед }
+   {    ним стояло ReplaceDrive, после которого ни одно из условий не  }
+   {    выполнялось. После того, как я перенёс ReplaceDrive ниже, этот }
+   {    кусок стал подключаться и выяснилось, что он не работает       }
       Q:=Copy(S, 1, FreeByte-1);
       if ((Drive^.DriveType = dtArc) and
          (UpStrg(PArcDrive(Drive)^.ArcName)=UpStrg(Q)))
@@ -1179,21 +1192,48 @@ var
        Q:=Copy(S, FreeByte+1, MaxStringLength);
        Message(@Self, evCommand, cmChangeDirectory, @Q)
       end else begin
+*)
        Dr:=nil;
        Dr:=New(PArcDrive,Init(S, S, Drive^.innum));
        {$IFDEF ARVID}
        if Dr=nil then Dr:=New(PArvidDrive,Init(S, Drive^.innum));
        {$ENDIF}
        if Dr=nil then exit;
+       if Drive^.DriveType <> dtDisk then ReplaceDrive(S[1]);
        Message(@Self, evCommand, cmInsertDrive, Dr);
-      end
-     end else
-     if S[Length(S)]='\'
-      then Message(@Self, evCommand, cmChangeDirectory, @S)
-      else begin
-            FreeByte := Drive^.innum;
-            Message(@Self, evCommand, cmInsertDrive, New(PFindDrive,InitList(S)))
-           end;
+     {end}
+     end
+     else
+      if S[Length(S)]='\'
+        then
+          begin
+            if not PathExist(S) then
+              begin
+                messagebox(^C + GetString(dlDirectory) + ' '+  S
+                 + ^M^C + GetString(dlDoes_Not_Exist), nil, mfError+mfOKButton);
+                Exit;
+              end;
+            if Drive^.DriveType <> dtDisk then ReplaceDrive(S[1]);
+            Message(@Self, evCommand, cmChangeDirectory, @S);
+          end
+         else
+          begin
+            if not ExistFile(S) then
+              begin
+                messagebox(^C + GetString(dlFile) + ' '+  S
+                 + ^M^C + GetString(dlDoes_Not_Exist), nil, mfError+mfOKButton);
+                Exit;
+              end;
+             FreeByte := Drive^.innum;
+             if Drive^.DriveType <> dtDisk then ReplaceDrive(S[1]);
+            {JO: раньше при переходе к списку из истории каталогов текущий }
+            {    каталог не менялся и, соответственно, список не находил   }
+            {    файлов, находящихся в его каталоге. Для исправления этого }
+            {    нижележащая строка                                        }
+             Drive^.lChDir(GetPath(S));
+
+             Message(@Self, evCommand, cmInsertDrive, New(PFindDrive,InitList(S)))
+          end;
    end;
  end;
 
@@ -1216,11 +1256,32 @@ var
    if ((ShiftState and 3 <> 0) or (CmdLine.Str = ''))
       and (FMSetup.Show and fmsDriveLine <> 0) then
    begin
-     if (DirectoryName = cTEMP_) then DirectoryName[1] := '*';
+     {Cat: Для тех типов панелей, которые не отображаются в полоске
+           (сетевые диски, Network), наверное, лучше будет не
+           тупо брать первую букву от псевдо-каталога, а использовать
+           "*:", как и для временной панели. При этом ни одна буква
+           не оказывается подсвеченной, при нажатии Ctrl-Right мы
+           попадём на самый первый диск, а при нажатии Ctrl-Left
+           на самый последний диск в списке}
+     {if (DirectoryName = cTEMP_) then DirectoryName[1] := '*';}
      if Drive^.DriveType = dtArc then
-       begin
-          DirectoryName[1] := PArcDrive(Drive)^.ArcName[1];
-       end;
+       DirectoryName[1] := PArcDrive(Drive)^.ArcName[1]
+     {JO}
+     {$IFDEF ARVID}
+      else
+        if Drive^.DriveType = dtArvid then
+          DirectoryName[1] := PArvidDrive(Drive)^.Name^[1]
+     {$ENDIF}
+         else
+           if DirectoryName[2] <> ':' then
+             begin
+              lGetDir(0, DirectoryName);
+     {/JO}
+     {Cat}
+              if DirectoryName[2] <> ':' then
+                DirectoryName[1] := '*';
+     {/Cat}
+             end;
      DirectoryName[2] := ':';
      repeat
        if Event.What = evKeyDown then
@@ -1622,7 +1683,7 @@ var
                      CtrlWas := ShiftState and kbCtrlShift <> 0;
                    end;
     kbCtrlR: begin Message(@Self, evCommand, cmForceRescan, nil); CE end;
-    kbGrayAst, kbCtrlGAst: begin InvertSelection(@Self, Event.KeyCode = kbCtrlGAst); CE end;
+    kbGrayAst, kbCtrlGAst: begin QuickSearch := False; InvertSelection(@Self, Event.KeyCode = kbCtrlGAst); CE end; { Flash }
     kbAltGPlus, kbAltGMinus, kbAltShiftGPlus, kbAltShiftGMinus, kbCtrlAltGPlus, kbCtrlAltGMinus:
       begin SelectExt(Event.KeyCode = kbAltGPlus, 1, 8, ShiftState and 3 <> 0); CE end;
     kbCtrlGPlus, kbCtrlGMinus, kbCtrlShiftGPlus, kbCtrlShiftGMinus:
@@ -1634,14 +1695,23 @@ var
                                         10, 3, false); CE;
        end;
     kbCtrlBSlash:begin
+                 if (Drive^.DriveType = dtDisk)
+                   and (Length(Drive^.CurDir) > 3) then
+                {JO: сохраняем в S имя каталога верхнего уровня для текущего}
+                    S := Copy(Drive^.CurDir, 4,
+                     PosChar('\', Copy((Drive^.CurDir+'\'), 4,
+                     MaxStringLength))-1)
+                   else S := '';
                  Drive^.ChangeRoot;
                  ReadDirectory;
                  AddToDirectoryHistory(DirectoryName,integer(Drive^.DriveType));
                  ScrollBar^.SetValue(0);
                  DecDrawDisabled;
-                 if Drive^.DriveType = dtArc then {-$VOL}
-                 begin _CtrlPgUp; Exit; end;{-$VOL}
-                 Owner^.Redraw; CE end;
+                 if Drive^.DriveType in [dtArc, dtArvid, dtList] then {-$VOL}
+                   begin _CtrlPgUp; Exit; end;{-$VOL}
+                 if S <> '' then GoToSingle(S);
+                 Owner^.Redraw; CE
+                 end;
     kbCtrlRight, kbCtrlLeft,
     kbCtrlShiftRight, kbCtrlShiftLeft: _DoCtrl;
     kbCtrlDel: if Files^.Count > 0 then
@@ -1721,8 +1791,9 @@ kbCtrlEnter, kbCtrlShiftEnter, kbCtrlAltEnter: _CtrlEnter;
                   (PF^.Attr and Directory = 0) and {-$VOL}
                   (UpStrg(PF^.FlName[true]) = FreeStr) and
                   (Msg(dlAutoexecWarning,nil,mfYesNoConfirm) <> cmYes) then Exit;
-               if (Drive^.DriveType in [dtFind, dtTemp, dtList]) then
-                  begin _Enter; Exit; end;
+               if (Drive^.DriveType in [dtFind, dtTemp]) or
+                 ((Drive^.DriveType = dtList) and (PF^.TType <> ttUpDir)) then
+                   begin _Enter; Exit; end;
                if (FMSetup.Options and fmoEnterArchives <> 0)
                   and (((Event.KeyCode = kbEnter) and (ShiftState and 3 = 0))
                 {$IFDEF CHDIRTIMER} or ChDirTimer {$ENDIF})
@@ -1770,8 +1841,8 @@ kbCtrlEnter, kbCtrlShiftEnter, kbCtrlAltEnter: _CtrlEnter;
             if CurPos = ScrollBar^.Value then DrawView;
             if InfoView <> nil then InfoView^.DrawView;
            end;
-    kbGrayPlus, kbShiftGPlus: begin SelectFiles(@Self, true, ShiftState and 3 <> 0); CE end;
-    kbGrayMinus, kbShiftGMinus: begin SelectFiles(@Self, false, ShiftState and 3 <> 0); CE end;
+    kbGrayPlus{, kbShiftGPlus}: begin SelectFiles(@Self, true, ShiftState and 3 <> 0); CE end;
+    kbGrayMinus{, kbShiftGMinus}: begin SelectFiles(@Self, false, ShiftState and 3 <> 0); CE end;
     kbAltUp, kbAltDown: FindNextSelFile( Event.KeyCode = kbAltDown ); {-$VIV}
     else if ShowKeyCode and 1>0 then
           begin
@@ -1823,7 +1894,13 @@ end;
        AddToDirectoryHistory(DirectoryName,integer(Drive^.DriveType));
        Rebound;
      end;
-   end else RereadDir;
+   end
+   else
+     begin
+       if Drive^.DriveType in [dtTemp, dtFind, dtList] then
+         Drive^.RereadDirectory('');
+       RereadDir;
+     end;
    CE;
  end;
 
@@ -2085,7 +2162,12 @@ begin
               cmChangeDirectory: begin ChDir(PString(Event.InfoPtr)^); CE; end;
               cmChangeDir: begin
                             FreeStr := CM_ChangeDirectory(@Self);
-                            if FreeStr <> '' then GotoFile(MakeNormName(FreeStr,'.'));
+                            if FreeStr <> '' then
+                              begin
+                                if Drive^.DriveType = dtArc then
+                                  ReplaceDrive(FreeStr[1]);
+                                GotoFile(MakeNormName(FreeStr,'.'));
+                              end;
                             CE
                            end;
               cmGetDirInfo: if Drive <> nil then

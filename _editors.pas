@@ -8,6 +8,7 @@ Copyright (C) 2002 Aleksej Kozlov (Cat)
 ******)
 
 {&Delphi+}
+{&Use32+}
 
 interface
 
@@ -102,7 +103,6 @@ type
     constructor Init(R: TRect; FileName: String);
     constructor Load(var S: TStream);
     procedure Store(var S: TStream);
-    {procedure ChangeBounds(var R: TRect); virtual;}
     {function Execute: Word; virtual;}
     {procedure SetState(AState: Word; Enable: Boolean); virtual;}
   end;

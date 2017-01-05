@@ -58,6 +58,7 @@ type
 
   PUniWindow = ^TUniWindow;
   TUniWindow = object(TWindow)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     function GetPalette : PPalette;virtual;
     function MakeScrollBar(AOptions: Word): PScrollBar;
     procedure InitFrame;virtual;

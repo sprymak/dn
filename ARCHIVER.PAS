@@ -224,6 +224,7 @@ procedure SkipSFX;
 procedure Check4ArcId;
 Function  _Cardinal(L: LongInt): Real; {piwamoto}
 Function  FromOct(S: String): LongInt; {fixed by piwamoto}
+Function  CheckForSpaces(S: string): boolean; { Flash }
 
  const CDir: String = '';
        ArcBufSize = 512;
@@ -586,6 +587,13 @@ begin
   DefaultAddArchiver := arcUNK;
 end;
 
+{ Flash >>> }
+function CheckForSpaces(S: string): boolean;
+begin
+CheckForSpaces:=(Pos(' ',S)=0);
+end;
+{ Flash <<< }
+
         {-DataCompBoy-}
 procedure MakeArchive;
 
@@ -675,6 +683,7 @@ procedure MakeArchive;
    for I := 0 to Files^.Count - 1 do
     begin
      PF := Files^.At(I);
+     if PathFoundInArc(PF^.Owner^) then Continue; {JO}
  {$IFNDEF OS2}
      if Arc^.UseLFN
       then
@@ -853,7 +862,7 @@ procedure MakeArchive;
     GlobalMessage(evCommand, cmRereadInfo, nil);
   end;
 
-label Ex;
+label Ex {$IFNDEF OS2},TryAgain {$ENDIF};
 begin
   FillChar(D, SizeOf(D), 0);
   D.Name := {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(S);
@@ -873,6 +882,9 @@ begin
   D.Mode := DefaultArcMode and 255;
   D.Add := '';
   repeat
+{$IFNDEF OS2}
+TryAgain:
+{$ENDIF}
     if ExecResource(dlgArchiveFiles, D) <> cmOK then Exit;
     AID := (D.Mode and 255) or (D.Options shl 8);
     if (D.Archiver <> DefaultArchiver) or
@@ -883,11 +895,24 @@ begin
        Message(Application, evCommand, cmUpdateConfig, nil);
      end;
     S := '';
+    AID := D.Archiver;
+    Arc := GetArchiveByTag(AID);
+    if Arc = nil then Exit;
+  { Flash >>> }
+   {$IFNDEF OS2}
+    if D.Password <> '' then
+      if not CheckForSpaces(D.Password) then
+        if not Arc^.UseLFN then
+          begin
+            MessageBox(GetString(dlSpacesInPassword), nil, mfWarning + mfOkButton);
+            goto TryAgain;
+          end;
+   {$ENDIF}
   until (D.Password = '') or
         ((ExecResource(dlgReenterPassword, S) = cmOK) and (S = D.Password));
-  AID := D.Archiver;
-  Arc := GetArchiveByTag(AID);
-  if Arc = nil then Exit;
+  if {$IFNDEF OS2} (Arc^.UseLFN) and {$ENDIF}
+    not CheckForSpaces(D.Password) then D.Password:='"'+D.Password+'"';
+  { Flash <<< }
   lGetDir(0, CurDir);
   if Abort then goto Ex;
   if CurDir[Length(CurDir)] <> '\' then CurDir := CurDir + '\';
@@ -928,6 +953,7 @@ begin
 { GlobalMessage(evCommand, cmMakeForced, nil);}
   if Owner <> nil then Files^.ForEach(@Unselect);
 { Message(Application, evCommand, cmExecString, @S);}
+  if (ST1 = '') then Goto Ex;
   ArcExec(CnvString(Arc^.Packer), S, ST1, B);
 Ex:
   Dispose(Arc, Done);
@@ -946,7 +972,7 @@ procedure UnarchiveFiles;
       Xt: String;
       Unp: String;
       FMod:  String;
-label ex;
+label ex {$IFNDEF OS2},TryAgain {$ENDIF};
 begin
    lFSplit(FName, Dr, Nm, Xt);
    ArcFileName := FName;
@@ -974,6 +1000,9 @@ begin
    if DT.S = cTEMP_ then DT.S := '';
    if (Length(DT.S) > 3) and (DT.S[Length(DT.S)] <> '\') then DT.S := DT.S + '\';
    CopyDirName := '';
+{$IFNDEF OS2}
+TryAgain:
+{$ENDIF}
    if ExecResource( dlgExtract, DT) <> cmOK then goto Ex;
 {
    if (DT.W and 1) <> (UnarchiveOpt and 1) then ConfigModified := True;
@@ -989,7 +1018,24 @@ begin
    if DT.W and 1 = 0 then ExtrChar := CnvString(AType^.Extract);
    if DT.W and 2 <> 0 then ExtrChar := CnvString(AType^.Test);
    S := '';
-   if DT.Psw <> '' then S := S + ' ' + DelSpaces(CnvString(AType^.Garble) + DT.Psw) + ' ';
+   if DT.Psw <> '' then
+   { Flash >>> }
+    if CheckForSpaces(DT.Psw) then
+      S := S + ' ' + CnvString(AType^.Garble) + DT.Psw + ' '
+     else
+    {$IFNDEF OS2}
+      if AType^.UseLFN then
+    {$ENDIF}
+        S := S + ' ' + CnvString(AType^.Garble) + '"'+ DT.Psw + '"' + ' '
+    {$IFNDEF OS2}
+       else
+         begin
+           MessageBox(GetString(dlSpacesInPassword), nil, mfWarning + mfOkButton);
+           goto TryAgain;
+         end
+    {$ENDIF}
+         ;
+   { Flash <<< }
    Unp := CnvString(AType^.unPacker);
    if (AType^.GetID = arcRAR) and (PosChar(';', Unp) > 0) then
     {begin
@@ -1030,8 +1076,7 @@ end;
 procedure SkipSFX; {piwamoto}
 var
    TempWord: AWord;
-{used for MZExeRec.RelOffs, MZExeRec.NewExe.Type, NEhdrRec.SegmentOffset}
-   WinZipID: Array [0..7] of char;
+{used for MZExeRec.RelOffs, MZExeRec.NewExe.Type, NEhdrRec.SegmentOffset, PEhdrRec.ObjNum}
    MZExeRec: record
               ExeID:   AWord;
               LastB:   AWord;
@@ -1039,8 +1084,20 @@ var
               NewExe:  LongInt;
              end;
    PEhdrRec: record
-              ObjNum:  AWord;
-              ObjSize: Longint;
+              ObjNum:    AWord;
+              MaxObjNum: AWord;
+              MaxOffset: Longint;
+             end;
+   PEobjRec: record
+              Name:        Array [0..7] of char;
+              VirtualSize: LongInt;
+              RVA:         LongInt;
+              Size:        Longint;
+              Offset:      Longint;
+              Reserved1:   Longint;
+              Reserved2:   Longint;
+              Reserved3:   Longint;
+              Reserved4:   Longint;
              end;
    LXhdrRec: record
               NonResTableOffs : Longint;
@@ -1085,12 +1142,22 @@ begin
          begin {PE}
           ArcFile^.Seek(MZExeRec.NewExe + 6);
           ArcFile^.Read(PEhdrRec.ObjNum, SizeOf(PEhdrRec.ObjNum));
-          ArcFile^.Seek(MZExeRec.NewExe + $28*PEhdrRec.ObjNum + $0D0); {e0=f8-28}{offset 2 last object}
-          ArcFile^.Read(WinZipID, SizeOf(WinZipID));
-          ArcFile^.Seek(ArcFile^.GetPos+8);
-          ArcFile^.Read(PEhdrRec.ObjSize, SizeOf(PEhdrRec.ObjSize));
-          ArcFile^.Read(ArcPos, SizeOf(ArcPos));
-          if WinZipID <> '_winzip_' then ArcPos := ArcPos + PEhdrRec.ObjSize;
+          PEhdrRec.MaxObjNum := 0;
+          PEhdrRec.MaxOffset := 0;
+          ArcFile^.Seek(MZExeRec.NewExe + $F8); {offset 2 first object}
+          for TempWord := 1 to PEhdrRec.ObjNum do
+           begin
+            ArcFile^.Read(PEobjRec, SizeOf(PEobjRec));
+            if PEobjRec.Offset > PEhdrRec.MaxOffset then
+              begin
+               PEhdrRec.MaxOffset := PEobjRec.Offset;
+               PEhdrRec.MaxObjNum := TempWord;
+              end;
+           end;
+          ArcFile^.Seek(MZExeRec.NewExe + $28*PEhdrRec.MaxObjNum + $0D0); {offset 2 object with MaxOffset}
+          ArcFile^.Read(PEobjRec, SizeOf(PEobjRec));
+          ArcPos := PEobjRec.Offset;
+          if PEobjRec.Name <> '_winzip_' then ArcPos := ArcPos + PEobjRec.Size;
          end;
         $454e :
          begin {NE}
@@ -1174,6 +1241,9 @@ begin
    {CHZ} (ArcId = $46684353 {'SChF'}) or
    {CHZ} (ArcId = $44684353 {'SChD'}) or
   {COFF} (ArcId = $0003014c {#$4c#$01#$03#$00}) or {unix-style COFF executable - GNU C / go32stub 2.02 // DJ Delorie}
+   {ACE} (ArcID = $4543412a {'*ACE'}) or
+   {ACE} (ArcID = $78667321 {'!sfx'}) or {!sfx - ACE-SFX script}
+   {ACE} (ArcID = $5846532a {'*SFX'}) or {**SFX** - ACE-SFX script}
    {CAB} (ArcId = $4643534d {'MSCF'});
    if ((ArcPosID - ArcPos) < $1fd) and not (ArcFile^.EOF) then ArcPos := ArcPosID - 1;
    if ArcId = $0003014c {#$4c#$01#$03#$00} then
@@ -1182,6 +1252,34 @@ begin
       ArcFile^.Read(ArcPosID, SizeOf(ArcPosID));{DataOffset}
       ArcFile^.Read(ArcID, SizeOf(ArcID));{DataSize}
       ArcPos := ArcPos + ArcPosID + ArcID;
+      Exit;
+     end;
+   if ArcID = $78667321 {!sfx - ACE-SFX script} then
+     begin {must be before '*ACE' & '*SFX' ArcPos correction}
+      ArcFile^.Read(ArcPosID, 2);{skip 2 bytes}
+      ArcFile^.Read(ArcPosID, SizeOf(ArcPosID));{size of !sfx! script}
+      ArcPos := ArcPos + ArcPosID + 8;
+      ArcFile^.Read(ArcPosID, SizeOf(ArcPosID));{skip 4 bytes}
+      ArcFile^.Read(ArcPosID, SizeOf(ArcPosID));{script is not empty?}
+      ArcFile^.Seek(ArcPos);
+      ArcFile^.Read(ArcId, SizeOf(ArcId));
+      if (ArcPosId <> 0) and (ArcId = $4543412a) then ArcID := $5846532a;
+     end;
+   if ArcID = $4543412a {'*ACE'} then ArcPos := ArcPos - 8;
+   if ArcID = $5846532a {**SFX** - ACE-SFX script} then
+     begin
+      ArcPos := ArcPos - 6;
+      ArcFile^.Seek(ArcPos);
+      ArcPosID := 0;
+      ArcFile^.Read(ArcPosID, 2);{only 2 bytes}
+      ArcPos := ArcPos + ArcPosID + 4;
+      ArcFile^.Seek(ArcPos);
+      ArcFile^.Read(ArcPosID, 2);{only 2 bytes}
+      ArcPos := ArcPos + ArcPosID + 2;
+      ArcFile^.Read(ArcPosID, 3);{skip 3 bytes}
+      ArcFile^.Read(ArcPosID, SizeOf(ArcPosID));{size of **SFX** script}
+      ArcPos := ArcPos + ArcPosID;
+      Exit;
      end;
 end; {Check4ArcId}
 

@@ -124,6 +124,7 @@ type
 
   PFindDrive = ^TFindDrive;
   TFindDrive = object(TDrive)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
    isDisposable: Boolean;
    Files: PFilesCollection;
    Dirs: PSortedCollection;
@@ -164,6 +165,7 @@ type
 
   PTempDrive = ^TTempDrive;
   TTempDrive = object(TFindDrive)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
    constructor Init(num: byte);
    constructor Load(var S: TStream);
    procedure   Store(var S: TStream); virtual;
@@ -172,12 +174,13 @@ type
    function    GetInternalName: String; virtual;
    procedure   CopyFiles(AFiles: PCollection; Own: PView; MoveMode: Boolean); virtual;
    procedure   EraseFiles(AFiles: PCollection); virtual;
+   procedure   ChangeRoot; virtual;
    procedure   GetDirInfo(var B: TDiskInfoRec); virtual;
    procedure   GetParam(n: byte); virtual; {DataCompBoy}
    destructor  Done; virtual;
   end;
 
-  procedure CopyToTempDrive(AFiles: PCollection; Own: PView);
+  procedure CopyToTempDrive(AFiles: PCollection; Own: PView; ArchiveName: String);
 
 implementation
 uses LFN{DataCompBoy}, DNApp, advance, advance1, advance2, advance3, Startup,
@@ -579,6 +582,19 @@ begin
  Microed.SearchData.What := #0;
  Microed.SearchData.Options := SearchString.Opts;
  Microed.SearchData.Scope := 0;
+
+ { Flash >>> }
+ lGetDir(0, FN);
+ if FN[Length(FN)] <> '\' then FN := FN + '\';
+ if PathExist(FN+GetPath(FindRec.Mask)) and (Pos('\',FindRec.Mask)<>0) then
+  begin
+  FN:=FN+GetPath(FindRec.Mask);
+  while Pos('\',FindRec.Mask)<>0 do
+   Delete(FindRec.Mask,1,Pos('\',FindRec.Mask));
+  end;
+ if FN[Length(FN)] <> '\' then FN := FN + '\';
+ { Flash <<< }
+
 {$IFDEF OS_DOS}
  MaskSearch := not PackMask(FindRec.Mask+FindRec.AddChar, Mask, True);
 {$ELSE}
@@ -590,10 +606,7 @@ begin
  Drv^.AMask := NewStr(FindRec.Mask);
  Drv^.isDisposable := false;
  Pnl := nil;
- {FN := DelSpaces(lFExpand(FindRec.Mask));
- lFSplit(FN, Dr, Nm, Xt);}
- lGetDir(0, FN);
- if FN[Length(FN)] <> '\' then FN := FN + '\';
+
  case FindRec.Where of
   1: SearchData(FN);
   2: for C := 'A' to 'Z' do
@@ -621,16 +634,78 @@ begin
 end;
         {-DataCompBoy-}
 
-        {-DataCompBoy-}
-function ReadList;
+{AK155}
+function InsertFile(const S: String; var DC: PSortedCollection;
+          var FC: PFilesCollection): Boolean;
+  var
+    Dir: String;
+    Nm: String;
+    Xt: String;
+    SR: lSearchRec;
+    I: LongInt;
+    Dr: PString;
+    Duped: Boolean;
+  begin
+  InsertFile := false;
+  if (S = '')
+    or (S = '*') or (S = '*.*')   {JO: иначе в список попадёт весь каталог}
+       then exit;
+  ClrIO;
+  lFindFirst(S, AnyFile, SR); {JO}
+  if (DOSError = 0) and not Abort then
+   begin
+     InsertFile := true;
+     lFSplit(lFExpand(S), Dir, Nm, Xt);
+     if DC = nil then DC := New(PStringCollection, Init($10,$10,False));
+     I := DC^.IndexOf(@Dir);
+     if I < 0 then
+       begin
+         if Dir[Length(Dir)] <> '\' then AddStr(Dir, '\');
+         Dr := NewStr(Dir);
+         DC^.Insert(Dr);
+       end else Dr := DC^.At(I);
+   end;
+  while (DOSError = 0) and not Abort do
+   begin
+     if{$IFNDEF OS2}(SR.SR.Name[1] <> '.') and (SR.FullName <> '.') and (SR.FullName <> '..'){$ELSE}(SR.SR.Name <> '..')
+                                                              and (SR.SR.Name <> '.'){$ENDIF}then
+      begin
+        if FC = nil then New(FC, Init($10, $10));
+        Duped := False;
+        for I := 0 to FC^.Count - 1 do
+          if (SR.FullName = PFileRec(FC^.At(I))^.FlName[True])
+            and (Dr^ = PFileRec(FC^.At(I))^.Owner^) then
+             Duped := True;
+        if not Duped then
+          FC^.AtInsert(FC^.Count, NewFileRec(SR.FullName,
+                                             {$IFNDEF OS2}
+                                             SR.SR.Name,
+                                             {$ENDIF}
+                                             SR.FullSize,
+                                             SR.SR.Time,
+                                             SR.SR.CreationTime,
+                                             SR.SR.LastAccessTime,
+                                             SR.SR.Attr,
+                                             Dr
+                                             )
+                      )
+         else Break;
+      end;
+     ClrIO;
+     lFindNext(SR);
+   end;
+  lFindClose(SR);
+{$IFDEF OS2}
+  if DosError = 49 then messagebox(GetString(dl_CodePage_FS_Error), nil, mfError+mfOKButton);
+{$ENDIF}
+end;
+
+        {-DataCompBoy-, AK155}
+function ReadList(const AName: String; var DC: PSortedCollection;
+       var FC: PFilesCollection): Boolean;
   var F: PTextReader;
-      I: LongInt;
       S: String;
-      Dir: String;
-      Nm: String;
-      Xt: String;
-      SR: lSearchRec;
-      Dr: PString;
+      I,J: LongInt;
       P: PFileRec;
       D: DateTime;
       WW: PView;
@@ -647,55 +722,33 @@ begin
    begin
      UpdateWriteView(WW);
      S := F^.GetStr;
-     DelLeft(S);
-     I := Pos(':\', S);
-     if I > 1 then Delete(S, 1, I-2);
-     I := PosChar(' ',S);
-     if I > 0 then SetLength(S, I-1);
-     UpStr(S);
      if S <> '' then
-       begin
-         ClrIO;
-         lFindFirst(S, AnyFile, SR); {JO}
-         if (DOSError = 0) and not Abort then
-          begin
-            lFSplit(lFExpand(S), Dir, Nm, Xt);
-            if DC = nil then DC := New(PStringCollection, Init($10,$10,False));
-            I := DC^.IndexOf(@Dir);
-            if I < 0 then
-              begin
-                if Dir[Length(Dir)] <> '\' then AddStr(Dir, '\');
-                Dr := NewStr(Dir);
-                DC^.Insert(Dr);
-              end else Dr := DC^.At(I);
-          end;
-         while (DOSError = 0) and not Abort do
-          begin
-            if{$IFNDEF OS2}(SR.SR.Name[1] <> '.') and (SR.FullName <> '.') and (SR.FullName <> '..'){$ELSE}(SR.SR.Name <> '..')
-                                                                     and (SR.SR.Name <> '.'){$ENDIF}then
-             begin
-               if FC = nil then New(FC, Init($10, $10));
-               FC^.AtInsert(FC^.Count, NewFileRec(SR.FullName,
-                                                  {$IFNDEF OS2}
-                                                  SR.SR.Name,
-                                                  {$ENDIF}
-                                                  SR.FullSize,
-                                                  SR.SR.Time,
-                                                  SR.SR.CreationTime,
-                                                  SR.SR.LastAccessTime,
-                                                  SR.SR.Attr,
-                                                  Dr
-                                                 )
-                           );
-             end;
-            ClrIO;
-            lFindNext(SR);
-          end;
-         lFindClose(SR);
-{$IFDEF OS2}
-         if DosError = 49 then messagebox(GetString(dl_CodePage_FS_Error), nil, mfError+mfOKButton);
-{$ENDIF}
-       end;
+       case S[1] of
+        ' ', #9, '>':
+         begin {игнорируем последующие строки многострочного описания}
+         end;
+        '"':
+         begin { длинное имя в кавычках }
+         system.delete (S, 1, 1);
+         SetLength(S, PosChar('"', S)-1);
+         InsertFile(S, DC, FC);
+         end;
+        else {попробуем целиком, или без первого символа (BSO),
+              а если не вышло - то до первого пробела или Tab}
+         begin
+         if not InsertFile(S, DC, FC) and
+            not ((S[1] in ['#', '^']) and
+                 InsertFile(Copy(S, 2, length(S)-1), DC, FC)) {BSO}
+         then
+           begin
+           I := PosChar(' ',S); J := PosChar(#9,S);
+           if (I=0) or ((J <> 0) and (J < I)) then
+             I := J;
+           if I <> 0 then
+             InsertFile(Copy(S, 1, I-1), DC, FC);
+           end;
+         end;
+       end {case};
    end;
 
   Dispose(F,Done);
@@ -1318,7 +1371,9 @@ begin
   if Flags and psShowLATime <> 0 then Inc(X, 6);
   if (Flags and psShowDir <> 0) and ((LFNLen < 250){$IFNDEF OS2} or (Flags and psShowLongName = 0){$ENDIF}) then
    begin
-      MoveStr(TWordArray(B)[X],{$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(P^.Owner^), C);
+      C := C shr 8;
+      MoveStr(TWordArray(B)[X], AddSpace({$IFDEF RecodeWhenDraw}
+        CharToOemStr{$ENDIF} (P^.Owner^), MaxViewWidth - X - 1), C);
    {Inc(X, 80);
     TWordArray(B)[X-1]:=SC;}
    end;
@@ -1369,6 +1424,11 @@ end;
 procedure TFindDrive.ChangeRoot;
   var P: PDrive;
 begin
+  if DriveType = dtList then
+    begin
+      CurDir := '';
+      Exit;
+    end;
   if Prev <> nil then
     begin
       PDrive(PFilePanel(Owner)^.Drive) := PDrive(Prev);
@@ -1563,10 +1623,17 @@ procedure CopyToTempDrive;
    if TempFiles^.Search(P, J) then exit;
    I  := TempDirs^.IndexOf(P^.Owner);
    if I >= 0 then L := TempDirs^.At(I)
-             else begin
-              L := NewStr(P^.Owner^);
-              TempDirs^.Insert(L);
-             end;
+     else
+       begin
+        if ArchiveName <> '' then
+          begin
+            if (P^.Owner^ = '') then L := NewStr(ArchiveName + ':\')
+              else L := NewStr(ArchiveName + ':' + P^.Owner^);
+          end
+         else
+          L := NewStr(P^.Owner^);
+         TempDirs^.Insert(L);
+       end;
    TempFiles^.AtInsert(J, NewFileRec(P^.FlName[true],
      {$IFNDEF OS2} P^.FlName[false], {$ENDIF}
                                      P^.Size,
@@ -1703,7 +1770,7 @@ end;
 
 procedure TTempDrive.CopyFilesInto;
 begin
- CopyToTempDrive(AFiles, Own);
+ CopyToTempDrive(AFiles, Own, '');
 end;
 
 procedure TTempDrive.EraseFiles;
@@ -1837,5 +1904,8 @@ begin
     end;
 end;
 
+procedure TTempDrive.ChangeRoot;
+begin
+end;
 
 end.

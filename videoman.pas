@@ -1594,6 +1594,9 @@ end;
 procedure ClearScreen;
 begin
   SysTVClrScr;
+  {$IFDEF Win32}
+  SysCtrlSleep(50); {Cat: даём время курсорной нитке установить курсор в угол}
+  {$ENDIF}
 end;
 
 {$IFDEF OS2} {JO} {установка VGA-палитры в окне}

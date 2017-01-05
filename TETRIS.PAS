@@ -54,14 +54,13 @@
    28/01/2002 - в плагинном случае добавил регистрацию объектов
 }
 
-{$IFDEF PLUGIN}
+{$IFDEF PLUGIN1} {JO: временно заменил PLUGIN на несуществующий дефайн PLUGIN1 }
 library Tetris;
 
 uses
   Objects, Drivers, Views, DNApp, Dialogs, Memory, Menus, Messages,
   Commands, Advance, Advance1, Advance2, Advance3, RStrings,
   xTime, StartUp, DNHelp,
-  {$IFDEF MIRRORVARS} Vars, {$ENDIF}
   VPUtils;
 
 
@@ -143,7 +142,7 @@ type
 
 const Game : PGameView = nil;
 
-{$IFNDEF PLUGIN}
+{$IFNDEF PLUGIN1}
 implementation
 
 uses
@@ -218,7 +217,7 @@ begin
  R.Assign(1, 1, 30+shi*2, 4+Vis);
  Inherited Init(R, GetString(dlGameTitle));
  Number := GetNum;
- HelpCtx := hcTetris + Byte(TetrisRec{$IFDEF MIRRORVARS}^{$ENDIF}.S = 1);
+ HelpCtx := hcTetris + Byte(TetrisRec.S = 1);
  Options := Options or ofCentered;
  R.Assign(2,2,2+Shi*2,2+Vis);
  Gm := New(PGameView, Init(R));
@@ -227,12 +226,6 @@ begin
  Info := New(PGameInfo, Init(R));
  Insert(Info);
  Info^.Gm := Gm; Gm^.Info := Info;
- {$IFDEF MIRRORVARS}
- Insert(NewButton(4+Shi*2, 17, 15+Shi*2, 19, GetString(dlNewButton), cmNewGame, 0));
- Insert(NewButton(15+Shi*2, 17, 26+Shi*2, 19, GetString(dlSetupButton), cmSetup, 0));
- Insert(NewButton(4+Shi*2, 19, 15+Shi*2, 21, GetString(dlTop10Button), cmShowHi, 0));
- Insert(NewButton(15+Shi*2, 19, 26+Shi*2, 21, GetString(dlPauseButton), cmStop, 0));
- {$ELSE}
  R.Assign(4+Shi*2, 17, 15+Shi*2, 19);
  Insert(New(PButton, Init(R, GetString(dlNewButton), cmNewGame, 0)));
  R.Assign(15+Shi*2, 17, 26+Shi*2, 19);
@@ -241,7 +234,6 @@ begin
  Insert(New(PButton, Init(R, GetString(dlTop10Button), cmShowHi, 0)));
  R.Assign(15+Shi*2, 19, 26+Shi*2, 21);
  Insert(New(PButton, Init(R, GetString(dlPauseButton), cmStop, 0)));
- {$ENDIF}
  SelectNext(False);
 end;
 
@@ -350,7 +342,7 @@ begin
  Options := Options or ofFramed or ofSelectable or ofPreProcess;
  EventMask := $FFFF;
  Game := @Self; Delay := 30;
- with TetrisRec{$IFDEF MIRRORVARS}^{$ENDIF} do
+ with TetrisRec do
   begin
    StartLevel := L + 1;
    Level := StartLevel;
@@ -364,11 +356,7 @@ begin
    HiScores[I].StLv := 1;
    HiScores[I].EndLv := 1;
   end;
- {$IFDEF MIRRORVARS}
- S := NewDosStream(SourceDir+'TETRIS.CFG', stOpenRead);
- {$ELSE}
  S := New(PDosStream, Init(SourceDir+'TETRIS.CFG', stOpenRead));
- {$ENDIF}
  if S^.Status = stOK then
    S^.Read(B, SizeOf(HiScores));
  Dispose(S, Done);
@@ -407,11 +395,7 @@ begin
     HiScores[I].StLv := 1;
     HiScores[I].EndLv := 1;
    end;
-   {$IFDEF MIRRORVARS}
-   S := NewDosStream(SourceDir+'TETRIS.CFG', stCreate);
-   {$ELSE}
    S := New(PDosStream, Init(SourceDir+'TETRIS.CFG', stCreate));
-   {$ENDIF}
    S^.Write(HiScores, SizeOf(HiScores));
    Dispose(S, Done);
    Break;
@@ -440,12 +424,8 @@ var
   PP: Boolean;
 begin
   D := PDialog(LoadResource(TDlgIdx(Byte(dlgTetrisTop10) + Byte(Pentix))));
-  {$IFDEF MIRRORVARS}
-  P := NewView(2, 4, D^.Size.X - 2, 14);
-  {$ELSE}
   R.Assign(2, 4, D^.Size.X - 2, 14);
   P := New(PView, Init(R));
-  {$ENDIF}
   P^.Options := P^.Options or ofFramed;
   D^.Insert(P);
   for I := 1 to 10 do with HiScores[ I + 10 * Byte( Pentix ) ] do begin
@@ -458,12 +438,8 @@ begin
                      SStr( Score, 10, '.' );
     end else
       S := '';
-    {$IFDEF MIRRORVARS}
-    D^.Insert(NewLabel(2, 3 + I, D^.Size.X - 2, 4 + I, S, nil));
-    {$ELSE}
     R.Assign(2, 3 + I, D^.Size.X - 2, 4 + I);
     D^.Insert(New(PLabel, Init(R, S, nil)));
-    {$ENDIF}
   end;
   PP := Stop;
   Stop := true;
@@ -567,11 +543,7 @@ function TGameView.MoveDown;
   HiScores[I+10*Byte(Pentix)].StLv := StartLevel;
   HiScores[I+10*Byte(Pentix)].EndLv := Level;
   HiScores[I+10*Byte(Pentix)].Score := Score;
-  {$IFDEF MIRRORVARS}
-  S := NewDosStream(SourceDir+'TETRIS.CFG',stCreate);
-  {$ELSE}
   S := New(PDosStream, Init(SourceDir+'TETRIS.CFG',stCreate));
-  {$ENDIF}
   Move(HiScores, B, SizeOf(HiScores));
   J := SizeOf(HiScores);
   {$IFNDEF BIT_32}
@@ -722,15 +694,15 @@ procedure TGameView.HandleEvent;
  procedure Setup;
  begin
   Stop := true;
-  with TetrisRec{$IFDEF MIRRORVARS}^{$ENDIF} do
+  with TetrisRec do
    begin
     L := Level - 1;
     S := Byte(Pentix);
     P := Byte(Preview);
    end;
-  if ExecResource(dlgGameSetup, TetrisRec{$IFDEF MIRRORVARS}^{$ENDIF}) <> cmOK then
+  if ExecResource(dlgGameSetup, TetrisRec) <> cmOK then
    Exit;
-  with TetrisRec{$IFDEF MIRRORVARS}^{$ENDIF} do
+  with TetrisRec do
    begin
     StartLevel := L + 1;
     Pentix := (S = 1);
@@ -811,7 +783,7 @@ begin
  inherited HandleEvent(Event);
 end;
 
-{$IFDEF PLUGIN}
+{$IFDEF PLUGIN1}
 const
   Reg1: TStreamRec =
     (ObjType: $FFFF;

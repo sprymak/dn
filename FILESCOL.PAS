@@ -132,6 +132,7 @@ type
 
     PFilesCollection = ^TFilesCollection;
     TFilesCollection = object(TSortedCollection)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
      SortMode: Byte;
      Selected: LongInt;
      Owner: Pointer;
@@ -191,11 +192,8 @@ uses DNApp, Menus, Views, FlPanel, Drives,
      {$IFDEF NETINFO}, Novell{$ENDIF}
      {$IFNDEF NONBP}, DiskTool{$ENDIF}
      {$IFDEF VIRTUALPASCAL}, VpSysLow, VpUtils {$ELSE}, DrvTypes{$ENDIF}
-     , FlTl
-     {$IFDEF NETWORK}, Network {$ENDIF}
-     , DnIni, DOS
-
-;
+     {$IFDEF PLUGIN}, Plugin {$ENDIF}
+     , FlTl, DnIni, DOS;
 
 const
     pfrPacked   = $80;
@@ -892,15 +890,12 @@ begin
  Items := nil; N := 0; Lnk := nil;
  MaxL := 8; {-$VIV}
 
- {$IFDEF NETWORK}
- if NetworkEnabled then
-   begin
-     FreeStr:='Network';
-     Items := NewLine(NewItem(FreeStr, '', kbNoKey, 1900, hcNoContext, Items));
-     MaxL:=Max(CStrLen(FreeStr), MaxL);
-     Inc(N);
-   end;
+ {Cat}
+ {$IFDEF PLUGIN}
+ if IncludeTemp then
+   Inc(N, CreateDriveMenus(Items, MaxL));
  {$ENDIF}
+ {/Cat}
 
  if IncludeTemp and (InterfaceData.DrvInfType and ditIncludeQick <> 0) then begin
   C := ' ';
@@ -1088,10 +1083,10 @@ FullS := FullS + GetDriveTypeString(C) + ' ';
  SelectDrive := '';
  if N > 1000 then SelectDrive := Char(N - 1000)+':';
  if N = 1200 then SelectDrive := cTEMP_;
- {$IFDEF NETWORK}
- if N = 1900 then SelectDrive := cNET_;
- {$ENDIF}
  if N > 2000 then SelectDrive := '+' + Char(N - 2000);
+ {$IFDEF PLUGIN}
+ if N > 65000 then SelectDrive := #26+Char(N-65000); {Cat}
+ {$ENDIF}
  if (N >= cmQuickChange1) and (N <= cmQuickChange9)
              then SelectDrive := CnvString(DirsToChange[N-cmQuickChange1]);
 end;
@@ -1270,6 +1265,7 @@ var i: longint;
     sr: lSearchRec;
     p: PFileRec;
     D: DateTime;
+    S: String;
 {$IFDEF CHDIRTIMER}
   ev: TEvent;
 {$ENDIF}
@@ -1313,10 +1309,22 @@ begin
          end;
        P^.Second := D.Sec;
        P^.Attr  := SR.SR.Attr;
+ {JO: чтобы менялся цвет в панели поиска и временной панели при переименовании}
+       P^.TType := GetFileType(P^.FlName[true], P^.Attr);
        inc(i);
       end;
     end
-   else inc(i);
+   else
+    begin
+ {JO: проверяем, существует ли архив, в котором лежит файл }
+     S := P^.Owner^;
+     if Length(S) > 1 then S[2] := ';'; {JO: реально не важно, какой символ взять, лишь бы не ':'}
+     S := Copy(P^.Owner^, 1, PosChar(':', S) - 1);
+     lFindFirst(S, Anyfile, SR);
+     lFindClose(SR);
+     if (DosError <> 0) or Abort then Files^.AtFree(i)
+      else inc(i);
+    end;
  end;
  If Files^.Count > 0 then Files^.Sort;
 {$IFDEF CHDIRDEBUG}

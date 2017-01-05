@@ -598,6 +598,7 @@ var
          cfgExtractOptions: S.Read(UnarchiveOpt, sizeof(UnarchiveOpt)); {JO}
       cfgChangeCaseOptions: SRead(ChangeNamesCaseOptions);
              cfgAppPalette: SRead(appPalette);
+      cfgComareDirsOptions: SRead(ComareDirsOptions);
          cfgIgnoreOldFiles: IgnoreOldFiles:=True;
             else S.Seek(S.GetPos+L);
         end;

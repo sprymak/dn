@@ -353,6 +353,8 @@ constructor TCalcWindow.Load;
 begin
   inherited Load(S);
   GetSubViewPtr(S, CalcView);
+  if CalcView = nil then {Cat}
+    Fail;
 end;
 
 procedure TCalcWindow.Store;

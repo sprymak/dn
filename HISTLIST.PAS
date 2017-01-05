@@ -486,7 +486,7 @@ end;
 }
 procedure InitHistory;
 begin
-  HistoryBlock := MemAllocSeg(HistorySize);
+  HistoryBlock := MemAlloc(HistorySize);
   ClearHistory;
 end;
 

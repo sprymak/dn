@@ -92,7 +92,7 @@ dlArcName,                 '~iм''я:~ '
 dlArcOpt,                  '~О~пцiї'
 dlArcPSize,                '~Упаковано:~ '
 dlArcPacking,               ^M^M^C'Паковка...'
-dlArcRatio,                '~Компр.:~ '
+dlArcRatio,                '~Зжаття:~ '
 dlArcReadArc,              'Читаємо архiв'
 dlArcSetPsw,               'Встановiть пароль'
 dlArcUSize,                '~Початково:~ '
@@ -894,13 +894,15 @@ dlTeamAll   ^Z'~Команда DN (C):
 dlTeam2_000 ^Z'~Команда DN/2 (C) Open Source:~'
 dlTeam2_001 ^Z'~Програмування (в алфавiтному порядку)~'
 dlTeam2_002  ^Z'Олег Антошкiв'
-dlTeam2_003  ^Z'Максим Васильєв'
-dlTeam2_004  ^Z'Кирило Водоносов'
-dlTeam2_005  ^Z'Євген Звягiнцев'
-dlTeam2_006  ^Z'Вiктор Клочко'
-dlTeam2_007  ^Z'Олексiй Козлов'
-dlTeam2_008  ^Z'Олексiй Короп'
-dlTeam2_009  ^Z'Яpослав Осадчий'
+dlTeam2_003  ^Z'Сергiй Бiрюков'
+dlTeam2_004  ^Z'Максим Васильєв'
+dlTeam2_005  ^Z'Кирило Водоносов'
+dlTeam2_006  ^Z'Євген Звягiнцев'
+dlTeam2_007  ^Z'Павло Зiємiан'
+dlTeam2_008  ^Z'Вiктор Клочко'
+dlTeam2_009  ^Z'Олексiй Козлов'
+dlTeam2_010  ^Z'Олексiй Короп'
+dlTeam2_011  ^Z'Яpослав Осадчий'
 
 dlTeam000  ^Z'~Команда DN (C) Open Source:~'
 dlTeam001  ^Z'~Програмування~'
@@ -1375,3 +1377,15 @@ dlWrongComma 'Зайва кома'
 ;JO+
 dlOperationNotValidForDdrive 'Дана операцiя є неможливою для поточного диску'
 ;JO-
+
+;JOHN_SW begin
+dlHistDelCurDir,     ^C'Неможливо видалити поточний каталог'
+;JOHN_SW end
+
+;JO+
+dlTasklist 'Список завдань'
+dlSwitchButton 'Перейти'
+;JO-
+;Flash+
+dlSpacesInPassword = 'Пароль не повинен мати пробiлiв.'
+;Flash-

@@ -510,6 +510,8 @@ asm
                 je      @@ConvertStr
                 cmp     dl,'D'
                 je      @@ConvertDec
+                cmp     dl,'P' {Cat}
+                je      @@ConvertPointer {Cat}
                 cmp     dl,'X'
                 jne     @@Done
 // ConvertHex
@@ -523,6 +525,20 @@ asm
                 shr     eax,4
                 jnz     @@1
                 jmp     @@Done
+{Cat}
+@@ConvertPointer:
+              @@3:
+                mov     edx,eax
+                and     edx,0Fh
+                mov     dl,HexDigits.Byte[edx]
+                dec     esi
+                inc     ecx
+                mov     [esi],dl
+                shr     eax,4
+                cmp     ecx,8
+                jne     @@3
+                jmp     @@Done
+{/Cat}
 @@ConvertDec:
                 push    esi
                 mov     ebx,eax

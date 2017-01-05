@@ -65,6 +65,17 @@ Function  TdrInit(AvtDr: PArvidDrive): boolean;
 
 IMPLEMENTATION
 
+function TdrMakeFileName(S: string): string;
+var I: Integer;
+begin
+  S[9] := '.';
+  I := 8;
+  While (I > 0) and (S[I] = ' ') do begin Delete(S, I, 1); Dec(I); end;
+  While S[Length(S)] = ' ' do SetLength(S, Length(S)-1);
+  if S[Length(S)] = '.' then SetLength(S, Length(S)-1);
+  Result := S;
+end;
+
 procedure TdrSeekDirectory;
 var
       I,J: LongInt;
@@ -103,7 +114,7 @@ begin with AvtDr^ do begin
       Insert('.', SS, 9);
       if (CurDir[Length(CurDir)] <> '\') and
          (CurDir <> '') then AddStr(CurDir, '\');
-      CurDir := CurDir + MakeFileName(SS);
+      CurDir := CurDir + TdrMakeFileName(SS);
       CurDirPos := Stream^.GetPos;
       CurLevel := Lv;
       Inc(Lv);
@@ -155,9 +166,9 @@ var
     and (AllFiles or (FF.Attr and Directory <> 0) or InFilter(S, FileMask)) then
         begin
           {$IFNDEF OS2}
-          F := NewFileRec(MakeFileName(S), S, FF.Size, FF.Time, 0, 0, FF.Attr, @CurDir);
+          F := NewFileRec(TdrMakeFileName(S), S, FF.Size, FF.Time, 0, 0, FF.Attr, @CurDir);
           {$ELSE}
-          F := NewFileRec(MakeFileName(S), FF.Size, FF.Time, 0, 0, FF.Attr, @CurDir);
+          F := NewFileRec(TdrMakeFileName(S), FF.Size, FF.Time, 0, 0, FF.Attr, @CurDir);
           {$ENDIF}
           if ShowD then
           begin

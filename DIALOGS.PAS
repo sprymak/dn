@@ -150,6 +150,7 @@ type
 
   PDialog = ^TDialog;
   TDialog = object(TWindow)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     constructor Init(var Bounds: TRect; const ATitle: TTitleStr);
     constructor Load(var S: TStream);
     function GetPalette: PPalette; virtual;
@@ -175,6 +176,7 @@ type
 
   PInputLine = ^TInputLine;
   TInputLine = object(TView)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Data: PString;
     MaxLen: AInt;
     CurPos: AInt;
@@ -228,6 +230,7 @@ type
 
   PButton = ^TButton;
   TButton = object(TView)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Title: PString;
     Command: AWord;
     Flags: Byte;
@@ -257,6 +260,7 @@ type
 
   PCluster = ^TCluster;
   TCluster = object(TView)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Value: LongInt;
     Sel: AInt;
     EnableMask: LongInt;
@@ -297,6 +301,7 @@ type
 
   PRadioButtons = ^TRadioButtons;
   TRadioButtons = object(TCluster)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     procedure Draw; virtual;
     function Mark(Item: Integer): Boolean; virtual;
     procedure MovedTo(Item: Integer); virtual;
@@ -314,6 +319,7 @@ type
 
   PCheckBoxes = ^TCheckBoxes;
   TCheckBoxes = object(TCluster)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     procedure Draw; virtual;
     function Mark(Item: Integer): Boolean; virtual;
     procedure Press(Item: Integer); virtual;
@@ -329,6 +335,7 @@ type
 
   PMultiCheckBoxes = ^TMultiCheckBoxes;
   TMultiCheckBoxes = object(TCluster)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     SelRange: Byte;
     Flags: AWord;
     States: PString;
@@ -356,6 +363,7 @@ type
 
   PListBox = ^TListBox;
   TListBox = object(TListViewer)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     List: PCollection;
     constructor Init(var Bounds: TRect; ANumCols: Word;
       AScrollBar: PScrollBar);
@@ -375,6 +383,7 @@ type
 
   PStaticText = ^TStaticText;
   TStaticText = object(TView)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Text: PString;
     constructor Init(var Bounds: TRect; const AText: String);
     constructor Load(var S: TStream);
@@ -392,6 +401,7 @@ type
 
   PParamText = ^TParamText;
   TParamText = object(TStaticText)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     ParamCount: AInt;
     ParamList: Pointer;
     constructor Init(var Bounds: TRect; const AText: String;
@@ -413,6 +423,7 @@ type
 
   PLabel = ^TLabel;
   TLabel = object(TStaticText)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Link: PView;
     Light: Boolean;
     constructor Init(var Bounds: TRect; const AText: String; ALink: PView);
@@ -434,6 +445,7 @@ type
 
   PHistoryViewer = ^THistoryViewer;
   THistoryViewer = object(TListViewer)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     HistoryId: AWord;
     SearchPos: AWord;
     constructor Init(var Bounds: TRect; AHScrollBar, AVScrollBar: PScrollBar;
@@ -457,6 +469,7 @@ type
 
   PHistoryWindow = ^THistoryWindow;
   THistoryWindow = object(TWindow)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Viewer: PListViewer;
     constructor Init(var Bounds: TRect; HistoryId: AWord);
     function GetPalette: PPalette; virtual;
@@ -472,6 +485,7 @@ type
 
   PHistory = ^THistory;
   THistory = object(TView)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Link: PInputLine;
     HistoryId: AWord;
     constructor Init(var Bounds: TRect; ALink: PInputLine; AHistoryId: AWord);
@@ -1066,7 +1080,7 @@ begin
                     Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
                     Exit;
                   end;
-            kbAlt1..kbAlt9:
+            kbAlt1, kbAlt2, kbAlt3, kbAlt4, kbAlt5, kbAlt6, kbAlt7, kbAlt8, kbAlt9:
                   begin
                     ClearEvent(Event);
                     S := ''; DeleteSelect;
@@ -1387,7 +1401,7 @@ begin
            (GetAltCode(C) = Event.KeyCode) or (
              (Owner^.Phase = phPostProcess) and (
                (UpCaseArray[Event.CharCode] = C) or
-               (UpCaseArray[GetAltChar(Event.KeyCode and $FF00)] = C)
+               (UpCaseArray[GetAltChar(Event.KeyCode and $FFFF00)] = C)
              ))) or
           (State and sfSelected <> 0) and (Event.CharCode = ' ') or
           (State and sfSelected <> 0) and (Event.KeyCode = kbEnter) then
@@ -1734,7 +1748,7 @@ begin
              (GetAltCode(C) = Event.KeyCode) or (
                (Owner^.Phase = phPostProcess) and (
                  (UpCaseArray[Event.CharCode] = C) or
-                 (UpCaseArray[GetAltChar(Event.KeyCode and $FF00)] = C)
+                 (UpCaseArray[GetAltChar(Event.KeyCode and $FFFF00)] = C)
                )))
             then begin
               if ButtonState(I) then
@@ -2237,7 +2251,7 @@ begin
        (GetAltCode(C) = Event.KeyCode) or (
          (Owner^.Phase = phPostProcess) and (
            (UpCaseArray[Event.CharCode] = C) or
-           (UpCaseArray[GetAltChar(Event.KeyCode and $FF00)] = C)
+           (UpCaseArray[GetAltChar(Event.KeyCode and $FFFF00)] = C)
          )))
       then FocusLink
   end

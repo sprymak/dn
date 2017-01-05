@@ -71,34 +71,6 @@ type
 
   TSize = Comp; {64 bit integer type for file sizes}
 
- {SearchRecNew = TOSSearchRecNew;}{Cat: непонятно, зачем тут перечислять все поля ещё   }
-                                  {     раз, а глюки из этого могут возникнуть запросто }
-(*
-  SearchRecNew = record        {JO: расширенный аналог SearchRec из Dos с        }
-    Handle: Longint;           {    некоторыми дополнительными полями,           }
-    Filler1: Longint;          {    в настоящий момент ShortName в Win32 версии, }
-    Attr: Byte;                {    время создания и последнего доступа          }
-    Time: Longint;
-    Size: Longint;
-    Name: ShortString;
-    CreationTime: Longint;
-    LastAccessTime: Longint;
-    Filler2: array[0..3] of Char;
-{$IFDEF WIN32}
-    ShortName: ShortString;
-    Filler3: array[0..321] of Char;
-{$ENDIF}
-{$IFDEF DPMI32}
-    Private_data: array[1..sizeof(TOSSearchRec)-4-4-1-4-4-256-4] of Byte;
-{$ENDIF}
-{$IFDEF LINUX}
-    Pattern: ShortString;
-    FileMode: LongInt;
-    Directory: ShortString;
-{$ENDIF}
-  end;
-*)
-
    {Extended search structure to be used instead of SearchRec}
   lSearchRec = record
     SR: TOSSearchRecNew;   {Basic field set}
@@ -278,51 +250,18 @@ begin
 end;
 
 function OemToCharStr(OemS: String): String;
-{var l: integer;
-begin
-l := length(OemS);
-Setlength(Result, l);
-OemToCharBuff(@OemS[1], @Result[1], l);
-end;}
 begin
  OemToCharSt(OemS);
  OemToCharStr := OemS;
 end;
 
 function CharToOemStr(CharS: String): String;
-{var l: integer;
-begin
-l := length(CharS);
-Setlength(Result, l);
-CharToOemBuff(@CharS[1], @Result[1], l);
-end;}
 begin
  CharToOemSt(CharS);
  CharToOemStr := CharS;
 end;
 {/JO}
 {$ENDIF}
-
-procedure CheckColonAndSlash(const Name: String; var S: String);
-var
-  ColonPos: Integer;
-begin
-  ColonPos := Pos(':', S);
-  if (ColonPos > 2) and (Name[2] = ':') then
-  begin
-    Delete(S, 1, ColonPos - 1);
-    S := Name[1] + S;
-  end;
-
-  if Name[Length(Name)] <> '\' then
-    while S[Length(S)] = '\' do SetLength(S, Length(S)-1)
-  else if (Name[Length(Name)] = '\') and
-    (S[Length(S)] <> '\') and (Length(S) < 255) then
-  begin
-    SetLength(S, Length(S)+1);
-    S[Length(S)] := '\';
-  end;
-end;
 
 (*
  Offset  Size    Description
@@ -345,27 +284,6 @@ begin
   DosError := ErrCode;
   SetDosError := ErrCode;
 end;
-
-{JO: функции, аналогичные FindFirst, FindNext и FindClose из модуля DOS, }
-{    но предназначенные для работы с SearchRecNew}
-(*
-procedure FindFirstNew(const Path: PathStr; Attr: Word; var F: SearchRecNew);
-var
-  PathBuf: array [0..SizeOf(PathStr)-1] of Char;
-begin
-  SetDosError(SysFindFirstNew(StrPCopy(PathBuf, Path), Attr, TOSSearchRecNew(F), False));
-end;
-
-procedure FindNextNew(var F: SearchRecNew);
-begin
-  SetDosError(SysFindNextNew(TOSSearchRecNew(F), False));
-end;
-
-procedure FindCloseNew(var F: SearchRecNew);
-begin
-  SetDosError(SysFindCloseNew(TOSSearchRecNew(F)));
-end;
-*)
 
 {AK155}
 {$IFNDEF OS2}

@@ -56,6 +56,7 @@ uses
 type
      PXFileEditor = ^TXFileEditor;
      TXFileEditor = object(TFileEditor)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
        function HandleCommand(var Event: TEvent): Boolean; virtual;
      end;
 

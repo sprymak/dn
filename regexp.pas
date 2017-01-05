@@ -155,6 +155,7 @@ type
 
   PRegExp = ^TRegExp;
   TRegExp = object (TObject)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
   {$IFDEF DEBUG}
     Narrate : Boolean;
   {$ENDIF DEBUG}

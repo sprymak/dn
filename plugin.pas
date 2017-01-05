@@ -9,6 +9,8 @@ Written by Cat 2:5030/1326.13
 
 
 {$I STDEFINE.INC}
+{&Delphi-}
+{&Use32+}
 
 {Cat
    05-10-2001 - начато добавление плагинов к ДН-у
@@ -25,7 +27,12 @@ Written by Cat 2:5030/1326.13
    28-01-2002 - плагины могут регистрировать объекты для операций с потоками
    10-05-2002 - вся структура плагинов переделана заново, без использования
                 DN2CAT.DLL
+   10-09-2002 - плагины типа RuntimePatch
+   03-11-2002 - плагины типа DrivePanel
 }
+
+{Cat:warn при выходе из программы хорошо было бы освобождать библиотеки }
+{ модулей RuntimePatch, а пока надеемся, что система всё сделает за нас }
 
 {$IFNDEF PLUGIN}
 {$ERROR This unit is for use only in plugin version of DN/2!}
@@ -34,15 +41,21 @@ Written by Cat 2:5030/1326.13
 interface
 
 uses
-  {$IFDEF OS2} Os2Def, Os2Base, {$ENDIF}
-  {$IFDEF WIN32} Windows, {$ENDIF}
-  Drivers, Archiver;
+  Modules, Objects, Drivers, Menus, Archiver;
+
+(*** RUNTIME PATCH ***)
+
+type
+  {&Cdecl+}
+  TRuntimePatch=function(const PluginName: ShortString; DNFuncs, DNMethods: Pointer; var Finalization: Pointer): Boolean;
+  {&Cdecl-}
+
 
 (*** EVENT CATCHER ***)
 
 type
   {&Cdecl+}
-  THandleCommandProc=procedure(Command, ObjType: SmallWord; const PluginName: ShortString; DNFuncs, DNMethods: Pointer; var _Finalization: Pointer);
+  THandleCommandProc=procedure(Command, ObjType: SmallWord; const PluginName: ShortString; DNFuncs, DNMethods: Pointer; var Finalization: Pointer);
   {&Cdecl-}
   PEventCatcherInfo=^TEventCatcherInfo;
   TEventCatcherInfo=packed record
@@ -58,14 +71,77 @@ type
     LastObjType: Word;
     PluginPath: String[8];
     Reserved: packed array[0..2] of Byte;
-    LibHandle: HModule;
+    LibHandle: Integer;
     Entry: THandleCommandProc;
   end;
   PEventCatcherArray=^TEventCatcherArray;
   TEventCatcherArray=packed array[1..1] of TEventCatcherInfo;
 
 procedure CatchersHandleCommand(Command: Word);
-procedure CatchersRegisterObject(ObjType: Word);
+
+
+(*** DRIVE PANELS ***)
+
+const
+  MaxDrivePanelsInfo=32;
+
+type
+  PIntegerArray=^TIntegerArray;
+  TIntegerArray=packed array[0..0] of Integer;
+
+  PPCharArray=^TPCharArray;
+  TPCharArray=packed array [0..0] of PChar;
+
+  PMenuStringsRet=^TMenuStringsRet;
+  TMenuStringsRet=packed record
+    Reserved0: Integer;
+    Count: Byte;
+    Cacheable: Boolean;
+    Reserved1: SmallWord;
+    Strings1: PPCharArray;
+    Strings2: PPCharArray;
+    Keys: PIntegerArray;
+    Reserved2: Integer;
+    Reserved3: Integer;
+    Reserved4: Integer;
+  end;
+
+  {&Cdecl+}
+  TGetMenuStringsProc=function(Command, ObjType: SmallWord; const PluginName: ShortString; DNFuncs, DNMethods: Pointer): PMenuStringsRet;
+  TCreateDriveObjectProc=function(Command, ObjType: SmallWord; const PluginName: ShortString; DNFuncs, DNMethods: Pointer; AOwner: Pointer; Num: Integer): Pointer;
+  TRegisterDriveObjectProc=function(Command, ObjType: SmallWord; const PluginName: ShortString; DNFuncs, DNMethods: Pointer): Integer;
+  {&Cdecl-}
+
+  PDrivePanelsInfo=^TDrivePanelsInfo;
+  TDrivePanelsInfo=packed record
+    PluginPath: PString;
+    LibHandle: Integer;
+    CreateDriveObject: TCreateDriveObjectProc;
+    RegisterDriveObject: TRegisterDriveObjectProc;
+    ObjType: Word;
+    MenuString1: PString;
+    MenuString2: PString;
+    MenuKey: Integer;
+  end;
+
+  PDrivePanelsInfoArray=^TDrivePanelsInfoArray;
+  TDrivePanelsInfoArray=packed array[1..MaxDrivePanelsInfo] of PDrivePanelsInfo;
+
+  PDrivePanelsInfo2=^TDrivePanelsInfo2;
+  TDrivePanelsInfo2=packed record
+    PluginPath: PString;
+    LibHandle: Integer;
+    CreateDriveObject: TCreateDriveObjectProc;
+    RegisterDriveObject: TRegisterDriveObjectProc;
+    ObjType: Word;
+    MenuStrings: PMenuStringsRet;
+  end;
+
+  PDrivePanelsInfoArray2=^TDrivePanelsInfoArray2;
+  TDrivePanelsInfoArray2=packed array[1..MaxDrivePanelsInfo] of PDrivePanelsInfo2;
+
+function CreateDriveMenus(var Items: PMenuItem; var MaxL: Integer): Integer;
+function CreateDriveObject(I: Integer; AOwner: Pointer; Num: Integer): Pointer;
 
 
 (*** EDITOR EVENT HOOKS ***)
@@ -112,7 +188,7 @@ type
     FirstTag: Byte;
     PluginPath: String[8];
     Reserved: SmallWord;
-    LibHandle: HModule;
+    LibHandle: Integer;
     FormatsCount: TFormatsCountProc;
     ArchiveSign: TArchiveSignProc;
     CreateArchiveObject: TCreateArchiveObjectProc;
@@ -121,28 +197,113 @@ type
   PArchiveViewerArray=^TArchiveViewerArray;
   TArchiveViewerArray=packed array[arcFirst-1..arcLast+1] of PArchiveViewerInfo;
 
+function DetectCreateArchiveObject: PARJArchive;
+function GetArchiveTagBySign(Sign: TStr4): Byte;
+function GetArchiveByTag(ID: Byte): PARJArchive;
+
+
 {Cat: порядок переменных не менять, иначе будут проблемы с плагинами}
 
 var
   EventCatchers: PEventCatcherArray;
   EventCatchersCount: Integer;
   ArchiveViewers: TArchiveViewerArray;
+  DrivePanelsInfo: TDrivePanelsInfoArray;
+  DrivePanelsInfoCount: Integer;
+  DrivePanelsInfo2: TDrivePanelsInfoArray2;
+  DrivePanelsInfo2Count: Integer;
 
-function DetectCreateArchiveObject: PARJArchive;
-function GetArchiveTagBySign(Sign: TStr4): Byte;
-function GetArchiveByTag(ID: Byte): PARJArchive;
+const
+  ProcNamesArchiveViewer: array[0..3] of PChar =
+    ('FormatsCount',
+     'ArchiveSign',
+     'CreateArchiveObject',
+     'DetectCreateArchiveObject');
+  ProcNamesEventCatcher: array[0..0] of PChar =
+    ('CatchCommand');
+  ProcNamesDrivePanels: array[0..2] of PChar =
+    ('GetMenuStrings',
+     'CreateDriveObject',
+     'RegisterDriveObject');
+
+procedure PluginRegisterObject(ObjType: Word);
 
 implementation
 
 uses
-  Commands, ObjType, Messages, DNApp, Advance, Advance2,
-  DNFuncs, Objects;
+  Dos, Strings, Commands,
+  ObjType, Messages, DNApp, Advance, Advance1, Advance2, LFN, DNFuncs;
+
+const
+  s_Cannot_load_module = 'Cannot load module ';
+  s_Error_reading_file_PLUGINS_CFG = 'Error reading file PLUGINS.CFG';
+  s_Error_reading_file_PLUGINS2_CFG = 'Error reading file PLUGINS2.CFG';
+  s_Error_writing_file_PLUGINS2_CFG = 'Error writing file PLUGINS2.CFG';
 
 {$IFNDEF DNPRG}
 {$I Version.Inc}
 {$ENDIF}
 
+function StrPas(P: PChar): String;
+begin
+  if P=nil then
+    StrPas:=''
+  else
+    StrPas:=Strings.StrPas(P);
+end;
+
+
+(*** RUNTIME PATCH ***)
+
+procedure ApllyRuntimePatches;
+var
+  PlugDir: String;
+  SR: lSearchRec;
+  LibHandle: Integer;
+  RuntimePatch: TRuntimePatch;
+  Finalization: Pointer;
+
+  procedure ApplyRuntimePatch(const FullPath: String);
+  begin
+    if LoadModule(@FullPath[1], LibHandle)
+    and GetProcAddress(LibHandle, 'RuntimePatch', @RuntimePatch) then
+      begin
+        if RuntimePatch(FullPath, @DNFunctions, @DNMethods, Finalization) then
+          FreeModule(LibHandle)
+        else
+          if Finalization<>nil then
+            AddExitProc(Finalization);
+      end
+    else
+      begin
+        Writeln(s_Cannot_load_module, FullPath);
+        FreeModule(LibHandle);
+      end;
+  end;
+
+begin
+  PlugDir:=SourceDir+'PLUG_X\';
+
+  { сначала запускаем все плагины из подкаталога PLUG_X }
+  lFindFirst(PlugDir+'*.DLL', AnyFile, SR);
+  while DosError=0 do
+    begin
+      if (SR.SR.Attr and (Directory or Hidden))=0 then
+        ApplyRuntimePatch(PlugDir+SR.FullName+#0);
+      lFindNext(SR);
+    end;
+  lFindClose(SR);
+
+  { теперь попробуем запустить X.DLL из каталога DN-а }
+  if ExistFile(SourceDir+'X.DLL') then
+    ApplyRuntimePatch(SourceDir+'X.DLL'#0);
+end;
+
+
 (*** EVENT CATCHER ***)
+
+procedure DoneDrivePanels(NeedWriteConfig: Boolean);
+forward;
 
 procedure DonePlugins;
 var
@@ -150,28 +311,37 @@ var
 begin
   for I:=1 to EventCatchersCount do
     with EventCatchers^[I] do
-      if LibHandle<>0 then
-        {$IFDEF OS2}
-        DosFreeModule(LibHandle);
-        {$ENDIF}
-        {$IFDEF WIN32}
-        FreeLibrary(LibHandle);
-        {$ENDIF}
+      FreeModule(LibHandle);
   FreeMem(EventCatchers, EventCatchersCount*SizeOf(TEventCatcherInfo));
 
   for I:=arcLast downto arcFirst do
     if ArchiveViewers[I]<>nil then
       if I=ArchiveViewers[I]^.FirstTag then
         Dispose(ArchiveViewers[I]);
+
+  DoneDrivePanels(True);
 end;
 
 procedure InitPlugins;
+label
+  Plugins2;
 var
   F: File;
   I, J, K: Integer;
-  Len: Byte;
   ArchiveViewersCount: Integer;
   FullPath: String;
+
+  {&Delphi+}
+  function ReadStr: String;
+  var
+    Len: Byte;
+  begin
+    BlockRead(F, Len, SizeOf(Len));
+    SetLength(Result, Len);
+    BlockRead(F, Result[1], Len);
+  end;
+  {&Delphi-}
+
 const
   Initialized: Boolean = False;
   PLUGINS_CFG: array[0..31] of Char =
@@ -182,6 +352,8 @@ begin
   Initialized:=True;
 
   DNFunctions.DN2Version:=VersionWord;
+
+  ApllyRuntimePatches;
 
   FullPath:=SourceDir+'PLUGINS.CFG';
 
@@ -204,8 +376,8 @@ begin
       if IOResult=0 then
         ;
       EventCatchers:=nil;
-      Writeln('Error reading file PLUGINS.CFG');
-      Exit;
+      Writeln(s_Error_reading_file_PLUGINS_CFG);
+      goto Plugins2;
     end;
 
   GetMem(EventCatchers, EventCatchersCount*SizeOf(TEventCatcherInfo));
@@ -223,11 +395,7 @@ begin
         {BlockRead(F, LastHlpIndex, SizeOf(LastHlpIndex));}
         BlockRead(F, FirstObjType, SizeOf(FirstObjType));
         BlockRead(F, LastObjType, SizeOf(LastObjType));
-        BlockRead(F, Len, SizeOf(Len));
-        if Len>8 then
-          Len:=8;
-        SetLength(PluginPath, Len);
-        BlockRead(F, PluginPath[1], Len);
+        PluginPath:=Copy(ReadStr, 1, 8);
         LibHandle:=0;
         @Entry:=nil;
       end;
@@ -241,8 +409,8 @@ begin
         ;
       FreeMem(EventCatchers, EventCatchersCount*SizeOf(TEventCatcherInfo));
       EventCatchers:=nil;
-      Writeln('Error reading file PLUGINS.CFG');
-      Exit;
+      Writeln(s_Error_reading_file_PLUGINS_CFG);
+      goto Plugins2;
     end;
 
   J:=arcFirst;
@@ -252,11 +420,7 @@ begin
       with ArchiveViewers[J] do
         begin
           FirstTag:=J;
-          BlockRead(F, Len, SizeOf(Len));
-          if Len>8 then
-            Len:=8;
-          SetLength(PluginPath, Len);
-          BlockRead(F, PluginPath[1], Len);
+          PluginPath:=Copy(ReadStr, 1, 8);
           if IOResult<>0 then
             begin
               Close(F);
@@ -266,45 +430,17 @@ begin
               EventCatchers:=nil;
               Dispose(ArchiveViewers[J]);
               ArchiveViewers[J]:=nil;
-              Writeln('Error reading file PLUGINS.CFG');
-              Exit;
+              Writeln(s_Error_reading_file_PLUGINS_CFG);
+              goto Plugins2;
             end;
-          FullPath:=SourceDir+PluginPath+'.DLL'#0;
-          {$IFDEF OS2}
-          if (DosLoadModule(nil, 0, @FullPath[1], LibHandle)<>0)
-          or (DosQueryProcAddr(LibHandle, 0, 'FormatsCount', @FormatsCount)<>0)
-          or (DosQueryProcAddr(LibHandle, 0, 'ArchiveSign', @ArchiveSign)<>0)
-          or (DosQueryProcAddr(LibHandle, 0, 'CreateArchiveObject', @CreateArchiveObject)<>0)
-          or (DosQueryProcAddr(LibHandle, 0, 'DetectCreateArchiveObject', @DetectCreateArchiveObject)<>0) then
+          if not LoadPluginModuleAndGetProcAddress(PluginPath, LibHandle, ProcNamesArchiveViewer,
+                   [@@FormatsCount, @@ArchiveSign, @@CreateArchiveObject, @@DetectCreateArchiveObject]) then
             begin
-              Writeln('Cannot load module ', PluginPath);
+              Writeln(s_Cannot_load_module, PluginPath);
               Dispose(ArchiveViewers[J]);
               ArchiveViewers[J]:=nil;
               Continue;
             end;
-          {$ENDIF}
-          {$IFDEF WIN32}
-          LibHandle:=LoadLibrary(@FullPath[1]);
-          if LibHandle<HINSTANCE_ERROR then
-            begin
-              LibHandle:=0;
-              Writeln('Cannot load module ', PluginPath);
-              Dispose(ArchiveViewers[J]);
-              ArchiveViewers[J]:=nil;
-              Continue;
-            end;
-          @FormatsCount:=GetProcAddress(LibHandle, 'FormatsCount');
-          @ArchiveSign:=GetProcAddress(LibHandle, 'ArchiveSign');
-          @CreateArchiveObject:=GetProcAddress(LibHandle, 'CreateArchiveObject');
-          @DetectCreateArchiveObject:=GetProcAddress(LibHandle, 'DetectCreateArchiveObject');
-          if not Assigned(FormatsCount) or not Assigned(ArchiveSign) or not Assigned(CreateArchiveObject) or not Assigned(DetectCreateArchiveObject) then
-            begin
-              Writeln('Cannot load module ', PluginPath);
-              Dispose(ArchiveViewers[J]);
-              ArchiveViewers[J]:=nil;
-              Continue;
-            end;
-          {$ENDIF}
         end;
       for K:=1 to ArchiveViewers[J]^.FormatsCount do
         begin
@@ -322,15 +458,49 @@ begin
     begin
       FreeMem(EventCatchers, EventCatchersCount*SizeOf(TEventCatcherInfo));
       EventCatchers:=nil;
-      Writeln('Error reading file PLUGINS.CFG');
+      Writeln(s_Error_reading_file_PLUGINS_CFG);
+    end;
+
+  Plugins2:
+
+  FullPath:=SourceDir+'PLUGINS2.CFG';
+
+  DrivePanelsInfoCount:=0;
+  if ExistFile(FullPath) then
+    begin
+      Assign(F, FullPath);
+      Reset(F, 1);
+      while not Eof(F) do
+        begin
+          Inc(DrivePanelsInfoCount);
+          if DrivePanelsInfoCount>MaxDrivePanelsInfo then
+            Break;
+          New(DrivePanelsInfo[DrivePanelsInfoCount]);
+          with DrivePanelsInfo[DrivePanelsInfoCount]^ do
+            begin
+              PluginPath:=NewStr(ReadStr);
+              LibHandle:=0;
+              MenuString1:=NewStr(ReadStr);
+              MenuString2:=NewStr(ReadStr);
+              BlockRead(F, MenuKey, SizeOf(MenuKey));
+              BlockRead(F, ObjType, SizeOf(ObjType));
+
+              if IOResult<>0 then
+                begin
+                  DoneDrivePanels(False);
+                  Writeln(s_Error_reading_file_PLUGINS2_CFG);
+                  Break;
+                end;
+            end;
+        end;
+      Close(F);
     end;
 end;
 
 procedure CatchersHandleCommand(Command: Word);
 var
   I: Integer;
-  FullPath: String;
-  _Finalization: Pointer;
+  Finalization: Pointer;
 begin
   if EventCatchers<>nil then
     for I:=1 to EventCatchersCount do
@@ -339,43 +509,22 @@ begin
           begin
             if Assigned(Entry) then
               begin
-                Entry(Command-FirstCatchedCommand, FirstObjType, PluginPath, @DNFunctions, @DNMethods, _Finalization);
-                if _Finalization<>nil then
-                  AddExitProc(_Finalization);
+                Entry(Command-FirstCatchedCommand, FirstObjType, PluginPath, @DNFunctions, @DNMethods, Finalization);
+                if Finalization<>nil then
+                  AddExitProc(Finalization);
               end
             else
               begin
-                FullPath:=SourceDir+PluginPath+'.DLL'#0;
-                {$IFDEF OS2}
                 if (LibHandle<>0)
-                or (DosLoadModule(nil, 0, @FullPath[1], LibHandle)<>0)
-                or (DosQueryProcAddr(LibHandle, 0, 'CatchCommand', @Entry)<>0) then
+                or not LoadPluginModuleAndGetProcAddress(PluginPath, LibHandle, ProcNamesEventCatcher,
+                         [@@Entry]) then
                   begin
                     MessageBox(GetString(dlCantLoad)+PluginPath, nil, mfError+mfOKButton);
                     Exit;
                   end;
-                {$ENDIF}
-                {$IFDEF WIN32}
-                if LibHandle=0 then
-                  begin
-                    LibHandle:=LoadLibrary(@FullPath[1]);
-                    if LibHandle<HINSTANCE_ERROR then
-                      begin
-                        LibHandle:=0;
-                        MessageBox(GetString(dlCantLoad)+PluginPath, nil, mfError+mfOKButton);
-                        Exit;
-                      end;
-                    @Entry:=GetProcAddress(LibHandle, 'CatchCommand');
-                    if not Assigned(Entry) then
-                      begin
-                        MessageBox(GetString(dlCantLoad)+PluginPath, nil, mfError+mfOKButton);
-                        Exit
-                      end;
-                  end;
-                {$ENDIF}
-                Entry(Command-FirstCatchedCommand, FirstObjType, PluginPath, @DNFunctions, @DNMethods, _Finalization);
-                if _Finalization<>nil then
-                  AddExitProc(_Finalization);
+                Entry(Command-FirstCatchedCommand, FirstObjType, PluginPath, @DNFunctions, @DNMethods, Finalization);
+                if Finalization<>nil then
+                  AddExitProc(Finalization);
               end;
             Exit;
           end;
@@ -384,8 +533,7 @@ end;
 procedure CatchersRegisterObject(ObjType: Word);
 var
   I: Integer;
-  FullPath: String;
-  _Finalization: Pointer;
+  Finalization: Pointer;
 begin
   if (ObjType>=otPlugins) and (ObjType<=otPluginsEnd) then
     if EventCatchers<>nil then
@@ -395,48 +543,259 @@ begin
             begin
               if Assigned(Entry) then
                 begin
-                  Entry($FFFF, FirstObjType, PluginPath, @DNFunctions, @DNMethods, _Finalization);
-                  if _Finalization<>nil then
-                    AddExitProc(_Finalization);
+                  Entry($FFFF, FirstObjType, PluginPath, @DNFunctions, @DNMethods, Finalization);
+                  if Finalization<>nil then
+                    AddExitProc(Finalization);
                 end
               else
                 begin
-                  FullPath:=SourceDir+PluginPath+'.DLL'#0;
-                  {$IFDEF OS2}
                   if (LibHandle<>0)
-                  or (DosLoadModule(nil, 0, @FullPath[1], LibHandle)<>0)
-                  or (DosQueryProcAddr(LibHandle, 0, 'CatchCommand', @Entry)<>0) then
+                  or not LoadPluginModuleAndGetProcAddress(PluginPath, LibHandle, ProcNamesEventCatcher,
+                           [@@Entry]) then
                     begin
                       MessageBox(GetString(dlCantLoad)+PluginPath, nil, mfError+mfOKButton);
                       Exit;
                     end;
-                  {$ENDIF}
-                  {$IFDEF WIN32}
-                  if LibHandle=0 then
-                    begin
-                      LibHandle:=LoadLibrary(@FullPath[1]);
-                      if LibHandle<HINSTANCE_ERROR then
-                        begin
-                          LibHandle:=0;
-                          MessageBox(GetString(dlCantLoad)+PluginPath, nil, mfError+mfOKButton);
-                          Exit;
-                        end;
-                      @Entry:=GetProcAddress(LibHandle, 'CatchCommand');
-                      if not Assigned(Entry) then
-                        begin
-                          MessageBox(GetString(dlCantLoad)+PluginPath, nil, mfError+mfOKButton);
-                          Exit
-                        end;
-                    end;
-                  {$ENDIF}
-                  Entry($FFFF, FirstObjType, PluginPath, @DNFunctions, @DNMethods, _Finalization);
-                  if _Finalization<>nil then
-                    AddExitProc(_Finalization);
+                  Entry($FFFF, FirstObjType, PluginPath, @DNFunctions, @DNMethods, Finalization);
+                  if Finalization<>nil then
+                    AddExitProc(Finalization);
                 end;
               Exit;
             end;
 end;
 
+
+(*** DRIVE PANELS ***)
+
+procedure DoneDrivePanels(NeedWriteConfig: Boolean);
+var
+  I: Integer;
+
+  procedure WriteConfig;
+  var
+    I, J, K: Integer;
+    F: File;
+
+    procedure WriteStr(S: String);
+    begin
+      BlockWrite(F, S, 1+Length(S));
+    end;
+
+  begin
+//  Writeln('Drive Panel Plugins: ',DrivePanelsInfoCount,' old, ',DrivePanelsInfo2Count,' new');
+    Assign(F, SourceDir+'PLUGINS2.CFG');
+    Rewrite(F, 1);
+    for I:=1 to DrivePanelsInfoCount do
+      with DrivePanelsInfo[I]^ do
+        begin
+          WriteStr(PluginPath^);
+          WriteStr(CnvString(MenuString1));
+          WriteStr(CnvString(MenuString2));
+          BlockWrite(F, MenuKey, SizeOf(MenuKey));
+          BlockWrite(F, ObjType, SizeOf(ObjType));
+        end;
+    for I:=1 to DrivePanelsInfo2Count do
+      with DrivePanelsInfo2[I]^, MenuStrings^ do
+        for J:=0 to Count-1 do
+          begin
+            WriteStr(PluginPath^);
+            WriteStr(StrPas(Strings1^[J]));
+            WriteStr(StrPas(Strings2^[J]));
+            BlockWrite(F, Keys^[J], SizeOf(Integer));
+            K:=ObjType+J;
+            BlockWrite(F, K, SizeOf(Integer));
+          end;
+    Close(F);
+    if IOResult<>0 then
+      Writeln(s_Error_writing_file_PLUGINS2_CFG);
+  end;
+
+begin
+  if NeedWriteConfig and (DrivePanelsInfo2Count>0) then
+    WriteConfig;
+
+  for I:=1 to DrivePanelsInfoCount do
+    with DrivePanelsInfo[I]^ do
+      begin
+        DisposeStr(PluginPath);
+        DisposeStr(MenuString1);
+        DisposeStr(MenuString2);
+
+        FreeModule(LibHandle);
+
+        Dispose(DrivePanelsInfo[I]);
+        DrivePanelsInfo[I]:=nil;
+      end;
+
+  for I:=1 to DrivePanelsInfo2Count do
+    with DrivePanelsInfo2[I]^ do
+      begin
+        FreeModule(LibHandle);
+
+        Dispose(DrivePanelsInfo2[I]);
+        DrivePanelsInfo2[I]:=nil;
+      end;
+
+  DrivePanelsInfoCount := 0;
+  DrivePanelsInfo2Count := 0;
+end;
+
+{&Delphi+}
+function CreateDriveMenus(var Items: PMenuItem; var MaxL: Integer): Integer;
+var
+  I, J: Integer;
+  S1, S2: String;
+
+  procedure LoadLibs;
+  var
+    SR: lSearchRec;
+    S: String;
+
+    procedure LoadLib(const APluginPath: String);
+    var
+      GetMenuStrings: TGetMenuStringsProc;
+    begin
+      Inc(DrivePanelsInfo2Count);
+      if DrivePanelsInfo2Count<=MaxDrivePanelsInfo then
+        begin
+          New(DrivePanelsInfo2[DrivePanelsInfo2Count]);
+          with DrivePanelsInfo2[DrivePanelsInfo2Count]^ do
+            begin
+              PluginPath:=NewStr(APluginPath);
+              if LoadPluginModuleAndGetProcAddress(APluginPath, LibHandle, ProcNamesDrivePanels,
+                   [@@GetMenuStrings, @@CreateDriveObject, @@RegisterDriveObject]) then
+                MenuStrings:=GetMenuStrings(0, 0, APluginPath, @DNFunctions, @DNMethods)
+              else
+                begin
+                  FreeModule(LibHandle);
+                  MenuStrings:=nil;
+                end;
+            end;
+        end;
+    end;
+
+    function OK: Boolean;
+    var
+      I: Integer;
+    begin
+      if (SR.SR.Attr and (Directory or Hidden))=0 then
+        begin
+          Result:=True;
+          S:=SR.FullName;
+          Dec(S[0], 4);
+          for I:=1 to DrivePanelsInfoCount do
+            if DrivePanelsInfo[I]^.PluginPath^=S then
+              begin
+                Result:=False;
+                Exit;
+              end;
+          for I:=1 to DrivePanelsInfo2Count do
+            if DrivePanelsInfo2[I]^.PluginPath^=S then
+              begin
+                Result:=False;
+                Exit;
+              end;
+        end
+      else
+        Result:=False;
+    end;
+
+  begin
+    lFindFirst(SourceDir+'P_*.DLL', AnyFile, SR);
+    while DosError=0 do
+      begin
+        if OK then
+          LoadLib(S);
+        lFindNext(SR);
+      end;
+    lFindClose(SR);
+  end;
+
+begin
+  Result:=0;
+  LoadLibs;
+
+  for I:=DrivePanelsInfoCount downto 1 do
+    with DrivePanelsInfo[I]^ do
+      begin
+        Items:=NewItem(CnvString(MenuString1), CnvString(MenuString2), MenuKey, 65000+I, 0, Items);
+        MaxL:=Max(CStrLen(MenuString1^), MaxL);
+        Inc(Result);
+      end;
+
+  for I:=DrivePanelsInfo2Count downto 1 do
+    with DrivePanelsInfo2[I]^, MenuStrings^ do
+      if MenuStrings<>nil then
+        begin
+          for J:=Count-1 downto 0 do
+            begin
+              S1:=StrPas(Strings1^[J]);
+              S2:=StrPas(Strings2^[J]);
+              Items:=NewItem(S1, S2, Keys^[J], 65000+MaxDrivePanelsInfo+I, 0, Items);
+              MaxL:=Max(CStrLen(S1), MaxL);
+              Inc(Result);
+            end;
+        end;
+end;
+
+function CreateDriveObject(I: Integer; AOwner: Pointer; Num: Integer): Pointer;
+type
+  PDrivePanelsInfoShort=^TDrivePanelsInfoShort;
+  TDrivePanelsInfoShort=record
+    PluginPath: PString;
+    LibHandle: Integer;
+    CreateDriveObject: TCreateDriveObjectProc;
+    RegisterDriveObject: TRegisterDriveObjectProc;
+    ObjType: Word;
+  end;
+var
+  P: PDrivePanelsInfoShort;
+  GetMenuStrings: TGetMenuStringsProc;
+begin
+  Result := nil;
+
+  if I<=MaxDrivePanelsInfo then
+    P:=PDrivePanelsInfoShort(DrivePanelsInfo[I])
+  else
+    P:=PDrivePanelsInfoShort(DrivePanelsInfo2[I-MaxDrivePanelsInfo]);
+
+  if P<>nil then
+    with P^ do
+      begin
+        if (LibHandle=0)
+        and not LoadPluginModuleAndGetProcAddress(PluginPath^, LibHandle, ProcNamesDrivePanels,
+                  [@@GetMenuStrings, @@CreateDriveObject, @@RegisterDriveObject]) then
+          begin
+            MessageBox(GetString(dlCantLoad)+PluginPath^, nil, mfError+mfOKButton);
+            FreeModule(LibHandle);
+          end
+        else
+          begin
+            ObjType:=RegisterDriveObject($FFFF, 0, PluginPath^, @DNFunctions, @DNMethods);
+            Result:=CreateDriveObject(0, 0, PluginPath^, @DNFunctions, @DNMethods, AOwner, Num);
+          end;
+      end;
+end;
+
+procedure DrivePanelsRegisterObject(AObjType: Word);
+var
+  I: Integer;
+  GetMenuStrings: TGetMenuStringsProc;
+begin
+  for I:=1 to DrivePanelsInfoCount do
+    with DrivePanelsInfo[I]^ do
+      if ObjType=AObjType then
+        if (LibHandle=0)
+        and not LoadPluginModuleAndGetProcAddress(PluginPath^, LibHandle, ProcNamesDrivePanels,
+                  [@@GetMenuStrings, @@CreateDriveObject, @@RegisterDriveObject]) then
+          begin
+            MessageBox(GetString(dlCantLoad)+PluginPath^, nil, mfError+mfOKButton);
+            FreeModule(LibHandle);
+          end
+        else
+          RegisterDriveObject($FFFF, 0, PluginPath^, @DNFunctions, @DNMethods);
+end;
+{&Delphi-}
 
 
 (*** EDITOR EVENT HOOKS ***)
@@ -531,6 +890,13 @@ begin
       Result:=CreateArchiveObject(ID-FirstTag);
 end;
 {&Delphi-}
+
+
+procedure PluginRegisterObject(ObjType: Word);
+begin
+  CatchersRegisterObject(ObjType);
+  DrivePanelsRegisterObject(ObjType);
+end;
 
 begin
   InitPlugins

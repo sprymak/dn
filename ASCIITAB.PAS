@@ -122,8 +122,7 @@ procedure ASCIITable;
     W := Desktop^.ExecView(P);
     P^.GetData(charASCII);
     E.What := evKeyDown;
-    E.CharCode := charASCII;
-    E.ScanCode := 0;
+    E.KeyCode := Byte(charASCII);
     if W in [cmOk, cmYes] then
      Application^.HandleEvent(E);
     GetCh:= W=cmYes;
@@ -160,10 +159,8 @@ begin
     if Event.Double then
      begin
       Event.What := evKeyDown;
-      {Event.KeyCode := kbEnter;}
       GetData(C);
-      Event.CharCode := C;
-      Event.ScanCode := 0;
+      Event.KeyCode := Byte(C);
       PutEvent(Event);
       ClearEvent(Event);
       Exit;

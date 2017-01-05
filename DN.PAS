@@ -73,7 +73,7 @@ uses
      ArcView,  HelpFile, Validate, ASCIITab, xTime,    Drives,   Archiver,
      Archset,  Archdet,  Setups,   DNUtil,   XDblWnd,  Histries, CCalc,
      DnIni,    Collect,  UFNMatch, Objects,  Views,    Scroller, Calculat,
-     HelpKern
+     HelpKern, VideoMan
 {$IFNDEF VIRTUALPASCAL} ,DrvTypes ,ExtraMem            {$ENDIF}
 {$IFDEF DiskFormat}     ,DNFormat ,Format              {$ENDIF}
 {$IFDEF CdPlayer}       ,CdPlayer ,CdUtil              {$ENDIF}
@@ -160,27 +160,28 @@ SysCtrlSetCBreakHandler;}
 {/Cat}
 {$IFDEF USESYSUTILS}
  except
+{Cat: закомментировал - всё равно не работает
    on E: EControlC do
      begin
-     SysTvClrScr;
+     ClearScreen;
      end;
+}
    on E: exception do
      begin
-     SysTvClrScr;
+     ClearScreen;
      SysTvShowBuf(0, ScreenWidth*ScreenHeight);
  {$IFDEF VPBETA}
+      SourceDir := SourceDir + 'DN.ERR';
       Writeln('Fatal Error'^M^J'-----------'^M^J^M^J+
               'Exception 0',Hex2(ExitCode),'h at address ',Hex8(LongInt(ExceptAddr)));
       Writeln(E.Message);
       if GetLocationInfo( ExceptAddr, FileName, LineNo ) <> nil then
           Writeln('Source location: ' + FileName + ' line ', LineNo );
-      Writeln('Report to RU.SHELL.DN'^M^J+
-          '( file DN.ERR )'^M^J^M^J+
-          'Press any key...');
+      Writeln('Please report to RU.SHELL.DN'^M^J+
+              '( file ' + SourceDir + ' )'^M^J^M^J+
+              'Press any key...');
   if IOResult <> 0 then
     ;
-       SourceDir := SourceDir + 'DN.ERR';
-       writeln(SourceDir);
        Assign(DNErrFile, SourceDir);
        rewrite(DNErrFile);
        Writeln(DNErrFile,'');

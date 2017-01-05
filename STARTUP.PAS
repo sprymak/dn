@@ -255,12 +255,19 @@ TYPE
     L : Word; S : Word; P: Word;
   end;
 
+  TComareDirsOptions = record
+        O: Word;
+    FMask: string;
+        S: Word;
+  end;
+
 var TempBounds: TRect;
 
 
 CONST
   ChangeNamesCaseOptions: TNamesCaseOptions = (Name: 0; Ext: 0); {JO} {было Longint и делилось на два Word,}
                                                                  {но это не годится для 32-битной платформы}
+  ComareDirsOptions: TComareDirsOptions = (O: 3; FMask: '*.*'; S: 0);
   UUDecodeOptions: AWord = 3;
   MakeListFileOptions: AWord = 0;
 

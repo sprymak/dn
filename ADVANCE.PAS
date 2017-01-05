@@ -269,9 +269,6 @@ const
       HexStr     : array[1..$10] of char = '0123456789ABCDEF';
       LoHexChar  : array[0..$F] of char = '0123456789abcdef';
       N_O_E_M_S  : array[1..5] of char = 'NOEMS';
-         {$IFDEF NETWORK}
-         cNET_   : string[4] = 'NET:';
-         {$ENDIF}
          cTEMP_  : string[5] = 'TEMP:';
          cLINK_  : string[5] = 'LINK:';
  {.$IFNDEF OS2}

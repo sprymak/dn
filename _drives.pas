@@ -8,6 +8,7 @@ Copyright (C) 2002 Aleksej Kozlov (Cat)
 ******)
 
 {&Delphi+}
+{&Use32+}
 
 interface
 
@@ -39,7 +40,8 @@ type
     procedure KillUse; virtual;
     procedure lChDir(ADir: String); virtual;
     function GetDir: String; virtual;
-    function GetDirectory(SortMode, PanelFlags: Integer; const FileMask: String; var FreeSpace, TotalInfo: String): PCollection; virtual;
+    function GetDirectory(SortMode, PanelFlags: Integer; const FileMask: String;
+                          var FreeSpace, TotalInfo: String): PCollection; virtual;
     procedure CopyFiles(Files: PCollection; Own: PView; MoveMode: Boolean); virtual;
     procedure CopyFilesInto(Files: PCollection; Own: PView; MoveMode: Boolean); virtual;
     procedure EraseFiles(Files: PCollection); virtual;

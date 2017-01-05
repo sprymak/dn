@@ -105,6 +105,7 @@ type
 
   PFileEditor = ^TFileEditor;
   TFileEditor = object(TView)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     HScroll, VScroll: PScrollBar;
     ReplaceAll: Boolean;
     Delta: TPoint;
@@ -2118,7 +2119,7 @@ L1:
 {Cat: переписал для устранения проблем со стеком при рекурсии,
       ускорения работы и ликвидации некоторых глюков}
 
-(*
+(* 
  procedure WordLeft;
  begin
   if LastX > 0 then
@@ -2144,7 +2145,7 @@ L1:
   if (Length(WorkString) > 0) and not (WorkString[1] in BreakChars) then Exit;
   WordRight;
  end;
-*)
+*) 
 
  procedure WordLeft;
 
@@ -2198,6 +2199,8 @@ L1:
    if (LastY = FileLines^.Count-1) and (LastX >= Length(GetLine(LastY))) then
      Exit;
 
+   if LastX >= Length(WorkString) then JumpDown;
+
    while (LastX < Length(WorkString)) and not (WorkString[LastX+1] in BreakChars) do
      Inc(LastX);
 
@@ -2208,9 +2211,6 @@ L1:
        begin
          while (LastX < Length(WorkString)) and (WorkString[LastX+1] in BreakChars) do
            Inc(LastX);
-         if LastX >= Length(WorkString) then
-           JumpDown
-         else
            Break;
        end;
 
@@ -2952,9 +2952,7 @@ procedure ASCIITable;
     if W in [cmOk, cmYes] then
      begin
       Event.What := evKeyDown;
-      Event.CharCode := charASCII;
-      Event.ScanCode := 0;
-      Event.ShiftCode := 0; {Cat}
+      Event.KeyCode := Byte(charASCII);
       PutEvent(E);
       ClearEvent(E);
       InputChar;
@@ -2974,6 +2972,17 @@ procedure ASCIITable;
   Dispose(P,Done);
   if CR<>nil then CR^.Select;
  end;
+
+procedure SelectAll;
+  begin {AK155 выделить весь текст}
+  with Sel, FileLines^ do
+    begin
+    A.X := 0; A.Y := 0; B.Y := Count-1;
+    B.X := Length(CnvLongString(At(B.Y)));
+    end;
+  Mark := Sel; Marking := false; BlockVisible := true;
+  VertBlock := false;
+  end; {/AK155}
 
  var PC: PCollection;
      R: TRect;
@@ -3094,6 +3103,7 @@ begin
                               else begin Mark.B.Y := Delta.Y+1; Mark.B.X := 0 end;
                             BlockVisible := true; CED
                            end;
+              cmSelectAll: begin SelectAll; CED end;
               cmMoveBlockStart: begin ScrollTo(Mark.A.X, Mark.A.Y); CE end;
               cmMoveBlockEnd: begin ScrollTo(Mark.B.X, Mark.B.Y); CE end;
               cmSwitchHiLine: begin EdOpt.HiliteLine := not EdOpt.HiliteLine; CED end;
@@ -3378,18 +3388,7 @@ begin
   {$ELSE}
       begin
   {$ENDIF}
-          if (Event.KeyCode = kbCtrlNumPad5) then
-            begin {AK155 выделить весь текст}
-            with Sel, FileLines^ do
-              begin
-              A.X := 0; A.Y := 0; B.Y := Count-1;
-              B.X := Length(CnvLongString(At(B.Y)));
-              end;
-            Mark := Sel; Marking := false; BlockVisible := true;
-            VertBlock := false;
-            CED;
-            end {/AK155}
-          else if (Event.KeyCode <> kbCtrlAltX) then
+          if (Event.KeyCode <> kbCtrlAltX) then
           if (Event.KeyCode = kbCtrlU) then WordEnd else {-$VIV}
             begin
              if DrawMode > 0 then

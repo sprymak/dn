@@ -822,11 +822,7 @@ begin
  {$ELSE}
  FreeSpc:=SysDiskFreeLong(Drv);
  TotalSpc:=SysDiskSizeLong(Drv);
- {$IFDEF DPMI32}
- BytesPerCluster:=0; {Cat:todo DPMI32}
- {$ELSE}
  BytesPerCluster:=GetBytesPerCluster(Drv);
- {$ENDIF}
  {$ENDIF}
 end;
         {-DataCompBoy-}
@@ -874,11 +870,7 @@ begin
   BytesPerCluster:=DriveData.BytesPerSector;
   BytesPerCluster:=BytesPerCluster*DriveData.SectorsPerCluster;
 {$ELSE}
-  {$IFDEF DPMI32}
-  BytesPerCluster:=0; {Cat:todo DPMI32}
-  {$ELSE}
   BytesPerCluster:=GetBytesPerCluster(Drv);
-  {$ENDIF}
 {$ENDIF}
 
   DirLen := 0; NumFiles := 0;

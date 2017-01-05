@@ -760,6 +760,7 @@ begin
 {/AK155}
 
  I := Pos('%', S);
+ {Cat:warn если ошибка для сети, то будет выводиться "ошибка на диске :"}
  if I > 0 then begin S[I] := Char(Drive+65); S[I+1] := ':' end;
  if (NumButtons[ErrorCode] = 3) then AOptions := mfYesButton + mfOKButton + mfNoButton + mfSysError
    else AOptions := mfYesButton + mfOKButton + mfSysError;
@@ -799,11 +800,12 @@ function GetAltChar(KeyCode: Word): Char;
 begin
   GetAltChar := #0;
   if KeyCode = kbAltSpace then GetAltChar := Char(SystemMenuChar);
-  if Lo(KeyCode) = 0 then
-    case Hi(KeyCode) of
-      $10..$34: GetAltChar := AltCodes1[Hi(KeyCode)];
-      $78..$83: GetAltChar := AltCodes2[Hi(KeyCode)];
-    end;
+  if (KeyCode shr 16) in [0,8] then {Cat: проверяем, что это Alt-Char, а не Alt-Shift-Char или Ctrl-Alt-Char}
+    if Lo(KeyCode) = 0 then
+      case Hi(KeyCode) of
+        $10..$34: GetAltChar := AltCodes1[Hi(KeyCode)];
+        $78..$83: GetAltChar := AltCodes2[Hi(KeyCode)];
+      end;
 end;
 
 function GetAltCode(Ch: Char): Word;
@@ -835,8 +837,9 @@ end;
 function GetCtrlChar(KeyCode: Word): Char;
 begin
   GetCtrlChar := #0;
-  if (Lo(KeyCode) <> 0) and (Lo(KeyCode) <= Byte('Z') - Byte('A') + 1) then
-    GetCtrlChar := Char(Lo(KeyCode) + Byte('A') - 1);
+  if (KeyCode shr 16) in [0,4] then {Cat: проверяем, что это Ctrl-Char, а не Ctrl-Shift-Char}
+    if (Lo(KeyCode) <> 0) and (Lo(KeyCode) <= Byte('Z') - Byte('A') + 1) then
+      GetCtrlChar := Char(Lo(KeyCode) + Byte('A') - 1);
 end;
 
 function GetCtrlCode(Ch: Char): Word;

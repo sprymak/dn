@@ -707,7 +707,7 @@ begin
           if Ch = #0 then Ch := E.CharCode else Target := TopMenu;
           P := Target^.FindItem(Ch);
           if ( Target = @Self ) and ( P = nil )
-            then P := FindItem( GetAltChar( E.KeyCode and $FF00 ));
+            then P := FindItem( GetAltChar( E.KeyCode and $FFFF00 ));
           if P = nil then
           begin
             P := TopMenu^.HotKey(E.KeyCode);

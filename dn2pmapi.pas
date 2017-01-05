@@ -29,6 +29,8 @@ var
   DN_XClipCopy : function(P: PChar; Size: LongInt): Boolean;
   DN_XClipPaste : function(var Size: LongInt): Pointer;
   DN_XClipCanPaste : function: Boolean;
+  DN_WinSwitchToProgram : function(Pid: LongInt): Longint;
+  DN_WinQueryTaskTitle : function(PSessId: LongInt; var Title: String): Longint;
 
 implementation
 
@@ -85,6 +87,16 @@ begin
   Result := False;
 end;
 
+Function Fake_WinSwitchToProgram: Longint;
+begin
+  Result := 1;
+end;
+
+Function Fake_WinQueryTaskTitle: Longint;
+begin
+  Result := 0;
+end;
+
 {&Cdecl-}
 Procedure Done;
 begin
@@ -110,6 +122,8 @@ var
     @DN_XClipCopy := @Fake_XClipCopy;
     @DN_XClipPaste := @Fake_XClipPaste;
     @DN_XClipCanPaste := @Fake_XClipCanPaste;
+    @DN_WinSwitchToProgram := @Fake_WinSwitchToProgram;
+    @DN_WinQueryTaskTitle := @Fake_WinQueryTaskTitle;
   end;
 
 {AK155 Попытка полчить адрес процедуры, при неудаче
@@ -178,6 +192,8 @@ begin
   DN_proc('XClipCopy', @DN_XClipCopy);
   DN_proc('XClipPaste', @DN_XClipPaste);
   DN_proc('XClipCanPaste', @DN_XClipCanPaste);
+  DN_proc('WinSwitchToProgramSh', @DN_WinSwitchToProgram);
+  DN_proc('WinQueryTaskTitleSh', @DN_WinQueryTaskTitle);
 
   S := StartupDir+'dn_pm.ico'#0;
   DN_WinSetTitleAndIcon('DN/2', @S[1]);

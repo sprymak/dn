@@ -249,6 +249,7 @@ const
  hcSubMenuFileMgr       = 48011;
  hcSystemInfo           = 16592;
  hcSystemSetup          = 48037;
+ hcTaskList             = 48100;
  hcTeam                 = 16554;
  hcTempList             = 11017;
  hcTerminal             = 11018;

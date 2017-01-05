@@ -47,6 +47,15 @@
    с неправильным показом этих параметров под Win9x (раньше если
    размер диска или размер свободного места на диске превышал 2Г,
    то он показывался равным 2Г)
+
+   13-11-2002 - теперь нараяду с функциями
+      function SysDiskFreeLong(Drive: Byte): TQuad;
+      function SysDiskSizeLong(Drive: Byte): TQuad;
+   существуют их аналоги, работающие не с буквой диска, а с полным путём:
+      function SysDiskFreeLongX(Path: PChar): TQuad;
+      function SysDiskSizeLongX(Path: PChar): TQuad;
+   Это нужно для получения размеров для сетевых путей, а также в случаях,
+   когда один диск подмонтирован в какой-то каталог другого
 }
 
 var
@@ -713,65 +722,63 @@ begin
   Result := False;
 end;
 
+{Cat}
 function SysDiskFreeLong(Drive: Byte): TQuad;
 var
-  RootPath: array[0..3] of Char;
-  RootPtr: PChar;
-  SectorsPerCluster,BytesPerSector,FreeClusters,TotalClusters: DWord;
-  AvailableForCaller, Total, Free: TQuad; {Cat}
+  RootPath: LongInt;
 begin
-  RootPtr := nil;
   if Drive > 0 then
-  begin
-    RootPath[0] := Char(Drive + (Ord('A') - 1));
-    RootPath[1] := ':';
-    RootPath[2] := '\';
-    RootPath[3] := #0;
-    RootPtr := RootPath;
-  end;
-  {Cat}
+    begin
+      RootPath := Drive + $005C3A40; {'A:\'#0}
+      Result := SysDiskFreeLongX(@RootPath);
+    end;
+end;
+
+function SysDiskSizeLong(Drive: Byte): TQuad;
+var
+  RootPath: LongInt;
+begin
+  if Drive > 0 then
+    begin
+      RootPath := Drive + $005C3A40; {'A:\'#0}
+      Result := SysDiskSizeLongX(@RootPath);
+    end;
+end;
+
+function SysDiskFreeLongX(Path: PChar): TQuad;
+var
+  SectorsPerCluster, BytesPerSector, FreeClusters, TotalClusters: DWord;
+  AvailableForCaller, Total, Free: TQuad;
+begin
   if Assigned(GetDiskFreeSpaceEx) then
-     if GetDiskFreeSpaceEx(RootPtr, AvailableForCaller, Total, Free) then
+     if GetDiskFreeSpaceEx(Path, AvailableForCaller, Total, Free) then
        Result := Free
      else
        Result := -1
   else
-  {/Cat}
-    if GetDiskFreeSpace(RootPtr, SectorsPerCluster, BytesPerSector, FreeClusters, TotalClusters) then
+    if GetDiskFreeSpace(Path, SectorsPerCluster, BytesPerSector, FreeClusters, TotalClusters) then
       Result := 1.0 * SectorsPerCluster * BytesPerSector * FreeClusters
     else
       Result := -1;
 end;
 
-function SysDiskSizeLong(Drive: Byte): TQuad;
+function SysDiskSizeLongX(Path: PChar): TQuad;
 var
-  RootPath: array[0..3] of Char;
-  RootPtr: PChar;
-  SectorsPerCluster,BytesPerSector,FreeClusters,TotalClusters: DWord;
-  AvailableForCaller, Total, Free: TQuad; {Cat}
+  SectorsPerCluster, BytesPerSector, FreeClusters, TotalClusters: DWord;
+  AvailableForCaller, Total, Free: TQuad;
 begin
-  RootPtr := nil;
-  if Drive > 0 then
-  begin
-    RootPath[0] := Char(Drive + (Ord('A') - 1));
-    RootPath[1] := ':';
-    RootPath[2] := '\';
-    RootPath[3] := #0;
-    RootPtr := RootPath;
-  end;
-  {Cat}
   if Assigned(GetDiskFreeSpaceEx) then
-     if GetDiskFreeSpaceEx(RootPtr, AvailableForCaller, Total, Free) then
+     if GetDiskFreeSpaceEx(Path, AvailableForCaller, Total, Free) then
        Result := Total
      else
        Result := -1
   else
-  {/Cat}
-    if GetDiskFreeSpace(RootPtr, SectorsPerCluster, BytesPerSector, FreeClusters, TotalClusters) then
+    if GetDiskFreeSpace(Path, SectorsPerCluster, BytesPerSector, FreeClusters, TotalClusters) then
       Result := 1.0 * SectorsPerCluster * BytesPerSector * TotalClusters
     else
       Result := -1;
 end;
+{/Cat}
 
 function SysGetFileAttr(FileName: PChar; var Attr: Longint): Longint;
 begin

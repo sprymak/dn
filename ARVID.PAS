@@ -171,6 +171,7 @@ type
 
    PArvidDrive = ^TArvidDrive;
    TArvidDrive = object(TDrive)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
       Name: PString;
       Stream: PStream;
       CurFile: LongInt;

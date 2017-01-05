@@ -63,6 +63,7 @@ TYPE
 
   PScroller = ^TScroller;
   TScroller = object(TView)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     HScrollBar: PScrollBar;
     VScrollBar: PScrollBar;
     Delta: TPoint;
@@ -93,8 +94,8 @@ TYPE
   { 5 = Divider }
 
   PListViewer = ^TListViewer;
-
   TListViewer = object(TView)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     HScrollBar: PScrollBar;
     VScrollBar: PScrollBar;
     NumCols: LongInt;

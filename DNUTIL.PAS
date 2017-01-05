@@ -90,6 +90,9 @@ uses
   Setups, RegAll, XDblWnd,
   {$IFNDEF VIRTUALPASCAL} ExtraMem, {$ENDIF}
   {$IFNDEF NONBP} DiskTool, {$ENDIF}
+{$IFDEF Tasklist}
+  TaskLst,
+{$ENDIF}
   CCalc, Collect, DnIni, {-$VIV}
   DnExec;
 
@@ -114,6 +117,7 @@ const
 type
      PDNApplication = ^TDNApplication;
      TDNApplication = object(TApplication)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
         IdleClick : TEventTimer ;
         IdleEvt   : TEvent ;
         TreeReader: PTreeReader;
@@ -216,6 +220,7 @@ const
      cfgChangeCaseOptions   = 62; {DataCompBoy}
      cfgINIcrc              = 63; {DataCompBoy}
      cfgAppPalette          = 64; {JO}
+     cfgComareDirsOptions   = 65; {JO}
 
      dlAbout = {$IFDEF VIRTUALPASCAL} #13#3'DN/2 Open Source'+
      #13#3'Version %s, %s'+
@@ -870,6 +875,7 @@ begin
 
  MarkP(cfgDirsToChange);for I := 0 to 8 do S.WriteStr(DirsToChange[I]);UnMark;
  StoreBlock(cfgAppPalette, appPalette, Sizeof(appPalette));
+ StoreBlock(cfgComareDirsOptions, ComareDirsOptions, Sizeof(ComareDirsOptions));
 
  StoreBlock(0,I,0);
  S.Done;
@@ -893,6 +899,15 @@ begin
     Desktop^.Clear;
     repeat
      P := PView(S.Get);
+
+     {Cat}
+     if S.Status <> stOk then
+       begin
+         ErrMsg(erCantReadDesktop);
+         Break;
+       end;
+     {/Cat}
+
      if P <> nil then
       begin
        if DataSaver <> nil then
@@ -1103,7 +1118,7 @@ begin
       R.B.Y := R.A.Y + OldDskSize.Y;
       Desktop^.ChangeBounds(R);
     end;
-    LoadDesktop(S^);
+    {LoadDesktop(S^);} {Cat: перенёс в самый конец}
     DisposeStr(PJ);
     S^.Read(TempBounds, SizeOf(TempBounds));
     {S^.Read(ArcBounds, SizeOf(TempBounds));}
@@ -1131,6 +1146,7 @@ begin
      end;
 {$ENDIF}
     if PreserveMenuPositions then LoadMenuDefaults(MenuBar^.Menu, S^);
+    LoadDesktop(S^);
   end;
   Desktop^.Redraw;
   GetBounds(R);
@@ -1191,7 +1207,7 @@ begin
     S^.Write( Size, SizeOf( Size ));
     S^.Write( Desktop^.Size, SizeOf( Size ));
     StoreIndexes(S^);
-    StoreDesktop(S^);
+    {StoreDesktop(S^);} {Cat: перенёс в самый конец}
     S^.Write(TempBounds, SizeOf(TempBounds));
 {$IFDEF TrashCan} S^.Write(TrashCan^.ImVisible, 1); {$ENDIF}
     S^.Put(KeyMacroses);
@@ -1203,12 +1219,13 @@ begin
     if TrashCan^.ImVisible then S^.Write(R, SizeOf(R));
 {$ENDIF}
     if PreserveMenuPositions then StoreMenuDefaults(MenuBar^.Menu, S^);
+    StoreDesktop(S^);
     if S^.Status <> stOk then
     begin
       PP := @FileName;
       Msg(erCantCreateFile, @PP, mfOkButton + mfError);
-      MessageBox('S^.Status    = '+ItoS(S^.Status)+#13+
-                 'S^.ErrorInfo = '+ItoS(S^.ErrorInfo), nil, mfOkButton);
+//    MessageBox('S^.Status    = '+ItoS(S^.Status)+#13+
+//               'S^.ErrorInfo = '+ItoS(S^.ErrorInfo), nil, mfOkButton);
       Dispose(S,Done);
       lAssignFile(F, FileName);
       lEraseFile(F);
@@ -2496,6 +2513,9 @@ begin
      cmCalculator: InsertCalc;
 {$IFDEF Calendar}
      cmCalendar: InsertCalendar;    {JO}
+{$ENDIF}
+{$IFDEF Tasklist}
+     cmTasklist: InsertTaskList;    {JO}
 {$ENDIF}
      cmRefresh: Redraw;
      cmClearDesktop: GlobalMessage(evCommand, cmClose, nil);

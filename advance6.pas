@@ -65,7 +65,7 @@ implementation
 Uses
   {Cat} U_KeyMap, {/Cat}
   {$IFDEF VIRTUALPASCAL} VpSysLow, {$ENDIF}
-  Advance, LFN;
+  Advance, LFN, VideoMan;
 
 procedure InitUpcase;
 var
@@ -162,7 +162,7 @@ begin
 {Cat}
   if IOResult <> 0 then
     ;
-  SysTVClrScr;
+  ClearScreen;
   Writeln('Resource access error');
   SysTVInitCursor;
   Halt(219);

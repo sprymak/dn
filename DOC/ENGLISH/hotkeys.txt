@@ -17,3 +17,4 @@
  <Ctrl-J> - create program object for current executable on desktop (OS/2
             version)
  <Ctrl-Num5> - Select whole text in editor
+ <F11> - Task list (currently used only in OS/2 version)

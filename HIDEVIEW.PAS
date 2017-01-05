@@ -55,6 +55,7 @@ uses
 
 type  PHideView = ^THideView;
       THideView = object(TView)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
        OldSizeX: Integer;
        procedure HideView; virtual;
        procedure ShowView; virtual;

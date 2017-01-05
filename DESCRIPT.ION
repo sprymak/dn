@@ -1,20 +1,34 @@
-DOC Documentation for DN/2
-RESOURCE Resource source for DN/2
-STORED Units from DN, currently not used in DN/2
-SYS System unit
+_dncw.bat Batch for compilation under Windows 9x
+_dnco.cmd Batch for compilation under OS/2
+_dncod.cmd Batch for compilation DPMI32 version under OS/2
+_dncow.cmd Batch for compilation Win32 version under OS/2
+_dncw.cmd Batch for compilation under Windows NT
+_dncwd.cmd Batch for compilation DPMI32 version under Win32
+_dncwo.cmd Batch for compilation OS/2 version under Win32
+_rcpo.cmd Batch for compilation Resources
 drivers._vp Drivers for VP
 fio._vp File Input/Output for VP
 views._vp Views for VP
 vpc.cfg VPC Configutation file
-vpc.cfo VPC Configutation file for OS/2 wersion
-vpc.cfw VPC Configutation file for Win32 wersion
 file_id.diz Logo
-sort_dos.inc Sorting types for DOS versions
-sort_os2.inc Sorting types for OS/2 versions
-sort_w32.inc Sorting types for Win32 versions
 stdefine.inc Defines for project
+rcpvpd.ini Resource compiler options for DPMI
 rcpvpo.ini Resource compiler options for OS/2
 rcpvpw.ini Resource compiler options for Win32
+_apps.pas DN/2 Plugin Interface - object model
+_collect.pas DN/2 Plugin Interface - object model
+_defines.pas DN/2 Plugin Interface - object model
+_dialogs.pas DN/2 Plugin Interface - object model
+_dnfuncs.pas DN/2 Plugin Interface - object model
+_drives.pas DN/2 Plugin Interface - object model
+_editors.pas DN/2 Plugin Interface - object model
+_menus.pas DN/2 Plugin Interface - object model
+_model1.pas DN/2 Plugin Interface - object model
+_objects.pas DN/2 Plugin Interface - object model
+_regexp.pas DN/2 Plugin Interface - object model
+_streams.pas DN/2 Plugin Interface - object model
+_views.pas DN/2 Plugin Interface - object model
+_vmtreg.pas DN/2 Plugin Interface - object model
 advance.pas Advanced procedures: startup
 advance1.pas Advanced procedures: String functions
 advance2.pas Advanced procedures: File related functions
@@ -77,10 +91,10 @@ diskimg.pas Disk image unpacker
 diskinfo.pas Disk info
 dn.pas Main program module
 dn1.pas Main program module, Part 2
-dn2cat.pas Main DLL for plugin version
 dn2pmapi.pas OS/2 Presentation Manager API interface
 dnapp.pas DN Application unit
 dnexec.pas Execution functions
+dnfuncs.pas Interface with plugins - functions & objects to export
 dnhelp.pas Help constants
 dnini.pas Ini Configuration
 dnpmapil.pas OS/2 Presentation Manager API interface
@@ -99,15 +113,12 @@ fbb.pas LongCopy
 filecopy.pas Files copyer
 filediz.pas Files descriptions support
 filefind.pas Files finder
-filelist.pas Files lister
 filelst.pas Files list creating
 filescol.pas Files collection
 findobj.pas Find objects (for ARVID support)
-flos2tl.pas OS/2 specific files tools
 flpanel.pas Files panel
 flpanelx.pas Files panel
 fltools.pas Files tools
-flw32tl.pas Win32 specific files tools
 fstorage.pas Files storage
 fviewer.pas File viewer
 gauge.pas Gauges: Bar, Percent
@@ -121,7 +132,6 @@ histlist.pas History list
 histries.pas Histories
 idlers.pas Idle (screen savers)
 inifiles.pas Access to .INI files
-lfncol.pas EMS & Memory LFN collection
 lfnvp.pas LFN Support for VP
 listmakr.pas Part of Resource Compiler
 macro.pas Macro editor & environment editor
@@ -133,22 +143,19 @@ microed2.pas Microed: Read/Write/Store/Load methods
 objects.pas Main objects: TObject, Streams, other.
 objtype.pas Object types
 openobj.pas WPS file object opening utility for DN/2
-pack_lzw.pas LZW compression
-packf_rs.pas Pack file read/seek
 phones.pas Phones book
 pktview.pas Fido PKT viewer
 plugin.pas Interface with plugins
+plugman.pas Plugin Manager
+plugrez.pas Access to plugin's resources
 printman.pas Print manager
 profile.pas .INI file parser
 rcp.pas DN Resource Compiler
 regall.pas Registration of all objects
 regexp.pas Regular Expression Engine
-rspfile.pas Access to packed files
 rstrings.pas Strings cashe
-scrollbk.pas Scrollback
 scroller.pas Scrollers
 setups.pas Setups DN
-starsky.pas StarSky screen saver
 startup.pas Startup configuration
 strview.pas TDStringView
 swe.pas Inputs
@@ -171,72 +178,13 @@ version.pas Version.Inc generator
 videoman.pas Video mode manager
 views.pas Standard views
 vpsyslo2.pas VPSysLow extension unit for VP
+vpsyslow.pas основная часть VPSysLow
 winclpvp.pas Windows clipboard connection for VP
 xdblwnd.pas Double Window
 xtime.pas Extended time support
-dn.ini Main configuration file
-plugman.pas Plugin Manager
-plugrez.pas Access to plugin's resources
-rcpvpd.ini Resource compiler options for DPMI
-excepts.pas Exception Handling unit
-fnoteos2.pas Directory Change Notifier - OS/2 version
-fnotew32.pas Directory Change Notifier - Win32 version
-dnfuncs.pas Interface with plugins - functions & objects to export
-_apps.pas DN/2 Plugin Interface - object model
-_collect.pas DN/2 Plugin Interface - object model
-_defines.pas DN/2 Plugin Interface - object model
-_dialogs.pas DN/2 Plugin Interface - object model
-_dnfuncs.pas DN/2 Plugin Interface - object model
-_drives.pas DN/2 Plugin Interface - object model
-_editors.pas DN/2 Plugin Interface - object model
-_menus.pas DN/2 Plugin Interface - object model
-_model1.pas DN/2 Plugin Interface - object model
-_objects.pas DN/2 Plugin Interface - object model
-_regexp.pas DN/2 Plugin Interface - object model
-_streams.pas DN/2 Plugin Interface - object model
-_views.pas DN/2 Plugin Interface - object model
-_vmtreg.pas DN/2 Plugin Interface - object model
-_dnco.cmd Batch for compilation under OS/2
-_dncw.cmd Batch for compilation under Windows NT
-_dnc.bat 
-_dncw.bat Batch for compilation under Windows 9x
-_dncow.cmd Batch for compilation Win32 version under OS/2
-_dncwo.cmd Batch for compilation OS/2 version under Win32
-_rcpo.cmd Batch for compilation Resources
-videoman.pa1 Video mode manager
-archiver.pa_ Archivators access
-arcview.pa_ View archives as drives
-dn1.pa_ Main program module, Part 2
-dnutil.pa_ DN Utilites: About & other
-arc_zip.pa_ Support for ZIP
-archdet.pa_ Archiver detectors
-helpkern.pa_ Help kernel
-helpkern.pa1 Help kernel
-stdefine.in1 Defines for project
-videoman.pa_ Video mode manager
-drives.pa_ Drive access
-arcview.pa2 View archives as drives
-cmdline.pa_ Command line
-calculat.pa_ Main calculator module
-ccalc.pa_ Calculator
-commands.pa_ Constants
-ccalc.kor Calculator
-calculat.pa2 Main calculator module
-menus.pa_ Menus
-microed.pa_ Editor
-vpc.cf1 VPC Configutation file
-dblwnd.pa_ Double Window
-fviewer.pa_ File viewer
-vpsyslow.pas основная часть VPSysLow
-startup.pa1 Startup configuration
-lfnvp.pa_ LFN Support for VP
-usermenu.pa1 User menu routines
-SYS1 System unit
-dbview.pa1 .DBF Viewer
-filecopy.pa1 Files copyer
-drives.pa1 Drive access
-arcview.pa1 View archives as drives
-filefind.pa1 Files finder
-fltools.pa1 Files tools
-_dncod.cmd Batch for compilation DPMI32 version under OS/2
-_dncwd.cmd Batch for compilation DPMI32 version under Win32
+doc Documentation for DN/2
+resource Resource source for DN/2
+_fviewer.pas DN/2 Plugin Interface - object model
+_gauge.pas DN/2 Plugin Interface - object model
+_model2.pas DN/2 Plugin Interface - object model
+tasklst.pas Task list

@@ -200,6 +200,7 @@ type
 
   PBackground = ^TBackground;
   TBackground = object(TView)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Pattern: Char;
     constructor Init(var Bounds: TRect; APattern: Char);
     constructor Load(var S: TStream);
@@ -212,6 +213,7 @@ type
 
   PDesktop = ^TDesktop;
   TDesktop = object(TGroup)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Background: PBackground;
     TileColumnsFirst: Boolean;
     constructor Init(var Bounds: TRect);
@@ -237,6 +239,7 @@ type
 
   PProgram = ^TProgram;
   TProgram = object(TGroup)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     IdleSecs: TEventTimer;
     FullSpeed: boolean;
     {$IFDEF WIN32}
@@ -276,6 +279,7 @@ type
 
   PApplication = ^TApplication;
   TApplication = object(TProgram)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Clock: PView;
     constructor Init;
     destructor Done; virtual;
@@ -447,6 +451,8 @@ constructor TDesktop.Load(var S: TStream);
 begin
   inherited Load(S);
   GetSubViewPtr(S, Background);
+  if Background = nil then {Cat}
+    Fail;
   S.Read(TileColumnsFirst, SizeOf(TileColumnsFirst));
 end;
 

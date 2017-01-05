@@ -100,6 +100,7 @@ type
 
   PCollection = ^TCollection;
   TCollection = object(TObject)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     {$IFNDEF COLLECTION_IN_STREAM}
      {$IFNDEF BIGCOLLECTION}
      Items: PItemList;
@@ -145,6 +146,7 @@ type
 
   PSortedCollection = ^TSortedCollection;
   TSortedCollection = object(TCollection)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Duplicates: Boolean;
     constructor Init(ALimit, ADelta: LongInt);
     constructor Load(var S: TStream);
@@ -171,6 +173,7 @@ type
 
   PLineCollection = ^TLineCollection;
   TLineCollection = object(TCollection)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     LongStrings: Boolean; {Cat}
     constructor Init(ALimit, ADelta: LongInt; ALongStrings: Boolean); {Cat}
     procedure FreeItem(P: Pointer); virtual;
@@ -182,6 +185,7 @@ type
 
   PStringCollection = ^TStringCollection;
   TStringCollection = object(TSortedCollection)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     LongStrings: Boolean; {Cat}
     constructor Init(ALimit, ADelta: LongInt; ALongStrings: Boolean); {Cat}
     function  Compare(Key1, Key2: Pointer): Integer; virtual;
@@ -194,6 +198,7 @@ type
 
   PStrCollection = ^TStrCollection;
   TStrCollection = object(TSortedCollection)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     function  Compare(Key1, Key2: Pointer): Integer; virtual;
     procedure FreeItem(Item: Pointer); virtual;
     function  GetItem(var S: TStream): Pointer; virtual;

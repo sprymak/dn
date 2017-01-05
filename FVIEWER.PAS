@@ -69,6 +69,7 @@ type
 
   PViewScroll = ^TViewScroll;
   TViewScroll = object(TView)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
    MaxV, Value: LongInt;
    function GetPalette: PPalette; virtual;
    procedure HandleEvent(var Event: TEvent); virtual;
@@ -82,6 +83,7 @@ type
 
   PFileViewer = ^TFileViewer;
   TFileViewer = object(THideView)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Filtr: Boolean;
     NoEdit: Boolean;
     FileName: String; {DataCompBoy}
@@ -791,6 +793,7 @@ procedure TFileViewer.Update;
   begin
   inherited Update;
   if ((EditorDefaults.ViOpt and vbfAutoscroll) <> 0) and
+     not BufModified and
      not SearchResultVisible and
      (ViewMode = vmText) and
      (ExposedPos+FilePos = FileSize) and
@@ -1356,6 +1359,8 @@ function  TFileViewer.ReadFile;
      DirLen: TSize;
      DirString: string;
      ReadDir: boolean;
+     Nm: String; {John_SW 14-09-2002}
+     Xt: String; {John_SW 14-09-2002}
 begin
   ReadFile:=true;
   WriteModify;
@@ -1418,9 +1423,10 @@ begin
      (FName <> '') and (FName <> ' ') then begin ReadFile:=false; Exit; end;
 *)
   Macros := nil;
+  lFSplit(VFName, FreeStr, Nm, Xt); {John_SW 14-09-2002}
   {PZ 2000.06.09 }
   if (EditorDefaults.ViOpt and vbfHlt) <> 0 then
-    HiLite := Macro.InitHighLight ( VFName, HiLitePar, Macros, nil );
+    HiLite := Macro.InitHighLight ( Nm+Xt, HiLitePar, Macros, nil );
   {PZ end}
   ScrollEOF := (EditorDefaults.ViOpt and vbfScrollAfterEOF) <> 0; {AK155}
   FileSize := FL^.GetSize; FilePos := 0; I := 1; NumLines := 1;
@@ -1839,6 +1845,7 @@ procedure TFileViewer.HandleEvent;
      LLR,LFR: LongInt;
      F: lFile;
      Ch: Char;
+     Lin: Byte;
 
  procedure CE; begin ClearEvent(Event) end;
 
@@ -2089,8 +2096,17 @@ DoSave:
                             if I <> 0 then exit;
                             LFR := LLR;
                             Cur.Assign(0,0);
-                            while ((LFR mod HexPos) <> ((BufPos+FilePos) mod HexPos)) and (LFR > 0) do
-                             begin Dec(LFR); Inc(Cur.X,2); end;
+                      {JO} {$IFDEF DisAsm}
+                            if ViewMode <> vmAsm then
+                              begin
+                           {$ENDIF}
+                               while ((LFR mod HexPos) <>
+                                ((BufPos+FilePos) mod HexPos)) and (LFR > 0) do
+                                  begin Dec(LFR); Inc(Cur.X,2); end;
+                           {$IFDEF DisAsm}
+                              end
+                             else Cur.X := 10;
+                     {/JO} {$ENDIF}
                             Seek(LFR); MakeLines;
                             DrawView;
                            end;
@@ -2452,9 +2468,25 @@ NotKb:          if (Event.CharCode = #17) and not CtrlQ then begin
                    if Event.CharCode in ['A'..'F', '0'..'9'] then begin
                     BufModified:=true;
                     I:=PosChar(Event.CharCode, '0123456789ABCDEF')-1;
-                    P.X:=Cur.X div 2+Cur.Y*HexPos+BufPos;
+                   {$IFDEF DisAsm}
+                    if (ViewMode <> vmAsm) then {JO}
+                   {$ENDIF}
+                      P.X := Cur.X div 2+Cur.Y*HexPos+BufPos
+              {JO} {$IFDEF DisAsm}
+                     else
+                      begin
+                        MakeLines;
+                        P.X := 0;
+                        for Lin := 0 to (Cur.Y-1) do
+                          P.X := P.X + Lines[Lin].Len;
+                        P.X := P.X + ((Cur.X-10) div 2) + BufPos;
+                        if P.X < 0 then P.X := 0;
+                      end
+              {/JO} {$ENDIF}
+                      ;
                     if Odd(Cur.X) then Buf^[P.X]:=(Buf^[P.X] and $F0) or I
                                   else Buf^[P.X]:=(Buf^[P.X] and $F) or (I shl 4);
+                    if ViewMode = vmAsm then MakeLines; {JO}
                     Message(@Self, evKeyDown, kbRight, nil);
                     CE
                    end;

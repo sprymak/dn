@@ -18,21 +18,22 @@ procedure CopySAs (FFromName, FToName: String);
 {$ENDIF}
 {$ENDIF}
 
-function GetHFileAges(Handle: Longint; Var Age_LWr, Age_Cr, Age_LAc: Longint): Longint; {JO}
+function GetFileAges(S: ShortString; Var Age_LWr, Age_Cr, Age_LAc: Longint): Longint;
   {JO: возвращает время и дату последней модификации (Age_LWr),                   }
   {    время и дату создания (Age_Cr) и время и дату последнего доступа (Age_LAc) }
-  {    файла по хэндлу файла (Handle), принимает значение кода ошибки             }
-function SetHFileAges(Handle: Longint; Age_LWr, Age_Cr, Age_LAc: Longint): Longint;     {JO}
+  {    файла или каталога по полному пути (S), принимает значение кода ошибки     }
+
+function SetFileAges(S: ShortString; Age_LWr, Age_Cr, Age_LAc: Longint): Longint;
   {JO: устанавливает время и дату последней модификации (Age_LWr),                }
   {    время и дату создания (Age_Cr) и время и дату последнего доступа (Age_LAc) }
-  {    файла по хэндлу файла (Handle), принимает значение кода ошибки             }
+  {    файла или каталога по полному пути (S), принимает значение кода ошибки     }
 
 function GetFSString(Dr: Char): String; {JO}
 
 implementation
 
 uses
-  Windows, Strings;
+  Windows, Strings, LFN;
 
 function GetBytesPerCluster(Drive: Byte): Longint;
 var
@@ -215,28 +216,44 @@ begin
     SetResult := GetLastError;
 end;
 
-function GetHFileAges(Handle: Longint; Var Age_LWr, Age_Cr, Age_LAc: Longint): Longint;
+function GetFileAges(S: ShortString; Var Age_LWr, Age_Cr, Age_LAc: Longint): Longint;
 var
-  FileTime_LWr, LocalFileTime_LWr,
-  FileTime_Cr,  LocalFileTime_Cr,
-  FileTime_LAc, LocalFileTime_LAc : TFileTime;
+  LocalFileTime_LWr,
+  LocalFileTime_Cr,
+  LocalFileTime_LAc : TFileTime;
+  FindData: TWin32FindData;
+  SH: THandle;
 begin
-  GetHFileAges := SetResult(GetFileTime(Handle, @FileTime_Cr, @FileTime_LAc, @FileTime_LWr) and
-    FileTimeToLocalFileTime(FileTime_LWr, LocalFileTime_LWr) and
+  S[length(S)+1] := #0;
+  SH := FindFirstFile(@S[1], FindData);
+  if SH = INVALID_HANDLE_VALUE then
+    begin Result := GetLastError;
+    exit; end;
+  FindClose(SH);
+  with FindData do Result := SetResult(
+    FileTimeToLocalFileTime(ftLastWriteTime, LocalFileTime_LWr) and
     FileTimeToDosDateTime(LocalFileTime_LWr, TDateTimeRec(Age_LWr).FDate, TDateTimeRec(Age_LWr).FTime) and
-    FileTimeToLocalFileTime(FileTime_Cr, LocalFileTime_Cr) and
+    FileTimeToLocalFileTime(ftCreationTime, LocalFileTime_Cr) and
     FileTimeToDosDateTime(LocalFileTime_Cr, TDateTimeRec(Age_Cr).FDate, TDateTimeRec(Age_Cr).FTime) and
-    FileTimeToLocalFileTime(FileTime_LAc, LocalFileTime_LAc) and
+    FileTimeToLocalFileTime(ftLastAccessTime, LocalFileTime_LAc) and
     FileTimeToDosDateTime(LocalFileTime_LAc, TDateTimeRec(Age_LAc).FDate, TDateTimeRec(Age_LAc).FTime));
 end;
 
-function SetHFileAges(Handle: Longint; Age_LWr, Age_Cr, Age_LAc: Longint): Longint;
+function SetFileAges(S: ShortString; Age_LWr, Age_Cr, Age_LAc: Longint): Longint;
 var
+  Handle: Longint;
   LocalFileTime_LWr, FileTime_LWr,
   LocalFileTime_Cr,  FileTime_Cr,
   LocalFileTime_LAc, FileTime_LAc : TFileTime;
 begin
-  SetHFileAges := SetResult(
+  S[length(S)+1] := #0;
+  Handle := CreateFile(@S[1], GENERIC_WRITE,
+       FILE_SHARE_READ or FILE_SHARE_WRITE,
+       nil, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, 0);
+  if Handle = INVALID_HANDLE_VALUE then
+    Result := 1
+  else
+   SetFileAges := SetResult(
     DosDateTimeToFileTime(TDateTimeRec(Age_LWr).FDate, TDateTimeRec(Age_LWr).FTime, LocalFileTime_LWr) and
     LocalFileTimeToFileTime(LocalFileTime_LWr, FileTime_LWr) and
     DosDateTimeToFileTime(TDateTimeRec(Age_Cr).FDate, TDateTimeRec(Age_Cr).FTime, LocalFileTime_Cr) and
@@ -244,6 +261,7 @@ begin
     DosDateTimeToFileTime(TDateTimeRec(Age_LAc).FDate, TDateTimeRec(Age_LAc).FTime, LocalFileTime_LAc) and
     LocalFileTimeToFileTime(LocalFileTime_LAc, FileTime_LAc) and
     SetFileTime(Handle, @FileTime_Cr, @FileTime_LAc, @FileTime_LWr));
+  CloseHandle(Handle);
 end;
 
 function GetFSString(Dr: Char): String;

@@ -63,6 +63,7 @@ const
 type
   PDrive = ^TDrive;
   TDrive = object(TObject)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
    Owner: Pointer;
    Prev: PDrive;
    DriveType: ( dtUndefined, dtDisk, dtFind, dtTemp, dtList, dtArc, dtLink, dtArvid );
@@ -84,7 +85,7 @@ type
    procedure lChDir(ADir: String); virtual;     {DataCompBoy}
    function  GetDir: String; virtual;            {DataCompBoy}
    function  GetDirectory(SortMode, PanelFlags: Integer; const FileMask: String;
-                          var FreeSpace, TotalInfo: String ): PCollection; virtual;
+                          var FreeSpace, TotalInfo: String): PCollection; virtual;
    procedure CopyFiles(Files: PCollection; Own: PView; MoveMode: Boolean); virtual;
    procedure CopyFilesInto(Files: PCollection; Own: PView; MoveMode: Boolean); virtual;
    procedure EraseFiles(Files: PCollection); virtual;
@@ -168,15 +169,23 @@ begin                     {  унаследованном от TSortedCollection.Search}
      Compare := 1;
 end;
 
-        {-DataCompBoy-}
+{Cat: Переделал так, чтобы бралась информация не для буквы диска, а для
+      полного пути. Это должно повлиять в ситуациях сетевых путей, а
+      также когда один диск подмонтирован к другому. Также отслеживается
+      случай ошибки на диске - вместо "-1" возвращаем пустую строку.}
 procedure TDrive.GetFreeSpace;
- var FreeSpc: TSize;
+var
+  FreeSpc: TSize;
+  Buffer: array[0..255] of Char;
 begin
- FreeSpc := Disk_Free(Byte(CurDir[1])-64);
- {S := '~'+FStr(FreeSpc)+GetString(dlDIFreeDisk)+Copy(CurDir, 1, 2);}
-  S := '~'+FStr(FreeSpc)+'~'
+  Strings.StrPCopy(@Buffer, CurDir);
+  FreeSpc := VPSysLow.SysDiskFreeLongX(@Buffer);
+  if FreeSpc < 0 then
+    S := ''
+  else
+    S := '~'+FStr(FreeSpc)+'~';
 end;
-        {-DataCompBoy-}
+{/Cat}
 
         {-DataCompBoy-}
 procedure TDrive.GetParam;
@@ -217,7 +226,8 @@ begin
             else GetParam(num);
  innum:=num;
  ClrIO;
- lGetDir(ADrive, CurDir);
+ if ADrive < $1B then lGetDir(ADrive, CurDir) {A: ... Z:}
+                 else CurDir := ''; {any other - i.e. \\server\share}
 {$IFDEF FileNotify}
  {$IFDEF Win32}
  if DNIni.AutoRefreshPanels then {JO}
@@ -400,10 +410,15 @@ procedure TDrive.GetFull;
   NFM: TNameFormatMode;
   OPT: Word;
   LogName: String;
+  LS: Byte;
+  LFNLonger250: Boolean;
+  CO: Word;
  label Longer250, Longer250_1;
 begin
-X:= 0;
-if (LFNLen < 250){$IFNDEF OS2} or (Flags and psShowLongName = 0){$ENDIF} then {JO: если ширина колонки имени больше 250 символов, её показываем после остальных колонок}
+X := 0;
+CO := C;
+LFNLonger250 := (LFNLen >= 250){$IFNDEF OS2} and (Flags and psShowLongName <> 0){$ENDIF};
+if not LFNLonger250 then {JO: если ширина колонки имени больше 250 символов, её показываем после остальных колонок}
 Longer250:
  begin
 {$IFNDEF OS2}
@@ -476,31 +491,43 @@ Longer250:
   {$IFNDEF OS2}  else Inc(X, 12) {$ENDIF}
   ;
 {-----------}
-  if P^.Selected and PView(Owner)^.GetState(sfFocused) then begin
-   C:=C shr 8;
-   SC:=SC and $00FF + C shl 8;
-  end;
-  if (LFNLen >= 250){$IFNDEF OS2} and (Flags and psShowLongName <> 0){$ENDIF} then goto Longer250_1;
+  if LFNLonger250 then goto Longer250_1;
+{JO: не понял, зачем DataCompBoy ввёл условие                                }
+{    PView(Owner)^.GetState(sfFocused), приводившее к исчезновению выделения }
+{    цветом всего, что идёт после имени у помеченных файлов при переходе     }
+{    на противоположную панель; без этого условия всё работает нормально     }
+  if P^.Selected {and PView(Owner)^.GetState(sfFocused)} then
+    begin
+      C := C shr 8;
+      SC := SC and $00FF + C shl 8;
+    end;
   Inc(X);
   TWordArray(B)[X-1]:=SC;
- end; {условие 250 символов}
+ end {условие 250 символов}
+  else if P^.Selected then
+    begin
+      C := C shr 8;
+      SC := SC and $00FF + C shl 8;
+    end;
+
   if (P^.Size > 0) or (P^.Attr and Directory = 0) or (P^.Attr and $8000 <> 0)
      and (P^.Size >= 0)
     then S := FileSizeStr( P^.Size )
     else if P^.TType = ttUpDir
       then S := GetString( dlUpDir )
       else S := GetString( dlSubDir );
+  for LS := 1 to (9 - Length(S) + CountryInfo.TimeFmt) do S := ' ' + S; {JO}
   with TDate4(P^.FDate) do
     MakeDate(DateMode, Day, Month, P^.Yr, Hour, Minute, S1);
   if P^.YrCreat <> 0 then with TDate4(P^.FDateCreat) do
       MakeDate(DateMode, Day, Month, P^.YrCreat, Hour, Minute, S2)
     else S2 := '';
   if P^.YrLAcc <> 0 then with TDate4(P^.FDateLAcc) do
-      MakeDate(DateMode, Day, Month, P^.YrLAcc, Hour, Minute, S2)
+      MakeDate(DateMode, Day, Month, P^.YrLAcc, Hour, Minute, S3)
     else S3 := '';
   if Flags and psShowSize <> 0 then
    begin
-    MoveStr(TWordArray(B)[X + 9 - Length(S) + CountryInfo.TimeFmt], S, C);
+    MoveStr(TWordArray(B)[X], S, C);
     X := X + 10 + CountryInfo.TimeFmt;
     TWordArray(B)[X-1]:=SC;
    end;
@@ -540,11 +567,12 @@ Longer250:
     Inc(X, 7 - CountryInfo.TimeFmt);
     TWordArray(B)[X-1]:=SC;
    end;
-  if (LFNLen >= 250) {$IFNDEF OS2} and (Flags and psShowLongName <> 0){$ENDIF} then goto Longer250;
+  if LFNLonger250 then begin C := CO; goto Longer250; end;
   if (Flags and psShowDescript <> 0) and ((DriveType = dtDisk) or
      (DriveType = dtArvid)) then
    begin
-    if P^.Diz <> nil then S := Copy(CnvString(P^.DIZ^.DIZ), 1, MaxViewWidth - X - 1) else S := '';
+    if P^.Diz <> nil then S := Copy(AddSpace(CnvString(P^.DIZ^.DIZ), 255), 1, MaxViewWidth - X - 1)
+      else S := AddSpace(' ', MaxViewWidth - X - 1);
     MoveStr(TWordArray(B)[X], S, C);
    end;
 Longer250_1:

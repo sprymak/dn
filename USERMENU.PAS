@@ -192,6 +192,10 @@ begin
                             end;
              end;
   evKeyDown: begin
+              { Flash >>> }
+              if (Event.KeyCode=kbShiftUp) or (Event.KeyCode=kbShiftDown)
+                then CommandLine^.HandleEvent(Event);
+              { Flash <<< }
               if Size.X = ScreenWidth then CommandLine^.HandleEvent(Event);
              end;
  end;

@@ -8,6 +8,7 @@ Copyright (C) 2002 Aleksej Kozlov (Cat)
 ******)
 
 {&Delphi+}
+{&Use32+}
 
 interface
 
@@ -1196,7 +1197,7 @@ type
     Lines: PCollection;
     But: PButton;
     QuitNormal: Boolean;
-    Top, Bottom: String[255];
+    Top, Bottom: String;
     Side: (sdLeft, sdRight);
   end;
 
@@ -1266,7 +1267,7 @@ type
     KillAfterUse, IsValid, QuickView, Loaded, HexEdit, BufModified: Boolean;
     FakeKillAfterUse: Boolean;
     Filter: Byte;
-    Xlat: array[Char] of Char;
+    Xlat: TXlat;
     UseXlat: Boolean;
     XlatFile: PString;
     KeyMap: TKeyMap;

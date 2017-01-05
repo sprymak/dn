@@ -199,7 +199,8 @@ end;
 
 function Percent(AMax, ACur: TSize): TSize;
 begin
-  if AMax = 0 then Percent := 0 else Percent := (ACur*100) / AMax;
+  if AMax = 0 then Percent := {0}100{AK155} else
+  Percent := (ACur*100) / AMax;
 end;
 
 procedure Hex8Lo(L:longInt;var HexLo);

@@ -7,6 +7,9 @@ Copyright (C) 2002 Aleksej Kozlov (Cat)
 
 ******)
 
+{&Delphi-}
+{&Use32+}
+
 interface
 
 uses
@@ -282,7 +285,7 @@ type
   PPalette = ^TPalette;
   TPalette = String;
 
-  TMenuStr = string[81];
+  TMenuStr = String[81];
 
 type
   AInt = SmallInt;
@@ -296,8 +299,14 @@ type
   PWordArray = ^TWordArray;
   TWordArray = packed array[0..0] of AWord;
 
+  PIntegerArray = ^TIntegerArray;
+  TIntegerArray = packed array[0..0] of Integer;
+
   PPointerArray = ^TPointerArray;
   TPointerArray = packed array [0..0] of Pointer;
+
+  PPCharArray = ^TPCharArray;
+  TPCharArray = packed array [0..0] of PChar;
 
   PVideoBuf = ^TVideoBuf;
   TVideoBuf = packed array[0..3999] of AWord;
@@ -475,7 +484,7 @@ type
   TEditorEventHook = function(var Event: TEvent; Editor: Pointer): Boolean;
 
   PFillColorsData = ^TFillColorsData;
-  TFillColorsData = record
+  TFillColorsData = packed record
     DrawBuffer: Pointer;
     StrNum, StartPos, EndPos: LongInt;
   end;
@@ -497,7 +506,7 @@ type
     NameLStr: Pointer;
     Attr: Byte;
     Time: Longint;
-    Size: Longint;
+    Size: TSize;
     Name: ShortString;
     CreationTime: Longint;
     LastAccessTime: Longint;
@@ -552,6 +561,8 @@ type
 
   TKeyMap = (kmNone, kmAscii, kmAnsi, kmKoi8r);
 
+  TXlat = array[Char] of Char;
+
   PHighliteParams = ^THighliteParams;
   THighliteParams = packed record
     GenFlags: Word;
@@ -572,19 +583,20 @@ type
     isDisposable: Boolean;
   end;
 
+  TUseLFN = {$IFDEF OS2} True {$ELSE} False {$ENDIF} .. True;
+  TShortName = String[12];
+  TFlName = array[TUseLFN] of TShortName;
+  TDate4 = packed record
+    Minute, Hour, Day, Month: Byte;
+  end;
+
   PFileRec = ^TFileRec;
   TFileRec = packed record
     Size: TSize;
     PSize: TSize;
     Owner: PString;
     OwnerDisposible: Boolean;
-    Diz: PDIZ;
-    {$IFDEF OS2}
-    Name: String;
-    {$ELSE}
-    Name: Str12;
-    LFN: String;
-    {$ENDIF}
+    Diz: PDiz;
     Yr: Word;
     YrCreat: Word;
     YrLAcc: Word;
@@ -595,9 +607,9 @@ type
     SecondLAcc: Byte;
     Selected: Boolean;
     UsageCount: Byte;
-    case Integer of
-      0: (FDate, FDateCreat, FDateLAcc: LongInt);
-      1: (Minute, Hour, Day, Month, MinuteCreat, HourCreat, DayCreat, MonthCreat, MinuteLAcc, HourLAcc, DayLAcc, MonthLAcc: Byte);
+    FDate, FDateCreat, FDateLAcc: LongInt;
+    FlName: TFlName;
+//  Dummy: array[1..SizeOf(ShortString)-SizeOf(TShortName)] of Char;
   end;
 
   TMakeListRec = packed record
@@ -616,7 +628,13 @@ type
     ActiveList, PassiveList: String;
   end;
 
-  TDiskInfoRec = record
+  TQuickSearchData = packed record
+    Mask: String;
+    NumExt: Word;
+    ExtD: Word;
+  end;
+
+  TDiskInfoRec = packed record
     Title: PString;
     Dir: PString;
     Files: PString;
@@ -632,8 +650,9 @@ type
 
   TDriveType = (dtUndefined, dtDisk, dtFind, dtTemp, dtList, dtArc, dtLink, dtArvid);
   TAvdType = (avdTdr, avdAvt);
+  TLineType = (ltNormal, ltOS2FullScreen, ltOS2Window, ltTimer);
 
-  TTdrHeader = record
+  TTdrHeader = packed record
     FileTableOfs: LongInt;
     DirTableOfs: LongInt;
     PosTableOfs: LongInt;
@@ -653,7 +672,7 @@ type
     Res03: array[1..36] of Byte;
   end;
 
-  TAvtHeader = record
+  TAvtHeader = packed record
     Signature: array[1..4] of Char;
     AvtFmt: LongInt;
     CheckSum: LongInt;
@@ -664,6 +683,20 @@ type
     LastNewSector: LongInt;
     AvtMediaCell: LongInt;
     Undefined1: LongInt;
+  end;
+
+  PMenuStringsRet = ^TMenuStringsRet;
+  TMenuStringsRet = packed record
+    Reserved0: Integer;
+    Count: Byte;
+    Cacheable: Boolean;
+    Reserved1: SmallWord;
+    Strings1: PPCharArray;
+    Strings2: PPCharArray;
+    Keys: PIntegerArray;
+    Reserved2: Integer;
+    Reserved3: Integer;
+    Reserved4: Integer;
   end;
 
 implementation

@@ -61,6 +61,7 @@ uses
 type
     PArcDrive = ^TArcDrive;
     TArcDrive = object(TDrive)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
      ArcName:     String; {DataCompBoy}
      VArcName:    String; {JO}
      AType:       PARJArchive;
@@ -146,7 +147,7 @@ Implementation
 uses
   {$IFDEF VIRTUALPASCAL} VpSysLow, {$ENDIF}
   Menus, DnApp, Messages, Dialogs, Gauge, FileCopy, Memory, Startup,
-  {$IFDEF ARVID} Arvid, {$ENDIF} xTime, VideoMan, DNExec
+  {$IFDEF ARVID} Arvid, {$ENDIF} xTime, VideoMan, DNExec, Filefind
   {$IFDEF CHDIRTIMER}
   , CmdLine, DNIni
   {$ENDIF}
@@ -225,15 +226,9 @@ begin
                else GetParam(viewmode);
  innum:=viewmode;
 
- I:=PosChar(':', Copy(VAName,3,MaxStringLength))+2;
- If I>2 then begin
-  Q := Copy(VAName, I+1, MaxStringLength);
-  if Q[Length(Q)] in ['\','/'] then SetLength(Q, Length(Q)-1);
-  VArcName := lFExpand(Copy(VAName,1,I-1));
- end else begin
-  VArcName := lFExpand(VAName);
-  Q:='\';
- end;
+ I := PosChar(':', Copy(VAName,3,MaxStringLength))+2;
+ if I > 2 then VArcName := lFExpand(Copy(VAName,1,I-1))
+  else VArcName := lFExpand(VAName);
 
  I:=PosChar(':', Copy(AName,3,MaxStringLength))+2;
  If I>2 then begin
@@ -513,8 +508,10 @@ function TArcDrive.GetDir;
 begin
  While (PosChar(CurDir[Length(CurDir)], '.\') > 0) do SetLength(CurDir, Length(CurDir)-1);
  if (Length(CurDir)>0) and (not (CurDir[1] in ['\','/'])) then CurDir := '\' + CurDir;
- lFSplit(VArcName, Dr, Nm, Xt); {JO}
- GetDir := AType^.GetSign+Copy(Dr,1,2)+Nm+Xt+CurDir;
+ if (Prev <> nil) and (Prev^.DriveType = dtDisk) then
+   lFSplit(VArcName, Dr, Nm, Xt) {JO}
+  else lFSplit(ArcName, Dr, Nm, Xt);
+ GetDir := AType^.GetSign+Nm+Xt+CurDir;
 end;
         {-DataCompBoy-}
 
@@ -640,6 +637,9 @@ procedure TArcDrive.UseFile;
      C: Char;
      Unp: String;
     {ExecOK: Boolean;}
+{$IFNDEF OS2}
+label TryAgain;
+{$ENDIF}
 begin
    TempFile:=''; {-$VOL}
    if (Command = cmEditFile) or (Command = cmFileEdit) or
@@ -657,8 +657,27 @@ begin
    if P^.Attr and Hidden <> 0 then
     begin
      S := '';
+{$IFNDEF OS2}
+TryAgain:
+{$ENDIF}
      if ExecResource( dlgSetPassword, S ) <> cmOK then Exit;
-     S := ' ' + DelSpaces(CnvString(AType^.Garble) + S) + ' ';
+   { Flash >>> }
+    if CheckForSpaces(S) then
+      S := ' ' + CnvString(AType^.Garble) + S + ' '
+     else
+     {$IFNDEF OS2}
+      if AType^.UseLFN then
+     {$ENDIF}
+        S := ' ' + CnvString(AType^.Garble) + '"' + S + '"' + ' '
+     {$IFNDEF OS2}
+       else
+        begin
+          MessageBox(GetString(dlSpacesInPassword), nil, mfWarning + mfOkButton);
+          goto TryAgain;
+        end
+     {$ENDIF}
+        ;
+   { Flash <<< }
     end;
    SS := MakeNormName(P^.Owner^, P^.FlName[true]);
    if SS[1] = '\' then Delete(SS, 1, 1); {DelFC(SS);}
@@ -863,13 +882,14 @@ begin
      {Prev^.Owner := Owner;}
    end;
   PFilePanel(Owner)^.Drive := Prev;
-  if TypeOf(Prev^)=TypeOf(TDrive) then Prev^.lChDir(GetPath(VArcName)); {???}
+  if TypeOf(Prev^)=TypeOf(TDrive) then Prev^.lChDir(GetPath(VArcName)); {piwamoto: VArcName is a feature, not a bug :-)}
   if (Prev^.DriveType = dtDisk) and
      (PView(Owner)^.GetState(sfSelected+sfActive)) then
       ActivePanel := Owner;
   GlobalMessage(evCommand, cmRereadInfo, nil);
+  if (Prev^.DriveType = dtDisk) then S := GetName(VArcName)
+    else S := GetName(ArcName);
   Prev := nil;
-  S := GetName(VArcName); {???}
   if KillAfterUse then EraseTempFile(ArcName);
   Dispose(PDrive(@Self), Done);
 end;
@@ -1038,11 +1058,16 @@ begin
   DT.W := UnarchiveOpt and not 2; {JO}
   Message(Application, evCommand, cmPushFirstName, @DT.S);
   if CopyDirName <> '' then DT.S := CopyDirName;
-  if DT.S = cTEMP_ then DT.S := '';
+ {if DT.S = cTEMP_ then DT.S := '';}
   if DT.S = '' then GlobalMessageL(evCommand, cmPushName, hsExtract);
   if DT.S = '' then DT.S := HistoryStr(hsExtract, 0);
-  if DT.S = cTEMP_ then DT.S := '';
+ {if DT.S = cTEMP_ then DT.S := '';}
   CopyDirName := '';
+  if DT.S = cTEMP_ then
+    begin
+     CopyToTempDrive(AFiles, Own, ArcName);
+     Exit;
+    end;
   if not SkipCopyDialog then
      if ExecResource( dlgExtract, DT) <> cmOK then Exit;
 {JO}
@@ -1152,9 +1177,12 @@ var
   FD: TDate4;
   NFM: TNameFormatMode;
   OPT: Word;
+  LS: Byte;
+  CO: Word;
   label Longer250, Longer250_1;
 begin
-X:= 0;
+X := 0;
+CO := C;
 {JO: если ширина колонки имени больше 250 символов, её показываем после     }
 {    остальных колонок                                                      }
 if (LFNLen < 250) then
@@ -1188,14 +1216,25 @@ Longer250:
   MoveCStr(TWordArray(B)[X], S, C);
   Inc(X, LFNLen);
 {-----------}
-  if P^.Selected and PView(Owner)^.GetState(sfFocused) then begin
-   C:=C shr 8;
-   SC:=SC and $00FF + C shl 8;
-  end;
   if (LFNLen >= 250) then goto Longer250_1;
+{JO: не понял, зачем DataCompBoy ввёл условие                                }
+{    PView(Owner)^.GetState(sfFocused), приводившее к исчезновению выделения }
+{    цветом всего, что идёт после имени у помеченных файлов при переходе     }
+{    на противоположную панель; без этого условия всё работает нормально     }
+  if P^.Selected {and PView(Owner)^.GetState(sfFocused)} then
+    begin
+      C:=C shr 8;
+      SC:=SC and $00FF + C shl 8;
+    end;
   Inc(X);
   TWordArray(B)[X-1]:=SC;
- end; {условие 250 символов}
+ end {условие 250 символов}
+  else if P^.Selected then
+    begin
+      C := C shr 8;
+      SC := SC and $00FF + C shl 8;
+    end;
+
   FD := TDate4(P^.FDate);
   MakeDate(DateMode, FD.Day, FD.Month, P^.Yr, FD.Hour, FD.Minute, S1);
   if (P^.Size > 0) or (P^.Attr and Directory = 0)
@@ -1205,15 +1244,21 @@ Longer250:
       else S := GetString( dlSubDir );
   if Flags and psShowSize <> 0 then
    begin
-    MoveStr(TWordArray(B)[X+9-Length(S)+CountryInfo.TimeFmt], S, C);
+    for LS := 1 to (9 - Length(S) + CountryInfo.TimeFmt) do S := ' ' + S; {JO}
+    MoveStr(TWordArray(B)[X], S, C);
     X := X+10+CountryInfo.TimeFmt;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowPacked <> 0 then
    begin
+    if PosChar('<',S) = 0 then
+      begin
+        S := FStr(P^.PSize);
+        for LS := 1 to (10 - Length(S)) do S := ' ' + S; {JO}
+      end
+     else if (CountryInfo.TimeFmt = 0) then S := ' ' + S;
+    MoveStr(TWordArray(B)[X], S, C);
     Inc(X, 11);
-    if PosChar('<',S) = 0 then S := FStr(P^.PSize);
-    MoveStr(TWordArray(B)[X-Length(S)-1], S, C);
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowRatio <> 0 then
@@ -1221,10 +1266,9 @@ Longer250:
     Inc(X, 4);
     if PosChar('<',S) = 0 then
      begin
-      if P^.Size <> 0 then S := ZtoS(Percent(P^.Size, P^.PSize))
-                      else S := '100';
+      S := ZtoS(Percent(P^.Size, P^.PSize));
       S := PredSpace(S, 3);
-     end else S := '';
+     end else S := '   ';
     MoveStr(TWordArray(B)[X-Length(S)-1], S, C);
     TWordArray(B)[X-1]:=SC;
    end;
@@ -1240,7 +1284,7 @@ Longer250:
     Inc(X, 7+CountryInfo.TimeFmt);
     TWordArray(B)[X-1]:=SC;
    end;
-  if (LFNLen >= 250) then goto Longer250;
+  if (LFNLen >= 250) then begin C := CO; goto Longer250; end;
 Longer250_1:
 end;
 

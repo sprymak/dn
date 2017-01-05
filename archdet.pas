@@ -98,9 +98,16 @@ begin
           (ArcFile^.Status <> stOK);
     if (ID = $06054B50) or (ID = $06064B50) then
       begin {central directory found}
-        CentralDirRecPresent := True;
         ArcFile^.Seek(FP + 16 + 32*Byte(ID = $06064B50));{offset of start of central directory}
-        ArcFile^.Read(ArcPos, 4);
+        ArcFile^.Read(FP, 4);
+        ArcFile^.Seek(FP);
+        ArcFile^.Read(ID, SizeOf(ID));
+        if ID = $02014B50 then
+          begin {piwamoto: only if offset to Central Directory is correct}
+           ArcPos := FP;
+           CentralDirRecPresent := True;
+          end
+         else if not Silent then messagebox(GetString(dlZIPWithoutCentralDir), nil, mfOKButton);
       end
     else if not Silent then messagebox(GetString(dlZIPWithoutCentralDir), nil, mfOKButton);
   end;

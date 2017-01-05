@@ -7,6 +7,298 @@
 
 
 
+   Version 1.51.10b9
+  ---------------------------------------------------------------------
+
+
+         Sergey Biryukov:
+
+jo21105c [*] Now Search Files mask can look like 'DIR\*.*'.
+jo21105d [-] Now in zoomed DOS ("User") screen the commands from command line
+             history can be called with Shift-Up/Down
+jo21105e [-] Fixed error that had appeared after trying to make or extract an
+             archive with a password containing spaces
+jo21106a [-] Fixed and improved resizing of file panels with Alt-Left/Right
+             and Ctrl-M/Ctrl-Alt-Z.
+jo21117f [-] Quick search was not finished after pressing '*'.
+
+
+         Alexey Korop:
+
+ak21011a [*] In editor hotkey Ctrl-A added (select whole text) and hotkey
+             Ctrl-H replaced by block hiding (as Ctrl-K H)
+
+ak21014a [*] Optimisation of 'Percent' function definition and using
+ak21014b [-] DN crash if in panel settings is unchecked 'Current file' and
+             is checked 'Long name in bottom'
+ak21015a [*] Теперь операция 'Ассоциировать список файлов' распознает имена
+             файлов  в списке по такому алгоритму:
+             - если первый символ строки пробел или '>' - строку ингорировать
+               (это на случай использования многострочных описаний в качестве
+               списка);
+             - если первый символ кавычка ('"') - считать именем текст до
+               следующей кавычки;
+             - если первый символ не из вышеперечисленных - сначала
+               попробовать в качестве имени взять всю строку;
+             - если такого файла не нашлось, но в строке есть пробелы -
+               считать именем текст до первого пробела.
+ak21022a [-] При выходе из архива, вложенного в другой архив, курсор
+             перескакивал на элемент "..".
+ak21022b [*] Теперь позиция окна формирования фильтра по расширениям (Alt-BS)
+             не запоминается и окно всегда размещается в центре экрана
+ak21023a [*] (Win32) Появилась возможность просмотра времен создания и
+             последнего доступа для каталогов
+ak21026a [-] Не работал D&D выделенных или всех файлов на точечки UpDir из
+             каталога уровня 2 или глубже
+ak21029a [-] Исправлен показ числа файлов при D&D из строки информации о
+             каталоге.
+         [*] Оптимизирована программа D&D из строки информации о каталоге.
+         [-] Устранены ошибки начала drag&drop из подвала панели
+ak21109a [-] Теперь в Win32 версии под WinNT для каталогов работает установка
+             времени создания, последнего доступа и последней модификации
+ak211110 [*] Теперь для операции 'Присоединить список' добавился еще один
+             вариант распознавания имени файла: вся строка без первого
+             символа (для BSO).
+ak21118a [-] При включенном автодочитывании если после коррекции файла в
+             hex-режиме переключиться в текстовый режим, выводилось
+             предупреждение о том, что файл изменен и DN падал. Теперь
+             модификация файла прекращает его автодочитывание
+ak21118b [*] Теперь при монтировании списка символ Tab (#09) воспринимается
+             как признак начала комментария
+ak21119a [-] Теперь копирование файла в себя же, но с точками (типа f в f..)
+             приводит к правильному сообщению, а не к предложению перезаписать
+             файл
+ak21119b [-] Теперь нажатие мыши на линии разделителя пассивной панели
+             активного менеджера приводит к активизации панели и скроллингу,
+             аналогично нажатию мыши на заголовке панели.
+
+
+         Aleksej Kozlov:
+
+plugins4 [!] Плагины версии 0.4
+cat21104 [!] Поддержка плагинов типа DrivePanel
+cat21013 [*] Функции GetAltChar и GetCtrlChar теперь реагируют только на
+             нажатия соответственно Alt-символ и Ctrl-символ, и не реагируют
+             на сложные комбинации (Ctrl-Shift-символ, Alt-Shift-символ,
+             Ctrl-Alt-символ)
+         [*] Чуть более корректная обработка клавиатурных событий
+cat21015 [*] Win32-версия теперь умеет распознавать нажатия левой и правой
+             виндозных клавиш, клавиши "меню" и их комбинаций с Shift, Ctrl, Alt
+cat21025 [*] TaskList: добавлена горизонтальная полоса прокрутки
+         [*] TaskList: раньше заголовки окон показывались в списке
+             как попало, теперь их левые края выравниваются
+         [*] TaskList: небольшая логическая реорганизация исходников
+cat21030 [*] TaskList: теперь если в INI-файле стоит KillAllowed=0, то кнопка
+             "Убить" не только ничего не делает, но и не появляется вовсе
+cat21104 [*] В связи с появлением плагина панели Network из ядра выкинуты
+             остатки от аналогичного кода (т.е. то, что включалось дефайном
+             Network)
+         [*] Плагины типа EventCatcher теперь грузятся по следующему принципу:
+             для плагина PLUGIN сначала ДН пытается загрузить PLUGIN.DLL, а
+             если это не удаётся, то грузит PLUGIN\PLUGIN.DLL. То есть, теперь
+             можно все файлы плагина скидывать в один каталог
+         [-] Исправлены ошибки в функции SysUtils.Format. Это могло
+             проявляться при падениях в виде мусора вместо нормальных
+             сообщений об ошибках
+         [*] Функция Drivers.FormatStr теперь понимает описатель формата "%p"
+             - указатель - выводится как шестнадцатеричное число из 8 цифр.
+             Это сделано для использования в функции SysUtils.Format, т.к.
+             некоторые сообщения об ошибках содержат такой описатель формата.
+             Кроме того, функция Format теперь вынесена в интерфейсную часть
+             SysUtils - вдруг пригодится. Также в модуле SysUtils отключены
+             длинные строки
+         [*] Теперь в случае каких-либо проблем с DSK-файлом ДН не падает,
+             как раньше, а выводит сообщение об ошибке и продолжает работу.
+             Надеюсь, надобность в ручном удалении DN.DSK при переходе на
+             новую версию тоже отпадёт
+         [*] Раньше в случае Fatal Error-ов и прочих ошибок, приводящих к
+             выходу из ДН-а, в Win32-версии текст сообщения об ошибке мог
+             показываться начиная не с левого верхнего угла, а откуда-то с
+             середины экрана
+cat21109a [*] Небольшие правки кода, связанного с плагинами
+cat21109b [-] Для представления дисков в диалогах "открыть файл",
+             "сохранить как", и пр. используются псевдо-каталоги вида "[-C-]".
+             Раньше это приводило к следующей проблеме: если в каком-либо
+             каталоге создать подкаталог, начинающийся с "[", то когда мы
+             попытаемся в него войти в диалоге, ДН посчитает, что надо
+             перейти на какой-то диск, что и попытается сделать вместо входа
+             в подкаталог
+cat21117  [*] Восстановлена компилируемость модуля PktView
+
+
+         Jaroslaw Osadtchiy:
+
+jo21021a [-] After quick files rename by Alt-F6 in OS/2 version the
+             description was not deleted for old file name despite the
+             "Do not kill descriptions" option in "File Manager Setup" was
+             switched off
+jo21021b [*] The attributes of file containing descriptions now are preserved
+             during operations with descriptions
+jo21022a [+] The tasklist moved from plugin to DN/2 kernel and now
+             available in non-plugin version, the F11 hotkey can be used to
+             call it;
+         [*] In dn.ini new section [Tasklist] added with two parameters:
+             ShowExePaths - to show executable from which the
+             process had been started with full path or just file name
+             KillAllowed - allow or prohibit task killing
+         [*] In OS/2 version the session type (FS,VIO,PM,VDM) now will be
+             shown, the possibility to switch to process window added
+             (requires PM) and window title is shown (requires PM)
+         [-] In Win32 version the presence of kernel32.dll in process list
+             under w9x is fixed
+jo21022b [-] Cursor in editor did not stop at the end of line when the
+             Ctrl-Right hotkey was used to move cursor
+jo21023a [-] The attempt to go to some addres by F5 in file viewer in
+             disassembler mode caused DN/2 halt
+         [-] The hexadecimal editing in file viewer in disassembler mode
+             caused changing wrong bytes, not positioned under cursor
+jo21030c,
+jo21101a,
+jo21103a [*] In directories compare dialog the comparing parameters saving is
+             possible now by pressing "Save" button
+jo21104a [-] The highliting of size, date, time and description of selected
+             files disappeared after switching to opposite panel
+         [-] In 252.0 columns mode the fields situated before file name
+             field were not highlited for selected files
+         [*] Now size and description fields, as well as compression ratio
+             in archives, are highlited completely, not only text; the path
+             field in file find panel now also highlited
+jo21104b [-] When file cursor was moved to opposite panel by Tab key, the
+             separators between fields with information about current file had
+             color of file name
+jo21105a [-] The .tdr-files viewing was broken; fixed
+jo21106b [-] After files renaming in file search panel or temporary panel
+             the color changing did not occure when renamed file should have
+             different color
+         [-] After quick files renaming in file search panel or temporary
+             panel sometimes wrong error messages appeared
+jo21107a [-] Directory changing (Alt-T) from archive panel did not work
+             correctly
+jo21107b [-] Menu items "Panel" => "Re-read", "Window" => "Next similar",
+             "Prev similar", "Next different", "Prev different" did not
+             become disabled when the actions corresponding them were
+             impossible
+jo21107c [-] Shift-Grey+ and Shift-Grey- hotkeys work again for switching
+             between several file manager windows
+jo21108a [*] In task list in OS/2 version the filtered list mode added, and
+             dn.ini key FilteredList (Boolean) added to switch this mode.
+             When filtered list mode the processes appear in task list only
+             if it is possible to switch to teses processes (to make them
+             active)
+         [*] The dn.ini key UserTaskFilter (String) added, which allows to
+             set executable names of those processes, which must be excluded
+             from task list. The names should be separated with symbol "#",
+             for example:
+             UserTaskFilter=pmshell.exe#filebar.exe
+         [*] In task list in OS/2 version the current process marked by
+             symbol ">" at the beginning of the string
+jo21111a [-] In OS/2 version some unswitcheable processes appeared in task
+             list in filtered list mode
+         [*] The "clipvdm.exe" substring added to default value of user
+             defined task filter in tasklist in OS/2 version
+         [*] When tasklist called in OS/2 version, the cursor will be
+             positioned to current process
+jo21112a [-] If the current panel contained archive contents, then after
+             attempt to choose deleted archive or list file from directories
+             history some bugs occured in remaining panel (wrong panel header,
+             impossibility to enter subdirectory in archive)
+         [-] After entering archive from directories history the header of
+             archive panel could be wrong and after exiting such archive the
+             cursor was positioned to top of panel, but not to archive
+         [-] After attempt to enter deleted directory through directories
+             history the changing to parent directory of deleted directory was
+             don without any warning
+         [-] After entering list file through directories history the current
+             directory was not changed to directory containing this list file.
+             As result, list contained files not from its directory, but from
+             directory current at moment of calling
+jo21113a [*] Now archive, arvid and list file panels show the same
+             reaction to Ctrl-\ hotkey: the exiting from file (frchive,
+             arvid list or list file) and cursor positioning to this file
+             occures
+         [-] After exiting from list file panel through ".." the cursor
+             positioning to list file did not occure
+jo21113b [-] The changing from file search panel to opposite panel to file
+             found in archive by mean Shift-Enter did not work properly
+jo21114a [*] The help topic is added for task list
+jo21115a,
+jo21115f [-] In file find panel files found in archives persisted after
+             deleting this archive
+jo21115b [*] Now after going to current drive's root by Ctrl-\ the cursor
+             will be positioned to highest level directory of directory which
+             was left; after Ctrl-\ pressing in root directory the cursor will
+             be positioned at the top of the panel
+jo21115c [-] The Ctrl-\ pressing in temporary drive panel caused changing
+             to root directory of drive which was in current panel before
+             temporary drive
+jo21115d [*] In arvid panel the drive changing by Ctrl-Left or Ctrl-Right
+             will highlite letters of drives closest to drive, which file with
+             arvid list situated on
+jo21115e [*] The dn.hgl file's StringFLAGS keyword's interpretation is
+             slightly improved and comment in dn.hgl file is little bit
+             expanded
+jo21116a [-] After pressing Ctrl-R twice in file list panel DN/2 crashed
+jo21116b [-] In file search, list file and temporary panels the panel
+             re-read did not occure after Ctrl-R pressing
+jo21116c [-] In bottom of list file panel the path to current file did not
+             appear
+jo21116d [-] For list file panel the dialog of general file panel columns
+             settings was called
+         [-] The sending file for printing from list file panel was
+             potentially disabled
+jo21117b [*] The preliminary message about absence or room on drive to
+             copy all selected files when free space checking is
+             switched onwill be shown only if more then one file is being
+             copied
+jo21117c [*] Now the archive panel contents can be copied to temporary
+             panel
+jo21117d [*] In list file panel files could be duplicated
+jo21117e [*] Еhe drive changing by Ctrl-Left or Ctrl-Right will highlite
+             letters of drives closest to current drive for file find panel,
+             list file fanel etc.
+jo21118b [*] Now strings "*" and "*.*" will be ignored in list file
+jo21118c [-] During files adding to archive from file find panel,
+             the files found in archives will be ignored
+jo21119a [-] If "Advanced copy" option was switched on, there was no dialog
+             proposing to rename or skip file in case if attempt was done to
+             copy file with long name to drive which does not support long
+             names
+
+
+         Max Vasilyev:
+
+jo21010  [*] ACE SFX detection improved.
+         [-] uFnMatch.FnMatchFunc (aka 'Is filename matches mask') function
+             fixed for DOS' styled 'AnyFile' (aka '*.*') mask.
+         [-] More strict ZIP detection
+         [-] More strict RAR processing
+         [-] Processing of RAR-archives created under Unix
+
+
+         Kirill Vodonosov:
+
+kv21011a [*] "Too many symbols" VP error message during DN/2 compilation
+             disappeared
+
+
+         Eugeny Zvyagintzev:
+
+jo21105b [-] If full file name was used in dn.hgl instead mask, the
+             highliting did not work for this file in viewer
+ak21014c [-] Now DN will display warning in attempt to delete current
+             directory from history of directories.
+jo21117a [-] Now DN will correctly copy files when "Check free disk space"
+             option is selected and not enough free disk space detected and
+             file to copy already exists and old file's size is less then new
+             file's size.
+jo21118a [-] During copying of big number of files from one drive to
+             another the files containing each 400-th block were not removed
+             from source drive and message appeared about impossibility to
+             remove this file
+* - Note: after jo21118a.dif the postfix applied, which was not piblished as
+          a patch
+
+
    Version 1.51.10b8
   ---------------------------------------------------------------------
 

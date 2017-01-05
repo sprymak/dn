@@ -114,7 +114,9 @@ procedure EraseFiles;
       DirCluster, DirSize: Word;
       Dir: ^DirPtr;
       {$ENDIF}
-      DrivesSet: Set of Char;
+//    DrivesSet: Set of Char;
+      RereadCollection: PStringCollection; {Cat}
+      PS: PString; {Cat}
       DeleteAllFiles: Boolean;
       Params: record {AK155}
         FName: PString;
@@ -582,7 +584,6 @@ LLL:             lSetFAttr(F, Archive); ClrIO; lEraseFile(F);
    FreeMem(Dir, DirSize);
   end;
   {$ENDIF}
-  DrivesSet := [];
 {$IFDEF OS_DOS}
   Flush := ((SystemData.Options{$IFDEF VIRTUALPASCAL}shl 3{$ENDIF}) and ossFlushDsk <> 0);
 
@@ -594,9 +595,12 @@ LLL:             lSetFAttr(F, Archive); ClrIO; lEraseFile(F);
 {$ENDIF}
            Dispose(PInfo,Done);
 
+{Cat: Во-первых, совершенно непонятно, зачем перечитывать _все_ диски
+      Во-вторых, такой способ не работает с сетевыми путями}
+(*
+  DrivesSet := [];
   for I := 0 to Files^.Count-1 do
       DrivesSet := [UpCase(PFileRec(Files^.At(I))^.Owner^[1])] + DrivesSet;
-{Cat:warn интересно, а зачем перечитывать _все_ диски?}
   S := 'A:\';
   for ch := 'A' to 'Z' do
     if ch in DrivesSet then
@@ -605,6 +609,24 @@ LLL:             lSetFAttr(F, Archive); ClrIO; lEraseFile(F);
         GlobalMessage(evCommand, cmRereadTree, @S);
         RereadDirectory(S);
       end;
+*)
+  RereadCollection := New(PStringCollection, Init(32, 32, False)); {сортированная, без повторов}
+  for I := 0 to Files^.Count-1 do
+    RereadCollection^.Insert(PFileRec(Files^.At(I))^.Owner);
+  S := #0;
+  for I := 0 to RereadCollection^.Count-1 do
+    begin
+      PS := RereadCollection^.At(I);
+      if S <> Copy(PS^, 1, Length(S)) then {если уже перечитали вышележащий каталог, то этот перечитывать не надо}
+        begin
+          S := PS^;
+          GlobalMessage(evCommand, cmRereadTree, PS);
+          RereadDirectory(S);
+        end;
+    end;
+  RereadCollection^.DeleteAll;
+  Dispose(RereadCollection, Done);
+{/Cat}
   GlobalMessage(evCommand, cmRereadInfo, nil);
 {$IFDEF OS_DOS}
   if Flush then

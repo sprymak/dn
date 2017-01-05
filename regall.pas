@@ -68,7 +68,6 @@ Uses
     DnStdDlg, DnUtil,   Drives,   Ed2,      Editor,   FileFind, FilesCol,
     FlPanel,  FStorage, FViewer,  Gauges,   Histries, MicroEd,  Startup,
     Tree,     Uniwin,   Usermenu, XDblWnd,  HelpKern,
-    {$IFDEF NETWORK}         Network,                      {$ENDIF}
     {$IFDEF SpreadSheet}     Calc,     Cellscol,           {$ENDIF}
     {$IFDEF Calendar}        Calendar,                     {$ENDIF}
     {$IFDEF CDPlayer}        Cdplayer,                     {$ENDIF}
@@ -88,7 +87,6 @@ const
   NumRElms =
 {$IFDEF RCP} 31 {$ELSE} 120
   {$IFDEF MODEM}       +7 {$IFDEF LINK} +2 {$ENDIF} {$ENDIF}
-  {$IFDEF NETWORK}     +1 {$ENDIF}
   {$IFDEF SpreadSheet} +5 {$ENDIF}
   {$IFDEF Game}        +3 {$ENDIF}
   {$IFDEF PrintManager}+4 {$ENDIF}
@@ -284,14 +282,6 @@ const
        {$IFDEF LOGOBJLOADSTORE} ObjName : 'otArvidDrive'; {$ENDIF}
        Load   : @Arvid.TArvidDrive.Load;
        Store  : @Arvid.TArvidDrive.Store)
-{$ENDIF}
-{$IFDEF NETWORK}
-      { Network }
-     ,(ObjType: otNetDrive;
-       VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Network.TNetDrive){$IFDEF OFFS}^{$ENDIF});
-       {$IFDEF LOGOBJLOADSTORE} ObjName : 'otNetDrive'; {$ENDIF}
-       Load   : @Network.TNetDrive.Load;
-       Store  : @Network.TNetDrive.Store)
 {$ENDIF}
       { AsciiTab }
      ,(ObjType: otTable;

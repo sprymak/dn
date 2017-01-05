@@ -8,13 +8,17 @@ Written by Cat 2:5030/1326.13
 ******)
 
 
+{&Delphi+}
+{&Use32+}
+{$T-}
+
 interface
 
 uses
-  Dos, Advance, Advance1, Advance7, Commands,
-  Objects, RegExp, Collect, FilesCol, FLTools, LFN,
-  Views, Menus, Scroller, Dialogs, Gauge, Messages, DNApp,
-  DNUtil, UniWin, Editor, EdWin, FViewer, Calculat, FLPanelX,
+  Dos, RTPatch, Advance, Advance1, Advance7, Commands, u_KeyMap, uFnMatch,
+  xTime, Objects, Drivers, RegExp, Collect, FilesCol, FLTools, LFN,
+  Views, Menus, Scroller, Dialogs, Gauge, Messages, DNApp, FileLst, DiskImg,
+  DNUtil, UniWin, Editor, EdWin, FViewer, Calculat, FLPanelX, XDblWnd,
   Drives, FileFind, ArcView, Arvid,
   Plugin, PlugRez;
 
@@ -52,6 +56,11 @@ type
   TSimpleHooks = packed record
     SetEditorEventHook: function(EditorEventHook: TEditorEventHook): Boolean;
     RemoveEditorEventHook: procedure(EditorEventHook: TEditorEventHook);
+  end;
+
+  PSpecialFunctions = ^TSpecialFunctions;
+  TSpecialFunctions = packed record
+    RuntimePatch: function(OldFunc, NewFunc: Pointer): Boolean;
   end;
 
   {&AlignRec+}
@@ -103,7 +112,8 @@ type
     SomeObjects3: PSomeObjects3;
     Reserved2: Integer;
     Reserved3: Integer;
-    Reserved4: Integer;
+
+    SpecialFunctions: PSpecialFunctions;
     TryExcept: function(Proc: TProcedure): Pointer;
     SimpleHooks: PSimpleHooks;
 
@@ -155,7 +165,7 @@ type
     CStrLen: function(const S: String): Integer;
 
     ExecView: function(P: PView): Integer;
-    Reserved8: Integer;
+    Reserved4: Integer;
 
     GetString: function(Index: TStrIdx): String;
     ExecResource: function(Key: TDlgIdx; var Data): Word;
@@ -206,6 +216,122 @@ type
     InputBox: function(Title: String; ALabel: String; var S: String; Limit: Word; HistoryID: Word): Word;
     BigInputBox: function(Title: String; ALabel: String; var S: String; Limit: Word; HistoryID: Word): Word;
     InputBoxRect: function(var Bounds: TRect; Title: String; ALabel: String; var S: String; Limit: Word; HistoryID: Word): Word;
+
+    GetFileNameDialog: function(Mask, Title, Name: String; Buttons, HistoryID: Word): String;
+    GetFileNameMenu: function(Path, Mask, Default: String; PutNumbers: Boolean; var More, None: Boolean): String;
+
+    Reserved5: Integer;
+    Reserved6: Integer;
+
+    UpdateWriteView: procedure(P: Pointer);
+    GlobalMessage: function(What, Command: Word; InfoPtr: Pointer): Pointer;
+    GlobalMessageL: function(What, Command: Word; InfoLng: LongInt): Pointer;
+    GlobalEvent: procedure(What, Command: Word; InfoPtr: Pointer);
+    ViewPresent: function(Command: Word; InfoPtr: Pointer): PView;
+    WriteMsg: function(Text: String): PView;
+    ForceWriteShow: procedure(P: Pointer);
+    ToggleCommandLine: procedure(OnOff: Boolean);
+    AdjustToDesktopSize: procedure(var R: TRect; OldDeskSize: TPoint);
+
+    Reserved7: Integer;
+    Reserved8: Integer;
+
+    HistoryAdd: procedure(Id: Byte; const Str: String);
+    HistoryCount: function(Id: Byte): Word;
+    HistoryStr: function(Id: Byte; Index: Integer): String;
+    DeleteHistoryStr: procedure(Id: Byte; Index: Integer);
+
+    Reserved9: Integer;
+    Reserved10: Integer;
+
+    GetMouseEvent: procedure(var Event: TEvent);
+    GetKeyEvent: procedure(var Event: TEvent);
+
+    DispWhileViewEvents: procedure(InfoView: PWhileView; var CancelParam: Boolean);
+
+    Reserved11: Integer;
+
+    SetTitle: procedure(Text: String);
+
+    SetWinClip: function(PC: PLineCollection): Boolean;
+    GetWinClip: function(var PCL: PLineCollection): Boolean;
+    GetWinClipSize: function: Boolean;
+    SyncClipIn: procedure;
+    SyncClipOut: procedure;
+    CopyLines2Stream: procedure(PC: PCollection; var PCS: PStream);
+    CopyStream2Lines: procedure(PCS: PStream; var PC: PCollection);
+
+    NewTimerSecs: procedure(var ET: TEventTimer; Secs: LongInt);
+    NewTimer: procedure(var ET: TEventTimer; Tics: LongInt);
+    TimerExpired: function(ET: TEventTimer): Boolean;
+    ElapsedTime: function(ET: TEventTimer): LongInt;
+    ElapsedTimeInSecs: function(ET: TEventTimer): LongInt;
+
+    GetPossibleDizOwner: function(N: Integer): String;
+    GetDizOwner: function(const Path, LastOwner: String; Add: Boolean): String;
+    CalcDizPath: function(P: PDiz; Owen: PString): String;
+    ReplaceDiz: procedure(const DPath, Name: String; ANewName: PString; ANewDescription: PString);
+    DeleteDiz: procedure(const DPath, Name: String);
+    GetDiz: function(const DPath: String; var Line: LongInt; const Name: String): String;
+    SetDescription: procedure(PF: PFileRec; DizOwner: String);
+
+    Reserved12: Integer;
+    Reserved13: Integer;
+
+    SelectFiles: function(AFP: Pointer; Select, XORs: Boolean): Boolean;
+    InvertSelection: procedure(AFP: Pointer; Dr: Boolean);
+    DragMover: procedure(AP: Pointer; Text: String; AFC, AC: Pointer);
+    CM_AdvancedFilter: procedure(AFP: Pointer);
+    CM_ArchiveFiles: procedure(AFP: Pointer);
+    CM_Branch: procedure(AFP: Pointer);
+    CM_ChangeDirectory: function(AFP: Pointer): string;
+    CM_ChangeCase: procedure(AFP: Pointer);
+    CM_CompareDirs: procedure(AFP, IP: Pointer);
+    CM_CopyFiles: procedure(AFP: Pointer; MoveMode, Single: Boolean);
+    CM_CopyTemp: procedure(AFP: Pointer);
+    CM_DragDropper: procedure(AFP: Pointer; CurPos: Integer; Ev: Pointer);
+    CM_Dropped: procedure(AFP, EI: Pointer);
+    CM_EraseFiles: procedure(AFP: Pointer; Single: Boolean);
+    CM_LongCopy: procedure(AFP: Pointer);
+    CM_MakeDir: procedure(AFP: Pointer);
+    CM_MakeList: procedure(AFP: Pointer);
+    CM_RenameSingleL: procedure(AFP, PEV: Pointer);
+    CM_RenameSingleDialog: procedure(AFP, PEV: Pointer);
+    CM_SelectColumn: procedure(AFP: Pointer);
+    CM_SetAttributes: procedure(AFP: Pointer; Single: Boolean; CurPos: Integer);
+    CM_SetShowParms: procedure(AFP: Pointer);
+    CM_SortBy: procedure(AFP: Pointer);
+    CM_ToggleLongNames: procedure(AFP: Pointer);
+    CM_ToggleShowMode: procedure(AFP: Pointer);
+    CM_ToggleDescriptions: procedure(AFP: Pointer);
+
+    Reserved14: Integer;
+    Reserved15: Integer;
+
+    ExecString: procedure(S: PString; WS: String);
+    SearchExt: function(FileRec: PFileRec; var HS: String): Boolean;
+    ExecExtFile: function(const ExtFName: string; UserParams: PUserParams; SIdx: TStrIdx): Boolean;
+    ExecFile: procedure(const FileName: string);
+    AnsiExec: procedure(const Path: String; const ComLine: AnsiString);
+
+    Reserved16: Integer;
+    Reserved17: Integer;
+
+    SelectDrive: function(X, Y: Integer; Default: Char; IncludeTemp: Boolean): String;
+    GetFileType: function(const S: String; Attr: Byte): Integer;
+    DosReread: procedure(Files: PFilesCollection);
+
+    FnMatch: function(Pattern, Str: String): Boolean;
+    SearchFileStr: function(F: PStream; var Xlat: TXlat; const What: String; Pos: LongInt;
+                            CaseSensitive, Display, WholeWords, Back, AllCP, IsRegExp: Boolean): LongInt;
+    MakeListFile: procedure(APP: Pointer; Files: PCollection);
+    AsciiTable: procedure;
+    InsertCalendar: procedure;
+    InsertCalc: procedure;
+    ChangeColors: procedure;
+    WindowManager: procedure;
+    SetHighlightGroups: procedure;
+    UnpackDiskImages: procedure(AOwner: Pointer; Files: PFilesCollection);
   end;
 
 function TryExcept(Proc: TProcedure): Pointer;
@@ -225,19 +351,24 @@ const
      RemoveEditorEventHook: Plugin.RemoveEditorEventHook
     );
 
+  SpecialFunctions: TSpecialFunctions =
+    (
+     RuntimePatch:          RTPatch.RuntimePatch
+    );
+
   DNFunctions: TDNFunctions =
     (
      DN2Version:            0;
-     APIVersion:            3;
+     APIVersion:            4;
      Reserved1:             0;
-     SystemVars:            @System.ExitCode;
+     SystemVars:            PSystemVars(@System.ExitCode);
 
-     SomeObjects1:          @DNApp.Application;
-     SomeObjects2:          @Advance.StartupDir;
-     SomeObjects3:          @Plugin.EventCatchers;
+     SomeObjects1:          PSomeObjects1(@DNApp.Application);
+     SomeObjects2:          PSomeObjects2(@Advance.StartupDir);
+     SomeObjects3:          PSomeObjects3(@Plugin.EventCatchers);
      Reserved2:             0;
      Reserved3:             0;
-     Reserved4:             0;
+     SpecialFunctions:      @SpecialFunctions;
      TryExcept:             TryExcept;
      SimpleHooks:           @SimpleHooks;
 
@@ -293,7 +424,7 @@ const
      CStrLen:               Drivers.CStrLen;
 
      ExecView:              ExecView;
-     Reserved8:             0;
+     Reserved4:             0;
 
      GetString:             DNApp.GetString;
      ExecResource:          DNApp.ExecResource;
@@ -343,7 +474,122 @@ const
      MessageBox2Rect:       Messages.MessageBox2Rect;
      InputBox:              Messages.InputBox;
      BigInputBox:           Messages.BigInputBox;
-     InputBoxRect:          Messages.InputBoxRect
+     InputBoxRect:          Messages.InputBoxRect;
+
+     GetFileNameDialog:     DNStdDlg.GetFileNameDialog;
+     GetFileNameMenu:       DNStdDlg.GetFileNameMenu;
+
+     Reserved5:             0;
+     Reserved6:             0;
+
+     UpdateWriteView:       DNApp.UpdateWriteView;
+     GlobalMessage:         DNApp.GlobalMessage;
+     GlobalMessageL:        DNApp.GlobalMessageL;
+     GlobalEvent:           DNApp.GlobalEvent;
+     ViewPresent:           DNApp.ViewPresent;
+     WriteMsg:              DNApp.WriteMsg;
+     ForceWriteShow:        DNApp.ForceWriteShow;
+     ToggleCommandLine:     DNApp.ToggleCommandLine;
+     AdjustToDesktopSize:   DNApp.AdjustToDesktopSize;
+
+     Reserved7:             0;
+     Reserved8:             0;
+
+     HistoryAdd:            HistList.HistoryAdd;
+     HistoryCount:          HistList.HistoryCount;
+     HistoryStr:            HistList.HistoryStr;
+     DeleteHistoryStr:      HistList.DeleteHistoryStr;
+
+     Reserved9:             0;
+     Reserved10:            0;
+
+     GetMouseEvent:         Drivers.GetMouseEvent;
+     GetKeyEvent:           Drivers.GetKeyEvent;
+
+     DispWhileViewEvents:   Gauge.DispatchEvents;
+
+     Reserved11:            0;
+
+     SetTitle:              TitleSet.SetTitle;
+
+     SetWinClip:            WinClp.SetWinClip;
+     GetWinClip:            WinClp.GetWinClip;
+     GetWinClipSize:        WinClp.GetWinClipSize;
+     SyncClipIn:            WinClp.SyncClipIn;
+     SyncClipOut:           WinClp.SyncClipOut;
+     CopyLines2Stream:      WinClp.CopyLines2Stream;
+     CopyStream2Lines:      WinClp.CopyStream2Lines;
+
+     NewTimerSecs:          xTime.NewTimerSecs;
+     NewTimer:              xTime.NewTimer;
+     TimerExpired:          xTime.TimerExpired;
+     ElapsedTime:           xTime.ElapsedTime;
+     ElapsedTimeInSecs:     xTime.ElapsedTimeInSecs;
+
+     GetPossibleDizOwner:   FileDiz.GetPossibleDizOwner;
+     GetDizOwner:           FileDiz.GetDizOwner;
+     CalcDizPath:           FileDiz.CalcDPath;
+     ReplaceDiz:            FileDiz.ReplaceDiz;
+     DeleteDiz:             FileDiz.DeleteDiz;
+     GetDiz:                FileDiz.GetDiz;
+     SetDescription:        FileDiz.SetDescription;
+
+     Reserved12:            0;
+     Reserved13:            0;
+
+     SelectFiles:           FlTools.SelectFiles;
+     InvertSelection:       FlTools.InvertSelection;
+     DragMover:             FlTools.DragMover;
+     CM_AdvancedFilter:     FlTools.CM_AdvancedFilter;
+     CM_ArchiveFiles:       FlTools.CM_ArchiveFiles;
+     CM_Branch:             FlTools.CM_Branch;
+     CM_ChangeDirectory:    FlTools.CM_ChangeDirectory;
+     CM_ChangeCase:         FlTools.CM_ChangeCase;
+     CM_CompareDirs:        FlTools.CM_CompareDirs;
+     CM_CopyFiles:          FlTools.CM_CopyFiles;
+     CM_CopyTemp:           FlTools.CM_CopyTemp;
+     CM_DragDropper:        FlTools.CM_DragDropper;
+     CM_Dropped:            FlTools.CM_Dropped;
+     CM_EraseFiles:         FlTools.CM_EraseFiles;
+     CM_LongCopy:           FlTools.CM_LongCopy;
+     CM_MakeDir:            FlTools.CM_MakeDir;
+     CM_MakeList:           FlTools.CM_MakeList;
+     CM_RenameSingleL:      FlTools.CM_RenameSingleL;
+     CM_RenameSingleDialog: FlTools.CM_RenameSingleDialog;
+     CM_SelectColumn:       FlTools.CM_SelectColumn;
+     CM_SetAttributes:      FlTools.CM_SetAttributes;
+     CM_SetShowParms:       FlTools.CM_SetShowParms;
+     CM_SortBy:             FlTools.CM_SortBy;
+     CM_ToggleLongNames:    FlTools.CM_ToggleLongNames;
+     CM_ToggleShowMode:     FlTools.CM_ToggleShowMode;
+     CM_ToggleDescriptions: FlTools.CM_ToggleDescriptions;
+
+     Reserved14:            0;
+     Reserved15:            0;
+
+     ExecString:            DNExec.ExecString;
+     SearchExt:             DNExec.SearchExt;
+     ExecExtFile:           DNExec.ExecExtFile;
+     ExecFile:              DNExec.ExecFile;
+     AnsiExec:              DNExec.AnsiExec;
+
+     Reserved16:            0;
+     Reserved17:            0;
+
+     SelectDrive:           FilesCol.SelectDrive;
+     GetFileType:           FilesCol.GetFileType;
+     DosReread:             FilesCol.DosReread;
+
+     FnMatch:               uFnMatch.FnMatch;
+     SearchFileStr:         FViewer.SearchFileStr;
+     MakeListFile:          FileLst.MakeListFile;
+     AsciiTable:            AsciiTab.AsciiTable;
+     InsertCalendar:        Calendar.InsertCalendar;
+     InsertCalc:            CCalc.InsertCalc;
+     ChangeColors:          Colors.ChangeColors;
+     WindowManager:         Colors.WindowManager;
+     SetHighlightGroups:    Colors.SetHighlightGroups;
+     UnpackDiskImages:      DiskImg.UnpackDiskImages
     );
 
 type
@@ -1643,7 +1889,7 @@ const
 implementation
 
 uses
-  SysUtils, XDblWnd;
+  SysUtils;
 
 function TryExcept(Proc: TProcedure): Pointer;
 begin

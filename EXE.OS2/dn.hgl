@@ -148,7 +148,7 @@ END
 ;
 ;================================================================
 
-FILES *.SYS; *.BAT; *.CMD
+FILES CONFIG.SYS; *.BAT; *.CMD
   CommentString REM ,::
   GeneralFLAGS   14
 END
@@ -216,7 +216,7 @@ FILES *.PAS;*.PA1;*.PA2;*.PA3;*.PA4;*.INC;*._VP;*._BP
   CommentString //
   Comment       (* *),{ }
   GeneralFLAGS   32
-  StringFLAGS    76
+  StringFLAGS    204
   Keywords1     and,asm,array,begin,case,const,constructor
   Keywords1     destructor,div,do,downto,else,end,file,for
   Keywords1     function,if,implementation,in,interface,mod,nil
@@ -497,9 +497,10 @@ FILES *.HTM; *.HTML
 ;                                       2 - \' is a '
 ;                                       4 - #num is a character
 ;                                       8 - ^char is a character
-;                                       16 - octal_numberC represents a character
-;                                       32 - Do not highlight single quoted strings
-;                                       64 - Do not highlight double quoted strings
+;                                      16 - octal_numberC represents a character
+;                                      32 - Do not highlight single quoted strings
+;                                      64 - Do not highlight double quoted strings
+;                                     128 - Do not highlight ^char followed by '0..9' or 'A..Z'
 ;
 ;
 ;     Macro has following structure:

@@ -153,7 +153,7 @@ procedure MakeListFile;
      if (D[Length(D)] in [#8,' ']) or ((Length(D)=1) and (D[1] in ['^',#2]))
       then D:=D+ '!.!'
       else D:=D+' !.!';
-    If ( S.Options and 2 = 2 ) and
+    if ((S.Options and cmlAutoDetermine = cmlAutoDetermine) and
 {$IFNDEF OS2}
        ( lfGetShortFileName(Sr) <> lfGetShortFileName(Dr) ) and
 {$ELSE}
@@ -164,7 +164,9 @@ procedure MakeListFile;
        ( Pos( '!:', D ) = 0 ) and
        ( Pos( '#\', D ) = 0 ) and
        ( Pos( '#/', D ) = 0 ) and
-       ( Pos( '#:', D ) = 0 ) then begin { Need to force insert !:!\ }
+       ( Pos( '#:', D ) = 0 ))
+       or ((S.Options and cmlPathNames <> 0) and
+           (S.Options and cmlAutoDetermine = 0)) then begin { Need to force insert !:!\ }
          K := Pos( '.!', D );
          If K = 0 then begin
            K := PosChar( '!', D );
@@ -337,7 +339,7 @@ AddrError:
             Delete(SS, 1, J);
           end;
       end else
-    If (S.Options and cmlPathNames <> 0) or (S.Options and 2 <> 0) and (SR <> FLD)
+    If (S.Options and cmlPathNames <> 0) or (S.Options and cmlAutoDetermine <> 0) and (SR <> FLD)
       then MakeStr( '!:!\!.!' )
       else MakeStr('!.!');
   end;

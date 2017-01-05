@@ -10,6 +10,7 @@ Written by Cat 2:5030/1326.13
 
 {.$DEFINE DEBUG}
 {&Delphi+}
+{&Use32+}
 
 {Cat
    05-10-2001 - начато добавление плагинов к ДН-у
@@ -93,7 +94,8 @@ type
     MenuStr2: PStringArray;
     MenuKey: PWordArray;
     MenuHelpCtx: PWordArray;
-    MenuType:PWordArray;
+    MenuType: PWordArray;
+    MenuWantBeAfter: PWordArray;
     constructor Init(PT: LongInt; FCC, LCC, {FLI, LLI, FDI, LDI, FHI, LHI,} FOT, LOT: Word; RFP: Boolean; PP: String);
     destructor Done; virtual;
   end;
@@ -236,7 +238,7 @@ begin
           PStream(ResourceStream)^.Read(P^, RestResourceSize);
           if PStream(ResourceStream)^.Status<>stOk then
             begin
-              FreeMem(P, RestResourceSize);
+              FreeMem(P{, RestResourceSize});
               Result:=False;
               Exit;
             end;
@@ -245,7 +247,7 @@ begin
           PStream(ResourceStream)^.Write(Index^, Resource^.Count*SizeOf(LongInt));
           PStream(ResourceStream)^.Seek(MenuResourceOffset);
           PStream(ResourceStream)^.Write(P^, RestResourceSize);
-          FreeMem(P, RestResourceSize);
+          FreeMem(P{, RestResourceSize});
         end
       else
         PStream(ResourceStream)^.Seek(MenuResourceOffset);
@@ -256,26 +258,64 @@ begin
 
       { если всё прошло успешно, то возвращаем индекс ресурсов из временного буфера }
       Move(Index^, Resource^.Index^, Resource^.Count*SizeOf(LongInt));
-      FreeMem(Index, Resource^.Count*SizeOf(LongInt));
+      FreeMem(Index{, Resource^.Count*SizeOf(LongInt)});
     end;
 end;
 
 procedure InstallMenu(Item: PPluginListItem; MenuView: PMenuView; CurMenuType: Byte);
-label
-  Process;
 var
   S: String;
   SubMenuPtr, MenuItemPtr: ^PMenuItem;
   Command: Word;
+  Count: Word;
+
+  procedure WalkMenu(var MenuItem: PMenuItem);
+  var
+    MenuItemPtr: ^PMenuItem;
+    Command: Word;
+  begin
+    with Item^ do
+      begin
+        MenuItemPtr:=@MenuItem;
+        while MenuItemPtr^<>nil do
+          begin
+            if MenuItemPtr^^.Name<>nil then
+              if MenuItemPtr^^.Command=0 then
+                WalkMenu(MenuItemPtr^^.SubMenu^.Items)
+              else
+                for Command:=0 to LastCatchedCommand-FirstCatchedCommand do
+                  if MenuItemPtr^^.Command=MenuWantBeAfter^[Command] then
+                    begin
+                      MenuItemPtr:=@MenuItemPtr^^.Next;
+                      MenuItemPtr^:=DNFunctions^.NewItem(MenuStr1^[Command], MenuStr2^[Command], MenuKey^[Command], FirstCatchedCommand+Command, MenuHelpCtx^[Command], MenuItemPtr^);
+                      MenuWantBeAfter^[Command]:=-MenuWantBeAfter^[Command]; { для обработанных элементов ставим отрицательное значение }
+                    end;
+            MenuItemPtr:=@MenuItemPtr^^.Next;
+          end;
+      end;
+  end;
+
 begin
-  { если плагин ничего не добавляет в меню типа CurMenuType, то тихо выходим }
+  { сначала просматриваем меню и добавляем те строчки, }
+  { которые хотят вставиться в какое-то определённое место }
+  WalkMenu(MenuView^.Menu^.Items);
+
+  { считаем, сколько ещё осталось добавить }
+  Count:=0;
   with Item^ do
     for Command:=0 to LastCatchedCommand-FirstCatchedCommand do
-      if MenuType^[Command]=CurMenuType then
-        goto Process;
-  Exit;
+      if MenuWantBeAfter^[Command]<0 then
+        MenuWantBeAfter^[Command]:=-MenuWantBeAfter^[Command]
+      else
+        if MenuType^[Command]=CurMenuType then
+          begin
+            MenuWantBeAfter^[Command]:=0;
+            Inc(Count);
+          end;
 
-  Process:
+  { если всё, что надо, уже добавлено, то тихо выходим }
+  if Count=0 then
+    Exit;
 
   { в противном случае... }
   with DNFunctions^, SomeObjects1^ do
@@ -590,11 +630,13 @@ begin
   GetMem(MenuKey, CommandCount*SizeOf(Word));
   GetMem(MenuHelpCtx, CommandCount*SizeOf(Word));
   GetMem(MenuType, CommandCount*SizeOf(Word));
+  GetMem(MenuWantBeAfter, CommandCount*SizeOf(Word));
   FillChar(MenuStr1^, CommandCount*SizeOf(String), #0);
   FillChar(MenuStr2^, CommandCount*SizeOf(String), #0);
   FillChar(MenuKey^, CommandCount*SizeOf(Word), #0);
   FillChar(MenuHelpCtx^, CommandCount*SizeOf(Word), #0);
   FillChar(MenuType^, CommandCount*SizeOf(Word), #0);
+  FillChar(MenuWantBeAfter^, CommandCount*SizeOf(Word), #0);
 end;
 
 destructor TPluginListItem.Done;
@@ -602,11 +644,12 @@ var
   CommandCount: Word;
 begin
   CommandCount:=LastCatchedCommand-FirstCatchedCommand+1;
-  FreeMem(MenuStr1, CommandCount*SizeOf(String));
-  FreeMem(MenuStr2, CommandCount*SizeOf(String));
-  FreeMem(MenuKey, CommandCount*SizeOf(Word));
-  FreeMem(MenuHelpCtx, CommandCount*SizeOf(Word));
-  FreeMem(MenuType, CommandCount*SizeOf(Word));
+  FreeMem(MenuStr1{, CommandCount*SizeOf(String)});
+  FreeMem(MenuStr2{, CommandCount*SizeOf(String)});
+  FreeMem(MenuKey{, CommandCount*SizeOf(Word)});
+  FreeMem(MenuHelpCtx{, CommandCount*SizeOf(Word)});
+  FreeMem(MenuType{, CommandCount*SizeOf(Word)});
+  FreeMem(MenuWantBeAfter{, CommandCount*SizeOf(Word)});
   _TObject^.VMT^.Done(0, @Self);
 end;
 
@@ -727,7 +770,7 @@ begin
           Stream^.Read(Name, SizeOf(Name));
           UpStr(Name);
           Stream^.ReadStrV(Description);
-          if (Stream^.Status<>stOk) or (WW[7]<>$777A {Magic}) or (WW[8]<>$DEF1 {Magic}) then
+          if (Stream^.Status<>stOk) or (WW[7]<>$777A {Magic}) or (WW[8]<>$DEF2 {Magic}) then
             MessageBox(GetString(Integer(dlCantLoad))+SR.FullName, nil, mfError+mfOKButton)
           else
             begin
@@ -784,7 +827,7 @@ begin
                           goto L2;
                         end;
                     end;
-                  MessageBox(GetString(dlPlugins1), nil, mfError+mfOKButton);
+                  MessageBox(GetString(Integer(dlPlugins1)), nil, mfError+mfOKButton);
                   Dispose(Stream, Done);
                   goto 2;
                   L2:
@@ -814,7 +857,7 @@ begin
                           goto L3;
                         end;
                     end;
-                  MessageBox(GetString(dlPlugins1), nil, mfError+mfOKButton);
+                  MessageBox(GetString(Integer(dlPlugins1)), nil, mfError+mfOKButton);
                   Dispose(Stream, Done);
                   goto 2;
                   L3:
@@ -844,7 +887,7 @@ begin
                           goto L4;
                         end;
                     end;
-                  MessageBox(GetString(dlPlugins1), nil, mfError+mfOKButton);
+                  MessageBox(GetString(Integer(dlPlugins1)), nil, mfError+mfOKButton);
                   Dispose(Stream, Done);
                   goto 2;
                   L4:
@@ -907,6 +950,7 @@ begin
                         Read(MenuKey^[I], SizeOf(Word));
                         Read(MenuHelpCtx^[I], SizeOf(Word));
                         Read(MenuType^[I], SizeOf(Word));
+                        Read(MenuWantBeAfter^[I], SizeOf(Word));
                       end;
 
                       if Stream^.Status<>stOk then
@@ -1027,7 +1071,7 @@ begin
                          {+^M'   dlg = '+ItoS(FirstDlgIndex)+'..'+ItoS(LastDlgIndex)}
                          {+^M'   hlp = '+ItoS(FirstHlpIndex)+'..'+ItoS(LastHlpIndex)}, nil, mfInformation+mfOkButton);
               {$ENDIF}
-              P:=@PluginPath;
+              P:=PString(@PluginPath);
               if Installed<>0 then
                 if (PluginListItem^.PluginPath<>'PLUGMAN')
                 and UnInstall(PluginListItem)
@@ -1082,8 +1126,17 @@ begin
   FinalizationProc:=nil;
   if not Initialized then
     begin
-      Initialized:=True;
       InitDNFunctions(Functions, Methods);
+
+      with DNFunctions^ do
+        if APIVersion<4 then
+          begin
+            MessageBox('Newer version of DN/2 is required for start this plugin'^M^M+
+                       'Для запуска этого плагина требуется более новая версия DN/2', nil, mfError+mfOkButton);
+            Exit;
+          end;
+
+      Initialized:=True;
 
       TransportVMT(_TObject^.VMT, TypeOf(TObject), TypeOf(TPluginListItem), TObject_VMTSize);
       TransportVMT(_TListBox^.VMT, TypeOf(TListBox), TypeOf(TPluginList), TListBox_VMTSize);

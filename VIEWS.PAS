@@ -199,6 +199,7 @@ type
 { TView object }
 
   TView = object(TObject)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Owner: PGroup;
     Next: PView;
     Origin: TPoint;
@@ -309,6 +310,7 @@ type
 
   PFrame = ^TFrame;
   TFrame = object(TView)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     constructor Init(var Bounds: TRect);
     procedure   Draw; virtual;
     function    GetPalette: PPalette; virtual;
@@ -331,6 +333,7 @@ type
 
   PScrollBar = ^TScrollBar;
   TScrollBar = object(TView)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Value:  LongInt;
     Min:    LongInt;
     Max:    LongInt;
@@ -374,6 +377,7 @@ type
 { TGroup object }
 
   TGroup = object(TView)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Last: PView;
     Current: PView;
     Phase: (phFocused, phPreProcess, phPostProcess);
@@ -442,6 +446,7 @@ type
 
   PWindow = ^TWindow;
   TWindow = object(TGroup)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Flags: Byte;
     ZoomRect: TRect;
     MaxiRect: TRect;
@@ -1848,6 +1853,8 @@ begin
     if V <> nil then InsertView(V, nil);
   end;
   GetSubViewPtr(S, Cur);
+  if Cur = nil then {Cat}
+    Fail;
   V := Last;
   for I := 1 to Count do
   begin
@@ -2383,7 +2390,7 @@ var
   Index: Word;
 begin
   S.Read(Index, SizeOf(Word));
-  if Index > 0 then
+  if (Index > 0) and (S.Status = stOk) then {Cat: добавил проверку статуса}
     Pointer(P) := At(Index)
   else
     Pointer(P) := nil;
@@ -2745,6 +2752,8 @@ begin
   S.Read(Flags, SizeOf(Byte) + SizeOf(TRect)*2 + 2 * SizeOf(AInt));
   if Number in [1..9] then Numbers := Numbers or (1 shl Number);
   GetSubViewPtr(S, Frame);
+  if Frame = nil then {Cat}
+    Fail;
   Title := S.ReadStr;
 end;
 
@@ -2869,7 +2878,8 @@ begin
   begin
     SetState(sfActive, Enable);
     if GetState(sfActive) then if Title<>nil then SetTitle(GetTitle(255));
-    WindowCommands := [cmNext, cmPrev, cmTile, cmCascade, cmClearDesktop, cmWindowManager];
+    WindowCommands := [cmNext, cmPrev, cmNext2, cmPrev2, cmNext3, cmPrev3,
+                       cmTile, cmCascade, cmClearDesktop, cmWindowManager];
     if Flags and wfGrow + wfMove <> 0 then
       WindowCommands := WindowCommands + [cmResize];
     if Flags and wfClose <> 0 then

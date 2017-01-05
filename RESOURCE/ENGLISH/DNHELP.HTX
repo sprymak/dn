@@ -910,7 +910,8 @@ mouse cursor while pressing the left mouse-button.
   Align the block on right end    ³ Ctrl+B R
   Align the block on left end     ³ Ctrl+B L
   Center the block                ³ Ctrl+B C
-  Mark whole text as stream block ³ Ctrl-Numpad5
+  Mark whole text as stream block ³ Ctrl-Numpad5, Ctrl-A
+  Hide/show block selection       ³ Alt-H, Ctrl-H, Ctrl_K H
 
 .topic MovementCommands=10003
 .title Moving on text
@@ -3304,3 +3305,30 @@ only).
 
 .topic PktMsgViewer=48099 ; [C] /DataCompBoy/ 12.07.2000
 .title Pkt Msg Viewer
+
+.topic TaskList=48100 ; [C] /JO/ 11.11.2002
+.title Task List
+
+ ’ sk list has some useful options which can be set by keys in
+section {[Tasklist] :_} of {dn.ini :_} file:
+
+{ShowExePaths (Boolean) :_} When set to 0 , the names of processes'
+                        executables will appear in Task list dialog
+                        without full paths, when 1 - with full paths.
+                        Default: 0
+
+{KillAllowed (Boolean) :_}  When set to 1 , it is possble to kill
+                        tasks from dialog. Use carefully!
+                        Default: 0
+
+{FilteredList (Boolean) :_}  When set to 1 , the non-switcheable
+                        tasks and tasks started from executables with
+                        names, listed in UserTaskFilter parameter will
+                        be excluded from task list
+                        Default: 1
+
+{UserTaskFilter (String) :_} the tasks started from executables with
+                        names, listed in this parameter will be
+                        excluded from task list if FilteredList parameter
+                        is set to 1 . Use "#" symbol to separate
+                        executable file names

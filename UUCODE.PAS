@@ -1386,6 +1386,7 @@ begin
      UUDecodeOptions := Dr.Opt;
      if Dr.S='' then Dr.S :='.\' else if Dr.S[Length(Dr.S)]<>'\' then
        if not ((Length(Dr.S)=2) and (Dr.S[2]=':')) then Dr.S:=Dr.S+'\';
+     {Cat:warn могут быть проблемы с сетевыми путями}
      CreateDirInheritance(Dr.S, false);
     NewTimer(Timer, 0);
     BeepDisabled := UU_Decode(AFileCollection,Dr.S, Dr.Opt and 1 <> 0, Dr.Opt and 2 <> 0, Dr.Opt and 4 <> 0);

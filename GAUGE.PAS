@@ -63,6 +63,7 @@ const
 type
   PPercentGauge = ^TPercentGauge;
   TPercentGauge = object(TView)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     MaxValue: Longint;
     CurValue: Longint;
     constructor Init(var Bounds: TRect; AMaxValue: Longint );
@@ -76,11 +77,13 @@ type
 
   PBarGauge = ^TBarGauge;
   TBarGauge = object(TPercentGauge)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     procedure Draw; virtual;
   end;
 
   PWhileView = ^TWhileView;
   TWhileView = object(TGroup)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
    Lines: PCollection;
    But: PButton;
    QuitNormal: Boolean;

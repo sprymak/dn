@@ -58,6 +58,7 @@ type
 
   PEditWindow = ^TEditWindow;
   TEditWindow = object(TUniWindow)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     AInfo: PInfoLine;
     ABookLine: PBookmarkLine;
     Intern: PFileEditor;
@@ -126,6 +127,8 @@ begin
  GetSubViewPtr(S, AInfo);
  GetSubViewPtr(S, ABookLine); {-$VIV}
 { GetSubViewPtr(S, MenuBar);} (*X-Man*)
+ if (Intern = nil) or (AInfo = nil) or (ABookLine = nil) then {Cat}
+   Fail;
  GetExtent(R);
  R.Grow(-1, -1);
  R.B.Y := R.A.Y + 1;

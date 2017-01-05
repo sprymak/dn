@@ -636,9 +636,12 @@ begin
 1:         begin
              ClearEvent(Event);
              if  (Dlg=dlgDirectoryHistory) and (Focused = 0) then
+              begin
+               MessageBox(GetString(dlHistDelCurDir),nil,mfOkButton); {John_SW}
                Exit; {AK155: 0 - это текущий каталог,
                   его удалять бесполезно: он опять вставится, но при этом
                   собьет нумерацию элементов }
+              end;
              if Focused >= List^.Count then Exit;
              if Copy(CnvString(ItemStr(Focused)),1,1) = '+' then
                begin
@@ -683,7 +686,8 @@ procedure AddToDirectoryHistory(S: String; DriveType:integer);
 
 begin
   if InterfaceData.Options and ouiTrackDirs = 0 then Exit;
-  if (S = '') or (S[2] <> ':') then Exit;
+  if (S = '') or ((S[2] <> ':') and ((S[1] <> '\') or (S[2] <> '\'))) then Exit;
+  {Cat: добавил проверку на сетевые пути}
 {$IFDEF OS_DOS}
   S:=lfGetLongFileName(S);
 {$ENDIF}

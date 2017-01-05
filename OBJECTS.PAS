@@ -256,6 +256,7 @@ type
 
   PEmptyObject = ^TEmptyObject;
   TEmptyObject = object
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     constructor Init;
     procedure   Free;
     destructor  Done; virtual;
@@ -263,6 +264,7 @@ type
 
   PObject = ^TObject;
   TObject = object(TEmptyObject)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     ObjectIsInited: Boolean;
     constructor Init;
     destructor  Done; virtual;
@@ -272,6 +274,7 @@ type
 
   PStream = ^TStream;
   TStream = object(TObject)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Status: Integer;
     ErrorInfo: Integer;
     StreamSize: LongInt;                         { Stream current size }
@@ -313,6 +316,7 @@ type
 
   PDosStream = ^TDosStream;
   TDosStream = object(TStream)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Handle: Integer;
     FName : AsciiZ;
     FMode:  Word;
@@ -332,6 +336,7 @@ type
 
   PBufStream = ^TBufStream;
   TBufStream = object(TDosStream)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Buffer:   PByteArray;
     BufSize:  Sw_Word;
     BufPtr:   Sw_Word; { Buffer start }
@@ -352,6 +357,7 @@ type
 
   PMemoryStream = ^TMemoryStream;
   TMemoryStream = object(TStream)
+  {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
      BlkCount: LongInt;                           { Number of segments }
      BlkSize : Word;                              { Memory block size }
      MemSize : LongInt;                           { Memory alloc size }
@@ -530,6 +536,8 @@ const
   TStream_Read  = vmtHeaderSize + $14;
   TStream_Write = vmtHeaderSize + $20;
 
+  StreamMagic = $590C5CF1; {Cat}
+
 { Stream error handler                                  }
 { In    eax   = Error info                              }
 {       dl    = Error code                              }
@@ -613,7 +621,7 @@ begin
     {Cat: если пытаемся прочитать объект, регистрируемый плагином, то надо
           сначала запустить этот плагин, чтобы он провёл регистрацию}
     {$IFDEF PLUGIN}
-    CatchersRegisterObject(ObjType);
+    PluginRegisterObject(ObjType);
     {$ENDIF}
     {/Cat}
     while (P <> nil) and (P^.ObjType <> ObjType) do P := P^.Next;
@@ -660,6 +668,19 @@ END;
 {$ELSE}
 function TStream.Get: PObject; assembler; {$USES None} {$FRAME+}
   asm
+{Cat: добавил проверку StreamMagic}
+                push    eax
+                mov     eax,esp
+                push    eax                     { [1]:Pointer = Buf   }
+                push    4                       { [2]:DWord   = Count }
+                mov     eax,Self
+                push    eax                     { [3]:Pointer = Self  }
+                mov     eax,[eax]
+                Call    DWord Ptr [eax].TStream_Read
+                pop     eax
+                cmp     eax,StreamMagic
+                jne     @@Error
+{/Cat}
                 push    eax
                 mov     eax,esp
                 push    eax                     { [1]:Pointer = Buf   }
@@ -676,7 +697,7 @@ function TStream.Get: PObject; assembler; {$USES None} {$FRAME+}
                 {$IFDEF PLUGIN}
                 push    eax
                 push    eax
-                Call    CatchersRegisterObject
+                Call    PluginRegisterObject
                 pop     eax
                 {$ENDIF}
 {/Cat}
@@ -689,9 +710,10 @@ function TStream.Get: PObject; assembler; {$USES None} {$FRAME+}
               @@2:
                 test    edx,edx
                 jnz     @@1
+              @@Error:
                 mov     ecx,Self
                 mov     dl,stGetError
-        CALL    DoStreamError
+                Call    DoStreamError
                 xor     eax,eax                 { Return nil }
                 jmp     @@4
               @@3:
@@ -780,6 +802,17 @@ END;
 {$ELSE}
 procedure TStream.Put(P: PObject); assembler; {$USES None} {$FRAME+}
   asm
+{Cat: добавил запись StreamMagic}
+                push    StreamMagic
+                mov     eax,esp
+                push    eax                     { [1]:Pointer = Buf  }
+                push    4                       { [2]:DWord   = Size }
+                mov     eax,Self                { [3]:Pointer = Self }
+                push    eax
+                mov     eax,[eax]
+                Call    DWord Ptr [eax].TStream_Write
+                pop     ecx
+{/Cat}
                 mov     ecx,P
                 jecxz   @@4
                 mov     eax,[ecx]               { VMT pointer }
@@ -792,13 +825,9 @@ procedure TStream.Put(P: PObject); assembler; {$USES None} {$FRAME+}
               @@2:
                 test    edx,edx
         JNE     @@1
-{Cat: не следует так пугаться, если попался не зарегистрированный
-      объект, просто не будем его записывать}
-(*
                 mov     ecx,Self
                 mov     dl,stPutError
         CALL    DoStreamError
-*)
         JMP     @@5
 {/Cat}
               @@3:

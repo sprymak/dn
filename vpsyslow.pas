@@ -168,6 +168,8 @@ function SysDiskFree(Drive: Byte): Longint;
 function SysDiskSize(Drive: Byte): Longint;
 function SysDiskFreeLong(Drive: Byte): TQuad;
 function SysDiskSizeLong(Drive: Byte): TQuad;
+function SysDiskFreeLongX(Path: PChar): TQuad; {Cat}
+function SysDiskSizeLongX(Path: PChar): TQuad; {Cat}
 function SysGetFileAttr(FileName: PChar; var Attr: Longint): Longint;
 function SysSetFileAttr(FileName: PChar; Attr: Longint): Longint;
 function SysGetFileTime(Handle: Longint; var Time: Longint): Longint;

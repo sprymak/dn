@@ -299,6 +299,10 @@ begin
         Result := (ScanCode + 48) shl 8
       else
         Result := (ScanCode + 46) shl 8;
+
+    91..93:
+      // Cat: LeftSuxx, RightSuxx, MenuSuxx
+      Result := $EE00;
   end; // Case ScanCode
 end;
 

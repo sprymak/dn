@@ -974,6 +974,8 @@ var
   inherited Load( S );
    GetSubViewPtr( S, P );
    GetSubViewPtr( S, P1 );
+   if (P = nil) or (P1 = nil) then {Cat}
+     Fail;
    P1^.DBViewer := P;
    P^.Indicator := P1;
    Redraw ;

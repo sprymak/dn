@@ -17,7 +17,7 @@ ShowException упрощены и реализован через Drivers.FormatStr.
 
 unit SysUtils;
 
-{$H+,J+,P+,S-,T-,W-,R-,Z-,X+}
+{$H-,J+,P+,S-,T-,W-,R-,Z-,X+}
 {&Delphi+,AlignRec-,AlignData+,CDecl-,Use32-,Open32-}
 
 {$IFDEF LINUX}
@@ -108,13 +108,13 @@ function ReturnAddr: Pointer;
 
 procedure ShowException(ExceptObject: TObject; ExceptAddr: Pointer);
 
-{ For console applications only. Specifies whether error messages
-  should be displayed in a popup window or not }
+function Format(const Fmt: String; const Args: array of const): String;
 
 {$R SYSUTILS.RES}
 
 implementation
 uses
+  Strings,
   Drivers;
 
 {$I SYSUTILS.INC}
@@ -183,20 +183,23 @@ end;
 
 {$W-}
 
-function Format(const Fmt: string; const Args: array of const): string;
-  var
-    s, f: Shortstring;
-  begin
-  FormatStr(s, Fmt, (@Args[0])^);
-  Result := s;
-  end;
-
+{Cat}
+function Format(const Fmt: String; const Args: array of const): String;
+var
+  I: Integer;
+  Params: array[0..63] of Integer;
+begin
+  for I := Low(Args) to High(Args) do
+    Params[I] := TVarRec(Args[I]).VInteger;
+  FormatStr(Result, Fmt, Params);
+end;
+{/Cat}
 
 function LoadStr(Ident: Longint): string;
 var
   Buffer: array[0..1023] of Char;
 begin
-  Result := SysLoadResourceString(Ident, Buffer, SizeOf(Buffer));
+  Result := StrPas(SysLoadResourceString(Ident, Buffer, SizeOf(Buffer)));
 end;
 
 { Exception class }

@@ -1346,7 +1346,7 @@ DIALOG dlgFilesAttr, 59, 15, 'Атрибути файлiв'
     Label 3, 3, '~У~ст', ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgCompareDirs, 41, 17, 'Порiвняти каталоги'
+DIALOG dlgCompareDirs, 42, 17, 'Порiвняти каталоги'
     HELPCTX hcCompareDirs
     CheckBoxes 3, 3, 28, 8, ofPostProcess, ofPreProcess
       ITEM 'Порiвняти ~р~озмiр'
@@ -1357,18 +1357,19 @@ DIALOG dlgCompareDirs, 41, 17, 'Порiвняти каталоги'
     END
     Label 3, 2, 'Опцiї', ofPostProcess, ofPreProcess
 ; {-$VOL}
-    InputLine 3, 10, 35, 11, 255, 0
+    InputLine 3, 10, 36, 11, 255, 0
     Label 3, 9, 'Маски ~Ф~айлiв', ofPostProcess, ofPreProcess
-    History 35, 10, hsFindMask, ofPostProcess
+    History 36, 10, hsFindMask, ofPostProcess
 ; {-$VOL}
     RadioButtons 3, 13, 28, 15, ofPostProcess, ofPreProcess
       ITEM '~В~iдмiтити '
       ITEM 'Ро~з~вiдмiтити'
     END
     Label 3, 12, 'Режим вибору', ofPostProcess, ofPreProcess
-    Button 27, 3, 39, 5, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 27, 6, 39, 8, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
-    Button 27, 13, 39, 15, 'Допомо~г~а', cmHelp, ofPostProcess, ofPreProcess
+    Button 26, 3, 40, 5, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 26, 5, 40, 7, 'Запа~м~''ятати', cmYes, ofPostProcess, ofPreProcess
+    Button 26, 7, 40, 9, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
+    Button 26, 13, 40, 15, 'Допомо~г~а', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgSetPassword, 39, 7, 'Введи пароль'
@@ -2324,10 +2325,10 @@ MENU dlgMainMenu
     MenuItem 'Вiдеорежим ~1~', 'Alt-F10', kbAltF10, cmChangeUserMode1, hcMenuBox,
     MenuItem 'Вiдеорежим ~2~', 'Ctrl-F10', kbCtrlF10, cmChangeUserMode2, hcMenuBox,
     MenuItem 'Зм~i~нити вiдеорежим', 'Shift-F12', kbShiftF12, cmChScreenMode, hcMenuBox,
-;$IFNDEF PLUGINRES
+;.$IFNDEF PLUGINRES
     MenuLine
     MenuItem '~Г~pа', 'Alt-F9', kbAltF9, cmGame, hcMenuBox,
-;$ENDIF
+;.$ENDIF
   END
  SubMenu '~Ф~айл', hcFileMenu,
     SubMenu '~Д~ивитись', hcFileMenu,
@@ -2390,6 +2391,9 @@ MENU dlgMainMenu
     MenuItem '~I~нформацiя про пам''ять', '', kbNoKey, cmMemoryInfo, hcUtilMenu,
     MenuItem '~С~истемна iнформацiя', '', kbNoKey, cmSystemInfo, hcUtilMenu,
     MenuLine
+;$ENDIF
+;$IFDEF Tasklist
+    MenuItem '~С~писок завдань', 'F11', kbF11, cmTasklist, hcNoContext,
 ;$ENDIF
     MenuItem '~К~алькулятор', 'Ctrl-F6', kbCtrlF6, cmCalculator, hcUtilMenu,
     MenuItem 'Кален~д~аp', 'Ctrl-F12', kbCtrlF12, cmCalendar, hcUtilMenu,
@@ -3276,9 +3280,10 @@ EDITOR COMMANDS
     COMMAND       cmInsLine,      0,             0,         ^N#0,      #0#0
     COMMAND       cmEnd,          kbEnd,      kbShiftEnd,   #0#0,      #0#0
     COMMAND       cmTab,          kbTab,         0,         ^I#0,      #0#0
-    COMMAND       cmWordLeft,     kbCtrlLeft, kbCtrlShiftLeft, ^A#0,   #0#0
-    COMMAND       cmWordRight,    kbCtrlRight, kbCtrlShiftRight, ^F#0, #0#0
-    COMMAND       cmDelBackChar,  kbBack,        0,         ^H#0,      #0#0
+    COMMAND       cmWordLeft,     kbCtrlLeft, kbCtrlShiftLeft, #0#0,   #0#0
+    COMMAND       cmWordRight,    kbCtrlRight, kbCtrlShiftRight, #0#0, #0#0
+    COMMAND       cmSelectAll,    kbCtrlNumpad5, 0,         ^A#0,      #0#0
+    COMMAND       cmDelBackChar,  kbBack,        0,         #0#0,      #0#0
     COMMAND       cmDelChar,      kbDel,         0,         ^G#0,      #0#0
     COMMAND       cmMoveRight,    kbRight,    kbShiftRight, ^D#0,      #0#0
     COMMAND       cmMoveLeft,     kbLeft,     kbShiftLeft,  ^S#0,      #0#0
@@ -3315,7 +3320,7 @@ EDITOR COMMANDS
     COMMAND       cmClear,        kbCtrlDel,     0,         ^K^Y,      #0#0
     COMMAND       cmCopyBlock,    0,             0,         ^K^C,      #0#0
     COMMAND       cmMoveBlock,    0,             0,         ^K^V,      #0#0
-    COMMAND       cmHideBlock,    kbAltH,        0,         ^K^H,      #0#0
+    COMMAND       cmHideBlock,    kbAltH,        kbCtrlH,   ^K^H,      #0#0
     COMMAND       cmMarkWord,     0,             0,         ^K^T,      #0#0
     COMMAND       cmMarkLine,     0,             0,         ^K^L,      #0#0
     COMMAND       cmBlockStart,   0,             0,         ^K^B,      #0#0
@@ -4299,10 +4304,7 @@ DIALOG dlgChScreenMode, 36, 12, 'Змiнити вiдеорежим'
 ;$ENDIF
 END
 ;JO
-;Cat
-DIALOG dlgPlugins0, 1, 1, ''
-END
-;Cat
+
 ;KV
 DIALOG dlgSetExportCsvFormat, 46, 16, 'Формат експорту в CSV'
     HELPCTX hcSpreadSheet
