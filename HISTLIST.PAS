@@ -75,14 +75,14 @@ uses
 
 const
   HistoryBlock: PByteArray = nil;
-  HistorySize: word = 2048;
-  HistoryUsed: word = 0;
-  MaxHistorySize: word = 20;
+  HistorySize: Word = 2048;
+  HistoryUsed: Word = 0;
+  MaxHistorySize: Word = 20;
 
 procedure HistoryAdd(Id: Byte; const Str: String);
-function HistoryCount(Id: Byte): word;
-function HistoryStr(Id: Byte; Index: integer): String;
-procedure DeleteHistoryStr(Id: Byte; Index: integer);
+function HistoryCount(Id: Byte): Word;
+function HistoryStr(Id: Byte; Index: Integer): String;
+procedure DeleteHistoryStr(Id: Byte; Index: Integer);
 procedure ClearHistory;
 
 procedure InitHistory;
@@ -96,7 +96,7 @@ var
   CurId: Byte;
   CurString: PString;
   {$IFDEF NOASM}
-  CurPos: word;
+  CurPos: Word;
   {$ENDIF}
 
 implementation
@@ -135,13 +135,13 @@ asm
   {$ELSE NOASM}
   begin { AdvanceStringPointer }
   if HistoryBlock = nil then
-    exit;
+    Exit;
   repeat
     CurPos := CurPos+Length(CurString^)+3;
     if CurPos >= HistoryUsed then
       begin
       CurPos := -1;
-      break;
+      Break;
       end;
   until HistoryBlock^[CurPos+1] = CurId;
   if CurPos >= 0
@@ -175,13 +175,13 @@ asm
  end;
   {$ELSE}
   var
-    q: word;
+    q: Word;
   begin { DeleteString }
   q := CurPos+Length(CurString^)+3;
   if q >= HistoryUsed then
     begin
     HistoryUsed := CurPos;
-    exit;
+    Exit;
     end;
   Move(HistoryBlock^[q], HistoryBlock^[CurPos], HistoryUsed-q);
   HistoryUsed := q;
@@ -245,7 +245,7 @@ asm
  end;
   {$ELSE}
   var
-    q: word;
+    q: Word;
   begin { InsertString }
   if HistoryUsed+Length(Str)+3 >= HistorySize then
     begin
@@ -272,9 +272,9 @@ procedure StartId(Id: Byte);
   CurString := @(HistoryBlock^);
   end;
 
-function HistoryCount(Id: Byte): word;
+function HistoryCount(Id: Byte): Word;
   var
-    Count: word;
+    Count: Word;
   begin
   StartId(Id);
   Count := 0;
@@ -290,10 +290,10 @@ function HistoryCount(Id: Byte): word;
 procedure HistoryAdd(Id: Byte; const Str: String);
   var
     C: Char;
-    I, J: integer;
+    I, J: Integer;
   begin
   if Str = '' then
-    exit;
+    Exit;
   if HistoryUsed < 3 then
     HistoryUsed := 1;
 
@@ -316,18 +316,18 @@ procedure HistoryAdd(Id: Byte; const Str: String);
     end;
 
   if I > MaxHistorySize-1 then
-    for J := I-1 DownTo 0 do
+    for J := I-1 downto 0 do
       begin
       HistoryStr(Id, J);
       if CurString = nil then
-        break;
+        Break;
       if CurString^[Length(CurString^)] <> '+' then
         begin
         DeleteString;
         Dec(I);
         Inc(J);
         if I < MaxHistorySize then
-          break;
+          Break;
         end;
       end;
   {
@@ -349,9 +349,9 @@ procedure HistoryAdd(Id: Byte; const Str: String);
   InsertString(Id, Str+C);
   end { HistoryAdd };
 
-function HistoryStr(Id: Byte; Index: integer): String;
+function HistoryStr(Id: Byte; Index: Integer): String;
   var
-    I: integer;
+    I: Integer;
   begin
   StartId(Id);
   for I := 0 to Index do
@@ -366,7 +366,7 @@ procedure ClearHistory;
   begin
   FillChar(HistoryBlock^, HistorySize, 0);
   PChar(HistoryBlock)^:= #0;
-  HistoryUsed := word(HistoryBlock)+1;
+  HistoryUsed := Word(HistoryBlock)+1;
   end;
 
 {DataCompBoy
@@ -403,7 +403,7 @@ procedure DoneHistory;
   HistoryBlock := nil;
   end;
 
-procedure DeleteHistoryStr(Id: Byte; Index: integer);
+procedure DeleteHistoryStr(Id: Byte; Index: Integer);
   begin
   HistoryStr(Id, Index);
   if CurString <> nil then

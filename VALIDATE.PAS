@@ -56,7 +56,7 @@ unit Validate;
 interface
 
 uses
-  Defines, Objects2, Streams, advance, advance1, advance2, advance3
+  Defines, Objects2, Streams, Advance, Advance1, Advance2, Advance3
   ;
 
 const
@@ -82,7 +82,7 @@ type
 
   PValidator = ^TValidator;
   TValidator = object(TObject)
-    Status: word;
+    Status: Word;
     Options: AWord;
     constructor Init;
     constructor Load(var S: TStream);
@@ -92,7 +92,7 @@ type
     function isValid(const S: String): Boolean; virtual;
     procedure Store(var S: TStream);
     function Transfer(var S: String; Buffer: Pointer;
-        Flag: TVTransfer): word; virtual;
+        Flag: TVTransfer): Word; virtual;
     function Valid(const S: String): Boolean;
     end;
 
@@ -126,7 +126,7 @@ type
     function isValid(const S: String): Boolean; virtual;
     procedure Store(var S: TStream);
     function Transfer(var S: String; Buffer: Pointer;
-        Flag: TVTransfer): word; virtual;
+        Flag: TVTransfer): Word; virtual;
     end;
 
 implementation
@@ -172,7 +172,7 @@ procedure TValidator.Store(var S: TStream);
   end;
 
 function TValidator.Transfer(var S: String; Buffer: Pointer;
-    Flag: TVTransfer): word;
+    Flag: TVTransfer): Word;
   begin
   Transfer := 0;
   end;
@@ -183,7 +183,7 @@ function TValidator.Valid(const S: String): Boolean;
   if not isValid(S) then
     begin
     Error;
-    exit;
+    Exit;
     end;
   Valid := True;
   end;
@@ -712,7 +712,7 @@ constructor TFilterValidator.Load(var S: TStream);
 
 function TFilterValidator.isValid(const S: String): Boolean;
   var
-    I: integer;
+    I: Integer;
   begin
   I := 1;
   while S[I] in ValidChars do
@@ -723,7 +723,7 @@ function TFilterValidator.isValid(const S: String): Boolean;
 function TFilterValidator.IsValidInput(var S: String;
      SuppressFill: Boolean): Boolean;
   var
-    I: integer;
+    I: Integer;
   begin
   I := 1;
   while S[I] in ValidChars do
@@ -772,7 +772,7 @@ procedure TRangeValidator.Error;
 function TRangeValidator.isValid(const S: String): Boolean;
   var
     Value: LongInt;
-    Code: integer;
+    Code: Integer;
   begin
   isValid := False;
   if inherited isValid(S) then
@@ -790,10 +790,10 @@ procedure TRangeValidator.Store(var S: TStream);
   end;
 
 function TRangeValidator.Transfer(var S: String; Buffer: Pointer;
-    Flag: TVTransfer): word;
+    Flag: TVTransfer): Word;
   var
     Value: LongInt;
-    Code: integer;
+    Code: Integer;
   begin
   if Options and voTransfer <> 0 then
     begin

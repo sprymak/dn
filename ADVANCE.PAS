@@ -48,7 +48,7 @@
 {AK155 = Alexey Korop, 2:461/155@fidonet}
 {Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
 
-unit advance;
+unit Advance;
 
 interface
 
@@ -100,8 +100,8 @@ type
     destructor Done; virtual;
   private
     Handle: lFile; {DataCompBoy}
-    BufSz: integer;
-    BufPos: integer;
+    BufSz: Integer;
+    BufPos: Integer;
     Buf: TTextReaderBuf;
     Skip1: Boolean;
     end;
@@ -121,39 +121,24 @@ type
   { TCharImage = array [0..15] of Byte;}
 
 type
-
-  {PZ - 2000.03.26 - begin}
-
-  TCountryInfoEx = record
-    CountryCode: word;
-    DateFormat: word;
-    MoneySymbol: array[0..4] of Char;
-    ThousandsSeparator: array[0..1] of Char;
-    DecimalSeparator: array[0..1] of Char;
-    DateSeparator: array[0..1] of Char;
-    TimeSeparator: array[0..1] of Char;
-    MoneyFormat: Byte;
-    MoneyDigits: Byte;
-    TimeFormat: Byte;
-    UpCaseCall: Pointer;
-    DataSeparator: array[0..1] of Char;
-    Reserved: array[0..7] of Byte;
-    UpperTable: array[#$80..#$FF] of Char;
-    end;
-  {PZ - end}
-
   TCountryInfo = record
-    DateFmt: word; {Radiobuttons}
-    TimeFmt: word; {Radiobuttons}
+    {`Данные для диалога настроек страны }
+    DateFmt: Word; {Radiobuttons}
+      {`0:MM-DD-YY, 1: DD-MM-YY, 2: YY-MM-DD`}
+    TimeFmt: Word; {Radiobuttons}
+      {`0:12hour, 1: 24hour`}
     DateSep: String[1]; {Inputline}
     TimeSep: String[1]; {Inputline}
     ThouSep: String[1]; {Inputline}
     DecSep: String[1]; {Inputline}
     DecSign: String[1]; {Inputline}
+    CurrencyFmt: Word; {Radiobuttons}
+      {` 0:'$123.00', 1:'123.00$', 2:'$ 123.00', 3:'123.00 $' 4: 123$00 `}
     Currency: String[4]; {Inputline}
-    CurrencyFmt: word; {Radiobuttons}
-    UpperTable: array[#128..#255] of Char;
-    end;
+    KbdToggleLayout: String[79]; {Inputline}
+    WinCodeTable: String[79]; {Inputline}
+    CodeTables: String[255]; {Inputline}
+    end; {`}
 
 var
   RK: Byte;
@@ -202,8 +187,8 @@ procedure ClrIO;
   Abort := False;
   end;
 
-function Cut(p: String; len: integer): String;
-function CutH(p: String; len: integer): String;
+function Cut(p: String; len: Integer): String;
+function CutH(p: String; len: Integer): String;
 
 function MemOK: Boolean;
   inline;
@@ -212,41 +197,20 @@ function MemOK: Boolean;
   end; {JO}
 function GetMeMemoStream: PStream; {-$VOL}
 function MemAdjust(L: LongInt): LongInt;
-procedure FillWord(var B; Count, W: word);
+procedure FillWord(var B; Count, W: Word);
 procedure LocateCursor(X, Y: Byte);
 function XDiv1024(X: LongInt): LongInt;
-function LongRatio(X, Y: LongInt): integer;
+function LongRatio(X, Y: LongInt): Integer;
 function Min(x, y: LongInt): LongInt;
 function Max(x, y: LongInt): LongInt;
-function Sgn(x: integer): integer;
+function Sgn(x: Integer): Integer;
 procedure TinySlice;
 
 function FormatLongName(const Name: String; Size, ExtSize: Byte;
-     Options: word;
+     Options: Word;
     FormatMode: TNameFormatMode; Delim: PChar): String; (* X-Man *)
 
-{-DataCompBoy-}
 const
-  UpperString: String =
-  #1#2#3#4#5#6#7#8#9#10#11#12#13#14#15#16+
-  #17#18#19#20#21#22#23#24#25#26#27#28#29#30#31#32+
-  '!"#$%&''()*+,-./0123456789:;<=>?@'+
-  'ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`'+
-  'ABCDEFGHIJKLMNOPQRSTUVWXYZ{|}~'+
-  'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'+
-  'АБВГДЕЖЗИЙКЛМНОП░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀'+
-  'РСТУФХЦЧШЩЪЫЬЭЮЯЁЁЄЄЇЇЎЎ°∙·√№¤■'#255; {-$VIV}
-  LowerString: String =
-    (#1#2#3#4#5#6#7#8#9#10#11#12#13#14#15#16+
-    #17#18#19#20#21#22#23#24#25#26#27#28#29#30#31#32+
-    '!"#$%&''()*+,-./0123456789:;<=>?@'+
-    'abcdefghijklmnopqrstuvwxyz[\]^_`'+
-    'abcdefghijklmnopqrstuvwxyz{|}~'+
-    'абвгдежзийклмнопрстуфхцчшщъыьэюя'+
-    'абвгдежзийклмноп░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀'+
-    'рстуфхцчшщъыьэюяёёєєїїўў°∙·√№¤■'#255); {-$VIV}
-  {-DataCompBoy-}
-
   BreakChars: set of Char = [',', ' ', '[', ']', '{', '}', '(', ')',
    ':', ';', '.', '^',
   '&', '*', '!', '#', '$', '/', '\', '"', '%', '>', '<',
@@ -271,24 +235,13 @@ var
   { is running                                    }
   FreeStr: String;
   FreeLongStr: LongString;
-  FreeByte: Byte; {DataCompBoy 8)}
+  PanelViewMode: Byte; // меняется по Ctrl-цифра
   ActiveDir: String; {DataCompBoy}
   DNNumber: Byte;
-  UpCaseArray: array[Char] of Char absolute UpperString;
-  LowCaseArray: array[Char] of Char absolute LowerString;
-  {Cat}
-  UpCaseArray_Ascii_Ascii: TXlat absolute UpperString;
-  UpCaseArray_Ascii_Koi8r: TXlat;
-  UpCaseArray_Ascii_Ansi: TXlat;
-  UpCaseArray_Koi8r_Ascii: TXlat;
-  UpCaseArray_Ansi_Ascii: TXlat;
-  UpCaseArray_Ascii_Ansi_Koi8r_Ascii: TXlat;
-  UpCaseArray_Ascii_Koi8r_Ansi_Ascii: TXlat;
-  {/Cat}
-  Tran: array[Char] of Char;
 
   {Cat: порядок переменных не менять, иначе будут проблемы с плагинами}
 
+var
   {-DataCompBoy-}
   StartupDir: String;
   SourceDir: String;
@@ -309,20 +262,22 @@ const
 
 const
   CountryInfo: TCountryInfo =
-    (DateFmt: 1;
-    TimeFmt: 1;
-    DateSep: '-';
+    {`Статическая переменная; всегда корректно заполнена`}
+   (DateFmt: 0;
+    TimeFmt: 0;
+    DateSep: '.';
     TimeSep: ':';
-    ThouSep: ',';
+    ThouSep: ' ';
     DecSep: '.';
-    DecSign: '2';
-    Currency: '$';
+    DecSign: '$';
     CurrencyFmt: 0;
-    UpperTable: 'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'+
-    'АБВГДЕЖЗИЙКЛМНОП░▒▓│┤╡╢╖╕╣║╗╝╜╛┐'+
-    '└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀'+
-    'РСТУФХЦЧШЩЪЫЬЭЮЯЁЁЄЄЇЇЎЎ°∙·√№¤■'#255
+    Currency: '$';
+    KbdToggleLayout: 'ru441.xlt';
+    WinCodeTable: '1251';
+    CodeTables: 'KOI:koi8-r.xlt'
     );
+
+
 
 type
   TCrc_Table = array[0..255] of LongInt;
@@ -336,8 +291,8 @@ type
 implementation
 
 uses
-  xTime, Startup, advance1, advance3,
-  VpSysLow, advance2,
+  xTime, Startup, Advance1, Advance3,
+  VpSysLow, Advance2,
   Commands
   ;
 
@@ -364,7 +319,7 @@ function CutH;
 constructor TTextReader.Init;
   var
     FileSz: LongInt;
-    ToRead: integer;
+    ToRead: Integer;
   begin
   ClrIO;
   FileMode := $40;
@@ -403,12 +358,12 @@ function TTextReader.FileName: String;
 function TTextReader.GetStr: String;
   var
     CurStr: String;
-    BufBeg: integer;
+    BufBeg: Integer;
     Was: Boolean;
 
-  procedure aStr(D: integer);
+  procedure aStr(D: Integer);
     var
-      Grow: integer;
+      Grow: Integer;
     begin
     Grow := Min((BufPos-BufBeg)-D-Byte(Was), 255-Length(CurStr));
     if Grow > 0 then
@@ -419,7 +374,7 @@ function TTextReader.GetStr: String;
     end;
 
   var
-    PrevC: integer;
+    PrevC: Integer;
     C: Char;
 
   begin { TTextReader.GetStr: }
@@ -439,14 +394,14 @@ function TTextReader.GetStr: String;
         if BufSz = 0 then
           begin
           Eof := True;
-          break;
+          Break;
           end;
         BufPos := 0;
         BufBeg := 0;
         if Was then
           begin
           Skip1 := True;
-          break
+          Break
           end;
         end;
       C := Buf[BufPos];
@@ -458,17 +413,17 @@ function TTextReader.GetStr: String;
             begin
             BufBeg := BufPos;
             Skip1 := False;
-            continue;
+            Continue;
             end;
           if Was then
             begin
             aStr(1);
-            Dec(BufPos, integer(PrevC = integer(C)));
-            break;
+            Dec(BufPos, Integer(PrevC = Integer(C)));
+            Break;
             end
           else
             Was := True;
-          PrevC := integer(C);
+          PrevC := Integer(C);
           end;
         else {case}
           begin
@@ -476,7 +431,7 @@ function TTextReader.GetStr: String;
             begin
             aStr(1);
             Dec(BufPos);
-            break;
+            Break;
             end;
           Skip1 := False
           end;
@@ -497,12 +452,12 @@ destructor TTextReader.Done;
 {-DataCompBoy-}
 
 function FormatLongName(const Name: String; Size, ExtSize: Byte;
-     Options: word;
+     Options: Word;
     FormatMode: TNameFormatMode; Delim: PChar): String;
 
   var
     P, N, E, R: ^String;
-    PSize, NSize, ESize: integer;
+    PSize, NSize, ESize: Integer;
     Hi1, Hi2, Hi3, DotPos, EFlag, i: Byte;
 
   procedure FillR(A, B: Byte; Value: Char);
@@ -617,7 +572,7 @@ function FormatLongName(const Name: String; Size, ExtSize: Byte;
     Dispose(E);
     Dispose(N);
     Dispose(P);
-    exit
+    Exit
     end;
   PSize := Length(P^);
   NSize := Length(N^);
@@ -849,7 +804,7 @@ function MemAdjust(L: LongInt): LongInt;
   MemAdjust := L;
   end;
 
-procedure FillWord(var B; Count, W: word);
+procedure FillWord(var B; Count, W: Word);
   assembler;
   {&Frame-} {$USES EDI, ECX}
 asm
@@ -908,47 +863,19 @@ function Sgn;
   end;
 
 procedure TinySlice;
-  {$IFDEF OS_DOS}
-  var
-    Released: Boolean;
-    {$ENDIF}
   begin
-  {$IFNDEF OS_DOS}
-  if  (StartupData.Slice2 and osuOnceRelease <> 0) then
-    SysCtrlSleep {Delay}(1) {Delay(32)}
-  else
-    SysCtrlSleep {Delay}(0);
-  {$ELSE}
-  Released := False;
-  if  (StartupData.Slice and osuInt15 <> 0) and
-      ( (StartupData.Slice2 and osuOnceRelease = 0) or not Released) and
-      (opSys and opDV <> 0)
-  then
-    asm
-   mov al, 1
-   mov Released, al
-   mov ax, $1000
-   int 15h
-  end;
-
-  if  (StartupData.Slice and osuInt2F <> 0) and
-      ( (StartupData.Slice2 and osuOnceRelease = 0) or not Released)
-  then
-    asm
-   mov ax, 1680h
-   int 2Fh
-   or al, al
-   je @@e
-   mov al, 1
-   mov Released, al
-@@e:
-  end;
-  if  (StartupData.Slice and osuInt28 <> 0) and
-      ( (StartupData.Slice2 and osuOnceRelease = 0) or not Released)
-  then
-    asm int 28h end;
+  {$IFNDEF DPMI32}
+  SysCtrlSleep(1);
+{ Вообще-то, Idle-цикл в DN весьма тяжёлый, поэтому паузу желательно
+делать как можно больше. Но при этом нужно сохранять достаточно быструю
+реакцию на автоповторения клавиатуры (период 33 мс), иначе всё начинает
+раздражающе тормозить или дёргаться. Так вот, под Win NT (квант 10 мс)
+даже 9 приводит к заметному дёрганию. Так что пусть будет 1. А под OS/2
+(32 мс обычно) дёргается всё равно, и если увеличить число, то дёргается
+ещё сильнее.
+}
   {$ENDIF}
-  end { TinySlice };
+  end;
 
 begin
 NumFloppy := 0;

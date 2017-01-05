@@ -26,8 +26,8 @@ type
     procedure UpdateView(Progress: LongInt); virtual;
     procedure AddProgress(Progress: LongInt);
     {procedure HandleEvent(var Event: TEvent); virtual;}
-    function SolveForX(Y, Z: LongInt): integer;
-    function SolveForY(X, Z: LongInt): integer;
+    function SolveForX(Y, Z: LongInt): Integer;
+    function SolveForY(X, Z: LongInt): Integer;
     end;
 
   PBarGauge = ^TBarGauge;
@@ -42,7 +42,7 @@ type
     QuitNormal: Boolean;
     Top, Bottom: String;
     constructor Init(Bounds: TRect);
-    procedure Write(N: integer; S: String);
+    procedure Write(N: Integer; S: String);
     {function GetPalette: PPalette; virtual;}
     {function Valid(C: Word): Boolean; virtual;}
     {procedure SetState(AState: Word; Enable: Boolean); virtual;}
@@ -75,12 +75,12 @@ procedure TPercentGauge.AddProgress(Progress: LongInt);
   _TPercentGauge^.AddProgress(Progress, @Self);
   end;
 
-function TPercentGauge.SolveForX(Y, Z: LongInt): integer;
+function TPercentGauge.SolveForX(Y, Z: LongInt): Integer;
   begin
   Result := _TPercentGauge^.SolveForX(Y, Z, @Self);
   end;
 
-function TPercentGauge.SolveForY(X, Z: LongInt): integer;
+function TPercentGauge.SolveForY(X, Z: LongInt): Integer;
   begin
   Result := _TPercentGauge^.SolveForY(X, Z, @Self);
   end;
@@ -90,7 +90,7 @@ constructor TWhileView.Init(Bounds: TRect);
   _TWhileView^.Init(Bounds, nil, @Self);
   end;
 
-procedure TWhileView.Write(N: integer; S: String);
+procedure TWhileView.Write(N: Integer; S: String);
   begin
   _TWhileView^.Write(N, S, @Self);
   end;

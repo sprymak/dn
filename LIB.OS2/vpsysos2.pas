@@ -2176,7 +2176,13 @@ begin
 
   rc := DosQueryFSInfo( DriveNumber, fsil_VolSer, Buf, Sizeof( Buf ));
   If rc = No_Error then
-    Result := Buf.VolLabel
+    begin
+    Result := Buf.VolLabel;
+{JO: bugfix for some CD}
+    while (Result[Length(Result)] = #0) and (Length(Result) > 0) do
+      SetLength(Result, Length(Result)-1);
+{/JO}
+    end
   else
     Result := '';
 end;
@@ -2217,18 +2223,115 @@ begin
     Result := #0;
 end;
 
+//JO: 24-06-2004 - the function is completely rewritten to determine
+//    the drive type without access to this drive (using DosDevIOCtl)
+//JO: не рекомендуется использовать функцию SysGetDriveType
+//    в исходниках DN/2; желательно использовать вместо неё
+//    функцию GetDriveTypeNew из модуля FlTl
+{JO}
 function SysGetDriveType(Drive: Char): TDriveType;
-Var
+var
   BufLen    : Word;
   FSQb      : pFSQBuffer2;
   DrvName   : String[3];
   Ordinal   : SmallWord;
   name      : pChar;
-  rc        : Word;
+  RC        : Word;
   DiskSize  : Word;
+{JO: 24-06-2004}
+
+  ParmRec     : record  // Input parameter record
+    ComInfo   : Byte;
+    DrvUnit   : Byte;
+  end;
+
+  ParmLen     : ULong;  // Parameter length in bytes
+
+  DataRec     : record
+    BytesPerSector    : UShort; // BIOS Parameter Block (BPB) structure
+    SectorsPerCluster : Byte;
+    ReservedSectors   : UShort;
+    NumberOfFATs      : Byte;
+    RootDirEntries    : UShort;
+    TotalSectors      : UShort;
+    MediaDescriptor   : Byte;
+    SectorsPerFAT     : UShort;
+    SectorsPerTrack   : UShort;
+    NumberOfHeads     : UShort;
+    HiddenSectors     : ULong;
+    LargeTotalSectors : ULong;  // end of BPB structure
+    Reserved : array [0..5] of Byte;
+    CylNum    : UShort;
+    DevType   : Byte;
+    DevAttr   : UShort;
+  end;
+
+  DataLen     : ULong;  // Data length in bytes
 
 begin
   Result := dtInvalid;
+
+  ParmLen := SizeOf(ParmRec);
+  with ParmRec do
+  begin
+    ComInfo := 0;
+    DrvUnit :=  Ord(Drive) - Ord('A');
+  end;
+
+  FillChar(DataRec, SizeOf(DataRec), 0);
+  DataLen := SizeOf(DataRec);
+
+  RC := DosDevIOCtl(
+    -1,
+    IOCTL_DISK,
+    DSK_GETDEVICEPARAMS,
+    @ParmRec,
+    ParmLen,
+    @ParmLen,
+
+    @DataRec,
+    Datalen,
+    @DataLen);
+
+  if RC = 50 then  // Network request not supported
+    begin
+    Result := dtLAN;
+    Exit;
+    end
+  else
+  if RC > 0 then Exit
+  else
+    with DataRec do
+      begin
+      if ((DevAttr and 1) = 0) and (DevType <> 5) then
+//JO: It seems that DosDevIOCtl returns 65535 value for the number
+//    of cylinders if the device is CD.
+//    Checked for Warp 3 with f/p 44 (internal revision 8.268)
+//    and for Warp 4 with f/p 15 (internal revision 14.062_W4)
+        if ((DevType = 7) and (CylNum = 65535)
+             and (BytesPerSector = 2048)) then  // 2048 is a standard for CD
+          begin
+          Result := dtCDRom;
+          Exit;
+          end
+//JO: Note: all CD-RW also have type 8 ("Optical") when IBM UDF support
+//          installed (OS2CDROM.DMD seems to be responsible),
+//          but CD still have "Cylinders number" 65535,
+//          whereas MO has more intelligent cylinders number.
+        else if (DevType = 8) then
+          begin
+            if ((CylNum = 65535)
+             and (BytesPerSector = 2048)) then  // 2048 is a standard for CD
+              Result := dtCDRom   {<vpsysos2.001>}
+            else
+              Result := dtOptical;
+          end
+        else
+          begin
+          Result := dtFloppy;
+          Exit;
+          end;
+      end;
   BufLen := 100;
   GetMem( FSQb, BufLen );
   DrvName := Drive+':'#0;
@@ -2238,20 +2341,17 @@ begin
     With FsqB^ do
     begin
       Name := szName + cbName + 1;
-      If strComp( Name, 'FAT' ) = 0 then
-        If Drive <= 'B' then
-          Result := dtFloppy
-        else
+      if Result = dtOptical then  {<vpsysos2.001>}
+        begin
+          if StrComp(Name, 'CDFS') = 0 then
+            Result := dtCDRom;
+        end
+      else if strComp( Name, 'FAT' ) = 0 then
           Result := dtHDFAT
       else if strComp( Name, 'HPFS' ) = 0 then
-        If Drive <= 'B' then
-          Result := dtFloppy
-        else
           Result := dtHDHPFS
       else If StrComp( Name, 'NETWARE' ) = 0 then
         Result := dtNovellNet
-      else If StrComp( Name, 'CDFS' ) = 0 then
-        Result := dtCDRom
       else If StrComp( Name, 'TVFS' ) = 0 then
         Result := dtTVFS
       else If StrComp( Name, 'ext2' ) = 0 then
@@ -2259,11 +2359,16 @@ begin
       else If StrComp( Name, 'LAN' ) = 0 then
         Result := dtLAN
       else If StrComp( Name, 'JFS' ) = 0 then
-        Result := dtJFS;
-    end;
-
+        Result := dtJFS
+      else If StrComp( Name, 'FAT32' ) = 0 then
+        Result := dtHDFAT32
+      else Result := dtUnknown;
+    end
+  else
+    if Result = dtOptical then Result := dtCDRom; {<vpsysos2.001>}
   FreeMem( FSQb, 100 );
 end;
+{/JO}
 
 function SysGetVideoModeInfo(Var Cols, Rows, Colours: Word ): Boolean;
 Var
@@ -2562,4 +2667,10 @@ procedure SysLowInit;
 begin
   // Nothing
 end;
+
+procedure SysLowInitPostTLS; {for 2.1 build 279 and later}
+  begin
+  SysLowInit;
+  end;
+
 

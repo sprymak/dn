@@ -2860,7 +2860,7 @@ These are global options for all drives
 inclusion of computer the panel will have the kind at its switching-off.
 
 {Auto run User menu:_} - Automatic occurrence {User Menu:UserMenu} at
-start DOS Navigator.
+start DOS Navigator and after user menu item execution.
 
 
 {Kill input histories:_} - not to store the history list.

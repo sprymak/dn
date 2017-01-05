@@ -49,17 +49,17 @@
 uses
   Lfn, {DataCompBoy}
   Dos,
-  advance1, advance, Defines
+  Advance1, Advance, Defines
   ;
 
 const
-  VersionName: String = '2.04alpha';
+  VersionName: String = '2.07alpha';
   VersionDate: String = '';
   VersionWord: AWord = 15198;
 
 var
   F: lText;
-  Day, Month, Year, dow: word;
+  Day, Month, Year, dow: Word;
 
 const
   DOWs: array[0..6] of String[3] =

@@ -50,7 +50,7 @@ unit arc_HA; {HA}
 interface
 
 uses
-  Archiver, advance, advance1, Defines, Objects2, Streams, Dos, xTime
+  Archiver, Advance, Advance1, Defines, Objects2, Streams, Dos, xTime
   ;
 
 type
@@ -84,8 +84,8 @@ constructor THAArchive.Init;
   Sign := Sign+#0;
   FreeStr := SourceDir+DNARC;
   TObject.Init;
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'HA.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'HA.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'HA'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'HA'));
   Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'e'));
   ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, 'x'));
   Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'a'));
@@ -164,7 +164,7 @@ procedure THAArchive.GetFile;
   if  (ArcFile^.Status <> stOK) then
     begin
     FileInfo.Last := 1;
-    exit;
+    Exit;
     end;
   FileInfo.Last := 0;
   FileInfo.Attr := 0;
@@ -187,7 +187,7 @@ procedure THAArchive.GetFile;
   if Length(FileInfo.FName) > 79 then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   Replace(#255, '\', FileInfo.FName);
   if P.Method and $0f = $0e then
@@ -198,7 +198,7 @@ procedure THAArchive.GetFile;
   then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   ArcFile^.Seek(FP);
   end { THAArchive.GetFile };

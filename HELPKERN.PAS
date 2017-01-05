@@ -113,7 +113,7 @@ type
     LastOffset: AInt;
     LastLine: AInt;
     LastParagraph: PParagraph;
-    function WrapText(var Text; Size: integer; var Offset: integer;
+    function WrapText(var Text; Size: Integer; var Offset: Integer;
         Wrap: Boolean): String;
     end;
 
@@ -258,7 +258,7 @@ procedure THelpTopic.AddParagraph(P: PParagraph);
 procedure THelpTopic.GetCrossRef(I: AInt; var Loc: TPoint;
     var Length: Byte; var Ref: AWord);
   var
-    OldOffset, CurOffset, Offset, ParaOffset: integer;
+    OldOffset, CurOffset, Offset, ParaOffset: Integer;
     P: PParagraph;
     Line: AInt;
   begin
@@ -288,7 +288,7 @@ procedure THelpTopic.GetCrossRef(I: AInt; var Loc: TPoint;
 
 function THelpTopic.GetLine(Line: AInt): String;
   var
-    Offset: integer;
+    Offset: Integer;
     I: AInt;
     P: PParagraph;
   begin
@@ -317,7 +317,7 @@ function THelpTopic.GetLine(Line: AInt): String;
         begin
         LastOffset := Offset;
         LastParagraph := P;
-        exit;
+        Exit;
         end;
       end;
     P := P^.Next;
@@ -333,7 +333,7 @@ function THelpTopic.GetNumCrossRefs: AInt;
 
 function THelpTopic.NumLines: AInt;
   var
-    Offset: integer;
+    Offset: Integer;
     Lines: AInt;
     P: PParagraph;
   begin
@@ -364,7 +364,7 @@ procedure THelpTopic.SetNumCrossRefs(I: AInt);
     P: PCrossRefs;
   begin
   if NumRefs = I then
-    exit;
+    Exit;
   GetMem(P, I*SizeOf(TCrossRef));
   if NumRefs > 0 then
     begin
@@ -536,21 +536,21 @@ end;
 {JO: взял THelpTopic.WrapText из VP 2.1 TVDEMO, так как в старой падала      }
 {    регулярно ассемблерная функция Scan на repne   scasb ; решил, что       }
 {    разбираться с этой хренью будет себе дороже и взял готовое решение      }
-function THelpTopic.WrapText(var Text; Size: integer;
-    var Offset: integer; Wrap: Boolean): String;
+function THelpTopic.WrapText(var Text; Size: Integer;
+    var Offset: Integer; Wrap: Boolean): String;
   type
     PCArray = ^CArray;
     CArray = array[0..32767] of Char;
   var
     Line: String;
-    I, P: integer;
+    I, P: Integer;
 
   function IsBlank(Ch: Char): Boolean;
     begin
     IsBlank := (Ch = ' ') or (Ch = #13) or (Ch = #10);
     end;
 
-  function Scan(var P; Offset, Size: integer; C: Char): integer;
+  function Scan(var P; Offset, Size: Integer; C: Char): Integer;
     assembler;
     {&USES esi,edi} {&FRAME-}
   asm
@@ -571,7 +571,7 @@ function THelpTopic.WrapText(var Text; Size: integer;
         xchg    eax,ecx
 end;
 
-  procedure TextToLine(var Text; Offset, Length: integer;
+  procedure TextToLine(var Text; Offset, Length: Integer;
        var Line: String);
     assembler;
     {&USES esi,edi} {&FRAME-}

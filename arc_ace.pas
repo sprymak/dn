@@ -50,7 +50,7 @@ unit arc_ACE; {ACE}
 interface
 
 uses
-  Archiver, advance, advance1, Defines, Objects2, Streams, Dos
+  Archiver, Advance, Advance1, Defines, Objects2, Streams, Dos
   ;
 
 type
@@ -105,11 +105,11 @@ constructor TACEArchive.Init;
   FreeStr := SourceDir+DNARC;
   TObject.Init;
   {$IFNDEF OS2}
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'ACE.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'ACE.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'ACE'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'ACE'));
   {$ELSE}
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'ACE2.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'ACE2.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'ACE2'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'ACE2'));
   {$ENDIF}
   Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'e'));
   ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, 'x'));
@@ -187,13 +187,13 @@ procedure TACEArchive.GetFile;
   if  (FP = ArcFile^.GetSize) then
     begin
     FileInfo.Last := 1;
-    exit;
+    Exit;
     end;
   ArcFile^.Read(P, SizeOf(P));
   if  (ArcFile^.Status <> stOK) then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   if P.HeadType = 1 then
     begin

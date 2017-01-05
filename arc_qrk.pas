@@ -50,7 +50,7 @@ unit arc_QRK; {QuArk}
 interface
 
 uses
-  Archiver, advance, advance1, Defines, Objects2, Streams, Dos
+  Archiver, Advance, Advance1, Defines, Objects2, Streams, Dos
   ;
 
 type
@@ -76,9 +76,8 @@ constructor TQuArkArchive.Init;
   Sign := Sign+#0;
   FreeStr := SourceDir+DNARC;
   TObject.Init;
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'QuArk.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,
-       'QuArk.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'QuArk'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'QuArk'));
   Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'e'));
   ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, 'x'));
   Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'a'));
@@ -158,20 +157,20 @@ procedure TQuArkArchive.GetFile;
   if ArcFile^.GetPos = ArcFile^.GetSize then
     begin
     FileInfo.Last := 1;
-    exit;
+    Exit;
     end;
   ArcFile^.Read(FH, SizeOf(FH));
   if  (ArcFile^.Status <> 0) then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   SetLength(FileInfo.FName, FH.LengthOfName);
   ArcFile^.Read(FileInfo.FName[1], FH.LengthOfName);
   if FileInfo.FName = '' then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   ArcFile^.Read(FH1, SizeOf(FH1));
   FileInfo.Last := 0;

@@ -50,7 +50,7 @@ unit arc_BSA; {BSA}
 interface
 
 uses
-  Archiver, advance, advance1, Defines, Objects2, Streams
+  Archiver, Advance, Advance1, Defines, Objects2, Streams
   ;
 
 type
@@ -86,9 +86,8 @@ constructor TBSAArchive.Init;
   Sign := Sign+#0;
   FreeStr := SourceDir+DNARC;
   TObject.Init;
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'BSARC.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,
-       'BSARC.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'BSARC'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'BSARC'));
   Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, '-xy'));
   ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, '-xy'));
   Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, '-ar'));
@@ -157,27 +156,27 @@ procedure TBSAArchive.GetFile;
   if ArcFile^.GetPos = ArcFile^.GetSize then
     begin
     FileInfo.Last := 1;
-    exit;
+    Exit;
     end;
   ArcFile^.Read(P, 4);
   if  (Copy(P.Id, 1, 2) = #0#0)
   then
     begin
     FileInfo.Last := 1;
-    exit;
+    Exit;
     end;
   if  (ArcFile^.Status <> stOK)
            or not ((P.Id[4] in [#0, #7]) and (Copy(P.Id, 2, 2) = #0#$AE))
   then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   ArcFile^.Read(P.PackedSize, SizeOf(P)-4);
   if  (ArcFile^.Status <> stOK) then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
   FileInfo.Last := 0;

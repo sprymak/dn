@@ -51,7 +51,7 @@ unit ed2;
 interface
 
 uses
-  Commands, advance1, U_KeyMap, Collect, Views, Drivers, Defines, Streams,
+  Commands, Advance1, U_KeyMap, Collect, Views, Drivers, Defines, Streams,
   Lfn {, SBlocks}
   ;
 
@@ -85,12 +85,12 @@ type
 
   PUndoRec = ^TUndoRec;
   TUndoRec = record
-    What: word;
+    What: Word;
     Where: TPoint;
     KeyMap: TKeyMap; {-$VIV}
-    case word of
+    case Word of
       udDelChar: (Str: PLongString);
-      udInsChar: (Count, Width: integer; Block: TRect);
+      udInsChar: (Count, Width: Integer; Block: TRect);
       udDelLine: (Lines: PCollection; Vertical, InsM: Boolean);
     end;
 
@@ -121,9 +121,9 @@ type
 
   PAttrBufStream = ^TAttrBufStream;
   TAttrBufStream = object(TBufStream)
-    OldAttr: word;
+    OldAttr: Word;
     F: lFile;
-    constructor Init(FileName: String; Mode, Size: word);
+    constructor Init(FileName: String; Mode, Size: Word);
     destructor Done; virtual;
     end;
 
@@ -133,7 +133,7 @@ procedure WriteBlock(Hint: String; S: PStream; C: PLineCollection
 
 implementation
 uses
-  advance, advance2, Messages, Dos, DNApp, Microed, Startup, DnIni, EdWin
+  Advance, Advance2, Messages, Dos, DNApp, Microed, Startup, DnIni, EdWin
   ;
 
 { TDoCollection }
@@ -143,7 +143,7 @@ procedure TDoCollection.FreeItem(P: Pointer);
   begin
   T := P;
   if P = nil then
-    exit;
+    Exit;
   case DoKind of
     dkUndo:
       case T^.What of
@@ -211,7 +211,7 @@ procedure TInfoLine.HandleEvent;
     if T.X >= Owner^.Size.X-2 then
       begin
       PWindow(Owner)^.Frame^.HandleEvent(Event);
-      exit;
+      Exit;
       end;
     MakeLocal(Event.Where, T);
     Event.What := evCommand;
@@ -273,7 +273,7 @@ procedure TInfoLine.Draw;
   var
     P: PFileEditor;
     X, Y: LongInt;
-    C: String[1];
+    C: Char;
     S: String;
     CharNum: Byte; {-$VIV}
     Ch: Char;
@@ -310,8 +310,7 @@ procedure TInfoLine.Draw;
       else
         C := #0;
       end;
-    C := P^.KeyMapConvertStr(C, False); {-$VIV start}
-    CharNum := Byte(C[1]); {-$VIV e.nd}
+    CharNum := Byte(KeyMapDescr[P^.KeyMap].XLatCP^[FromAscii][C]);
     if P^.Modified then
       S := #15+Ch2
     else
@@ -351,26 +350,7 @@ procedure TInfoLine.Draw;
       S := S+Ch2+'CrLf'
     else
       S := S+Ch2+'::::';
-    if CapitalCodePageName then
-      case P^.KeyMap of
-        {-$VIV--}
-        kmAscii:
-          S := S+Ch2+'Dos'+Ch2;
-        kmAnsi:
-          S := S+Ch2+'Win'+Ch2;
-        kmKoi8r:
-          S := S+Ch2+'Koi'+Ch2;
-      end
-    else
-      case P^.KeyMap of
-        {-$VIV--}
-        kmAscii:
-          S := S+Ch2+'DOS'+Ch2;
-        kmAnsi:
-          S := S+Ch2+'WIN'+Ch2;
-        kmKoi8r:
-          S := S+Ch2+'KOI'+Ch2;
-      end {case};
+    S := S+Ch2+KeyMapDescr[P^.KeyMap].Tag+Ch2;
     if FastBookmark then
       begin
       S := S+Ch2+'<'; {-$VIV 20.05.99--}
@@ -393,7 +373,7 @@ procedure TBookmarkLine.Draw;
   var
     P: PFileEditor;
     Col: Byte;
-    I: integer;
+    I: Integer;
     Mrk: Char;
     Ch: Char;
     B: array[0..20] of AWord;
@@ -407,7 +387,7 @@ procedure TBookmarkLine.Draw;
       if P^.MarkPos[I].Y = pLine then
         begin
         IsMarker := Char(I+48);
-        break;
+        Break;
         end;
     end;
 
@@ -436,7 +416,7 @@ procedure TBookmarkLine.Draw;
     begin
     MoveChar(B, Ch, Col, 1); {SYR}
     WriteLine(0, 0, Size.X, Size.Y, B);
-    exit;
+    Exit;
     end;
   for I := 0 to Size.Y do
     begin
@@ -449,7 +429,7 @@ procedure TBookmarkLine.Draw;
     end;
   end { TBookmarkLine.Draw };
 
-constructor TAttrBufStream.Init(FileName: String; Mode, Size: word);
+constructor TAttrBufStream.Init(FileName: String; Mode, Size: Word);
   begin
   inherited Init(FileName, Mode, Size);
   OldAttr := $FFFF;
@@ -467,9 +447,9 @@ function CheckForOver(Name: String): PStream;
   var
     S: PAttrBufStream;
     F: lFile;
-    W: word;
+    W: Word;
     L: array[0..0] of LongInt;
-    Attr: word;
+    Attr: Word;
 
   procedure CreateBackup;
     var
@@ -503,7 +483,7 @@ function CheckForOver(Name: String): PStream;
   ClrIO;
   lGetFAttr(F, Attr);
   if Abort then
-    exit;
+    Exit;
   if  (DosError = 0) and (Attr and ReadOnly <> 0) then
     begin
     OverQuery;
@@ -511,16 +491,16 @@ function CheckForOver(Name: String): PStream;
       cmYes, cmOK:
         ;
       else {case}
-        exit
+        Exit
     end {case};
     Pointer(L[0]) := @Name;
     if Msg(dlED_ModifyRO, @L, mfConfirmation+mfOKCancel) <> cmOK then
-      exit;
+      Exit;
     lSetFAttr(F, Archive);
     if Abort or (DosError <> 0) then
       begin
       CantWrite(Name);
-      exit;
+      Exit;
       end;
     end
   else
@@ -530,7 +510,7 @@ function CheckForOver(Name: String): PStream;
     end;
   New(S, Init(Name, stOpen, 4096));
   if S = nil then
-    exit;
+    Exit;
   if Abort or (S^.Status = stOK) then
     begin
     if W = $FFFF then
@@ -557,12 +537,12 @@ function CheckForOver(Name: String): PStream;
         S := nil;
         end;
     end {case};
-    exit;
+    Exit;
     end;
   Dispose(S, Done);
   S := nil;
   if Abort then
-    exit;
+    Exit;
   if EditorDefaults.EdOpt and ebfCBF <> 0 then
     CreateBackup;
   New(S, Init(Name, stCreate, 4096));
@@ -571,7 +551,7 @@ function CheckForOver(Name: String): PStream;
     CantWrite(Name);
     Dispose(S, Done);
     S := nil;
-    exit
+    Exit
     end;
   CheckForOver := S;
   end { CheckForOver };
@@ -713,7 +693,7 @@ procedure WriteBlock(Hint: String; S: PStream; C: PLineCollection
 
   I := 1;
   if  (S = nil) or (C = nil) then
-    exit;
+    Exit;
   PP := WriteMsg(^M^M^C+GetString(dlWritingFile));
   while not Abort and (S^.Status = stOK) and (I < C^.Count) do
     begin

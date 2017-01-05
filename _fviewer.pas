@@ -24,13 +24,13 @@ type
     {procedure HandleEvent(var Event: TEvent); virtual;}
     function GetPartCode: LongInt;
     {procedure Draw; virtual;}
-    function GetSize: integer;
-    procedure DrawPos(Pos: integer);
+    function GetSize: Integer;
+    procedure DrawPos(Pos: Integer);
     end;
 
   PFileViewer = ^TFileViewer;
   TFileViewer = object(TView)
-    OldSizeX: integer;
+    OldSizeX: Integer;
     Filtr: Boolean;
     NoEdit: Boolean;
     FileName: String;
@@ -47,7 +47,7 @@ type
     Lines: array[0..200] of
     record
       Pos: LongInt;
-      len: word;
+      len: Word;
       end;
     FilePos, FileSize, NumLines: LongInt;
     ExposedPos, ExposedLine: LongInt;
@@ -79,14 +79,14 @@ type
     procedure ShowView; virtual;
     procedure HideView; virtual;
     {procedure Draw; virtual;}
-    procedure SetXlatFile(const FName: String; DoRedraw: Boolean);
+    {procedure SetXlatFile(const FName: String; DoRedraw: Boolean);}
     function ReadFile(const FName, VFName: String; NewStream: Boolean)
       : Boolean;
     {procedure SetState(AState: Word; Enable: Boolean); virtual;}
     {procedure HandleEvent(var Event: TEvent); virtual;}
     function WriteModify: Boolean;
-    procedure CountDown(ANumber: integer); virtual;
-    procedure CountUp(ANumber: integer); virtual;
+    procedure CountDown(ANumber: Integer); virtual;
+    procedure CountUp(ANumber: Integer); virtual;
     procedure Seek(APos: LongInt);
     procedure MakeLines; virtual;
     procedure SaveToFile(FN: String);
@@ -111,12 +111,12 @@ function TViewScroll.GetPartCode: LongInt;
   Result := _TViewScroll^.GetPartCode(@Self);
   end;
 
-function TViewScroll.GetSize: integer;
+function TViewScroll.GetSize: Integer;
   begin
   Result := _TViewScroll^.GetSize(@Self);
   end;
 
-procedure TViewScroll.DrawPos(Pos: integer);
+procedure TViewScroll.DrawPos(Pos: Integer);
   begin
   _TViewScroll^.DrawPos(Pos, @Self);
   end;
@@ -149,10 +149,10 @@ procedure TFileViewer.HideView;
 asm
 end;
 
-procedure TFileViewer.SetXlatFile(const FName: String; DoRedraw: Boolean);
+{procedure TFileViewer.SetXlatFile(const FName: String; DoRedraw: Boolean);
   begin
   _TFileViewer^.SetXlatFile(FName, DoRedraw, @Self);
-  end;
+  end;}
 
 function TFileViewer.ReadFile(const FName, VFName: String;
      NewStream: Boolean): Boolean;
@@ -165,12 +165,12 @@ function TFileViewer.WriteModify: Boolean;
   Result := _TFileViewer^.WriteModify(@Self);
   end;
 
-procedure TFileViewer.CountDown(ANumber: integer);
+procedure TFileViewer.CountDown(ANumber: Integer);
   assembler; {&Frame-}
 asm
 end;
 
-procedure TFileViewer.CountUp(ANumber: integer);
+procedure TFileViewer.CountUp(ANumber: Integer);
   assembler; {&Frame-}
 asm
 end;

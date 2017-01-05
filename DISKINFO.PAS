@@ -51,8 +51,8 @@ unit DiskInfo;
 interface
 
 uses
-  Lfn, Defines, Objects2, Streams, Drivers, Views, Dialogs, Dos, RStrings,
-  advance, advance1, advance2, advance3, Collect
+  Defines, Objects2, Streams, Drivers, Views, Dialogs, Dos, RStrings,
+  Advance, Advance1, Advance2, Advance3, Collect
   , VPUtils
   ; {JO}
 
@@ -79,7 +79,7 @@ type
     FreeMemory, TotalMemory: TSize;
     VolumeLabel: String[12];
     SerialNo: String[9]; { Rainbow }
-    NumFiles: integer;
+    NumFiles: Integer;
     Info: TDiskInfoRec;
     Delta: TPoint;
     constructor Init(R: TRect);
@@ -96,12 +96,9 @@ procedure DispInfo(var Info: TDiskInfoRec); {DataCompBoy}
 
 function CountDirLen(const Dir: String; Recurse: Boolean;
     {DataCompBoy, AK155}
-    var ClusterLen: TSize; var NumFiles, NumDirs: integer): TSize;
-procedure GetDrInfo(Drv: Byte);
+    var ClusterLen: TSize; var NumFiles, NumDirs: Integer): TSize;
 procedure ReadDiskInfo(const Dr: String; var B: TDiskInfoRec;
-     ShowFlags: integer);
-{JO}
-function Disk_Free(Drive: Byte): TSize;
+     ShowFlags: Integer);
 
 const
   CDiskInfo = #23#24;
@@ -122,7 +119,7 @@ type
   PTeamView = ^TTeamView;
   TTeamView = object(TView)
     LastTick: LongInt;
-    Strings: array[1..20] of integer;
+    Strings: array[1..20] of Integer;
     constructor Init(var R: TRect);
     procedure Draw; virtual;
     procedure Update; virtual;
@@ -140,8 +137,8 @@ var
   FreeSpc, TotalSpc: TSize;
   {-DataCompBoy-}
   DriveData: record
-    {00}RecSize: word;
-    {02}StructVersion: word;
+    {00}RecSize: Word;
+    {02}StructVersion: Word;
     {04}SectorsPerCluster: LongInt;
     {08}BytesPerSector: LongInt;
     {0C}AvailClusters: LongInt;
@@ -158,7 +155,7 @@ var
 implementation
 uses
   Startup, DNApp, Commands, DNHelp, Tree, xTime
-  , VpSysLow
+  , VpSysLow, Lfn, U_KeyMap, Events
   , FlTl
   ;
 
@@ -197,9 +194,9 @@ procedure GetSerFileSys(var SerialNo, FileSys: String);
       S := S+Values[I mod 16];
       I := I div 16;
     until I = 0;
-    for A := 3 DownTo Length(S) do
+    for A := 3 downto Length(S) do
       S1 := S1+'0';
-    for A := Length(S) DownTo 1 do
+    for A := Length(S) downto 1 do
       S1 := S1+S[A];
     Word2Hex := S1;
     end;
@@ -211,7 +208,7 @@ procedure GetSerFileSys(var SerialNo, FileSys: String);
     SerialNo := Word2Hex(DWord[2])+'-'+Word2Hex(DWord[1])
   else
     SerialNo := '';
-  FileSys := GetDriveTypeString(GetCurDrive);
+  FileSys := GetFSString(GetCurDrive);
   SerFileSys := rc = 0;
   {$ELSE} {$IFDEF Win32}
   FileSys := GetFSString(GetCurDrive);
@@ -232,7 +229,7 @@ function GetRndBytes(B, Rnd: LongInt): LongInt;
 constructor TTeamView.Init;
   begin
   inherited Init(R);
-  UpdTicks := 9;
+  UpdTicks := 500;
   Options := Options or ofPreProcess;
   RegisterToBackground(@Self);
   end;
@@ -241,8 +238,8 @@ procedure TTeamView.Draw;
   var
     B: TDrawBuffer;
     S: String;
-    I: integer;
-    C: word;
+    I: Integer;
+    C: Word;
   begin
   C := Owner^.GetColor($0807);
   MoveChar(B, ' ', C, Size.X);
@@ -254,7 +251,7 @@ procedure TTeamView.Draw;
     MoveChar(B, ' ', C, Size.X);
     if  (Strings[I] > 0) and (Strings[I] < MaxTeam) then
       begin
-      S := GetString(TStrIdx(integer(dlTeamAll)+Strings[I]));
+      S := GetString(TStrIdx(Integer(dlTeamAll)+Strings[I]));
       MoveCStr(B[(Size.X-CStrLen(S)) div 2], S, C);
       end;
     WriteLine(0, I, Size.X, 1, B);
@@ -265,7 +262,7 @@ procedure TTeamView.Update;
   var
     L, I: LongInt;
   begin
-  Move(Strings[2], Strings[1], (Size.Y-2)*SizeOf(integer));
+  Move(Strings[2], Strings[1], (Size.Y-2)*SizeOf(Integer));
   if  (Strings[Size.Y-1] > 0) and (Strings[Size.Y-1] < MaxTeam)
   then
     Inc(Strings[Size.Y-1]);
@@ -282,18 +279,18 @@ procedure TTeamView.HandleEvent(var Event: TEvent);
     begin
     ClearEvent(Event);
     Update;
-    NewTimer(UpTmr, 36)
+    NewTimer(UpTmr, 2000)
     end
   else if (Event.What = evKeyDown) and (Event.KeyCode = kbUp) then
     begin
     ClearEvent(Event);
-    Move(Strings[1], Strings[2], (Size.Y-2)*SizeOf(integer));
+    Move(Strings[1], Strings[2], (Size.Y-2)*SizeOf(Integer));
     if Strings[1] > 0 then
       Dec(Strings[1]);
     if  (Strings[1] = 0) and (Strings[Size.Y-1] = 0) then
       Strings[1] := MaxTeam;
     DrawView;
-    NewTimer(UpTmr, 36)
+    NewTimer(UpTmr, 2000)
     end
   end;
 
@@ -367,7 +364,7 @@ function TDiskInfo.GetPalette;
 
 procedure TDiskInfo.ReadData;
   var
-    MemBlocks, I: word;
+    MemBlocks, I: Word;
   begin
   Abort := False;
   {$IFNDEF OS_DOS}
@@ -392,7 +389,7 @@ procedure TDiskInfo.HandleEvent;
   procedure ReadInfoBBS;
     var
       F: PTextReader;
-      I: integer;
+      I: Integer;
       Nm: String;
       DZ: String;
     begin
@@ -417,7 +414,7 @@ procedure TDiskInfo.HandleEvent;
       F := New(PTextReader, Init(GetPath(S)+FreeStr));
       end;
     if F = nil then
-      exit;
+      Exit;
     {$IFNDEF OS2}
     Nm := GetName(lfGetShortFileName(S));
     {$ELSE}
@@ -430,7 +427,7 @@ procedure TDiskInfo.HandleEvent;
         begin
         I := PosChar(' ', FreeStr);
         if I = 0 then
-          continue;
+          Continue;
         if UpStrg(Copy(FreeStr, 1, I-1)) = UpStrg(Nm) then
           begin
           Delete(FreeStr, 1, I);
@@ -440,7 +437,7 @@ procedure TDiskInfo.HandleEvent;
             FreeStr := F^.GetStr;
           until F^.Eof or (Info.DirInfo^.Count >= 100) or (FreeStr = '')
            or (FreeStr[1] <> ' ');
-          break;
+          Break;
           end;
         end;
       end;
@@ -512,7 +509,7 @@ procedure TDiskInfo.HandleEvent;
           ifReadMeTxt:
             S := sReadMeTxt;
           else {case}
-            exit;
+            Exit;
         end {case};
         S := MakeNormName(Dir, S);
         Message(Application, evCommand, cmFileEdit, @S);
@@ -547,13 +544,13 @@ procedure TDiskInfo.HandleEvent;
 procedure TDiskInfo.Draw;
   var
     B: TDrawBuffer;
-    C, Y, X: word;
+    C, Y, X: Word;
     S1, S2: String[20];
     CC: Boolean;
 
   procedure Wrt(S: String);
     var
-      I: integer;
+      I: Integer;
     begin
     MoveChar(B, ' ', C, Size.X);
     I := (Size.X-CStrLen(S)) div 2;
@@ -566,7 +563,7 @@ procedure TDiskInfo.Draw;
 
   procedure Wrt_(S: String); {временно!!!}
     var
-      I: integer;
+      I: Integer;
     begin
     MoveChar(B, ' ', C, Size.X);
     I := (Size.X-CStrLen(S)) div 2;
@@ -580,7 +577,7 @@ procedure TDiskInfo.Draw;
     Inc(Y);
     end;
 
-  procedure XWrt(P: PString; Flag: word);
+  procedure XWrt(P: PString; Flag: Word);
     begin
     if  (P <> nil) and (DriveInfoData and Flag <> 0) then
       Wrt(P^);
@@ -677,7 +674,7 @@ procedure TDiskInfo.Draw;
       Wrt(#0+Copy(CnvString(Info.DirInfo^.At(X)), Delta.X,
            MaxStringLength)+#0);
       if Y > Size.Y then
-        break;
+        Break;
       end;
     end;
   MoveChar(B, ' ', C, Size.X);
@@ -695,11 +692,12 @@ function CountDirLen;
     SR: lSearchRec;
     DC: PDirCol;
   begin
-  NewTimer(Tmr, 1);
+  NewTimer(Tmr, 50);
   ClusterLen := 0;
   L := 0;
   NumFiles := 0;
   NumDirs := 0;
+  LongWorkBegin;
 
   New(DC, Init($10, $10, False));
   DC^.Insert(NewStr(Dir));
@@ -709,23 +707,23 @@ function CountDirLen;
     FreeStr := PString(DC^.At(0))^;
     DC^.AtFree(0);
     if Abort then
-      break;
+      Break;
 
     if TimerExpired(Tmr) then
       begin
-      NewTimer(Tmr, 3);
+      NewTimer(Tmr, 150);
       if ESC_Pressed then
         begin
         Abort := True;
         L := 0;
-        break
+        Break
         end;
       end;
 
-    if word(Length(FreeStr)) > MaxPathLen-1 then
+    if Word(Length(FreeStr)) > MaxPathLen-1 then
       begin
       Abort := True;
-      break
+      Break
       end;
 
     DosError := 0;
@@ -744,14 +742,14 @@ function CountDirLen;
           Inc(NumDirs); {AK155}
           if Recurse then
             begin
-            if  (word(Length(FreeStr))+word(Length(SR.FullName)) >
+            if  (Word(Length(FreeStr))+Word(Length(SR.FullName)) >
                  MaxPathLen-1)
               or (MaxAvail < Length(FreeStr+SR.FullName)+$41)
             then
               begin
               Abort := True;
               L := 0;
-              break
+              Break
               end;
             DC^.Insert(NewStr(MakeNormName(FreeStr, SR.FullName)));
             end;
@@ -779,32 +777,9 @@ function CountDirLen;
   DC^.FreeAll;
   Dispose(DC, Done);
   CountDirLen := L;
+  LongWorkEnd;
   end { CountDirLen };
 {-DataCompBoy-}
-
-{-DataCompBoy-}
-{-DataCompBoy-}
-
-{-DataCompBoy-}
-procedure GetDrInfo(Drv: Byte);
-  var
-    Dr: Char;
-  begin
-  if Drv = 0 then
-    Dr := GetCurDrive
-  else
-    Dr := Char(Drv+64);
-  FreeSpc := SysDiskFreeLong(Drv);
-  TotalSpc := SysDiskSizeLong(Drv);
-  BytesPerCluster := GetBytesPerCluster(Drv);
-  end;
-{-DataCompBoy-}
-
-function Disk_Free(Drive: Byte): TSize;
-  begin
-  GetDrInfo(Drive);
-  Disk_Free := FreeSpc;
-  end;
 
 {-DataCompBoy-}
 procedure ReadDiskInfo;
@@ -817,7 +792,8 @@ procedure ReadDiskInfo;
     Drv: Byte;
     F: PTextReader;
     DirLen: TSize;
-    NumFiles, NumDirs: integer;
+    NumFiles, NumDirs: Integer;
+    PathBuffer: array[0..255] of Char;
   begin
   ClrIO;
   if Dr = '' then
@@ -825,7 +801,7 @@ procedure ReadDiskInfo;
   else
     S := Dr;
   if Abort then
-    exit;
+    Exit;
 
   DispInfo(B);
 
@@ -833,9 +809,12 @@ procedure ReadDiskInfo;
   B.Dir := NewStr(S);
   Drv := Byte(S[1])-64;
 
-  GetDrInfo(Drv);
+  Strings.StrPCopy(@PathBuffer, S);
+  FreeSpc := VpSysLow.SysDiskFreeLongX(@PathBuffer);
+  TotalSpc := VpSysLow.SysDiskSizeLongX(@PathBuffer);
+  BytesPerCluster := GetBytesPerCluster(Drv);
   if Abort then
-    exit;
+    Exit;
   BytesPerCluster := GetBytesPerCluster(Drv);
 
   DirLen := 0;

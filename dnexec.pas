@@ -80,8 +80,8 @@ uses
   {$IFDEF WIN32}
   Windows,
   {$ENDIF}
-  DNUtil, advance, DNApp, advance1, Lfn,
-  Dos, advance3, FlPanelX, CmdLine, Views, advance2, Drivers, advance4,
+  DNUtil, Advance, DNApp, Advance1, Lfn,
+  Dos, Advance3, FlPanelX, CmdLine, Views, Advance2, Drivers, Advance4,
   VideoMan, Memory, VpSysLow, VPSysLo2,
   {$IFDEF UserSaver}
   UserSavr,
@@ -119,22 +119,8 @@ procedure AnsiExec(const Path: String; const ComLine: AnsiString);
   {    (например, 4OS2) внешние программы не видят ввода с  }
   {    клавиатуры                                           }
 
-  {Cat: чтобы ДН в Win9x не тормозил, повышаем ему приоритет. Однако, незачем
-        оставлять этот повышенный приоритет при запуске внешних программ}
-  {$IFDEF WIN95_HIGHPRIORITY}
-  if SysPlatformId = 1 then
-    {Win9x}
-    begin
-    SetPriorityClass(GetCurrentProcess, Normal_Priority_Class);
-    DosError := SysExecute(StrPCopy(PathBuf, Path), PChar(Ans1), nil,
-         ExecFlags = efAsync, nil, -1, -1, -1);
-    SetPriorityClass(GetCurrentProcess, High_Priority_Class);
-    end
-  else {WinNT}
-    {$ENDIF}
-    {/Cat}
-    DosError := SysExecute(StrPCopy(PathBuf, Path), PChar(Ans1), nil,
-         ExecFlags = efAsync, nil, -1, -1, -1);
+  DosError := SysExecute(StrPCopy(PathBuf, Path), PChar(Ans1), nil,
+      ExecFlags = efAsync, nil, -1, -1, -1);
 
   SysTVKbdInit;
   {Cat: в OS/2: боремся с интерпретацией Ctrl-C как Ctrl-Break
@@ -187,7 +173,7 @@ function Win32Program(S: PString): SmallWord;
   FSplit(RealName, Dir, Name, Ext);
   UpStr(Ext);
   if Ext <> '.EXE' then
-    exit;
+    Exit;
   FileMode := Open_Access_ReadOnly or open_share_DenyNone;
   ClrIO;
   Assign(f, RealName);
@@ -197,18 +183,18 @@ function Win32Program(S: PString): SmallWord;
     PathEnv := GetEnv('PATH');
     RealName := FSearch(S^, PathEnv);
     if RealName = '' then
-      exit;
+      Exit;
     Assign(f, RealName);
     Reset(f, 1);
     if IOResult <> 0 then
-      exit; {вообще-то, так быть не должно, раз мы ее нашли}
+      Exit; {вообще-то, так быть не должно, раз мы ее нашли}
     end;
   Seek(f, $3C);
   BlockRead(f, NewExeOffs, 2, l);
   if  (NewExeOffs = 0) or (l <> 2) then
     begin
     Close(f); {Cat}
-    exit;
+    Exit;
     end;
   Seek(f, NewExeOffs);
   BlockRead(f, NewHeader, SizeOf(NewHeader), l);
@@ -246,7 +232,7 @@ function GUIProgram(S: PString): Boolean;
   var
     SS: String;
     Flags: LongInt;
-    l: integer;
+    l: Integer;
   begin
   SS := S^;
   l := 0;
@@ -283,7 +269,7 @@ function GUIProgram(S: PString): Boolean;
 {-DataCompBoy-}
 procedure ExecStringRR(S: PString; WS: String; RR: Boolean);
   var
-    I: integer;
+    I: Integer;
     EV: TEvent;
     X, Y: SmallWord; {Cat}
     ScreenSize: TSysPoint; {Cat}
@@ -395,7 +381,7 @@ function SearchExt(FileRec: PFileRec; var HS: String): Boolean;
     s, s1: String;
     BgCh, EnCh: Char;
     EF, First: Boolean;
-    I: integer;
+    I: Integer;
     Local: Boolean;
     FName: String;
     UserParam: tUserParams;
@@ -423,7 +409,7 @@ RL:
     f := New(PTextReader, Init(SourceDir+'DN.EXT'));
     end;
   if f = nil then
-    exit;
+    Exit;
   AllRight := False;
   BgCh := '{';
   EnCh := '}';
@@ -446,7 +432,7 @@ RL:
       begin
       I := PosChar(BgCh, s);
       if  (I = 0) or (s[I+1] = BgCh) then
-        continue;
+        Continue;
       s1 := Copy(s, 1, I-1);
       DelLeft(s1);
       DelRight(s1);
@@ -463,7 +449,7 @@ RL:
             begin
             Dispose(f, Done);
             FreeTMaskData(D); {Cat}
-            exit;
+            Exit;
             end;
           {$IFNDEF OS2}
           Writeln(F1.T, '@echo off');
@@ -497,7 +483,7 @@ RL:
                 WriteEcho := False;
                 {$ENDIF}
                 Writeln(F1.T, s);
-                break
+                Break
                 end;
               end;
             if s <> '' then
@@ -521,7 +507,7 @@ RL:
               First := False;
               end;
             if  (f^.Eof) then
-              break;
+              Break;
             if not EF then
               s := f^.GetStr;
           until (IOResult <> 0) or Abort or EF;
@@ -557,7 +543,7 @@ function ExecExtFile(const ExtFName: String; UserParams: PUserParams;
     S, S1: String;
     FName, LFN: String;
     Event: TEvent;
-    I, J: integer;
+    I, J: Integer;
     Success, CD: Boolean;
     Local: Boolean;
     D: TMaskData;
@@ -582,14 +568,14 @@ RepeatLocal:
     F := New(PTextReader, Init(SourceDir+ExtFName));
     end;
   if F = nil then
-    exit;
+    Exit;
   while not F^.Eof do
     begin
     S := F^.GetStr;
     DelLeft(S);
     S1 := fDelLeft(Copy(S, 1, pred(PosChar(':', S))));
     if  (S1 = '') or (S1[1] = ';') then
-      continue;
+      Continue;
     D.Filter := S1;
     MakeTMaskData(D);
     if InExtFilter(FName, D) or InExtFilter(LFN, D) then
@@ -602,14 +588,14 @@ RepeatLocal:
   if Local then
     goto RepeatLocal;
   FreeTMaskData(D); {Cat}
-  exit;
+  Exit;
 1111:
   Delete(S, 1, Succ(Length(S1)));
   Dispose(F, Done);
   if not Application^.Valid(cmQuit) then
     begin
     FreeTMaskData(D); {Cat}
-    exit;
+    Exit;
     end;
   ClrIO;
   S1 := '';
@@ -626,7 +612,7 @@ RepeatLocal:
   if Abort then
     begin
     FreeTMaskData(D); {Cat}
-    exit;
+    Exit;
     end;
   if S[1] = '*' then
     Delete(S, 1, 1); {DelFC(S);}
@@ -673,7 +659,7 @@ procedure ExecFile(const FileName: String);
   procedure PutHistory(B: Boolean);
     begin
     if M = '' then
-      exit;
+      Exit;
     CmdLine.Str := M;
     CmdLine.StrModified := True;
     CmdDisabled := B;
@@ -698,7 +684,7 @@ procedure ExecFile(const FileName: String);
       RunOS2Command(M, False, ST);
       CmdLine.StrModified := True;
       Message(CommandLine, evKeyDown, kbDown, nil);
-      exit;
+      Exit;
       end;
     {$ENDIF}
     {AK155, см. dnutil.ExecCommandLine}

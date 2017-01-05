@@ -55,17 +55,16 @@ uses
   ;
 
 type
-
   PXDoubleWindow = ^TXDoubleWindow;
   TXDoubleWindow = object(TDoubleWindow)
-    procedure SetState(AState: word; Enable: Boolean); virtual;
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     end;
 
 implementation
 uses
-  Commands, advance, advance1, advance2, advance3, DNApp, DNUtil
+  Commands, Advance, Advance1, Advance2, Advance3, DNApp, DNUtil
   ;
 
 function TXDoubleWindow.GetPalette;
@@ -75,13 +74,16 @@ function TXDoubleWindow.GetPalette;
   GetPalette := @S;
   end;
 
-procedure TXDoubleWindow.SetState(AState: word; Enable: Boolean);
+procedure TXDoubleWindow.SetState(AState: Word; Enable: Boolean);
   begin
   inherited SetState(AState, Enable);
   if  (AState and sfDragging <> 0) or
       (AState and (sfSelected+sfActive) <> 0)
   then
     Separator^.Draw;
+  if ((AState and sfDragging) <> 0) and not Enable then
+    with Separator do
+      OldX := Origin.X;
   if AState = sfSelected then
     begin
     SetState(sfActive, Enable);
@@ -105,24 +107,25 @@ procedure TXDoubleWindow.SetState(AState: word; Enable: Boolean);
 procedure TXDoubleWindow.HandleEvent;
   var
     CE: Boolean;
-    LVisible, RVisible, LSelected: Boolean;
+    Visible, Selected: array[TPanelNum] of Boolean;
     EV: TEvent;
+    i: TPanelNum;
   begin
-  if RightView <> nil
-  then
-    RVisible := RightView^.GetState(sfVisible)
-  else
-    RVisible := False;
-  if LeftView <> nil then
+  Visible[pLeft] := False;
+  Visible[pRight] := False;
+  Selected := Visible;
+  for i := pLeft to pRight do
     begin
-    LVisible := LeftView^.GetState(sfVisible);
-    LSelected := LeftView^.GetState(sfSelected);
-    end
-  else
-    begin
-    LVisible := False;
-    LSelected := False;
+    with Panel[i] do
+      begin
+      if AnyPanel <> nil then
+        begin
+        Visible[i] := AnyPanel^.GetState(sfVisible);
+        Selected[i] := AnyPanel^.GetState(sfSelected);
+        end;
+      end;
     end;
+
   CE := True;
   case Event.What of
     evKeyDown:
@@ -157,32 +160,22 @@ procedure TXDoubleWindow.HandleEvent;
       case Event.Command of
         cmChangeDirectory:
           begin
-          if LTree = nil then
-            begin
-            if LSelected then
-              LeftView^.HandleEvent(Event)
-            else
-              RightView^.HandleEvent(Event);
-            end
-          else
-            begin
-            if not LSelected then
-              LeftView^.HandleEvent(Event)
-            else
-              RightView^.HandleEvent(Event);
-            end;
-          exit;
+          Panel[Selected[NonFilePanelType <> dtTree]].
+            FilePanel^.HandleEvent(Event);
+          Exit;
           end;
         cmChangeTree:
-          if LTree <> nil then
-            LTree^.HandleEvent(Event);
+          if NonFilePanelType = dtTree then
+            Panel[NonFilePanel].AnyPanel^.HandleEvent(Event);
         cmRereadInfo:
           begin
-          if LeftView <> nil then
-            LeftView^.HandleEvent(Event);
-          if RightView <> nil then
-            RightView^.HandleEvent(Event);
-          exit;
+          for i := pLeft to pRight do
+            begin
+            with Panel[i] do
+              if AnyPanel <> nil then
+                AnyPanel^.HandleEvent(Event);
+            end;
+          Exit;
           end;
         cmCloseLinked,
         cmMakeForced,
@@ -192,20 +185,12 @@ procedure TXDoubleWindow.HandleEvent;
         cmRereadDir:
           begin
           EV := Event;
-          LPanel^.HandleEvent(Event);
+          Panel[pLeft].FilePanel^.HandleEvent(Event);
           Event := EV;
-          RPanel^.HandleEvent(Event);
+          Panel[pRight].FilePanel^.HandleEvent(Event);
           ClearEvent(Event);
           end;
         cmPushName,
-        cmGetDirName:
-          begin
-          if LType = dtPanel then
-            LeftView^.HandleEvent(Event);
-          if RType = dtPanel then
-            RightView^.HandleEvent(Event);
-          exit
-          end;
         cmGetDirInfo,
         cmZoom,
         cmMaxi,
@@ -217,7 +202,6 @@ procedure TXDoubleWindow.HandleEvent;
         cmDiskInfo,
         {$IFDEF NETINFO}cmNetInfo, {-$VIV} {$ENDIF}
         cmLoadViewFile,
-        cmGLoadViewFile,
         cmPushFullName,
         cmPushFirstName,
         cmPushInternalName,
@@ -241,5 +225,4 @@ procedure TXDoubleWindow.HandleEvent;
   if  (Event.What <> evNothing) and CE then
     inherited HandleEvent(Event);
   end { TXDoubleWindow.HandleEvent };
-
 end.

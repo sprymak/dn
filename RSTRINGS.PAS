@@ -52,7 +52,7 @@ unit RStrings;
 interface
 
 uses
-  Defines, Objects2, Streams, advance6, Commands
+  Defines, Objects2, Streams, Advance6, Commands
   ;
 
 type
@@ -86,7 +86,7 @@ type
   {----------------------------------------------------------------------------}
 implementation
 uses
-  advance3, DNUtil
+  Advance3, DNUtil
   ;
 {----------------------------------------------------------------------------}
 const
@@ -116,7 +116,7 @@ function TIdxResource.Get;
 
   begin
   Chk;
-  Stream^.Seek(Index^[integer(Key)]);
+  Stream^.Seek(Index^[Integer(Key)]);
   Chk;
   Get := Stream^.Get;
   Chk;
@@ -133,20 +133,20 @@ constructor TIdxMaker.Init;
 
 procedure TIdxMaker.Put;
   begin
-  if Count <= integer(Key) then
-    Count := integer(Key)+1;
-  Index^[integer(Key)] := TempStream^.GetPos;
+  if Count <= Integer(Key) then
+    Count := Integer(Key)+1;
+  Index^[Integer(Key)] := TempStream^.GetPos;
   TempStream^.Put(Item);
   if TempStream^.Status <> stOK then
     begin
-    Writeln('Cannot write object #', integer(Key));
+    Writeln('Cannot write object #', Integer(Key));
     Halt(2);
     end;
   end;
 
 function TIdxMaker.Empty;
   begin
-  Empty := Index^[integer(Key)] = -1
+  Empty := Index^[Integer(Key)] = -1
   end;
 
 destructor TIdxMaker.Done;

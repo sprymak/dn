@@ -61,7 +61,7 @@ type
   TUniWindow = object(TWindow)
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     function GetPalette: PPalette; virtual;
-    function MakeScrollBar(AOptions: word): PScrollBar;
+    function MakeScrollBar(AOptions: Word): PScrollBar;
     procedure InitFrame; virtual;
     function ReactOnCmd: Boolean; virtual;
     end;

@@ -34,7 +34,6 @@ var
 
 {$IFDEF WIN32}
 var
-  RecodeAnsiNames: Boolean; {Cat, AK155}
   hExtCmd: THandle;
 procedure InitialiseKeyboardHandler;
 {$ENDIF}
@@ -239,15 +238,21 @@ function PhysMemAvail: Longint;  {AK155 20-08-2003}
 
 // VPUtils
 
+//JO: 24-06-2004 - new drive type dtOptical is introduced,
+//                 currently used only in OS/2 version;
 type
   TDriveType = ( dtFloppy, dtHDFAT, dtHDHPFS, dtInvalid,
                  dtNovellNet, dtCDRom, dtLAN, dtHDNTFS, dtUnknown,
-                 dtTVFS, dtHDExt2, dtJFS );
+                 dtTVFS, dtHDExt2, dtJFS, dtHDFAT32, dtOptical);
 
 function SysGetVolumeLabel(Drive: Char): ShortString;
 function SysSetVolumeLabel(Drive: Char; _Label: ShortString): Boolean;
 function SysGetForegroundProcessId: Longint;
 function SysGetBootDrive: Char;
+
+//JO: не рекомендуется использовать функцию SysGetDriveType
+//    в исходниках DN/2; желательно использовать вместо неё
+//    функцию GetDriveTypeNew из модуля FlTl
 function SysGetDriveType(Drive: Char): TDriveType;
 function SysGetVideoModeInfo( Var Cols, Rows, Colours : Word ): Boolean;
 function SysSetVideoMode(Cols, Rows: Word): Boolean;
@@ -397,7 +402,11 @@ function SysPlatformID: Longint;
 function SysPlatformName: String;
 function SysPlatformNameForId( _Id: Integer ): String;
 procedure SysBeep;
-procedure SysLowInit;
+
+{AK155 in 2.1 build 279 SysLowInitPreTLS and SysLowInitPostTLS
+ are inporowed are impowed instead SysLowInit }
+procedure SysLowInit; {for 2.1 build 274 and earlier}
+procedure SysLowInitPostTLS; {for 2.1 build 279 and later}
 
 // Clipboard interface
 

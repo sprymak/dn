@@ -46,7 +46,7 @@
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
-unit advance4; {OS/2 support}
+unit Advance4; {OS/2 support}
 
 interface
 
@@ -60,7 +60,7 @@ procedure RunOS2Command(Command: String; Bckg: Boolean;
 implementation
 
 uses
-  advance, Lfn, advance1, advance3, Drivers
+  Advance, Lfn, Advance1, Advance3, Drivers
   , Dos, DnExec
   ;
 { ------------------------------------ OS/2 API --------------------------- }
@@ -69,11 +69,11 @@ uses
 procedure RunOS2Command;
   var
     T: lText;
-    I: integer;
+    I: Integer;
     S, M, EX: String;
   begin
   if not OS2exec then
-    exit;
+    Exit;
   I := 1;
   repeat
     ClrIO;
@@ -82,7 +82,7 @@ procedure RunOS2Command;
     FileMode := $40;
     lResetText(T);
     if IOResult <> 0 then
-      break;
+      Break;
     Close(T.T);
     if InOutRes = 0 then
       Inc(I);

@@ -93,7 +93,7 @@ type
     procedure GotoContext(Context: AWord);
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-    procedure SetState(aState: word; Enable: Boolean); virtual;
+    procedure SetState(aState: Word; Enable: Boolean); virtual;
     destructor Done; virtual;
     end;
 
@@ -138,7 +138,7 @@ destructor THelpViewer.Done;
 procedure THelpViewer.GotoContext(Context: AWord);
   begin
   if Context >= $FFF0 then
-    exit;
+    Exit;
   if NumTopics = maxUndo then
     Move(Indexes[2], Indexes[1], (maxUndo-1)*SizeOf(THelpParameters))
   else
@@ -215,7 +215,7 @@ procedure THelpViewer.Draw;
       then
         begin
         Selected := KeyCount;
-        break;
+        Break;
         end;
     until (KeyCount >= Topic^.GetNumCrossRefs)
        or (KeyPoint.Y > Pos.Y+Size.Y);
@@ -281,7 +281,7 @@ procedure THelpViewer.HandleEvent(var Event: TEvent);
       D: TPoint;
     begin
     if  (Selected <= 0) or (Selected > Topic^.GetNumCrossRefs) then
-      exit;
+      Exit;
     Topic^.GetCrossRef(Selected, KeyPoint, KeyLength, KeyRef);
     ScrollTo(KeyPoint.X, KeyPoint.Y-1);
     end;
@@ -289,7 +289,7 @@ procedure THelpViewer.HandleEvent(var Event: TEvent);
   procedure SwitchToTopic(KeyRef: AWord);
     begin
     if KeyRef >= $FFF0 then
-      exit;
+      Exit;
     if NumTopics = maxUndo then
       Move(Indexes[2], Indexes[1], (maxUndo-1)*SizeOf(THelpParameters))
     else
@@ -321,7 +321,7 @@ procedure THelpViewer.HandleEvent(var Event: TEvent);
   procedure PrevTopic;
     begin
     if NumTopics = 1 then
-      exit;
+      Exit;
     Dec(NumTopics);
     if Topic <> nil then
       Dispose(Topic, Done);
@@ -361,7 +361,7 @@ procedure THelpViewer.HandleEvent(var Event: TEvent);
               if  (KeyPoint.Y > Delta.Y) or (KeyPoint.Y = Delta.Y)
                    and (KeyPoint.X >= Delta.X)
               then
-                break;
+                Break;
               Delta.Assign(0, 0);
             until False;
             ScrollTo(KeyPoint.X, KeyPoint.Y-1);
@@ -387,7 +387,7 @@ procedure THelpViewer.HandleEvent(var Event: TEvent);
               if  (KeyPoint.Y < Delta.Y) or (KeyPoint.Y = Delta.Y)
                    and (KeyPoint.X <= Delta.X)
               then
-                break;
+                Break;
               Delta.X := Limit.X;
               Delta.Y := Limit.Y;
             until False;
@@ -414,7 +414,7 @@ procedure THelpViewer.HandleEvent(var Event: TEvent);
           PutEvent(Event);
           end;
         else {case}
-          exit;
+          Exit;
       end {case};
       DrawView;
       ClearEvent(Event);
@@ -488,7 +488,7 @@ constructor THelpWindow.Init(HFile: PHelpFile; Context: AWord);
       Y1 := 20;
   R.Assign(0, 0, X1, Y1);
   inherited Init(R, GetString(dlHelp), 0);
-  Options := Options or ofCentered;
+  Options := Options or ofCentered or ofTileable;
   R.Grow(-2, -1);
   HelpView := New(PHelpViewer, Init(R,
         StandardScrollBar(sbHorizontal+sbHandleKeyboard),
@@ -532,7 +532,7 @@ procedure THelpWindow.HandleEvent;
     end;
   end { THelpWindow.HandleEvent };
 
-procedure THelpWindow.SetState(aState: word; Enable: Boolean);
+procedure THelpWindow.SetState(aState: Word; Enable: Boolean);
   begin
   inherited SetState(aState, Enable);
   if aState = sfDragging then

@@ -186,6 +186,8 @@ const
   hcMenuExample = 16549;
   hcMenuFormat = 16551;
   hcMenuTips = 16548;
+  hcMiscToggleCase = 48102;
+  hcMiscKbdLayout = 48103;
   hcMiscCapitalize = 48082;
   hcMiscCommands = 10005;
   hcMiscLower = 48081;
@@ -278,6 +280,8 @@ const
   hcYesNoCancelDialog = 48002;
   hcYesNoDialog = 48001;
   hc_ = 65535;
+
+//30.12.2004 Last 48103
 
 implementation
 

@@ -89,7 +89,7 @@ type
     Count: LongInt;
     Limit: LongInt;
     Delta: LongInt;
-    Status, ErrorInfo: integer; {!!! в OldColection}
+    Status, ErrorInfo: Integer; {!!! в OldColection}
     constructor Init(ALimit, ADelta: LongInt);
     constructor Load(var S: TStream);
     destructor Done; virtual;
@@ -101,7 +101,7 @@ type
     procedure AtReplace(Index: LongInt; Item: Pointer);
     procedure Delete(Item: Pointer);
     procedure DeleteAll;
-    procedure Error(Code, Info: integer); virtual;
+    procedure Error(Code, Info: Integer); virtual;
     function FirstThat(Test: Pointer): Pointer;
     procedure ForEach(Action: Pointer);
     procedure Free(Item: Pointer);
@@ -125,7 +125,7 @@ type
     Duplicates: Boolean;
     constructor Init(ALimit, ADelta: LongInt);
     constructor Load(var S: TStream);
-    function Compare(Key1, Key2: Pointer): integer; virtual;
+    function Compare(Key1, Key2: Pointer): Integer; virtual;
     function IndexOf(Item: Pointer): LongInt; virtual;
     procedure Insert(Item: Pointer); virtual;
     function KeyOf(Item: Pointer): Pointer; virtual;
@@ -157,7 +157,7 @@ type
     LongStrings: Boolean; {Cat}
     constructor Init(ALimit, ADelta: LongInt; ALongStrings: Boolean);
     {Cat}
-    function Compare(Key1, Key2: Pointer): integer; virtual;
+    function Compare(Key1, Key2: Pointer): Integer; virtual;
     procedure FreeItem(Item: Pointer); virtual;
     function GetItem(var S: TStream): Pointer; virtual;
     procedure PutItem(var S: TStream; Item: Pointer); virtual;
@@ -168,7 +168,7 @@ type
   PStrCollection = ^TStrCollection;
   TStrCollection = object(TSortedCollection)
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
-    function Compare(Key1, Key2: Pointer): integer; virtual;
+    function Compare(Key1, Key2: Pointer): Integer; virtual;
     procedure FreeItem(Item: Pointer); virtual;
     function GetItem(var S: TStream): Pointer; virtual;
     procedure PutItem(var S: TStream; Item: Pointer); virtual;
@@ -242,7 +242,7 @@ type
 type
   PDirCol = ^TDirCol;
   TDirCol = object(TStringCollection)
-    function Compare(Key1, Key2: Pointer): integer; virtual;
+    function Compare(Key1, Key2: Pointer): Integer; virtual;
     end;
   {-DataCompBoy-}
 
@@ -250,7 +250,7 @@ implementation
 uses
   Memory,
   Strings,
-  advance1
+  Advance1
   ;
 
 constructor TCollection.Init(ALimit, ADelta: LongInt);
@@ -321,7 +321,7 @@ procedure TCollection.AtInsert(Index: LongInt; Item: Pointer);
     if Limit > Count then
       begin
       if Index < Count then
-        for I := Count-1 DownTo Index do
+        for I := Count-1 downto Index do
           Items^[I+1] := Items^[I];
       Items^[Index] := Item;
       Inc(Count);
@@ -412,7 +412,7 @@ procedure TCollection.DeleteAll;
     Count := 0;
   end;
 
-procedure TCollection.Error(Code, Info: integer);
+procedure TCollection.Error(Code, Info: Integer);
   begin
   Status := Code;
   ErrorInfo := Info;
@@ -479,7 +479,7 @@ procedure TCollection.FreeAll;
   var
     I: LongInt;
   begin
-  for I := Count-1 DownTo 0 do
+  for I := Count-1 downto 0 do
     FreeItem(At(I));
   Count := 0;
   end;
@@ -503,7 +503,7 @@ function TCollection.IndexOf(Item: Pointer): LongInt;
     if At(I) = Item then
       begin
       IndexOf := I;
-      break;
+      Break;
       end;
   end;
 
@@ -545,7 +545,7 @@ procedure TCollection.Pack;
   var
     I: LongInt;
   begin
-  for I := Count-1 DownTo 0 do
+  for I := Count-1 downto 0 do
     if At(I) = nil then
       AtDelete(I);
   end;
@@ -581,7 +581,7 @@ constructor TSortedCollection.Load(var S: TStream);
   S.Read(Duplicates, SizeOf(Duplicates));
   end;
 
-function TSortedCollection.Compare(Key1, Key2: Pointer): integer;
+function TSortedCollection.Compare(Key1, Key2: Pointer): Integer;
   begin
   end;
 
@@ -635,7 +635,7 @@ function TSortedCollection.Search
         Search := True;
         if not Duplicates then
           L := I;
-        break;
+        Break;
         end;
       H := I-1;
       end;
@@ -659,7 +659,7 @@ constructor TStringCollection.Init(ALimit, ADelta: LongInt;
   LongStrings := ALongStrings;
   end;
 
-function TStringCollection.Compare(Key1, Key2: Pointer): integer;
+function TStringCollection.Compare(Key1, Key2: Pointer): Integer;
   var
     I, J: LongInt;
     P1, P2: PString;
@@ -785,7 +785,7 @@ function TLineCollection.GetItem;
 
 { TStrCollection }
 
-function TStrCollection.Compare(Key1, Key2: Pointer): integer;
+function TStrCollection.Compare(Key1, Key2: Pointer): Integer;
   begin
   Compare := StrComp(Key1, Key2);
   end;
@@ -1165,7 +1165,7 @@ var
 procedure TSortedCollection.Sort;
   begin
   if Count <= 0 then
-    exit; {JO не удалять! иначе падаем по Ctrl-H и т.п.}
+    Exit; {JO не удалять! иначе падаем по Ctrl-H и т.п.}
   QSort;
   end;
 

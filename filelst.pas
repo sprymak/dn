@@ -54,22 +54,22 @@ uses
   ;
 
 procedure MakeListFile(APP: Pointer; Files: PCollection);
-function ParseAddress(Address: String; var Zone, Net, Node, Point: word)
+function ParseAddress(Address: String; var Zone, Net, Node, Point: Word)
   : Boolean;
 
 implementation
 uses
-  Startup, Lfn, Messages, Defines, FilesCol, advance2, advance1, UserMenu,
-  advance, HistList, Commands, DNApp, DNUtil, Tree, Views, Drivers, Drives
+  Startup, Lfn, Messages, Defines, FilesCol, Advance2, Advance1, UserMenu,
+  Advance, HistList, Commands, DNApp, DNUtil, Tree, Views, Drivers, Drives
   {, dnfuncs} {надо вставлять до Dos}
   , Dos
   , ErrMess, FlPanelX
   ;
 
-function ParseAddress(Address: String; var Zone, Net, Node, Point: word)
+function ParseAddress(Address: String; var Zone, Net, Node, Point: Word)
   : Boolean;
   var
-    I, J: integer;
+    I, J: Integer;
   begin
   ParseAddress := False;
   Point := 0;
@@ -81,7 +81,7 @@ function ParseAddress(Address: String; var Zone, Net, Node, Point: word)
     begin
     Val(Copy(Address, 1, I-1), Zone, J);
     if J <> 0 then
-      exit;
+      Exit;
     Delete(Address, 1, I);
     end;
   I := PosChar('/', Address);
@@ -89,7 +89,7 @@ function ParseAddress(Address: String; var Zone, Net, Node, Point: word)
     begin
     Val(Copy(Address, 1, I-1), Net, J);
     if J <> 0 then
-      exit;
+      Exit;
     Delete(Address, 1, I);
     end;
   I := PosChar('.', Address);
@@ -97,14 +97,14 @@ function ParseAddress(Address: String; var Zone, Net, Node, Point: word)
     begin
     Val(Copy(Address, I+1, MaxStringLength), Point, J);
     if J <> 0 then
-      exit;
+      Exit;
     Delete(Address, I, MaxStringLength);
     end;
   if Length(Address) > 0 then
     begin
     Val(Address, Node, J);
     if J <> 0 then
-      exit;
+      Exit;
     end;
   ParseAddress := True;
   end { ParseAddress };
@@ -112,7 +112,7 @@ function ParseAddress(Address: String; var Zone, Net, Node, Point: word)
 procedure MakeListFile;
   label AddrError, Retry;
   var
-    I, J, K: integer;
+    I, J, K: Integer;
     D, Dr, SR, Sn: String;
     P: PFileRec;
     S: TMakeListRec;
@@ -122,10 +122,10 @@ procedure MakeListFile;
     FidoMode: Boolean;
     SS: String;
     PP: PString;
-    ZZ, NN, ND, PT: word;
+    ZZ, NN, ND, PT: Word;
     BB: Boolean;
     FLD, Dr_: String;
-    CurPos: integer;
+    CurPos: Integer;
     UPr: tUserParams;
     RC: LongInt;
 
@@ -164,7 +164,7 @@ procedure MakeListFile;
       then
         begin
         SomeFilesExist := True;
-        exit
+        Exit
         end
     end;
 
@@ -241,7 +241,7 @@ Fail: { Cannot find place to insert !\ }
 
   begin { MakeListFile }
   if Files^.Count = 0 then
-    exit;
+    Exit;
   Message(APP, evBroadcast, cmGetUserParams, @UPr);
   FillChar(S, SizeOf(S), 0);
   S.FileName := HistoryStr(hsMakeList, 0);
@@ -261,7 +261,7 @@ Fail: { Cannot find place to insert !\ }
       begin
       BB := BB or (PFileRec(Files^.At(I))^.Owner <> PP);
       if BB then
-        break;
+        Break;
       end;
     if BB then
       S.Options := S.Options or cmlPathNames
@@ -269,7 +269,7 @@ Fail: { Cannot find place to insert !\ }
       S.Options := S.Options and not cmlPathNames;
     end;
   if  (ExecResource(dlgMakeList, S) <> cmOK) then
-    exit;
+    Exit;
   MakeListFileOptions := S.Options;
   while S.Action[Length(S.Action)] = ' ' do
     SetLength(S.Action, Length(S.Action)-1);
@@ -292,14 +292,14 @@ Retry:
       SS := '';
 AddrError:
       if ExecResource(dlgFTNInfo, SS) = cmCancel then
-        exit;
+        Exit;
       if PosChar(',', SS) > 0 then
         I := Pos('/FIDO=', FMSetup.DIZ);
       if I > 0 then
         begin
         for J := I to 255 do
           if FMSetup.DIZ[J] = ';' then
-            break;
+            Break;
         Delete(FMSetup.DIZ, I, J-I+1);
         end;
       if FMSetup.DIZ[Length(FMSetup.DIZ)] <> ';' then
@@ -352,7 +352,7 @@ AddrError:
   FLD := Dr;
   CreateDirInheritance(Dr, False);
   if Abort then
-    exit;
+    Exit;
   lAssignText(T, D);
   ClrIO;
   lResetText(T);
@@ -372,7 +372,7 @@ AddrError:
       cmYes:
         lRewriteText(T);
       else {case}
-        exit;
+        Exit;
     end {case};
     end
   else
@@ -380,13 +380,13 @@ AddrError:
   if Abort then
     begin
     Close(T.T);
-    exit;
+    Exit;
     end;
   RC := IOResult;
   if RC <> 0 then
     begin
     MessFileNotOpen(Cut(S.FileName, 40), RC);
-    exit;
+    Exit;
     end;
   if  (S.Header <> '') and not FidoMode then
     begin

@@ -50,7 +50,7 @@ unit arc_IS3; {IS3}
 interface
 
 uses
-  Archiver, advance, advance1, Defines, Objects2, Streams
+  Archiver, Advance, Advance1, Defines, Objects2, Streams
   ;
 
 type
@@ -99,9 +99,8 @@ constructor TIS3Archive.Init;
   Sign := Sign+#0;
   FreeStr := SourceDir+DNARC;
   TObject.Init;
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'ICOMP.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,
-       'ICOMP.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'ICOMP'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'ICOMP'));
   Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, '-d'));
   ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, '-d -i'));
   Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, '-c'));
@@ -172,7 +171,7 @@ procedure TIS3Archive.GetFile;
     P1: IS3FolderHdr;
     FP, FO: LongInt;
     C: Char;
-    I: integer;
+    I: Integer;
     S: String;
   begin
   if FoldersOffs < 0 then
@@ -192,13 +191,13 @@ procedure TIS3Archive.GetFile;
   if  (FilesNumber = 0) then
     begin
     FileInfo.Last := 1;
-    exit;
+    Exit;
     end;
   ArcFile^.Read(P, SizeOf(P));
   if  (ArcFile^.Status <> stOK) then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   FO := FoldersOffs;
   FileInfo.FName := '';

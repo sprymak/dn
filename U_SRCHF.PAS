@@ -62,7 +62,7 @@ function FindFileWithSPF(pFileName: String; Info: PWhileView): String;
 implementation
 
 uses
-  Dos, advance, advance1, advance2, advance3, Messages, DnIni
+  Dos, Advance, Advance1, Advance2, Advance3, Messages, DnIni
   ;
 
 {-DataCompBoy-}
@@ -74,10 +74,10 @@ function RecursiveCheck(Name, pPath: String; DoMore: Boolean;
   label q;
   begin
   if Abort then
-    exit;
+    Exit;
   DispatchEvents(Info, Abort);
   if Abort then
-    exit;
+    Exit;
   SC.Init($10, $10, False);
   RecursiveCheck := '';
   SC.AtInsert(0, NewStr(pPath));
@@ -137,7 +137,7 @@ function FindFileWithSPF(pFileName: String; Info: PWhileView): String;
     F: lText;
     S, S2: String;
     IsSec, Found, InSq: Boolean;
-    P, I: integer;
+    P, I: Integer;
     D: TMaskData;
   label ex;
   begin
@@ -146,7 +146,7 @@ function FindFileWithSPF(pFileName: String; Info: PWhileView): String;
   if ExistFile(pFileName) then
     begin
     FindFileWithSPF := pFileName;
-    exit;
+    Exit;
     end;
   if CharCount('.', pFileName) = 0 then
     pFileName := pFileName+'.';
@@ -156,7 +156,7 @@ function FindFileWithSPF(pFileName: String; Info: PWhileView): String;
     begin
     lRewriteText(F);
     if IOResult <> 0 then
-      exit;
+      Exit;
     Writeln(F.T, '; Dos Navigator Search Paths file');
     Writeln(F.T);
     Writeln(F.T, GetString(dlSPF01));
@@ -187,7 +187,7 @@ function FindFileWithSPF(pFileName: String; Info: PWhileView): String;
     Close(F.T);
     Info^.Hide; {Cat}
     MessageBox(GetString(dlSPFht), nil, mfOKButton);
-    exit;
+    Exit;
     end;
   IsSec := False;
   Found := False;
@@ -198,7 +198,7 @@ function FindFileWithSPF(pFileName: String; Info: PWhileView): String;
     Readln(F.T, S);
     S := fDelLeft(fDelRight(S));
     if  (S = '') or (Copy(S, 1, 1) = ';') then
-      continue;
+      Continue;
     if  (S[1] = '[') then
       begin
       IsSec := False;

@@ -1,4 +1,4 @@
-unit uue2inc;
+unit Uue2Inc;
 (******
 
 Pascal version of UUE2INC.ASM
@@ -20,16 +20,16 @@ type
   T64 = record
     case Byte of
       0: (l0, l1: LongInt);
-      1: (W0, W1, W2, W3: word);
+      1: (W0, W1, W2, W3: Word);
       2: (C0: Comp);
     end;
 
 procedure Prepare1Str(var Sou, Dst);
 function GetUUxlt(b: Byte): Char;
 function GetLnCrc(var Buf; Size: LongInt): Char;
-procedure cCRC(var Buf; Size: LongInt; var PrevSum: word);
+procedure cCRC(var Buf; Size: LongInt; var PrevSum: Word);
 procedure CRC64(var Buf; Size: LongInt; var PrevSum: T64;
-     var PrevCnt: word);
+     var PrevCnt: Word);
 procedure Clear64(var n: T64);
 
 implementation
@@ -86,7 +86,7 @@ function GetUUxlt(b: Byte): Char;
   GetUUxlt := UUxlt[b]
   end;
 
-procedure cCRC(var Buf; Size: LongInt; var PrevSum: word);
+procedure cCRC(var Buf; Size: LongInt; var PrevSum: Word);
   var
     buf_: array[1..65520] of Byte absolute Buf;
     i: LongInt;
@@ -100,7 +100,7 @@ procedure cCRC(var Buf; Size: LongInt; var PrevSum: word);
   end;
 
 procedure CRC64(var Buf; Size: LongInt; var PrevSum: T64;
-     var PrevCnt: word);
+     var PrevCnt: Word);
   var
     buf_: array[1..65520] of Byte absolute Buf;
     i: LongInt;
@@ -158,7 +158,7 @@ function GetLnCrc(var Buf; Size: LongInt): Char;
   var
     buf_: array[1..65520] of Byte absolute Buf;
     i: LongInt;
-    dx: word;
+    dx: Word;
   begin
   dx := 0;
   for i := 1 to Size do

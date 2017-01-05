@@ -67,7 +67,7 @@ implementation
 procedure TDStringView.Draw;
   var
     B: TDrawBuffer;
-    C: word;
+    C: Word;
   begin
   C := GetColor(1);
   MoveChar(B, ' ', C, Size.X);

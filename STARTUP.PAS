@@ -51,8 +51,8 @@ unit Startup;
 interface
 
 uses
-  Defines, Dos, Commands, advance,
-  advance1, advance2, advance3, Drivers, Collect
+  Defines, Dos, Commands, Advance,
+  Advance1, Advance2, Advance3, Drivers, Collect
   ;
 
 procedure FatalError(const S: String);
@@ -121,19 +121,19 @@ type
 
   TListBoxRec = record
     List: PCollection;
-    Focus: integer
+    Focus: Integer
     end;
   TTextListboxRec = record
     List: PTextCollection;
-    Focus: integer
+    Focus: Integer
     end;
 
   TSystemData = record
-    Options: word;
+    Options: Word;
     Mode1: String[5];
     Mode2: String[5];
     Temp: String;
-    CopyLimitBuf: word;
+    CopyLimitBuf: Word;
     ForceDefArch: String[3];
     Drives: array['A'..'Z'] of Byte;
     end;
@@ -164,9 +164,9 @@ type
     end;
 
   TMouseData = record
-    HSense: word;
-    VSense: word;
-    Options: word;
+    HSense: Word;
+    VSense: Word;
+    Options: Word;
     end;
 
   {$IFDEF SS}
@@ -187,21 +187,32 @@ type
     end;
   {$ENDIF}
 
+  TDriveInfoType = record
+    ForDrives: Word;
+    ExceptDrv: String[30];
+    TypeShowFor: Word;
+      FSShowFor: Word;
+    VLabShowFor: Word;
+    FreeSpShowFor: Word;
+    AddInfo: Word;
+    Tabulated: Word;
+    end;
+
   TInterfaceData = record
-    Options: word;
-    DrvInfType: word;
+    Options: Word;
+    DrvInfType: TDriveInfoType;
     end;
 
   TPanelDefaultsData = record
-    Sort: word;
-    Show: word;
-    LeftPanel: word;
+    Sort: Word;
+    Show: Word;
+    LeftPanel: Word;
     end;
 
   TFMSetup = record
-    Options: word;
-    Show: word;
-    Quick: word;
+    Options: Word;
+    Show: Word;
+    Quick: Word;
     TagChar: String[1];
     RestChar: String[1];
     DIZ: String;
@@ -216,13 +227,13 @@ type
     end;
 
   TEditorDefaultsData = record
-    EdOpt: word;
-    EdOpt2: word;
-    ViOpt: word;
+    EdOpt: Word;
+    EdOpt2: Word;
+    ViOpt: Word;
     LM,
     RM,
     PM: String[3];
-    NewLine: word;
+    NewLine: Word;
     TabSize: String[3];
     end;
 
@@ -237,8 +248,8 @@ type
     end;
 
   TTerminalDefaults = record
-    Emulation: word;
-    Options: word;
+    Emulation: Word;
+    Options: Word;
     end;
 
   TOldStartupData = record
@@ -246,31 +257,31 @@ type
     end;
 
   TStartupData = record
-    Load, Unload, Slice2: word;
+    Load, Unload: Word;
     end;
 
   TUUEncodeData = record
     Name: String;
-    Prefix, CheckSum: word;
+    Prefix, CheckSum: Word;
     NLines: String[5];
-    Format: word;
+    Format: Word;
     end;
 
   TNamesCaseOptions = record
-    Name: word;
-    ext: word;
+    Name: Word;
+    ext: Word;
     end;
 
   TTetrisRec = record
-    l: word;
-    S: word;
-    P: word;
+    l: Word;
+    S: Word;
+    P: Word;
     end;
 
   TComareDirsOptions = record
-    o: word;
+    o: Word;
     FMask: String;
-    S: word;
+    S: Word;
     end;
 
 var
@@ -295,11 +306,10 @@ const
 
   StartupData: TStartupData =
     (Load: osuRestoreScrMode;
-    Unload: 0;
-    Slice2: osuOnceRelease
+    Unload: 0
     );
 
-  Confirms: word = cfSingleErase+cfMultiErase+cfEraseReadonly+
+  Confirms: Word = cfSingleErase+cfMultiErase+cfEraseReadonly+
   cfEraseSubDir+cfMouseConfirm+cfExitConfirm+cfChaneLngWarning;
 
   TerminalDefaults: TTerminalDefaults = (Emulation: emANSIBBS;
@@ -334,6 +344,7 @@ const
 procedure InitMaskData;
 
 const
+
   InterfaceData: TInterfaceData = (
     Options: ouiClock+
     ouiEsc+
@@ -342,7 +353,15 @@ const
     ouiTrackEditors+
     ouiTrackViewers+
     ouiTrackDirs;
-    DrvInfType: 0
+    DrvInfType: (
+      ForDrives: 0;
+      ExceptDrv: 'AB';
+      TypeShowFor: ditHDD+ditFloppy+ditCDMO+ditProgr+ditNet;
+      FSShowFor: ditHDD;
+      VLabShowFor: ditHDD+ditProgr;
+      FreeSpShowFor: ditHDD+ditProgr;
+      AddInfo: 0;
+      Tabulated: 1)
     );
 
   PanelDefaults: TPanelDefaultsData = (
@@ -435,12 +454,12 @@ const
   ColumnsDefaultsDisk: record
     Params: array[1..10] of
     record
-      Param: word;
+      Param: Word;
       LFNLen: String[3];
       EXTLen: String[3];
       end;
-    FileCase: word;
-    DirsCase: word;
+    FileCase: Word;
+    DirsCase: Word;
     end = (
     Params: ((Param: 1; LFNLen: '12'; EXTLen: '3'), (Param: 1023;
          LFNLen: '12'; EXTLen: '3'),
@@ -461,12 +480,12 @@ const
   ColumnsDefaultsFind: record
     Params: array[1..10] of
     record
-      Param: word;
+      Param: Word;
       LFNLen: String[3];
       EXTLen: String[3];
       end;
-    FileCase: word;
-    DirsCase: word;
+    FileCase: Word;
+    DirsCase: Word;
     end = (
     Params: ((Param: 257; LFNLen: '12'; EXTLen: '3'), (Param: 511;
          LFNLen: '12'; EXTLen: '3'),
@@ -490,12 +509,12 @@ const
   ColumnsDefaultsTemp: record
     Params: array[1..10] of
     record
-      Param: word;
+      Param: Word;
       LFNLen: String[3];
       EXTLen: String[3];
       end;
-    FileCase: word;
-    DirsCase: word;
+    FileCase: Word;
+    DirsCase: Word;
     end = (
     Params: ((Param: 257; LFNLen: '12'; EXTLen: '3'), (Param: 511;
          LFNLen: '12'; EXTLen: '3'),
@@ -519,12 +538,12 @@ const
   ColumnsDefaultsArch: record
     Params: array[1..10] of
     record
-      Param: word;
+      Param: Word;
       LFNLen: String[3];
       EXTLen: String[3];
       end;
-    FileCase: word;
-    DirsCase: word;
+    FileCase: Word;
+    DirsCase: Word;
     end = (
     Params: ((Param: 1; LFNLen: '12'; EXTLen: '3'), (Param: 63;
          LFNLen: '12'; EXTLen: '3'),
@@ -543,12 +562,12 @@ const
   ColumnsDefaultsArvd: record
     Params: array[1..10] of
     record
-      Param: word;
+      Param: Word;
       LFNLen: String[3];
       EXTLen: String[3];
       end;
-    FileCase: word;
-    DirsCase: word;
+    FileCase: Word;
+    DirsCase: Word;
     end = (
     Params: ((Param: 1; LFNLen: '12'; EXTLen: '3'), (Param: 271;
          LFNLen: '12'; EXTLen: '3'),
@@ -732,17 +751,15 @@ StartupDir := SourceDir;
      else
       Writeln('Warning! Path specified in DNVP environment variable does not exist!');
 *)
-if PathExist(Dos.GetEnv('DN2')) or (Dos.GetEnv('DN2') = '') then
-  SourceDir := Dos.GetEnv('DN2')
-else
+SourceDir := Dos.GetEnv('DN2');
+DelLeft(SourceDir);
+if (SourceDir <> '') and not PathExist(SourceDir) then
+  begin
   Writeln(
     'Warning! Path specified in DN2 environment variable does not exist!');
+  SourceDir := '';
+  end;
 
-for FreeByte := 1 to Length(SourceDir) do
-  if SourceDir[FreeByte] <> ' ' then
-    break;
-if  (SourceDir <> '') and (SourceDir[FreeByte] <> ' ') then
-  SourceDir := Copy(SourceDir, FreeByte, MaxStringLength);
 if SourceDir = '' then
   SourceDir := StartupDir;
 if SourceDir[Length(SourceDir)] <> '\' then

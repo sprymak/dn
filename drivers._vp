@@ -228,10 +228,10 @@ procedure DoneEvents;
 procedure GetMouseEvent(var Event: TEvent);
   var
     SysMouseEvent: TSysMouseEvent;
-    CurTicks: word;
+    CurTicks: Word;
     B: Byte;
 
-  procedure StoreEvent(MouWhat: word);
+  procedure StoreEvent(MouWhat: Word);
     begin
     LastButtons := MouseButtons;
     MouseWhere.X := SysMouseEvent.smePos.X;
@@ -332,7 +332,7 @@ procedure UpdateMouseWhere;
 
 procedure GetKeyEvent(var Event: TEvent);
   var
-    I: integer;
+    I: Integer;
     SysKeyEvent: TSysKeyEvent;
 
     {Cat}
@@ -770,7 +770,7 @@ procedure PrintStr(const S: String);
 // high bytes of the words in Dest are set to Attr, or remain unchanged
 // if Attr is zero.
 
-procedure MoveBuf(var Dest; var Source; Attr: Byte; Count: word);
+procedure MoveBuf(var Dest; var Source; Attr: Byte; Count: Word);
   {&USES esi,edi} {&FRAME-}
 asm
                 mov     ecx,Count
@@ -794,7 +794,7 @@ asm
               @@4:
 end;
 
-procedure MoveColor(var Buf; Num: word; Attr: Byte);
+procedure MoveColor(var Buf; Num: Word; Attr: Byte);
   assembler; {$USES EBX, ECX}
 asm
    mov    EBX,Buf
@@ -814,7 +814,7 @@ end;
 // bytes of the words are set to Attr, or remain unchanged if Attr is
 // zero.
 
-procedure MoveChar(var Dest; C: Char; Attr: Byte; Count: word);
+procedure MoveChar(var Dest; C: Char; Attr: Byte; Count: Word);
   {&USES edi} {&FRAME-}
 asm
                 mov     ecx,Count
@@ -856,7 +856,7 @@ end;
 Это согласовано с advance.FormatLongName.MakeResult
 06.01.2001}
 
-procedure MoveCStr(var Dest; const Str: String; Attrs: word);
+procedure MoveCStr(var Dest; const Str: String; Attrs: Word);
   {&USES esi,edi} {&FRAME-}
 asm
                 xor     ecx,ecx
@@ -925,7 +925,7 @@ end;
 // are excluded from the length of the string, as they will not appear
 // on the screen.
 
-function CStrLen(const S: String): integer; {&USES edi}
+function CStrLen(const S: String): Integer; {&USES edi}
   {&FRAME-}
 asm
                 xor     ecx,ecx

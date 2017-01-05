@@ -50,7 +50,7 @@ unit arc_TAR; {TAR}
 interface
 
 uses
-  Archiver, advance, advance1, Defines, Objects2, Streams, Dos, xTime
+  Archiver, Advance, Advance1, Defines, Objects2, Streams, Dos, xTime
   ;
 
 type
@@ -122,8 +122,8 @@ constructor TTARArchive.Init;
   FreeStr := SourceDir+DNARC;
   TObject.Init;
   {$IFDEF WIN32}
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, '7Z.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, '7Z.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, '7Z'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, '7Z'));
   Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'e'));
   ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, 'x'));
   Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'a -ttar'));
@@ -158,8 +158,8 @@ constructor TTARArchive.Init;
   ExtrListChar := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtrListChar,
        '@'));
   {$ELSE}
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'TAR.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'TAR.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'TAR'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'TAR'));
   Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'xf'));
   ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, 'xf'));
   Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'cvf'));
@@ -229,13 +229,13 @@ procedure TTARArchive.GetFile;
   if ArcFile^.GetPos = ArcFile^.GetSize then
     begin
     FileInfo.Last := 1;
-    exit
+    Exit
     end;
   ArcFile^.Read(Buffer, BlkSize);
   if ArcFile^.Status <> stOK then
     begin
     FileInfo.Last := 2;
-    exit
+    Exit
     end;
   FileInfo.Last := 0;
   FileInfo.FName := Hdr.FName+#0;
@@ -243,7 +243,7 @@ procedure TTARArchive.GetFile;
   if FileInfo.FName = '' then
     begin
     FileInfo.Last := 1;
-    exit
+    Exit
     end;
   FileInfo.USize := FromOct(Hdr.Size);
   FileInfo.PSize := FileInfo.USize;

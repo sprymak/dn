@@ -20,7 +20,7 @@ type
   PUniWindow = ^TUniWindow;
   TUniWindow = object(TWindow)
     {function GetPalette: PPalette; virtual;}
-    function MakeScrollBar(AOptions: word): PScrollBar;
+    function MakeScrollBar(AOptions: Word): PScrollBar;
     {procedure InitFrame; virtual;}
     {function ReactOnCmd: Boolean; virtual;}
     end;
@@ -41,7 +41,7 @@ type
     Pos, LastPos: TPoint;
     MarkPos: TPosArray;
     WorkLine: LongInt;
-    DrawMode: integer;
+    DrawMode: Integer;
     WorkString, LastShape: LongString;
     OldBlockValid, SearchOnDisplay,
     InsertMode, VertBlock, Modified,
@@ -55,7 +55,7 @@ type
     ChPosition: Boolean;
     Macros: PCollection;
     Locker: PStream;
-    LastDir: integer;
+    LastDir: Integer;
     MemEnough: Boolean;
     KeyMap: TKeyMap;
     EdOpt: TEditOptions;
@@ -79,7 +79,7 @@ type
     {procedure SetState(AState: Word; Enable: Boolean); virtual;}
     function ValidBlock: Boolean;
     procedure CalcMenu;
-    function Search(StartX, StartY: word): Boolean;
+    function Search(StartX, StartY: Word): Boolean;
     procedure InsertBlock(ABlock: PCollection; SaveUndo: Boolean);
     procedure ModifyLine(Index: LongInt; S: LongString;
          DelSpaces: Boolean);
@@ -88,9 +88,9 @@ type
     procedure ScrollTo(DeltaX, DeltaY: LongInt);
     function LimitX: LongInt;
     function LimitY: LongInt;
-    procedure StoreUndoInfo(What: word; Where: TPoint; var Info);
+    procedure StoreUndoInfo(What: Word; Where: TPoint; var Info);
     function HandleCommand(var Event: TEvent): Boolean; virtual;
-    function KeyMapConvertStr(S: LongString; toAscii: Boolean): LongString;
+    {function KeyMapConvertStr(S: LongString; toAscii: Boolean): LongString;}
     procedure KeyMapAtInsert(N: LongInt; P: PLongString);
     procedure KeyMapAtReplace(N: LongInt; P: PLongString);
     end;
@@ -116,7 +116,7 @@ uses
   _DNFuncs
   ;
 
-function TUniWindow.MakeScrollBar(AOptions: word): PScrollBar;
+function TUniWindow.MakeScrollBar(AOptions: Word): PScrollBar;
   begin
   Result := PScrollBar(_TUniWindow^.MakeScrollBar(AOptions, @Self));
   end;
@@ -164,7 +164,7 @@ procedure TXFileEditor.CalcMenu;
   _TXFileEditor^.CalcMenu(@Self);
   end;
 
-function TXFileEditor.Search(StartX, StartY: word): Boolean;
+function TXFileEditor.Search(StartX, StartY: Word): Boolean;
   begin
   Result := _TXFileEditor^.Search(StartX, StartY, @Self);
   end;
@@ -200,7 +200,7 @@ function TXFileEditor.LimitY: LongInt;
   Result := _TXFileEditor^.LimitY(@Self);
   end;
 
-procedure TXFileEditor.StoreUndoInfo(What: word; Where: TPoint; var Info);
+procedure TXFileEditor.StoreUndoInfo(What: Word; Where: TPoint; var Info);
   begin
   _TXFileEditor^.StoreUndoInfo(What, Where, Info, @Self);
   end;
@@ -210,11 +210,11 @@ function TXFileEditor.HandleCommand(var Event: TEvent): Boolean;
 asm
 end;
 
-function TXFileEditor.KeyMapConvertStr(S: LongString; toAscii: Boolean)
+{function TXFileEditor.KeyMapConvertStr(S: LongString; toAscii: Boolean)
   : LongString;
   begin
   Result := _TXFileEditor^.KeyMapConvertStr(S, toAscii, @Self);
-  end;
+  end;}
 
 procedure TXFileEditor.KeyMapAtInsert(N: LongInt; P: PLongString);
   begin

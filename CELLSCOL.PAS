@@ -84,13 +84,13 @@ type
     function ReplaceItem
         (ACol: Byte; ARow: AInt; const A_S: String): PCellrec;
     function Get(Col: Byte; Row: AInt): PCellrec;
-    procedure SetValue(Col, Row: integer; AValue: CReal);
-    procedure DelItem(Col, Row: integer);
+    procedure SetValue(Col, Row: Integer; AValue: CReal);
+    procedure DelItem(Col, Row: Integer);
     procedure PutItem(var S: TStream; Item: Pointer); virtual;
     function GetItem(var S: TStream): Pointer; virtual;
     function MakeFormatString(AValue: CReal): String;
-    function Compare(K1, K2: Pointer): integer; virtual;
-    function TSort(var Start: integer): Boolean; {AK155}
+    function Compare(K1, K2: Pointer): Integer; virtual;
+    function TSort(var Start: Integer): Boolean; {AK155}
     procedure ForRectangle(AX: Byte; AY: AInt; {AK155}
         BX: Byte; BY: AInt; Action: Pointer); {см. комментарий к телу!}
     end;
@@ -135,14 +135,14 @@ const
 
 function MakeComma(S: String): String;
 function GetCellCoord(S: String; var X: Byte; var Y: AInt): Boolean;
-function GetColName(X: integer): ShortString;
-function GetRowName(Y: integer): String;
-function GetCellName(X, Y: integer): String;
+function GetColName(X: Integer): ShortString;
+function GetRowName(Y: Integer): String;
+function GetCellName(X, Y: Integer): String;
 
 implementation
 
 uses
-  Memory, advance, advance1, advance2, advance3, ObjType
+  Memory, Advance, Advance1, Advance2, Advance3, ObjType
   ;
 
 const
@@ -170,7 +170,7 @@ procedure TCellCollection.ShortStore(var S: TStream);
 constructor TCellCollection.ShortLoad(var S: TStream);
   var
     q: AWord;
-    C, I: integer;
+    C, I: Integer;
     ACount, ALimit, ADelta: AInt;
   begin
   S.Read(q, SizeOf(AWord));
@@ -222,9 +222,9 @@ function TCellCollection.NewItem
   Insert(Result);
   end;
 
-procedure TCellCollection.DelItem(Col, Row: integer);
+procedure TCellCollection.DelItem(Col, Row: Integer);
   var
-    I: integer;
+    I: Integer;
     P: PCellrec;
   begin
   for I := 1 to Count do
@@ -233,14 +233,14 @@ procedure TCellCollection.DelItem(Col, Row: integer);
     if  (P^.Row = Row) and (P^.Col = Col) then
       begin
       AtFree(I-1);
-      exit;
+      Exit;
       end;
     end;
   end;
 
-procedure TCellCollection.SetValue(Col, Row: integer; AValue: CReal);
+procedure TCellCollection.SetValue(Col, Row: Integer; AValue: CReal);
   var
-    I: integer;
+    I: Integer;
     P: PCellrec;
   begin
   for I := 1 to Count do
@@ -249,7 +249,7 @@ procedure TCellCollection.SetValue(Col, Row: integer; AValue: CReal);
     if  (P^.Row = Row) and (P^.Col = Col) then
       begin
       P^.Value := AValue;
-      exit;
+      Exit;
       end;
     end;
   end;
@@ -257,7 +257,7 @@ procedure TCellCollection.SetValue(Col, Row: integer; AValue: CReal);
 function TCellCollection.ReplaceItem
     (ACol: Byte; ARow: AInt; const A_S: String): PCellrec;
   var
-    I, D, O: integer;
+    I, D, O: Integer;
     SR: TCellSearcRec;
   begin
   SR.Col := ACol;
@@ -314,7 +314,7 @@ procedure TCellCollection.PutItem;
 function TCellCollection.GetItem;
   var
     R: TCellRec;
-    l: integer;
+    l: Integer;
   begin
   S.Read(R, LenSavedDataRec);
   S.Read(R.S[0], 1);
@@ -326,7 +326,7 @@ function TCellCollection.GetItem;
 
 function TCellCollection.Get(Col: Byte; Row: AInt): PCellrec;
   var
-    I: integer;
+    I: Integer;
     P: PCellrec;
     SR: TCellSearcRec;
   begin
@@ -339,7 +339,7 @@ function TCellCollection.Get(Col: Byte; Row: AInt): PCellrec;
 
 function TCellCollection.Compare;
   var
-    Col1, Col2, Row1, Row2: integer;
+    Col1, Col2, Row1, Row2: Integer;
   begin
   Compare := 0;
   if K1 = nil then
@@ -373,40 +373,40 @@ function TCellCollection.Compare;
 
 const
   Delim = ':(),+-*/%'#0;
-function TCellCollection.TSort(var Start: integer): Boolean;
+function TCellCollection.TSort(var Start: Integer): Boolean;
   type
     PSucPool = ^TSucPool;
     TSucPool = array[1..$FFFF] of record
-      Suc, Next: integer
+      Suc, Next: Integer
       end;
   const
     PoolUnit = 5;
   var
-    QLink: PWordArray;
+    QLink: PAWordArray;
     {У Кнута есть еще Count, как синоним QLink, но мы будем писать везде QLink}
     QLinkSize: LongInt;
-    Top: PWordArray; {Top^[0] не используем}
+    Top: PAWordArray; {Top^[0] не используем}
     TopSize: LongInt;
     SucPool: PSucPool;
     PoolCount: LongInt;
-    P: integer;
-    F, R: integer;
-    N: integer;
-    i, k, j: integer;
-    t: integer;
+    P: Integer;
+    F, R: Integer;
+    N: Integer;
+    i, k, j: Integer;
+    t: Integer;
     formula, c1, c2: String;
-    op: integer;
+    op: Integer;
     CurCell: PCellrec;
     SR, SR1, SR2: TCellSearcRec;
 
   function Scan(var sym: String): Boolean;
     var
-      t0: integer;
+      t0: Integer;
     begin
     if formula[T] = #0 then
       begin
       Result := False;
-      exit;
+      Exit;
       end;
     Result := True;
     while Pos(formula[T], Delim) <> 0 do
@@ -423,7 +423,7 @@ function TCellCollection.TSort(var Start: integer): Boolean;
 
   procedure RegisterPrev;
     var
-      j: integer;
+      j: Integer;
       l: LongInt;
       NewPool: PSucPool;
     begin
@@ -559,7 +559,7 @@ procedure TCellCollection.ForRectangle(AX: Byte; AY: AInt;
     Y: AInt;
     SR: TCellSearcRec;
     P: PCellrec;
-    I: integer;
+    I: Integer;
     ActionProc: TActionProc;
   begin
   @ActionProc := Action;
@@ -571,10 +571,10 @@ procedure TCellCollection.ForRectangle(AX: Byte; AY: AInt;
     while True do
       begin
       if  (I = Count) then
-        exit;
+        Exit;
       P := PCellrec(At(I));
       if  (P^.Row <> Y) or (P^.Col > BX) then
-        break;
+        Break;
       ActionProc(P);
       Inc(I);
       end;
@@ -585,14 +585,14 @@ procedure TCellCollection.ForRectangle(AX: Byte; AY: AInt;
 
 function GetCellCoord(S: String; var X: Byte; var Y: AInt): Boolean;
   var
-    I, J, ierr: integer;
+    I, J, ierr: Integer;
   begin
   Result := False;
   J := 1;
   if S[1] = '@' then
     Inc(J);
   if  (Length(S) <= J) then
-    exit;
+    Exit;
   UpStr(S);
   I := J;
   while (I <= Length(S)) and (S[I] >= 'A') and (S[I] <= 'Z') do
@@ -604,18 +604,18 @@ function GetCellCoord(S: String; var X: Byte; var Y: AInt): Boolean;
   else if I = J+2 then
     X := (Byte(S[J])-(Byte('A')-1))*26+Byte(S[J+1])-Byte('A')
   else
-    exit; {допускается только 1 или 2 буквы}
+    Exit; {допускается только 1 или 2 буквы}
 
   if S[I] = '@' then
     Inc(I);
   Val(Copy(S, I, 255), Y, ierr);
   if  (ierr <> 0) or (Y <= 0) or (Y > MaxCellY) then
-    exit;
+    Exit;
   Dec(Y);
   Result := True;
   end { GetCellCoord };
 
-function GetColName(X: integer): ShortString;
+function GetColName(X: Integer): ShortString;
   begin
   Result := 'AA';
   if X < 26 then
@@ -630,20 +630,20 @@ function GetColName(X: integer): ShortString;
     end
   end;
 
-function GetRowName(Y: integer): String;
+function GetRowName(Y: Integer): String;
   begin
   Str(Y+1, Result);
   end;
 
-function GetCellName(X, Y: integer): String;
+function GetCellName(X, Y: Integer): String;
   begin
   Result := GetColName(X)+GetRowName(Y);
   end;
 
 function MakeComma(S: String): String;
   var
-    I: integer;
-    K: integer;
+    I: Integer;
+    K: Integer;
   begin
   I := PosChar('.', S);
   if I = 0 then

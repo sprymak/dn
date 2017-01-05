@@ -57,7 +57,7 @@ interface
 
 uses
   Lfn, {DataCompBoy}DnIni, Collect, Defines, Streams, Drivers, Views,
-   advance6,
+   Advance6,
   Scroller, Validate, U_KeyMap
   ;
 
@@ -156,7 +156,7 @@ type
     constructor Load(var S: TStream);
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-    function Valid(Command: word): Boolean; virtual;
+    function Valid(Command: Word): Boolean; virtual;
     end;
 
   { TSItem }
@@ -177,6 +177,7 @@ type
 
   PInputline = ^TInputLine;
   TInputLine = object(TView)
+    {` Строка ввода с добавочными возможностями`}
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Data: PString;
     MaxLen: AInt;
@@ -185,29 +186,33 @@ type
     SelStart: AInt;
     SelEnd: AInt;
     Validator: PValidator;
-    DrawShift: Byte;
     CtrlK: Boolean;
+    LC, RC: Char; {` Крайние символы, когда они не символы обрезки.
+       Инициализируются пробелами, потом могут быть заданы извне.`}
+    C: array [1..Length(CInputLine)] of Byte; {` Цвета палитры. Могут
+      быть заранее заданы извне, а если это не сделано - при первом
+      Draw будут занесены стандартные.`}
     constructor Init(var Bounds: TRect; AMaxLen: AInt);
     constructor Load(var S: TStream);
     destructor Done; virtual;
-    function DataSize: word; virtual;
+    function DataSize: Word; virtual;
     procedure Draw; virtual;
     procedure GetData(var Rec); virtual;
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure SelectAll(Enable: Boolean);
     procedure SetData(var Rec); virtual;
-    procedure SetState(AState: word; Enable: Boolean); virtual;
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
     procedure SetValidator(AValid: PValidator);
     procedure Store(var S: TStream);
-    function Valid(Command: word): Boolean; virtual;
-    function CanScroll(Delta: integer): Boolean;
+    function Valid(Command: Word): Boolean; virtual;
+    function CanScroll(Delta: Integer): Boolean;
     end;
 
   PHexLine = ^THexLine;
   THexLine = object(TView)
     InputLine: PInputline;
-    DeltaX, CurX: integer;
+    DeltaX, CurX: Integer;
     Sec: Boolean;
     constructor Init(R: TRect; AInputLine: PInputline);
     constructor Load(var S: TStream);
@@ -236,8 +241,8 @@ type
     Flags: Byte;
     AmDefault: Boolean;
     constructor Init(var Bounds: TRect; const ATitle: TTitleStr;
-         ACommand: word;
-        AFlags: word);
+         ACommand: Word;
+        AFlags: Word);
     constructor Load(var S: TStream);
     destructor Done; virtual;
     procedure Draw; virtual;
@@ -246,7 +251,7 @@ type
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure MakeDefault(Enable: Boolean);
     procedure Press; virtual;
-    procedure SetState(AState: word; Enable: Boolean); virtual;
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
     procedure Store(var S: TStream);
     end;
 
@@ -269,27 +274,27 @@ type
     constructor Init(var Bounds: TRect; AStrings: PSItem);
     constructor Load(var S: TStream);
     destructor Done; virtual;
-    function ButtonState(Item: integer): Boolean;
-    function DataSize: word; virtual;
+    function ButtonState(Item: Integer): Boolean;
+    function DataSize: Word; virtual;
 
     procedure DrawBox(const Icon: String; Marker: Char);
     procedure DrawMultiBox(const Icon, Marker: String);
     procedure GetData(var Rec); virtual;
-    function GetHelpCtx: word; virtual;
+    function GetHelpCtx: Word; virtual;
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-    function Mark(Item: integer): Boolean; virtual;
-    function MultiMark(Item: integer): Byte; virtual;
-    procedure Press(Item: integer); virtual;
-    procedure MovedTo(Item: integer); virtual;
+    function Mark(Item: Integer): Boolean; virtual;
+    function MultiMark(Item: Integer): Byte; virtual;
+    procedure Press(Item: Integer); virtual;
+    procedure MovedTo(Item: Integer); virtual;
     procedure SetButtonState(AMask: LongInt; Enable: Boolean);
     procedure SetData(var Rec); virtual;
-    procedure SetState(AState: word; Enable: Boolean); virtual;
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
     procedure Store(var S: TStream);
   private
-    function Column(Item: integer): integer;
-    function FindSel(P: TPoint): integer;
-    function Row(Item: integer): integer;
+    function Column(Item: Integer): Integer;
+    function FindSel(P: TPoint): Integer;
+    function Row(Item: Integer): Integer;
     end;
 
   { TRadioButtons }
@@ -304,9 +309,9 @@ type
   TRadioButtons = object(TCluster)
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     procedure Draw; virtual;
-    function Mark(Item: integer): Boolean; virtual;
-    procedure MovedTo(Item: integer); virtual;
-    procedure Press(Item: integer); virtual;
+    function Mark(Item: Integer): Boolean; virtual;
+    procedure MovedTo(Item: Integer); virtual;
+    procedure Press(Item: Integer); virtual;
     procedure SetData(var Rec); virtual;
     end;
 
@@ -322,8 +327,8 @@ type
   TCheckBoxes = object(TCluster)
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     procedure Draw; virtual;
-    function Mark(Item: integer): Boolean; virtual;
-    procedure Press(Item: integer); virtual;
+    function Mark(Item: Integer): Boolean; virtual;
+    procedure Press(Item: Integer); virtual;
     end;
 
   { TMultiCheckBoxes }
@@ -341,14 +346,14 @@ type
     Flags: AWord;
     States: PString;
     constructor Init(var Bounds: TRect; AStrings: PSItem;
-        ASelRange: Byte; AFlags: word; const AStates: String);
+        ASelRange: Byte; AFlags: Word; const AStates: String);
     constructor Load(var S: TStream);
     destructor Done; virtual;
-    function DataSize: word; virtual;
+    function DataSize: Word; virtual;
     procedure Draw; virtual;
     procedure GetData(var Rec); virtual;
-    function MultiMark(Item: integer): Byte; virtual;
-    procedure Press(Item: integer); virtual;
+    function MultiMark(Item: Integer): Byte; virtual;
+    procedure Press(Item: Integer); virtual;
     procedure SetData(var Rec); virtual;
     procedure Store(var S: TStream);
     end;
@@ -366,12 +371,12 @@ type
   TListBox = object(TListViewer)
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     List: PCollection;
-    constructor Init(var Bounds: TRect; ANumCols: word;
+    constructor Init(var Bounds: TRect; ANumCols: Word;
         AScrollBar: PScrollBar);
     constructor Load(var S: TStream);
-    function DataSize: word; virtual;
+    function DataSize: Word; virtual;
     procedure GetData(var Rec); virtual;
-    function GetText(Item: LongInt; MaxLen: integer): String; virtual;
+    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
     procedure NewLisT(AList: PCollection); virtual;
     procedure SetData(var Rec); virtual;
     procedure Store(var S: TStream);
@@ -408,7 +413,7 @@ type
     constructor Init(var Bounds: TRect; const AText: String;
         AParamCount: AInt);
     constructor Load(var S: TStream);
-    function DataSize: word; virtual;
+    function DataSize: Word; virtual;
     procedure GetText(var S: String); virtual;
     procedure SetData(var Rec); virtual;
     procedure Store(var S: TStream);
@@ -453,9 +458,9 @@ type
          AHScrollBar, AVScrollBar: PScrollBar;
         AHistoryId: AWord);
     function GetPalette: PPalette; virtual;
-    function GetText(Item: LongInt; MaxLen: integer): String; virtual;
+    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-    function HistoryWidth: integer;
+    function HistoryWidth: Integer;
     end;
 
   { THistoryWindow }
@@ -508,7 +513,7 @@ function NewSItem(const Str: String; ANext: PSItem): PSItem;
 implementation
 
 uses
-  ASCIITab, HistList, advance, advance1, advance2, advance3, Commands,
+  ASCIITab, HistList, Advance, Advance1, Advance2, Advance3, Commands,
   Startup, xTime, FlPanelX, DNApp
   {, Crt}, VpSysLow
   ;
@@ -603,7 +608,7 @@ procedure TDialog.HandleEvent(var Event: TEvent);
   end {case};
   end { TDialog.HandleEvent };
 
-function TDialog.Valid(Command: word): Boolean;
+function TDialog.Valid(Command: Word): Boolean;
   begin
   if Command = cmCancel then
     Valid := True
@@ -621,7 +626,7 @@ function NewSItem(const Str: String; ANext: PSItem): PSItem;
   NewSItem := Item;
   end;
 
-function Max(A, B: integer): integer;
+function Max(A, B: Integer): Integer;
   inline;
   begin
   if A > B then
@@ -635,6 +640,8 @@ function Max(A, B: integer): integer;
 constructor TInputLine.Init(var Bounds: TRect; AMaxLen: AInt);
   begin
   TView.Init(Bounds);
+  LC := ' ';
+  RC := ' ';
   State := State or sfCursorVis;
   if  (InterfaceData.Options and ouiBlockInsertCursor <> 0) then
     BlockCursor;
@@ -646,14 +653,14 @@ constructor TInputLine.Init(var Bounds: TRect; AMaxLen: AInt);
   GetMem(Data, AMaxLen+1);
   Data^:= '';
   MaxLen := AMaxLen;
-  DrawShift := 1;
   CtrlK := False;
   end;
 
+{AK155 А интересно, в какой ситуации могут работать
+Load - Store для InputLine? Для ресурсов? }
 constructor TInputLine.Load(var S: TStream);
   begin
   TView.Load(S);
-  DrawShift := 1;
   {Cat:warn AnsiString}
   S.Read(MaxLen, SizeOf(AInt)*5);
   GetMem(Data, MaxLen+1);
@@ -674,7 +681,7 @@ destructor TInputLine.Done;
   TView.Done;
   end;
 
-function TInputLine.CanScroll(Delta: integer): Boolean;
+function TInputLine.CanScroll(Delta: Integer): Boolean;
   begin
   if Data = nil then
     CanScroll := False
@@ -686,9 +693,9 @@ function TInputLine.CanScroll(Delta: integer): Boolean;
     CanScroll := False;
   end;
 
-function TInputLine.DataSize: word;
+function TInputLine.DataSize: Word;
   var
-    DSize: word;
+    DSize: Word;
   begin
   DSize := 0;
   if Data <> nil then
@@ -707,46 +714,57 @@ function TInputLine.DataSize: word;
 procedure TInputLine.Draw;
   var
     Color: Byte;
-    L, R: integer;
+    L, R: Integer;
     B: TDrawBuffer;
     S: String;
+    i: Integer;
   begin
   if Data = nil then
-    exit;
-  if DrawShift = 0 then
-    SelStart := SelEnd;
+    Exit;
+  if (Owner <> nil) and (C[1] = 0) then
+    for i := 1 to 4 do
+      C[i] := GetColor(i);
   if State and sfFocused = 0 then
-    Color := GetColor(1)
+    Color := C[1]
   else
-    Color := GetColor(2);
+    Color := C[2];
   MoveChar(B, ' ', Color, Size.X);
-  S := Copy(Data^, FirstPos+1, Size.X-2*DrawShift);
-  MoveStr(B[DrawShift], S, Color);
+  S := Copy(Data^, FirstPos+1, Size.X-2);
+  MoveStr(B[1], S, Color);
   if Options and ofSecurity <> 0 then
-    MoveChar(B[DrawShift], #254, Color, Length(S));
-  if DrawShift > 0 then
-    begin
-    if CanScroll(1) then
-      MoveChar(B[Size.X-1], #16, GetColor(4), 1)
-    else
-      MoveChar(B[Size.X-1], #32, GetColor(4), 1);
-    MoveChar(B[0], #32, GetColor(4), 1);
-    end;
+    MoveChar(B[1], #254, Color, Length(S));
+  if CanScroll(1) then
+    MoveChar(B[Size.X-1], #16, C[4], 1)
+  else
+    MoveChar(B[Size.X-1], RC, C[4], 1);
+  MoveChar(B[0], LC, C[4], 1);
   if State and sfSelected <> 0 then
     begin
-    if  (DrawShift > 0) and CanScroll(-1) then
-      MoveChar(B[0], #17, GetColor(4), 1);
+    if CanScroll(-1) then
+      MoveChar(B[0], #17, C[4], 1);
     L := SelStart-FirstPos;
     R := SelEnd-FirstPos;
     if L < 0 then
       L := 0;
-    if R > Size.X-2*DrawShift then
-      R := Size.X-2*DrawShift;
+    if R > Size.X-2 then
+      R := Size.X-2;
     if L < R then
-      MoveChar(B[L+1], #0, GetColor(3), R-L);
+      MoveChar(B[L+1], #0, C[3], R-L);
     end;
+  {$IFDEF OS2}
+  if PMWindowed and (WordRec(B[CurPos-FirstPos+1]).Hi and $F0 =
+       $80)
+  then
+    {JO: чтобы решить пробему курсора на сером фоне в окне}
+    begin
+    WordRec(B[CurPos-FirstPos+1])
+        .Hi := WordRec(B[CurPos-FirstPos+1]).Hi and $0F;
+    if WordRec(B[CurPos-FirstPos+1]).Hi and $FF = 0 then
+      WordRec(B[CurPos-FirstPos+1]).Hi := $07;
+    end;
+  {$ENDIF}
   WriteLine(0, 0, Size.X, Size.Y, B);
-  SetCursor(CurPos-FirstPos+DrawShift, 0);
+  SetCursor(CurPos-FirstPos+1, 0);
   end { TInputLine.Draw };
 
 procedure TInputLine.GetData(var Rec);
@@ -773,38 +791,38 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
   const
     PadKeys = [$47, $4B, $4D, $4F, $73, $74];
   var
-    Delta, Anchor, I: integer;
+    Delta, Anchor, I: Integer;
     OldScanCode: Byte;
     ExtendBlock: Boolean;
     OldData: String;
     OldCurPos, OldFirstPos,
-    OldSelStart, OldSelEnd: integer;
+    OldSelStart, OldSelEnd: Integer;
     S: String;
     pS: PString;
     R: TRect;
 
-  function MouseDelta: integer;
+  function MouseDelta: Integer;
     var
       Mouse: TPoint;
     begin
     MakeLocal(Event.Where, Mouse);
-    if Mouse.X < DrawShift then
+    if Mouse.X < 1 then
       MouseDelta := -1
-    else if Mouse.X >= Size.X-DrawShift then
+    else if Mouse.X >= Size.X-1 then
       MouseDelta := 1
     else
       MouseDelta := 0;
     end;
 
-  function MousePos: integer;
+  function MousePos: Integer;
     var
-      Pos: integer;
+      Pos: Integer;
       Mouse: TPoint;
     begin
     MakeLocal(Event.Where, Mouse);
-    if Mouse.X < DrawShift then
-      Mouse.X := DrawShift;
-    Pos := Mouse.X+FirstPos-DrawShift;
+    if Mouse.X < 1 then
+      Mouse.X := 1;
+    Pos := Mouse.X+FirstPos-1;
     if Pos < 0 then
       Pos := 0;
     if Pos > Length(Data^) then
@@ -863,7 +881,7 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
 
   function CheckValid(NoAutoFill: Boolean): Boolean;
     var
-      OldLen: integer;
+      OldLen: Integer;
       NewData: String;
     begin
     if Validator <> nil then
@@ -912,7 +930,7 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
   procedure ASCIITable;
     var
       P: PWindow;
-      W: word;
+      W: Word;
       E: TEvent;
       R: TRect;
       CR: PView;
@@ -945,7 +963,7 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
   begin { TInputLine.HandleEvent }
   TView.HandleEvent(Event);
   if Data = nil then
-    exit;
+    Exit;
   if State and sfSelected <> 0 then
     begin
     case Event.What of
@@ -1044,7 +1062,7 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
               CtrlK := True;
             kbAltF12:
               begin
-              OldData := RusEngConv(Copy(Data^, SelStart+1,
+              OldData := LayoutConv(Copy(Data^, SelStart+1,
                      SelEnd-SelStart));
               Data^:= Copy(Data^, 1, SelStart)
                   +OldData+Copy(Data^, SelEnd+1, MaxStringLength);
@@ -1128,7 +1146,7 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
                 if S <> '' then
                   Message(Application, evCommand, cmPutInClipboard, @S);
                 ClearEvent(Event);
-                exit;
+                Exit;
                 end;
             kbCtrlLeft:
               begin
@@ -1163,7 +1181,7 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
               DrawView;
               ClearEvent(Event);
               Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
-              exit;
+              Exit;
               end;
             kbShiftIns:
               begin
@@ -1172,7 +1190,7 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
               DeleteSelect;
               Message(Application, evCommand, cmGetFromClipboard, @S);
               if S = '' then
-                exit;
+                Exit;
               SelStart := CurPos;
               SelEnd := CurPos+Length(S);
               OldData := Data^;
@@ -1180,7 +1198,7 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
               Data^:= Copy(OldData, 1, MaxLen);
               DrawView;
               Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
-              exit;
+              Exit;
               end;
             kbAlt1, kbAlt2, kbAlt3, kbAlt4, kbAlt5, kbAlt6, kbAlt7,
              kbAlt8, kbAlt9:
@@ -1190,18 +1208,18 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
               DeleteSelect;
               pS := DirsToChange[Event.ScanCode-Hi(kbAlt1)];
               if  (pS = nil) or (Length(pS^) = 0) then
-                exit
+                Exit
               else
                 S := pS^;
               if S = '' then
-                exit;
+                Exit;
               SelStart := CurPos;
               SelEnd := CurPos+Length(S);
               OldData := Data^;
               Insert(S, OldData, CurPos+1);
               Data^:= Copy(OldData, 1, MaxLen);
               DrawView;
-              exit;
+              Exit;
               end;
             kbLeft, kbShiftLeft:
               if CurPos > 0 then
@@ -1256,7 +1274,7 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
                   CurPos := 0;
                   end;
                 else {case}
-                  exit;
+                  Exit;
               end
 
           end {case};
@@ -1270,7 +1288,7 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
             end;
         if FirstPos > CurPos then
           FirstPos := CurPos;
-        I := CurPos-Size.X+2*DrawShift;
+        I := CurPos-Size.X+2;
         if FirstPos < I then
           FirstPos := I;
         Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
@@ -1284,7 +1302,7 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
 procedure TInputLine.SelectAll(Enable: Boolean);
   begin
   if Data = nil then
-    exit;
+    Exit;
   CurPos := 0;
   FirstPos := 0;
   SelStart := 0;
@@ -1298,7 +1316,7 @@ procedure TInputLine.SelectAll(Enable: Boolean);
 procedure TInputLine.SetData(var Rec);
   begin
   if Data = nil then
-    exit;
+    Exit;
   if  (Validator = nil) or
       (Validator^.Transfer(Data^, @Rec, vtSetData) = 0)
   then
@@ -1307,11 +1325,11 @@ procedure TInputLine.SetData(var Rec);
   SelectAll(True);
   end;
 
-procedure TInputLine.SetState(AState: word; Enable: Boolean);
+procedure TInputLine.SetState(AState: Word; Enable: Boolean);
   begin
   TView.SetState(AState, Enable);
   if Data = nil then
-    exit;
+    Exit;
   if  (AState = sfSelected) or ((AState = sfActive) and
         (State and sfSelected <> 0))
   then
@@ -1334,7 +1352,7 @@ procedure TInputLine.Store(var S: TStream);
   S.Put(Validator);
   end;
 
-function TInputLine.Valid(Command: word): Boolean;
+function TInputLine.Valid(Command: Word): Boolean;
   begin
   Valid := inherited Valid(Command);
   if Validator <> nil then
@@ -1351,7 +1369,7 @@ function TInputLine.Valid(Command: word): Boolean;
 { TButton }
 
 constructor TButton.Init(var Bounds: TRect; const ATitle: TTitleStr;
-    ACommand: word; AFlags: word);
+    ACommand: Word; AFlags: Word);
   begin
   TView.Init(Bounds);
   Options := Options or (ofSelectable+ofFirstClick+
@@ -1392,14 +1410,14 @@ procedure TButton.Draw;
 
 procedure TButton.DrawState(Down: Boolean);
   var
-    CButton, CShadow: word;
+    CButton, CShadow: Word;
     Ch: Char;
-    I, S, Y, T: integer;
+    I, S, Y, T: Integer;
     B: TDrawBuffer;
 
   procedure DrawTitle;
     var
-      L, SCOff: integer;
+      L, SCOff: Integer;
     begin
     if Flags and bfLeftJust <> 0 then
       L := 1
@@ -1599,7 +1617,7 @@ procedure TButton.HandleEvent(var Event: TEvent);
 
 procedure TButton.MakeDefault(Enable: Boolean);
   var
-    C: word;
+    C: Word;
   begin
   if Flags and bfDefault = 0 then
     begin
@@ -1630,7 +1648,7 @@ procedure TButton.Press;
     end;
   end;
 
-procedure TButton.SetState(AState: word; Enable: Boolean);
+procedure TButton.SetState(AState: Word; Enable: Boolean);
   begin
   TView.SetState(AState, Enable);
   if AState and (sfSelected+sfActive) <> 0 then
@@ -1650,7 +1668,7 @@ procedure TButton.Store(var S: TStream);
 
 constructor TCluster.Init(var Bounds: TRect; AStrings: PSItem);
   var
-    I: integer;
+    I: Integer;
     P: PSItem;
   begin
   TView.Init(Bounds);
@@ -1703,20 +1721,20 @@ destructor TCluster.Done;
   TView.Done;
   end;
 
-function TCluster.ButtonState(Item: integer): Boolean;
+function TCluster.ButtonState(Item: Integer): Boolean;
   var
     q: LongInt;
   begin
   ButtonState := False;
   if Item > 31 then
-    exit;
+    Exit;
   q := 1 shl Item;
   ButtonState := (EnableMask and q <> 0);
   end;
 
-function TCluster.DataSize: word;
+function TCluster.DataSize: Word;
   begin
-  DataSize := SizeOf(word);
+  DataSize := SizeOf(Word);
   end;
 
 procedure TCluster.DrawBox(const Icon: String; Marker: Char);
@@ -1726,8 +1744,8 @@ procedure TCluster.DrawBox(const Icon: String; Marker: Char);
 
 procedure TCluster.DrawMultiBox(const Icon, Marker: String);
   var
-    I, J, Cur, Col: integer;
-    CNorm, CSel, CDis, Color: word;
+    I, J, Cur, Col: Integer;
+    CNorm, CSel, CDis, Color: Word;
     B: TDrawBuffer;
     SCOff: Byte;
   begin
@@ -1744,7 +1762,7 @@ procedure TCluster.DrawMultiBox(const Icon, Marker: String);
         begin
         Col := Column(Cur);
         if  (Col+CStrLen(CnvString(Strings.At(Cur)))+5 <
-            SizeOf(TDrawBuffer) div SizeOf(word)) and (Col < Size.X)
+            SizeOf(TDrawBuffer) div SizeOf(Word)) and (Col < Size.X)
         then
           begin
           if not ButtonState(Cur) then
@@ -1773,11 +1791,11 @@ procedure TCluster.DrawMultiBox(const Icon, Marker: String);
 
 procedure TCluster.GetData(var Rec);
   begin
-  word(Rec) := Value;
+  Word(Rec) := Value;
   DrawView;
   end;
 
-function TCluster.GetHelpCtx: word;
+function TCluster.GetHelpCtx: Word;
   begin
   if HelpCtx = hcNoContext then
     GetHelpCtx := hcNoContext
@@ -1795,7 +1813,7 @@ function TCluster.GetPalette: PPalette;
 procedure TCluster.HandleEvent(var Event: TEvent);
   var
     Mouse: TPoint;
-    I, S: integer;
+    I, S: Integer;
     C: Char;
 
   procedure MoveSel;
@@ -1811,7 +1829,7 @@ procedure TCluster.HandleEvent(var Event: TEvent);
   begin
   TView.HandleEvent(Event);
   if  (Options and ofSelectable) = 0 then
-    exit;
+    Exit;
   if Event.What = evMouseDown then
     begin
     MakeLocal(Event.Where, Mouse);
@@ -1930,7 +1948,7 @@ procedure TCluster.HandleEvent(var Event: TEvent);
                 end;
               ClearEvent(Event);
               end;
-            exit;
+            Exit;
             end;
           end;
         if  (Event.CharCode = ' ') and (State and sfFocused <> 0) then
@@ -1956,32 +1974,32 @@ procedure TCluster.SetButtonState(AMask: LongInt; Enable: Boolean);
 
 procedure TCluster.SetData(var Rec);
   begin
-  Value := word(Rec);
+  Value := Word(Rec);
   DrawView;
   end;
 
-procedure TCluster.SetState(AState: word; Enable: Boolean);
+procedure TCluster.SetState(AState: Word; Enable: Boolean);
   begin
   TView.SetState(AState, Enable);
   if AState = sfSelected then
     DrawView;
   end;
 
-function TCluster.Mark(Item: integer): Boolean;
+function TCluster.Mark(Item: Integer): Boolean;
   begin
   Mark := False;
   end;
 
-function TCluster.MultiMark(Item: integer): Byte;
+function TCluster.MultiMark(Item: Integer): Byte;
   begin
   MultiMark := Byte(Mark(Item) = True);
   end;
 
-procedure TCluster.MovedTo(Item: integer);
+procedure TCluster.MovedTo(Item: Integer);
   begin
   end;
 
-procedure TCluster.Press(Item: integer);
+procedure TCluster.Press(Item: Integer);
   begin
   end;
 
@@ -1993,9 +2011,9 @@ procedure TCluster.Store(var S: TStream);
   Strings.Store(S);
   end;
 
-function TCluster.Column(Item: integer): integer;
+function TCluster.Column(Item: Integer): Integer;
   var
-    I, Col, Width, L: integer;
+    I, Col, Width, L: Integer;
   begin
   if Item < Size.Y then
     Column := 0
@@ -2019,9 +2037,9 @@ function TCluster.Column(Item: integer): integer;
     end;
   end { TCluster.Column };
 
-function TCluster.FindSel(P: TPoint): integer;
+function TCluster.FindSel(P: TPoint): Integer;
   var
-    I, S: integer;
+    I, S: Integer;
     R: TRect;
   begin
   GetExtent(R);
@@ -2040,7 +2058,7 @@ function TCluster.FindSel(P: TPoint): integer;
     end;
   end;
 
-function TCluster.Row(Item: integer): integer;
+function TCluster.Row(Item: Integer): Integer;
   begin
   Row := Item mod Size.Y;
   end;
@@ -2054,17 +2072,17 @@ procedure TRadioButtons.Draw;
   DrawMultiBox(Button, #32#7);
   end;
 
-function TRadioButtons.Mark(Item: integer): Boolean;
+function TRadioButtons.Mark(Item: Integer): Boolean;
   begin
   Mark := Item = Value;
   end;
 
-procedure TRadioButtons.Press(Item: integer);
+procedure TRadioButtons.Press(Item: Integer);
   begin
   Value := Item;
   end;
 
-procedure TRadioButtons.MovedTo(Item: integer);
+procedure TRadioButtons.MovedTo(Item: Integer);
   begin
   Value := Item;
   end;
@@ -2072,7 +2090,7 @@ procedure TRadioButtons.MovedTo(Item: integer);
 procedure TRadioButtons.SetData(var Rec);
   begin
   TCluster.SetData(Rec);
-  Sel := integer(Value);
+  Sel := Integer(Value);
   end;
 
 { TCheckBoxes }
@@ -2084,12 +2102,12 @@ procedure TCheckBoxes.Draw;
   DrawMultiBox(Button, ' X');
   end;
 
-function TCheckBoxes.Mark(Item: integer): Boolean;
+function TCheckBoxes.Mark(Item: Integer): Boolean;
   begin
   Mark := Value and (1 shl Item) <> 0;
   end;
 
-procedure TCheckBoxes.Press(Item: integer);
+procedure TCheckBoxes.Press(Item: Integer);
   begin
   Value := (Value xor (1 shl Item)) and $FFFF;
   end;
@@ -2097,7 +2115,7 @@ procedure TCheckBoxes.Press(Item: integer);
 { TMultiCheckBoxes }
 
 constructor TMultiCheckBoxes.Init(var Bounds: TRect; AStrings: PSItem;
-    ASelRange: Byte; AFlags: word; const AStates: String);
+    ASelRange: Byte; AFlags: Word; const AStates: String);
   begin
   inherited Init(Bounds, AStrings);
   SelRange := ASelRange;
@@ -2126,12 +2144,12 @@ procedure TMultiCheckBoxes.Draw;
   DrawMultiBox(Button, States^);
   end;
 
-function TMultiCheckBoxes.DataSize: word;
+function TMultiCheckBoxes.DataSize: Word;
   begin
   DataSize := SizeOf(LongInt);
   end;
 
-function TMultiCheckBoxes.MultiMark(Item: integer): Byte;
+function TMultiCheckBoxes.MultiMark(Item: Integer): Byte;
   begin
   MultiMark := LongInt((Value and (WordRec(Flags).Lo
           shl (Item*WordRec(Flags).Hi))) shr (Item*WordRec(Flags).Hi));
@@ -2143,7 +2161,7 @@ procedure TMultiCheckBoxes.GetData(var Rec);
   DrawView;
   end;
 
-procedure TMultiCheckBoxes.Press(Item: integer);
+procedure TMultiCheckBoxes.Press(Item: Integer);
   var
     CurState: ShortInt;
   begin
@@ -2176,13 +2194,13 @@ procedure TMultiCheckBoxes.Store(var S: TStream);
 type
   TListBoxRec = record
     List: PCollection;
-    Selection: word;
+    Selection: Word;
     end;
 
-constructor TListBox.Init(var Bounds: TRect; ANumCols: word;
+constructor TListBox.Init(var Bounds: TRect; ANumCols: Word;
     AScrollBar: PScrollBar);
   var
-    ARange: integer;
+    ARange: Integer;
   begin
   TListViewer.Init(Bounds, ANumCols, nil, AScrollBar);
   List := nil;
@@ -2195,7 +2213,7 @@ constructor TListBox.Load(var S: TStream);
   List := PCollection(S.Get);
   end;
 
-function TListBox.DataSize: word;
+function TListBox.DataSize: Word;
   begin
   DataSize := SizeOf(TListBoxRec);
   end;
@@ -2206,7 +2224,7 @@ procedure TListBox.GetData(var Rec);
   TListBoxRec(Rec).Selection := Focused;
   end;
 
-function TListBox.GetText(Item: LongInt; MaxLen: integer): String;
+function TListBox.GetText(Item: LongInt; MaxLen: Integer): String;
   begin
   if List <> nil then
     GetText := PString(List^.At(Item))^
@@ -2265,7 +2283,7 @@ procedure TStaticText.Draw;
   var
     Color: Byte;
     Center: Boolean;
-    I, J, L, P, Y: integer;
+    I, J, L, P, Y: Integer;
     B: TDrawBuffer;
     S: String;
   begin
@@ -2354,7 +2372,7 @@ constructor TParamText.Load(var S: TStream);
   S.Read(ParamCount, SizeOf(AInt));
   end;
 
-function TParamText.DataSize: word;
+function TParamText.DataSize: Word;
   begin
   DataSize := ParamCount*SizeOf(LongInt);
   end;
@@ -2398,7 +2416,7 @@ constructor TLabel.Load(var S: TStream);
 
 procedure TLabel.Draw;
   var
-    Color: word;
+    Color: Word;
     B: TDrawBuffer;
     SCOff: Byte;
   begin
@@ -2494,7 +2512,7 @@ function THistoryViewer.GetPalette: PPalette;
   begin
   GetPalette := @P;
   end;
-function THistoryViewer.GetText(Item: LongInt; MaxLen: integer): String;
+function THistoryViewer.GetText(Item: LongInt; MaxLen: Integer): String;
   var
     C: Char;
   begin
@@ -2512,26 +2530,26 @@ procedure THistoryViewer.HandleEvent(var Event: TEvent);
   {-$ WildCat $ -}
   var
     CurStr: String;
-    Value: integer;
+    Value: Integer;
     T: Boolean;
 
-  function Equal(const S1, S2: String; Count: word): Boolean;
+  function Equal(const S1, S2: String; Count: Word): Boolean;
     var
-      I: word;
+      I: Word;
     begin
     Equal := False;
     if  (Length(S1) < Count) or (Length(S2) < Count) then
-      exit;
+      Exit;
     for I := 1 to Count do
       if UpCase(S1[I]) <> UpCase(S2[I]) then
-        exit;
+        Exit;
     Equal := True;
     end;
 
-  function Search(const S1: String; SearchPos: integer;
-       var Index: integer): Boolean;
+  function Search(const S1: String; SearchPos: Integer;
+       var Index: Integer): Boolean;
     var
-      L, H, I, C: integer;
+      L, H, I, C: Integer;
     begin
     Search := False;
     L := Index;
@@ -2541,7 +2559,7 @@ procedure THistoryViewer.HandleEvent(var Event: TEvent);
       if Equal(HistoryStr(HistoryId, L), S1, SearchPos) then
         begin
         Search := True;
-        break;
+        Break;
         end;
       Inc(L);
       end;
@@ -2554,7 +2572,7 @@ procedure THistoryViewer.HandleEvent(var Event: TEvent);
         if Equal(HistoryStr(HistoryId, L), S1, SearchPos) then
           begin
           Search := True;
-          break;
+          Break;
           end;
         Inc(L);
         end;
@@ -2564,9 +2582,9 @@ procedure THistoryViewer.HandleEvent(var Event: TEvent);
   {- $ WildCat $ -}
 
   {AK155 27-03-2003 по мотивам ScanMarked из TTHistList.HandleEvent}
-  function SearchNonDeletableItem(D, Bound: integer): Boolean;
+  function SearchNonDeletableItem(D, Bound: Integer): Boolean;
     var
-      i: integer;
+      i: Integer;
     begin
     Result := False;
     i := Focused;
@@ -2574,14 +2592,14 @@ procedure THistoryViewer.HandleEvent(var Event: TEvent);
       begin
       Inc(i, D);
       if i = Bound then
-        exit;
+        Exit;
       HistoryStr(HistoryId, i);
       if HistList.CurString^[Length(HistList.CurString^)] <> ' ' then
         begin
         FocusItem(i);
         DrawView;
         Result := True;
-        exit;
+        Exit;
         end;
       end;
     end;
@@ -2607,12 +2625,12 @@ procedure THistoryViewer.HandleEvent(var Event: TEvent);
       kbAltUp:
         begin
         SearchNonDeletableItem(-1, -1);
-        exit;
+        Exit;
         end;
       kbAltDown:
         begin
         SearchNonDeletableItem(1, Range);
-        exit;
+        Exit;
         end;
       {/AK155 27-03-2003}
     end {case};
@@ -2650,7 +2668,7 @@ procedure THistoryViewer.HandleEvent(var Event: TEvent);
         SysBeepEx {PlaySound}(500, 110);
         end;
       {NoDelMark;}
-      exit;
+      Exit;
       end;
     DeleteHistoryStr(HistoryId, Focused);
     SetRange(HistoryCount(HistoryId));
@@ -2707,9 +2725,9 @@ procedure THistoryViewer.HandleEvent(var Event: TEvent);
     TListViewer.HandleEvent(Event);
   end { THistoryViewer.HandleEvent };
 
-function THistoryViewer.HistoryWidth: integer;
+function THistoryViewer.HistoryWidth: Integer;
   var
-    Width, T, Count, I: integer;
+    Width, T, Count, I: Integer;
   begin
   Width := 0;
   Count := HistoryCount(HistoryId);
@@ -2795,7 +2813,7 @@ procedure THistory.HandleEvent(var Event: TEvent);
   var
     HistoryWindow: PHistoryWindow;
     R, P: TRect;
-    C: word;
+    C: Word;
     Rslt: String;
   begin
   TView.HandleEvent(Event);
@@ -2808,7 +2826,7 @@ procedure THistory.HandleEvent(var Event: TEvent);
     if not Link^.Focus then
       begin
       ClearEvent(Event);
-      exit;
+      Exit;
       end;
     RecordHistory(Link^.Data^);
     Link^.GetBounds(R);
@@ -2891,7 +2909,7 @@ procedure THistory.Store(var S: TStream);
 constructor THexLine.Init;
   begin
   if AInputLine = nil then
-    exit;
+    Exit;
   inherited Init(R);
   Options := Options or ofSelectable or ofPostProcess;
   EventMask := $FFFF;
@@ -2995,7 +3013,7 @@ procedure THexLine.HandleEvent;
               if  (CurX = InputLine^.MaxLen-1) and Sec then
                 begin
                 CE;
-                exit
+                Exit
                 end;
               S := InputLine^.Data^;
               if CurX+1 > Length(S) then
@@ -3031,7 +3049,7 @@ procedure THexLine.Draw;
   var
     B: TDrawBuffer;
     S: String;
-    C: word;
+    C: Word;
   begin
   if CurX > Length(InputLine^.Data^) then
     CurX := Length(InputLine^.Data^);
@@ -3044,7 +3062,7 @@ procedure THexLine.Draw;
       Sec := False
       end;
   if DeltaX >= Length(InputLine^.Data^) then
-    DeltaX := integer(Length(InputLine^.Data^))-1;
+    DeltaX := Integer(Length(InputLine^.Data^))-1;
   if DeltaX < 0 then
     DeltaX := 0;
   if CurX < DeltaX then

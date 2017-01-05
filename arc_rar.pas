@@ -50,7 +50,7 @@ unit arc_RAR; {RAR}
 interface
 
 uses
-  Archiver, advance, advance1, Defines, Objects2, Streams, Dos
+  Archiver, Advance, Advance1, Defines, Objects2, Streams, Dos
   ;
 
 type
@@ -111,15 +111,14 @@ constructor TRARArchive.Init;
   FreeStr := SourceDir+DNARC;
   TObject.Init;
   {$IFNDEF OS2}
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'RAR.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'RAR.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'RAR'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'RAR'));
   {$ELSE}
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'RAR.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,
-         'RAR.EXE;RAR32.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'RAR32'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'RAR32'));
   {$ENDIF}
-  Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'e -c-'));
-  ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, 'x -c-'));
+  Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'e'));
+  ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, 'x'));
   Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'a'));
   Move := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove, 'm'));
   Delete := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete, 'd'));
@@ -248,7 +247,7 @@ type
 procedure TRARArchive.GetFile;
   var
     FP: LongInt;
-    Ps: integer;
+    Ps: Integer;
     P: LocRarHdr;
     P2: LocRar2Hdr;
     DirMask: LongInt;
@@ -260,12 +259,12 @@ procedure TRARArchive.GetFile;
     if Encrypted then
       Msg(dlArcEncrypted, nil, mfOKButton);
     FileInfo.Last := 1;
-    exit;
+    Exit;
     end;
   if  (ArcFile^.Status <> stOK) then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   if RAR2 then
     begin
@@ -274,7 +273,7 @@ procedure TRARArchive.GetFile;
     if  (ArcFile^.Status <> stOK) then
       begin
       FileInfo.Last := 2;
-      exit;
+      Exit;
       end;
     {piwamoto}
     {we must skip garbage (digital sign as example) at the end of archive}
@@ -282,7 +281,7 @@ procedure TRARArchive.GetFile;
     if not (P2.HeadType in [$73..$7f]) then
       begin
       FileInfo.Last := 1;
-      exit;
+      Exit;
       end;
     {/piwamoto}
     if P2.HeadType = $74 then
@@ -291,7 +290,7 @@ procedure TRARArchive.GetFile;
       if  (ArcFile^.Status <> stOK) then
         begin
         FileInfo.Last := 2;
-        exit;
+        Exit;
         end;
       FileInfo.Last := 0;
       FileInfo.Date := P2.Date;
@@ -315,18 +314,18 @@ procedure TRARArchive.GetFile;
       repeat
         Ps := System.Pos('.\', FileInfo.FName);
         if Ps = 0 then
-          break;
+          Break;
         System.Delete(FileInfo.FName, Ps, 1);
       until False;
       if  (ArcFile^.Status <> stOK) then
         begin
         FileInfo.Last := 2;
-        exit;
+        Exit;
         end;
       ArcFile^.Seek(FP+P2.HeadSize+P2.PSize);
       if P2.Ver > VersionToExtr then
         VersionToExtr := P2.Ver;
-      exit;
+      Exit;
       end;
     if P2.HeadSize = 0 then
       P2.HeadSize := 7;
@@ -347,7 +346,7 @@ procedure TRARArchive.GetFile;
     if  (ArcFile^.Status <> stOK) or (P.NameLen = 0) then
       begin
       FileInfo.Last := 2;
-      exit;
+      Exit;
       end;
     FileInfo.Last := 0;
     FileInfo.Date := P.Date;
@@ -361,7 +360,7 @@ procedure TRARArchive.GetFile;
       if  (ArcFile^.Status <> stOK) then
         begin
         FileInfo.Last := 2;
-        exit;
+        Exit;
         end;
       end;
     SetLength(FileInfo.FName, P.NameLen);
@@ -369,7 +368,7 @@ procedure TRARArchive.GetFile;
     if  (ArcFile^.Status <> stOK) then
       begin
       FileInfo.Last := 2;
-      exit;
+      Exit;
       end;
     ArcFile^.Seek(ArcFile^.GetPos+P.PSize);
     if P.Ver > VersionToExtr then

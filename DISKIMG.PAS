@@ -60,8 +60,8 @@ implementation
 
 uses
   Dos, Lfn, Messages, Views, Commands, Defines, Streams, DNApp, Drivers,
-   advance,
-  advance1, advance2, advance3, FileCopy, {DiskTool,}Gauge, xTime
+   Advance,
+  Advance1, Advance2, Advance3, FileCopy, {DiskTool,}Gauge, xTime
   , Files
   ;
 
@@ -111,7 +111,7 @@ function UnpackImage(const FName, DestDir: String; PInfo: PWhileView)
   procedure CheckCancel;
     begin
     if Cancel then
-      exit;
+      Exit;
     if TimerExpired(Tmr) then
       begin
       DispatchEvents(PInfo, Cancel);
@@ -119,7 +119,7 @@ function UnpackImage(const FName, DestDir: String; PInfo: PWhileView)
                and (MessageBox(GetString(dlQueryAbort), nil,
              mfYesNoConfirm) = cmYes);
       CtrlBreakHit := False;
-      NewTimer(Tmr, 1);
+      NewTimer(Tmr, 50);
       end;
     end;
 
@@ -128,15 +128,15 @@ function UnpackImage(const FName, DestDir: String; PInfo: PWhileView)
       BRec: PBootRec;
       FAT: PByteArray absolute BRec;
 
-      Reserved: word;
+      Reserved: Word;
       FatCopies: Byte;
       SectPerClust: Byte;
-      BytesPerClu: word;
-      SectPerFAT: word;
-      SectLen: word;
-      FirstClust: word;
-      RootEntries: word;
-      TotalClu: word;
+      BytesPerClu: Word;
+      SectPerFAT: Word;
+      SectLen: Word;
+      FirstClust: Word;
+      RootEntries: Word;
+      TotalClu: Word;
       FATSize: LongInt;
       NumSectors: LongInt;
 
@@ -148,25 +148,25 @@ function UnpackImage(const FName, DestDir: String; PInfo: PWhileView)
     procedure fSeek(Pos: LongInt);
       begin
       if fPos = Pos then
-        exit;
+        Exit;
       fPos := Pos;
       F^.Seek(Pos);
       end;
 
-    procedure fRead(var Buf; Count: word);
+    procedure fRead(var Buf; Count: Word);
       begin
       F^.Read(Buf, Count);
       Inc(fPos, Count);
       end;
 
-    function NextFAT(N: word): word;
+    function NextFAT(N: Word): Word;
       var
-        D: word;
+        D: Word;
       begin
       if Error or (N < 2) or (N > TotalClu+2) then
         begin
         Error := True;
-        exit
+        Exit
         end;
       D := (N*3) shr 1;
       D := FAT^[D]+FAT^[D+1] shl 8;
@@ -177,12 +177,12 @@ function UnpackImage(const FName, DestDir: String; PInfo: PWhileView)
       NextFAT := D;
       end;
 
-    function Fat2Sec(W: word): LongInt;
+    function Fat2Sec(W: Word): LongInt;
       begin
       Fat2Sec := LongInt(FirstClust+(W-2)*SectPerClust);
       end;
 
-    procedure WriteFile(const ADir: String; const ANm: Str12; Clus: word;
+    procedure WriteFile(const ADir: String; const ANm: Str12; Clus: Word;
         len, Date: LongInt; Attr: Byte);
       var
         B: PBufStream;
@@ -203,34 +203,34 @@ function UnpackImage(const FName, DestDir: String; PInfo: PWhileView)
 
       procedure Cpy;
         var
-          A: word;
+          A: Word;
           LocErr: Boolean;
         begin
         if Error or Cancel then
-          exit;
+          Exit;
         CtrlBreakHit := False;
         LocErr := True;
         repeat
           CheckCancel;
           if Cancel then
-            break;
+            Break;
           if F^.Status <> stOK then
-            exit;
+            Exit;
           fSeek(Fat2Sec(Clus)*SectLen+DskOffset);
           if F^.Status <> stOK then
-            exit;
+            Exit;
           A := Min(len, BytesPerClu);
           Dec(len, A);
           fRead(CpyBuf^, A);
           if F^.Status <> stOK then
-            exit;
+            Exit;
           B^.Write(CpyBuf^, A);
           if B^.Status <> stOK then
-            exit;
+            Exit;
           if len = 0 then
             begin
             LocErr := False;
-            break;
+            Break;
             end;
           Clus := NextFAT(Clus);
         until Error;
@@ -252,7 +252,7 @@ function UnpackImage(const FName, DestDir: String; PInfo: PWhileView)
 
       begin { WriteFile }
       if Error then
-        exit;
+        Exit;
       Dir := FmtStr(ADir, VolumeLabel);
       FName := MakeNormName(Dir, ANm);
       PInfo^.Write(3, LowStrg(GetName(FName)));
@@ -262,7 +262,7 @@ function UnpackImage(const FName, DestDir: String; PInfo: PWhileView)
         CreateDirInheritance(Dir, False);
         TryInit;
         if B = nil then
-          exit;
+          Exit;
         end;
       GetMem(CpyBuf, BytesPerClu);
       Cpy;
@@ -275,13 +275,13 @@ function UnpackImage(const FName, DestDir: String; PInfo: PWhileView)
         SetFData;
       end { WriteFile };
 
-    procedure ProcessDir(const Dir: String; Ofst: word;
+    procedure ProcessDir(const Dir: String; Ofst: Word;
          OfstIsCluster: Boolean);
       var
         _Dir: PByteArray;
         DR: TDirRec;
         Nm: Str12;
-        J, I, FileCount, MemSize: word;
+        J, I, FileCount, MemSize: Word;
       begin
       CtrlBreakHit := False;
       if OfstIsCluster then
@@ -297,13 +297,13 @@ function UnpackImage(const FName, DestDir: String; PInfo: PWhileView)
         MemSize := MemSize*BytesPerClu;
         GetMem(_Dir, MemSize);
         if _Dir = nil then
-          exit;
+          Exit;
         I := 0;
         repeat
           fSeek(Fat2Sec(Ofst)*SectLen+DskOffset);
           fRead(_Dir^[I], BytesPerClu);
           if F^.Status <> stOK then
-            exit;
+            Exit;
           I := I+BytesPerClu;
           Ofst := NextFAT(Ofst);
         until (Ofst > $ff7);
@@ -316,20 +316,20 @@ function UnpackImage(const FName, DestDir: String; PInfo: PWhileView)
         GetMem(_Dir, MemSize);
         fRead(_Dir^, MemSize);
         if F^.Status <> stOK then
-          exit;
+          Exit;
         FileCount := RootEntries;
         end;
       for I := 0 to FileCount-1 do
         begin
         CheckCancel;
         if Error or Cancel then
-          break;
+          Break;
         Move(_Dir^[I*SizeOf(DR)], DR, SizeOf(DR));
         case DR.Name[0] of
           #$E5:
-            continue;
+            Continue;
           #0:
-            break;
+            Break;
           #5:
             DR.Name[0] := #$E5;
         end {case};
@@ -342,14 +342,14 @@ function UnpackImage(const FName, DestDir: String; PInfo: PWhileView)
             Move(DR.Name[0], VolumeLabel[1], 11);
             DelRight(VolumeLabel);
             VolumeLabel := VolumeLabel+'\';
-            break;
+            Break;
             end
           else
-            continue;
+            Continue;
         if SearchVolume then
-          continue;
+          Continue;
         if DR.Attr and VolumeID <> 0 then
-          continue; {i'll skip VFAT names}
+          Continue; {i'll skip VFAT names}
         SetLength(Nm, 12); {Nm[0] := #12;}
         Nm[9] := '.';
         Move(DR.Name[0], Nm[1], 8);
@@ -369,7 +369,7 @@ function UnpackImage(const FName, DestDir: String; PInfo: PWhileView)
           begin
           if not IsDummyDir(Nm) then
             ProcessDir(Dir+Nm+'\', DR.Clus, True); {JO}
-          continue;
+          Continue;
           end;
         WriteFile(Dir, Nm, DR.Clus, DR.len, DR.Date, DR.Attr);
         end;
@@ -380,19 +380,19 @@ function UnpackImage(const FName, DestDir: String; PInfo: PWhileView)
     procedure ChkValid;
       begin
       if Error then
-        exit;
+        Exit;
       Error := True;
       case SectLen of
         128, 256, 512, 1024, 2048, 4096:
           ;
         else {case}
-          exit
+          Exit
       end {case};
       case FatCopies of
         1, 2:
           ;
         else {case}
-          exit
+          Exit
       end {case};
       Error := False;
       end;
@@ -403,7 +403,7 @@ function UnpackImage(const FName, DestDir: String; PInfo: PWhileView)
     SearchVolume := True;
     DSKoffset := 0;
     if F^.Status <> stOK then
-      exit;
+      Exit;
     GetMem(BRec, 4096);
     fRead(BRec^, 4096);
     if  (BRec^.JMP[0] = $49) and (BRec^.JMP[1] = $4D) then
@@ -443,11 +443,11 @@ function UnpackImage(const FName, DestDir: String; PInfo: PWhileView)
     FreeMem(BRec, 4096);
     BRec := nil;
     if F^.Status <> stOK then
-      exit;
+      Exit;
 
     ChkValid;
     if Error then
-      exit;
+      Exit;
 
     FATSize := LongInt(SectPerFAT)*SectLen;
 
@@ -457,11 +457,11 @@ function UnpackImage(const FName, DestDir: String; PInfo: PWhileView)
     BytesPerClu := SectPerClust*SectLen;
     TotalClu := LongInt(NumSectors-FirstClust+1) div SectPerClust;
     if FATSize > $8000 then
-      exit;
+      Exit;
 
     fSeek(Reserved*SectLen+DSKoffset);
     if F^.Status <> stOK then
-      exit;
+      Exit;
 
     GetMem(FAT, FATSize);
     fRead(FAT^, FATSize);
@@ -501,7 +501,7 @@ procedure RereadGlobal(const OutputDir: String);
 procedure DoIt(AOwner: Pointer; AFiles: PFilesCollection;
      var ADestPath: String);
   var
-    I: integer;
+    I: Integer;
     PF: PFileRec;
     PInfo: PWhileView;
     R: TRect;
@@ -522,7 +522,7 @@ procedure DoIt(AOwner: Pointer; AFiles: PFilesCollection;
     if not UnpackImage(MakeNormName(CnvString(PF^.Owner),
            PF^.FlName[True]), ADestPath, PInfo)
     then
-      break;
+      Break;
     if AOwner <> nil then
       Message(AOwner, evCommand, cmCopyUnselect, PF);
     end;
@@ -537,7 +537,7 @@ procedure UnpackDiskImages;
     DestPath: String;
   begin
   if  (Files = nil) or (Files^.Count = 0) then
-    exit;
+    Exit;
   DestPath := '';
   Message(Application, evCommand, cmPushFullName, @DestPath);
   if InputBox(GetString(dlUnpackImages), GetString(dlTargetDir),

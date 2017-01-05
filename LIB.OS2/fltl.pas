@@ -6,6 +6,11 @@ unit FlTl;
 
 interface
 
+type
+{<fltl.001>}
+  TDrvTypeNew = ( dtnFloppy, dtnHDD, dtnInvalid,
+                 dtnCDRom, dtnLAN, dtnUnknown, dtnOptical, dtnProgram);
+
 const
 
   ageLastWrite = 1;
@@ -45,19 +50,36 @@ function GetBytesPerCluster(DriveNum: LongInt): LongInt;
 procedure CopyEAs(FFromName, FToName: String);
 
 function GetEAString(const Filename, Name: String; var Value: String;
-     Silent: Boolean): integer;
+     Silent: Boolean): Integer;
 (*
 function SetEAString(const Filename, Name, Value: string): Integer;
 *)
 procedure SetEALongname(Filename: String);
-function GetDriveTypeString(Drive: Char): String; {AK155}
+function GetFSString(Drive: Char): String; {AK155}
+function GetShare(Drive: Char): String; {AK155}
+function GetDriveTypeNew(Drive: Char): TDrvTypeNew; {JO} {<fltl.001>}
+//JO: Функция, которую следует использовать в исходниках DN/2
+//    вместо неудачной штатной для VP RTL функции SysGetDriveType,
+//    в отличие от которой данная функция определяет тип диска
+//    никогда к нему не обращаясь - используя DosDevIOCtl и не
+//    делая никаких проверок файловой системы
 
 implementation
 
 uses
-  {SysUtils,}Os2Base, Strings {, Crt, Messages}
-  {для CopyEAs}, Collect, Messages, EAOper, advance1, Commands, DNApp
+  Os2Def, Os2Base, Strings
+  {для CopyEAs}, Collect, Messages, EAOper, Advance1, Commands, DNApp
   ;
+
+var
+{&stdcall+}
+  Net32UseGetInfo: function(pszServername: PChar; netname: PChar;
+     ulLevel: ULONG;
+     var buf; ulBuflen: ULONG; var pulBytesAvail: ULONG
+     ): APIRet;
+{&stdcall-}
+
+  hNetapi32: hModule;
 
 (*
 function GetFileAge(S: String): longint;
@@ -146,7 +168,7 @@ function SetFileAge(S: String; Age: LongInt; AgeType: Byte): LongInt;
     else {case}
       begin
       SetFileAge := 1;
-      exit;
+      Exit;
       end;
   end {case};
 
@@ -299,7 +321,7 @@ procedure CopyEAs(FFromName, FToName: String);
     begin
     if  (coll^.Count > 0) then
       {JO: см. комментарий от 30-07-2002 к EAOper.EnumEAs }
-      for i := coll^.Count-1 DownTo 0 do
+      for i := coll^.Count-1 downto 0 do
         begin
         PszName := PChar(coll^.At(i));
         Inc(PszName);
@@ -349,7 +371,7 @@ procedure CopyEAs(FFromName, FToName: String);
   end { CopyEAs };
 
 function GetEAString(const Filename, Name: String; var Value: String;
-     Silent: Boolean): integer;
+     Silent: Boolean): Integer;
   var
     ea: Pointer;
     ulEASize, ulSize: Cardinal;
@@ -369,7 +391,7 @@ function GetEAString(const Filename, Name: String; var Value: String;
     end;
   end;
 
-function SetEAString(const Filename, Name, Value: String): integer;
+function SetEAString(const Filename, Name, Value: String): Integer;
   var
     ea: Pointer;
     szValue, szName: array[0..255] of Char;
@@ -383,7 +405,7 @@ function SetEAString(const Filename, Name, Value: String): integer;
 procedure SetEALongname(Filename: String);
   var
     LNValue: String;
-    Result_: integer;
+    Result_: Integer;
   begin
   Result_ := GetEAString(Filename, '.LONGNAME', LNValue, True);
   if Result_ = 0 then
@@ -392,7 +414,7 @@ procedure SetEALongname(Filename: String);
          GetString(dl_EALongname), LNValue, 255, hsEditEALongname)
        <> cmOK
     then
-      exit;
+      Exit;
     Result_ := SetEAString(Filename, '.LONGNAME', LNValue);
     if Result_ <> 0 then
       MessageBox
@@ -414,17 +436,17 @@ procedure SetEALongname(Filename: String);
   end { SetEALongname };
 
 {AK155}
-function GetDriveTypeString(Drive: Char): String;
+function GetFSString(Drive: Char): String;
   var
-    BufLen: word;
+    BufLen: Word;
     FSQb: pFSQBuffer2;
     DrvName: String[3];
     Ordinal: SmallWord;
     name: PChar;
-    rc: word;
+    rc: Word;
     {DiskSize  : Word;}
   begin
-  GetDriveTypeString := '';
+  GetFSString := '';
   BufLen := 100;
   GetMem(FSQb, BufLen);
   DrvName := Drive+':'#0;
@@ -435,11 +457,149 @@ function GetDriveTypeString(Drive: Char): String;
     with FSQb^ do
       begin
       name := szName+cbName+1;
-      GetDriveTypeString := StrPas(name);
+      GetFSString := StrPas(name);
       end;
 
   FreeMem(FSQb, 100);
-  end { GetDriveTypeString };
+  end { GetFSString };
 {/AK155}
 
+const
+  DEVLEN = 8;
+type
+  use_info_0 = record
+    ui0_local: array [0..DEVLEN] of char;
+    ui0_pad_1: char;
+    ui0_remote: array [0..17] of byte;
+    end;
+
+function GetShare(Drive: Char): string;
+  const
+    DrivePath: array[0..2] of char = 'C:'#0;
+  var
+    buf: use_info_0;
+    pulBytesAvail: ULONG;
+  begin
+  Result := '';
+  if @Net32UseGetInfo <> nil then
+    begin
+    DrivePath[0] := Drive;
+    Net32UseGetInfo(nil, @DrivePath, 0,
+                 buf, SizeOf(buf), pulBytesAvail);
+    if pulBytesAvail <> 0 then
+      Result := StrPas(PChar(@buf.ui0_remote[SizeOf(buf)+4-pulBytesAvail]));
+    end;
+  end;
+
+{JO}
+function GetDriveTypeNew(Drive: Char): TDrvTypeNew; {<fltl.001>}
+var
+  RC : Word;
+
+  ParmRec     : record  // Input parameter record
+    ComInfo   : Byte;
+    DrvUnit   : Byte;
+  end;
+
+  ParmLen     : ULong;  // Parameter length in bytes
+
+  DataRec     : record
+    BytesPerSector    : UShort; // BIOS Parameter Block (BPB) structure
+    SectorsPerCluster : Byte;
+    ReservedSectors   : UShort;
+    NumberOfFATs      : Byte;
+    RootDirEntries    : UShort;
+    TotalSectors      : UShort;
+    MediaDescriptor   : Byte;
+    SectorsPerFAT     : UShort;
+    SectorsPerTrack   : UShort;
+    NumberOfHeads     : UShort;
+    HiddenSectors     : ULong;
+    LargeTotalSectors : ULong;  // end of BPB structure
+    Reserved : array [0..5] of Byte;
+    CylNum    : UShort;
+    DevType   : Byte;
+    DevAttr   : UShort;
+  end;
+
+  DataLen     : ULong;  // Data length in bytes
+
+begin
+  Result := dtnInvalid;
+
+  ParmLen := SizeOf(ParmRec);
+  with ParmRec do
+  begin
+    ComInfo := 0;
+    DrvUnit :=  Ord(Drive) - Ord('A');
+  end;
+
+  FillChar(DataRec, SizeOf(DataRec), 0);
+  DataLen := SizeOf(DataRec);
+
+  RC := DosDevIOCtl(
+    -1,
+    IOCTL_DISK,
+    DSK_GETDEVICEPARAMS,
+    @ParmRec,
+    ParmLen,
+    @ParmLen,
+
+    @DataRec,
+    Datalen,
+    @DataLen);
+
+  if RC = 50 then  // Network request not supported
+    begin
+    if GetShare(Drive) = '' then Result := dtnProgram
+      else Result := dtnLAN;
+    Exit;
+    end
+  else
+  if RC > 0 then Exit
+  else
+    with DataRec do
+      begin
+      if ((DevAttr and 1) = 0) and (DevType <> 5) then
+//JO: It seems that DosDevIOCtl returns 65535 value for the number
+//    of cylinders if the device is CD.
+//    Checked for Warp 3 with f/p 44 (internal revision 8.268)
+//    and for Warp 4 with f/p 15 (internal revision 14.062_W4)
+        if ((DevType = 7) and (CylNum = 65535)
+             and (BytesPerSector = 2048)) then  // 2048 is a standard for CD
+          begin
+          Result := dtnCDRom;
+          Exit;
+          end
+//JO: Note: all CD-RW also have type 8 ("Optical") when IBM UDF support
+//          installed (OS2CDROM.DMD seems to be responsible),
+//          but CD still have "Cylinders number" 65535,
+//          whereas MO has more intelligent cylinders number.
+        else if (DevType = 8) then
+          begin
+            if ((CylNum = 65535)
+             and (BytesPerSector = 2048)) then  // 2048 is a standard for CD
+              Result := dtnCDRom   {<vpsysos2.001>}
+            else
+              Result := dtnOptical;
+          end
+        else
+          begin
+          Result := dtnFloppy;
+          Exit;
+          end
+      else Result := dtnHDD;
+      end;
+end;
+{/JO}
+
+begin
+DosLoadModule(nil, 0, 'NETAPI32.DLL', hNetapi32);
+if hNetapi32 <> 0 then
+  DosQueryProcAddr(
+    hNetapi32, {DLL module handle}
+    0, {function ordinal value}
+    'Net32UseGetInfo', {function name}
+    @Net32UseGetInfo {address of function pointer}
+    );
 end.

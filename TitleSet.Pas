@@ -64,7 +64,7 @@ procedure SetTitle(Text: String);
   begin
   Text := 'DN/2: '+Text;
   if Text = CurrentTitle then
-    exit;
+    Exit;
   CurrentTitle := Text;
 
   DN_XSetTitle(Text);
@@ -85,17 +85,14 @@ procedure SetTitle(Text: String);
   begin
   Text := 'DN/2: '+Text;
   if Text = CurrentTitle then
-    exit;
+    Exit;
   CurrentTitle := Text;
 
+  Text := Text+#0;
   {AK155 Под Win NT заголовок окна отображается в кодировке OEM,
-а  в  Win 9x - в кодировке ANSI. Поэтому флаг перекодировки
-устанавливается в зависимости от типа операционной системы
-}
+  а в Win 9x - в кодировке ANSI. }
   if  (SysPlatformId = 1 {Win 9x}) then
-    Text := Ascii_Ansi(Text)+#0
-  else
-    Text := Text+#0;
+    OemToCharSt(Text);
   SetConsoleTitle(@Text[1]);
   end;
 {$ENDIF}

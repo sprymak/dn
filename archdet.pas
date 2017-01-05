@@ -56,7 +56,7 @@ uses
   arc_ZXZ, arc_QRK, arc_UFA, arc_IS3, arc_SQZ, arc_HAP, arc_ZOO, arc_CHZ,
   arc_UC2, arc_AIN,
   {$ENDIF}
-  profile, Defines, Streams, advance, advance1, advance2
+  profile, Defines, Streams, Advance, Advance1, Advance2
   ;
 
 function DetectArchive: PARJArchive;
@@ -73,7 +73,6 @@ uses
 function ZIPDetect: Boolean;
   var
     ID, FP: LongInt;
-    nxl: TXlat;
   begin
   ZIPDetect := False;
   CentralDirRecPresent := False;
@@ -87,10 +86,9 @@ function ZIPDetect: Boolean;
     begin
     if ID = $04034b50 then
       ZIPDetect := True;
-    NullXLAT(nxl);
     FP := ArcFile^.GetPos;
     repeat
-      FP := SearchFileStr(@ArcFile^, nxl, 'PK', FP, False
+      FP := SearchFileStr(@ArcFile^, NullXlatTable, 'PK', FP, False
           {piwamoto:we need it OFF}, True, False, True, False, False);
       ArcFile^.Seek(FP);
       ArcFile^.Read(ID, SizeOf(ID));
@@ -270,16 +268,16 @@ function ArcDetect: Boolean;
       Inc(i);
       c := P.Name[i];
       if c = #0 then
-        break;
+        Break;
       if c < #32 then
-        exit;
+        Exit;
       end;
     if i <= 2 then
-      exit;
+      Exit;
     if P.PackedSize < 0 then
-      exit;
+      Exit;
     if P.OriginSize < 0 then
-      exit;
+      Exit;
     ArcDetect := True;
     end { More };
 
@@ -407,7 +405,7 @@ function HPKDetect: Boolean;
         until C = #0;
         PHPKRec(HPKCol^.At(I))^.Name := NewStr(S);
         end;
-      exit;
+      Exit;
       end;
     end;
   ArcFile^.Seek(ArcPos);
@@ -416,13 +414,13 @@ function HPKDetect: Boolean;
 function TARDetect: Boolean;
   var
     SumTar, SumCalc: LongInt;
-    i: integer;
+    i: Integer;
     Buffer: array[0..BlkSize-1] of Char;
     P: TARHdr absolute Buffer;
   begin
   TARDetect := False;
   if ArcFile^.GetSize < SizeOf(P) then
-    exit;
+    Exit;
   ArcFile^.Read(P, SizeOf(P));
   SumTar := FromOct(P.chksum);
   P.chksum := '        '; {8 spaces}

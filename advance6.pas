@@ -47,7 +47,7 @@
 {$I STDEFINE.INC}
 {Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
 
-unit advance6;
+unit Advance6;
 
 interface
 
@@ -55,7 +55,6 @@ uses
   Defines
   ;
 
-procedure InitUpcase;
 procedure MakeCRCTable;
 function GetLineNumberForOffset(const FName: String; Offset: LongInt)
   : LongInt;
@@ -66,59 +65,17 @@ function HotKey(const S: String): Char;
 
 implementation
 uses
-  {Cat}U_KeyMap, {/Cat}
+  U_KeyMap, Country_,
   VpSysLow,
-  advance, Lfn, VideoMan
+  Advance, Lfn, VideoMan
   ;
-
-procedure InitUpcase;
-  var
-    C: Char;
-    {Cat}
-    Koi8rDecodeChars: array[Char] of Char;
-    AnsiDecodeChars: array[Char] of Char;
-    {/Cat}
-  begin
-  Move(CountryInfo.UpperTable, UpCaseArray[#128], 128);
-  Move(CountryInfo.UpperTable, LowCaseArray[#128], 128);
-  for C := #128 to #255 do
-    begin
-    if  (UpCaseArray[C] <> C) and (UpCaseArray[C] > #127) then
-      begin
-      LowCaseArray[UpCaseArray[C]] := C;
-      LowCaseArray[C] := C;
-      end;
-    end;
-  {Cat}
-  for C := #0 to #255 do
-    begin
-    Koi8rDecodeChars[Koi8rAllChars[Byte(C)]] := C;
-    AnsiDecodeChars[AnsiAllChars[Byte(C)]] := C;
-    end;
-  for C := #0 to #255 do
-    begin
-    UpCaseArray_Ascii_Koi8r[Koi8rAllChars[Byte(C)
-        ]] := Koi8rAllChars[Byte(UpCaseArray[C])];
-    UpCaseArray_Ascii_Ansi[AnsiAllChars[Byte(C)
-        ]] := AnsiAllChars[Byte(UpCaseArray[C])];
-    UpCaseArray_Koi8r_Ascii[Koi8rDecodeChars[C]] :=
-       Koi8rDecodeChars[UpCaseArray[C]];
-    UpCaseArray_Ansi_Ascii[AnsiDecodeChars[C]] :=
-       AnsiDecodeChars[UpCaseArray[C]];
-    UpCaseArray_Ascii_Koi8r_Ansi_Ascii[AnsiDecodeChars[Koi8rAllChars[Byte
-      (C)]]] := AnsiDecodeChars[Koi8rAllChars[Byte(UpCaseArray[C])]];
-    UpCaseArray_Ascii_Ansi_Koi8r_Ascii[Koi8rDecodeChars[AnsiAllChars[Byte
-      (C)]]] := Koi8rDecodeChars[AnsiAllChars[Byte(UpCaseArray[C])]];
-    end;
-  {/Cat}
-  end { InitUpcase };
 
 function GetLineNumberForOffset(const FName: String; Offset: LongInt)
   : LongInt;
   var
     F: lFile;
     q: PByteArray;
-    bl: integer;
+    bl: Integer;
     ln: LongInt;
     fp: LongInt;
     bp: LongInt;
@@ -148,7 +105,7 @@ function GetOffsetForLineNumber(const FName: String; LineNm: LongInt)
   var
     F: lFile;
     q: PByteArray;
-    bl: integer;
+    bl: Integer;
     ln: LongInt;
     fp: LongInt;
     bp: LongInt;
@@ -192,7 +149,7 @@ procedure ResourceAccessError;
 
 function HotKey(const S: String): Char;
   var
-    P: word;
+    P: Word;
   begin
   P := Pos('~', S);
   if P <> 0 then
@@ -204,7 +161,7 @@ function HotKey(const S: String): Char;
 procedure MakeCRCTable;
   var
     c: LongInt;
-    n, k: integer;
+    n, k: Integer;
     poly: LongInt; { polynomial exclusive-or pattern }
 
   const

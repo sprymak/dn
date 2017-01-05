@@ -10,6 +10,11 @@
 unit FlTl;
 interface
 
+{<fltl.001>}
+type
+  TDrvTypeNew = ( dtnFloppy, dtnHDD, dtnInvalid,
+                 dtnCDRom, dtnLAN, dtnUnknown, dtnOptical, dtnProgram);
+
 function GetBytesPerCluster(Drive: Byte): LongInt;
 procedure CopyEAs(FFromName, FToName: String);
 {$IFDEF WIN32}
@@ -29,6 +34,13 @@ function SetFileAges(S: ShortString; Age_LWr, Age_Cr, Age_LAc: LongInt)
 {    файла или каталога по полному пути (S), принимает значение кода ошибки     }
 
 function GetFSString(Dr: Char): String; {JO}
+function GetShare(Drive: Char): string; {AK155}
+function GetDriveTypeNew(Drive: Char): TDrvTypeNew; {JO} {<fltl.001>}
+//JO: Функция, которую следует использовать в исходниках DN/2
+//    вместо неудачной штатной для VP RTL функции SysGetDriveType,
+//    в отличие от которой данная функция определяет тип диска
+//    никогда к нему не обращаясь - используя DosDevIOCtl и не
+//    делая никаких проверок файловой системы
 
 implementation
 
@@ -66,7 +78,7 @@ type
     NextEntryOffset: DWord;
     Flags: Byte;
     EaNameLength: Byte;
-    EaValueLength: word;
+    EaValueLength: Word;
     EaName: array[0..0] of Char;
     end;
 
@@ -236,7 +248,7 @@ function GetFileAges(S: ShortString;
   if SH = invalid_Handle_Value then
     begin
     Result := GetLastError;
-    exit;
+    Exit;
     end;
   FindClose(SH);
   with FindData do
@@ -298,6 +310,51 @@ function GetFSString(Dr: Char): String;
   end;
 
 {/JO}
+
+function GetShare(Drive: Char): string;
+  const
+    LocDrive: array[0..2] of char = 'C:'#0;
+    NetPath: record
+      lpPath: PChar;
+      Buf: array[0..255] of Char;
+      end = (lpPath: @LocDrive);
+    lNetPath: DWORD = SizeOf(NetPath);
+  var
+    RC: Longint;
+  begin
+  Result := '';
+  LocDrive[0] := Drive;
+  RC := WNetGetUniversalName(
+    @LocDrive,  // path for network resource
+    UNIVERSAL_NAME_INFO_LEVEL,    // level of information
+    @NetPath,      // name buffer
+    lNetPath  // size of buffer
+  );
+  if RC = 0 then
+    Result := StrPas(NetPath.lpPath);
+  end;
+
+function GetDriveTypeNew(Drive: Char): TDrvTypeNew; {<fltl.001>}
+const
+  Root: Array[0..4] of char = 'C:\'#0;
+
+begin
+  Root[0] := Drive;
+  Result := dtnInvalid;
+  case GetDriveType(Root) of
+    Drive_Fixed     : Result := dtnHDD;
+    Drive_Removable : Result := dtnFloppy;
+    Drive_CDRom     : Result := dtnCDROM;
+    Drive_Remote    :
+                      begin
+                      if GetShare(Drive) = '' then
+                             Result := dtnProgram
+                        else Result := dtnLAN;
+                      end;
+    0, 1            : Result := dtnInvalid;
+  else                Result := dtnUnknown;
+  end;
+end;
 
 begin
 end.

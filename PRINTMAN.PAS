@@ -53,7 +53,7 @@ interface
 {$IFDEF PrintManager}
 uses
   Lfn, {DataCompBoy}
-  Objects2, Views, Drivers, DNApp, advance, advance1, advance2, advance3,
+  Objects2, Views, Drivers, DNApp, Advance, Advance1, Advance2, Advance3,
   Dialogs, Dos, Messages, Commands, Collect
   ;
 
@@ -76,20 +76,20 @@ type
     Status: PView;
     PrintStream: PStream;
     Buffer: PByteArray;
-    BufSize: word;
-    BufCount: word;
+    BufSize: Word;
+    BufCount: Word;
     PrintDevice: PDosStream;
     constructor Init(var Bounds: TRect; AStatus: PView;
          AScrollBar: PScrollBar);
     constructor Load(var S: TStream);
     procedure Store(var S: TStream);
-    function PrintBuffer(Num: word): Boolean;
+    function PrintBuffer(Num: Word): Boolean;
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure PrintFile(const FileName: String);
     function SetDestination: Boolean;
     function GetStatus: Byte;
     procedure InitPrinter;
-    function Valid(C: word): Boolean; virtual;
+    function Valid(C: Word): Boolean; virtual;
     procedure Update; virtual;
     destructor Done; virtual;
     end;
@@ -178,7 +178,7 @@ procedure TPrintStatus.Store;
 procedure TPrintStatus.Draw;
   var
     B: TDrawBuffer;
-    C: word;
+    C: Word;
     S, S1: String;
   begin
   S1 := '';
@@ -221,7 +221,7 @@ constructor TPrintManager.Init;
   Paused := True;
   OutName := nil;
   if not SetDestination then
-    exit;
+    Exit;
   isValid := True;
   Paused := False;
   RegisterToBackground(@Self);
@@ -261,7 +261,7 @@ function TPrintManager.SetDestination;
       if InputBox(GetString(dlPrintOut), GetString(dlFileName), S, 80,
            hsPrintOut) <> cmOK
       then
-        exit;
+        Exit;
       end;
   end {case};
   OldP := PrintDevice;
@@ -271,7 +271,7 @@ function TPrintManager.SetDestination;
     PrintDevice := OldP;
     MessageBox(GetString(dlPrintNoInit), nil, mfError+mfOKButton);
     PrintDevice^.Status := 0;
-    exit;
+    Exit;
     end;
   if OldP <> nil then
     Dispose(OldP, Done);
@@ -299,7 +299,7 @@ constructor TPrintManager.Load;
     isValid := False;
     MessageBox(GetString(dlPrintNoInit), nil, mfError+mfOKButton);
     PrintDevice^.Status := 0;
-    exit;
+    Exit;
     end;
   PrintStream := New(PBufStream, Init(PString(List^.At(0))^, stOpenRead,
          $400));
@@ -422,7 +422,7 @@ procedure TPrintManager.PrintFile;
 
 procedure TPrintManager.InitPrinter;
   var
-    Hndl: word;
+    Hndl: Word;
   begin
   Hndl := PrintDevice^.Handle;
   asm
@@ -478,10 +478,10 @@ function TPrintManager.PrintBuffer;
       MessageBox(GetString(dlCantPrint), nil, mfError+mfOKButton);
       PrintBuffer := Num = 1;
       end;
-    exit;
+    Exit;
     end;
   if  (B and $90 = 0) or (B and 1 <> 0) then
-    exit;
+    Exit;
   PrintBuffer := True;
   {BB := NeedAbort;
  NeedAbort := True; Abort := False;}
@@ -523,14 +523,14 @@ procedure TPrintManager.Update;
 
   begin { TPrintManager.Update }
   if  (List = nil) or Paused or (LockUpdate <> 0) then
-    exit;
+    Exit;
   if  (PrintStream = nil) then
     begin
     if  (List = nil) or (List^.Count < 1) then
       begin
       if not Owner^.GetState(sfDragging) then
         Owner^.Free;
-      exit;
+      Exit;
       end;
     PrintStream := New(PBufStream, Init(PString(List^.At(0))^,
            stOpenRead, $400));
@@ -590,7 +590,7 @@ procedure TPrintManager.Update;
 
 procedure SetupPrinter;
   var
-    LastDest: word;
+    LastDest: Word;
   begin
   LastDest := RPrinterSetup.Device;
   if ExecResource(dlgPrinterSetup, RPrinterSetup) = cmOK then

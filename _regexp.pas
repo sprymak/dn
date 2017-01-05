@@ -20,24 +20,24 @@ type
   PRegExp = ^TRegExp;
   TRegExp = object(TObject)
     FStatus: TRegExpStatus;
-    FStart: integer;
-    FLength: integer;
+    FStart: Integer;
+    FLength: Integer;
     constructor Init;
     {destructor Done; virtual;}
     procedure Reset;
     function CompileString(const AExpression: String): Boolean;
     function CompileStr(AExpression: PChar): Boolean;
-    function Compile(AExpression: PChar; ALength: integer): Boolean;
-    function Execute(AString: PChar; ALength: integer): Boolean;
+    function Compile(AExpression: PChar; ALength: Integer): Boolean;
+    function Execute(AString: PChar; ALength: Integer): Boolean;
     function SubstituteString(ASrc: PChar; const AReplace: String;
          var ADest: String): Boolean;
     function SubstituteStr(ASrc, AReplace: PChar; ADest: PChar;
-         var ALength: integer): Boolean;
-    function Substitute(ASrc, AReplace: PChar; ARLen: integer;
-         ADest: PChar; var ADLen: integer): Boolean;
+         var ALength: Integer): Boolean;
+    function Substitute(ASrc, AReplace: PChar; ARLen: Integer;
+         ADest: PChar; var ADLen: Integer): Boolean;
     procedure Error(AStatus: TRegExpStatus); virtual;
     function CheckBreak: Boolean; virtual;
-    procedure Escape(AChar: Char; var ASubExp: PChar; var ALen: integer)
+    procedure Escape(AChar: Char; var ASubExp: PChar; var ALen: Integer)
       ; virtual;
   private
     FFlags: set of
@@ -50,17 +50,17 @@ type
       ffBreak,
       ffAutoTag
       );
-    FCodeSize: word;
+    FCodeSize: Word;
     FCodeData: PChar;
-    FStartP: array[1..9] of integer;
-    FEndP: array[1..9] of integer;
+    FStartP: array[1..9] of Integer;
+    FEndP: array[1..9] of Integer;
     FStartCh: Char;
     FMust: PString;
     FInput: PChar;
     FInputBol: PChar;
     FInputEol: PChar;
-    FLStack: array[1..10] of integer;
-    FLStackId: integer;
+    FLStack: array[1..10] of Integer;
+    FLStackId: Integer;
     end;
 
 implementation
@@ -89,12 +89,12 @@ function TRegExp.CompileStr(AExpression: PChar): Boolean;
   Result := _TRegExp^.CompileStr(AExpression, @Self);
   end;
 
-function TRegExp.Compile(AExpression: PChar; ALength: integer): Boolean;
+function TRegExp.Compile(AExpression: PChar; ALength: Integer): Boolean;
   begin
   Result := _TRegExp^.Compile(AExpression, ALength, @Self);
   end;
 
-function TRegExp.Execute(AString: PChar; ALength: integer): Boolean;
+function TRegExp.Execute(AString: PChar; ALength: Integer): Boolean;
   begin
   Result := _TRegExp^.Execute(AString, ALength, @Self);
   end;
@@ -106,13 +106,13 @@ function TRegExp.SubstituteString(ASrc: PChar; const AReplace: String;
   end;
 
 function TRegExp.SubstituteStr(ASrc, AReplace: PChar; ADest: PChar;
-     var ALength: integer): Boolean;
+     var ALength: Integer): Boolean;
   begin
   Result := _TRegExp^.SubstituteStr(ASrc, AReplace, ADest, ALength, @Self);
   end;
 
-function TRegExp.Substitute(ASrc, AReplace: PChar; ARLen: integer;
-     ADest: PChar; var ADLen: integer): Boolean;
+function TRegExp.Substitute(ASrc, AReplace: PChar; ARLen: Integer;
+     ADest: PChar; var ADLen: Integer): Boolean;
   begin
   Result := _TRegExp^.Substitute(ASrc, AReplace, ARLen, ADest, ADLen,
        @Self);
@@ -129,7 +129,7 @@ asm
 end;
 
 procedure TRegExp.Escape(AChar: Char; var ASubExp: PChar;
-     var ALen: integer);
+     var ALen: Integer);
   assembler; {&Frame-}
 asm
 end;

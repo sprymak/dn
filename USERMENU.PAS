@@ -58,7 +58,9 @@ uses
 var
   QuickExecExternalStr: String;
 
-function QuickExecExternal(N: integer): Boolean;
+function QuickExecExternal(N: Integer): Boolean;
+  {` Исполнитель программ быстрого запуска (типа Ctr-F1).
+    N=ScanCode-Hi(kbCtrlF1)+1`}
 function ExecUserMenu(DoGlobal: Boolean): Boolean;
 procedure ScreenGrabber(ShowMessage: Boolean);
 function MakeString(S: String; UserParams: PUserParams;
@@ -76,10 +78,10 @@ type
 
   PUserWindow = ^TUserWindow;
   TUserWindow = object(TWindow)
-    OldScreenWidth: word;
+    OldScreenWidth: Word;
     constructor Init;
     procedure CalcBounds(var Bounds: TRect; Delta: TPoint); virtual;
-    procedure SetState(AState: word; Enable: Boolean); virtual;
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
     end;
 
 const
@@ -88,7 +90,7 @@ const
 implementation
 uses
   Lfn, {DataCompBoy}
-  DNApp, advance, advance1, advance2, advance3, Startup, Messages, Menus,
+  DNApp, Advance, Advance1, Advance2, Advance3, Startup, Messages, Menus,
   Commands, Microed, WinClp, DNHelp, Dos, Memory, Dialogs, Tree, RStrings
   ;
 
@@ -96,8 +98,8 @@ type
   PUserMenuItem = ^TUserMenuItem;
   TUserMenuItem = record
     Text: PString;
-    Level: word;
-    Line: word;
+    Level: Word;
+    Line: Word;
     RunFrom2E: Boolean;
     end;
 
@@ -126,7 +128,7 @@ procedure TUserWindow.CalcBounds(var Bounds: TRect; Delta: TPoint);
   if  (Size.X <= ScreenWidth) and (ScreenWidth = OldScreenWidth) then
     begin
     inherited CalcBounds(Bounds, Delta);
-    exit
+    Exit
     end;
   Desktop^.GetExtent(Bounds);
   Bounds.Grow(1, 2);
@@ -134,7 +136,7 @@ procedure TUserWindow.CalcBounds(var Bounds: TRect; Delta: TPoint);
   OldScreenWidth := ScreenWidth;
   end;
 
-procedure TUserWindow.SetState(AState: word; Enable: Boolean);
+procedure TUserWindow.SetState(AState: Word; Enable: Boolean);
   var
     WindowCommands: TCommandSet;
   begin
@@ -172,7 +174,7 @@ procedure TUserView.ChangeBounds;
 
 procedure TUserView.Draw;
   var
-    I: integer;
+    I: Integer;
     B: TDrawBuffer;
   begin
   for I := 0 to Size.Y-1 do
@@ -180,7 +182,7 @@ procedure TUserView.Draw;
     MoveChar(B, ' ', 07, SizeOf(B) div 2);
     if I+Delta.Y < UserScreenSize div (UserScreenWidth*2)
     then
-      Move(PWordArray(UserScreen)^[(I+Delta.Y)*UserScreenWidth], B,
+      Move(PAWordArray(UserScreen)^[(I+Delta.Y)*UserScreenWidth], B,
          UserScreenWidth*2);
     WriteLine(0, I, Size.X, 1, B[Delta.X]);
     end;
@@ -236,7 +238,7 @@ procedure TUserCollection.FreeItem(P: Pointer);
 procedure NameAndExt(HandleTildes: Boolean;
     TS: String; Macro: Char; var S: String);
   var
-    l: integer;
+    l: Integer;
   begin
   if HandleTildes then
     Replace('~', #0'~', TS);
@@ -278,7 +280,7 @@ function MakeString(S: String; UserParams: PUserParams;
   if UserParams^.Passive <> nil then
     DP := TDate4(UserParams^.Passive^.FDate);
 
-  {$IFNDEF OS2}
+  {$IFDEF DualName}
   if  (Pos('!\', S) > 0) or (Pos('!:', S) > 0) or (Pos('!/', S) > 0)
   then
     begin
@@ -332,7 +334,7 @@ function MakeString(S: String; UserParams: PUserParams;
     Replace('#/', Copy(ts, 3, Length(ts)-3), S);
     end;
 
-  {$IFNDEF OS2}
+  {$IFDEF DualName}
   if  (Pos('$\', S) > 0) or (Pos('$:', S) > 0) or (Pos('$/', S) > 0)
   then
     begin
@@ -592,7 +594,7 @@ function MakeString(S: String; UserParams: PUserParams;
       end;
     end;
 
-  {$IFNDEF OS2}
+  {$IFDEF DualName}
   if  (PosChar('!', S) > 0) then
     begin
     if UserParams^.Active = nil then
@@ -648,12 +650,12 @@ function ExecUserMenu;
     S, S1: String;
     I: LongInt;
     UI: PUserMenuItem;
-    StartPos: integer;
+    StartPos: Integer;
     Items, OItems, SItems: PMenuItem;
     Menu: PMenu;
     PV: PView;
     R: TRect;
-    NI, NW, LL: word;
+    NI, NW, LL: Word;
     EnterParms: Boolean;
     TitleStr: String[30];
     DefStr: String;
@@ -664,9 +666,9 @@ function ExecUserMenu;
     {$ENDIF}
   label 1, 2;
 
-  function CheckFKeys(S: String): word;
+  function CheckFKeys(S: String): Word;
     var
-      I: integer;
+      I: Integer;
       S1: String;
     begin
     CheckFKeys := kbNoKey;
@@ -676,7 +678,7 @@ function ExecUserMenu;
       if UpStrg(Copy(S, 1, Length(S1))) = S1 then
         begin
         CheckFKeys := kbF1+(I-1) shl 8;
-        exit
+        Exit
         end;
       end;
     end;
@@ -688,11 +690,11 @@ function ExecUserMenu;
     var
       P1, P2: PMenuItem;
       UI, PU: PUserMenuItem;
-      KB: word;
+      KB: Word;
     begin
     DoSubMenu := nil;
     if i = P^.Count then
-      exit;
+      Exit;
     UI := P^.At(i);
     {if UI^.Text = nil then begin DoSubMenu := NewLine(DoSubMenu); Exit end;}
     KB := kbNoKey;
@@ -712,7 +714,7 @@ function ExecUserMenu;
       if PU^.Level < UI^.Level then
         begin
         Dec(i);
-        exit;
+        Exit;
         end;
       if PU^.Level > UI^.Level then
         begin
@@ -781,7 +783,7 @@ function ExecUserMenu;
   if F = nil then
     begin
     ErrMsg(dlMNUNotFound);
-    exit;
+    Exit;
     end;
 1:
   Message(Desktop, evBroadcast, cmGetUserParamsWL, @UserParams);
@@ -836,7 +838,7 @@ function ExecUserMenu;
       NI := 3;
       SItems := DoSubMenu(True);
       if SItems = nil then
-        break;
+        Break;
       Menu := NewMenu(SItems);
       Application^.GetExtent(R);
       R.A.X := 0;
@@ -861,7 +863,7 @@ function ExecUserMenu;
           Event.InfoPtr := nil;
           Application^.PutEvent(Event);
           end;
-        break;
+        Break;
         end;
       StartPos := I-999;
       if  (StartPos >= P^.Count-1) or
@@ -898,9 +900,9 @@ function ExecUserMenu;
             DelRight(S);
             if  (S <> '') then
               if  (S[1] = '>') then
-                break
+                Break
               else if (S[1] = ';') then
-                continue
+                Continue
               else if (S[1] = '<') then
                 begin
                 EnterParms := True;
@@ -917,7 +919,7 @@ function ExecUserMenu;
                   DelLeft(S);
                   TitleStr := S;
                   end;
-                continue;
+                Continue;
                 end;
             EnterParms := EnterParms or (Pos('%3', S) > 0);
             {$IFDEF OS2}
@@ -934,7 +936,7 @@ function ExecUserMenu;
           end;
         Close(F1.T);
         Dispose(F, Done);
-        break;
+        Break;
         end;
     until False;
     end;
@@ -961,14 +963,14 @@ type
   PGrabber = ^TGrabber;
   TGrabber = object(TView)
     ModalEnd: Boolean;
-    Screen: PWordArray;
+    Screen: PAWordArray;
     R: TRect;
-    BufSize: word;
+    BufSize: Word;
     constructor Init;
     destructor Done; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure Draw; virtual;
-    function Execute: word; virtual;
+    function Execute: Word; virtual;
     end;
 
 const
@@ -983,7 +985,7 @@ procedure ScreenGrabber(ShowMessage: Boolean);
     B: Boolean;
   begin
   if Here then
-    exit;
+    Exit;
   Here := True;
   if NotMessage and ShowMessage then
     begin
@@ -1032,10 +1034,10 @@ procedure TGrabber.Draw;
 
   var
     B: TDrawBuffer;
-    I: integer;
+    I: Integer;
 
     {$IFNDEF NOASM}
-  procedure Invert(var B; K: integer);
+  procedure Invert(var B; K: Integer);
     assembler;
     {&Frame-} {$USES EBX, ECX}
   asm
@@ -1053,9 +1055,9 @@ procedure TGrabber.Draw;
          loop @@1
        end;
     {$ELSE}
-  procedure Invert(K1, K2: integer);
+  procedure Invert(K1, K2: Integer);
     var
-      I: integer;
+      I: Integer;
     begin
     for I := K1 to K1+K2-1 do
       begin
@@ -1111,7 +1113,7 @@ procedure TGrabber.HandleEvent;
   var
     B: Boolean;
     Sh: Boolean;
-    Stp: integer;
+    Stp: Integer;
   procedure CED;
     begin
     ClearEvent(Event);
@@ -1120,7 +1122,7 @@ procedure TGrabber.HandleEvent;
 
   procedure MakeClip;
     var
-      I, J: integer;
+      I, J: Integer;
       S: String;
       C: Char;
     begin
@@ -1242,7 +1244,7 @@ procedure TGrabber.HandleEvent;
     CED;
   end { TGrabber.HandleEvent };
 
-function QuickExecExternal(N: integer): Boolean;
+function QuickExecExternal(N: Integer): Boolean;
 
   label 1;
 
@@ -1251,7 +1253,7 @@ function QuickExecExternal(N: integer): Boolean;
     TitleStr, DefStr, S: String;
     F: PTextReader;
     F1: lText;
-    I: integer;
+    I: Integer;
     OS2: Char;
     SR: lSearchRec;
     EnterParms, Local: Boolean;
@@ -1269,7 +1271,7 @@ RL:
     F := New(PTextReader, Init(SourceDir+'DN.XRN'));
     end;
   if F = nil then
-    exit;
+    Exit;
   while not F^.Eof do
     begin
     OS2 := #0;
@@ -1292,7 +1294,7 @@ RL:
   Dispose(F, Done);
   if Local then
     goto RL;
-  exit;
+  Exit;
 1:
   I := DNNumber;
   if OS2 = #0 then
@@ -1318,7 +1320,7 @@ RL:
   if IOResult <> 0 then
     begin
     Dispose(F, Done);
-    exit
+    Exit
     end;
   Writeln(F1.T, '@Echo off');
 
@@ -1341,10 +1343,10 @@ RL:
     DelRight(S);
     DelLeft(S);
     if  (S <> '') and (S[1] = ';') then
-      continue; {!!SF}
+      Continue; {!!SF}
     if  (S <> '') then
       if  (S[1] = '>') then
-        break
+        Break
       else if (S[1] = '<') then
         begin
         EnterParms := True;
@@ -1360,7 +1362,7 @@ RL:
           DelLeft(S);
           TitleStr := S;
           end;
-        continue;
+        Continue;
         end;
     EnterParms := EnterParms or (Pos('%3', S) > 0);
     Writeln(F1.T, MakeString(S, @UserParams, False, nil));

@@ -640,7 +640,7 @@ procedure ScanUp;
     Operands := '';
     InstrLen := 0;
     if  (MemBuff = nil) or (Offset <= 0) then
-      exit; { No more code }
+      Exit; { No more code }
     if Offset > 25 then
       MaxUpBytes := 25
     else
@@ -693,7 +693,7 @@ function HexB(A: Byte): String;
 
 function HexWp(A: Pointer): String;
   begin
-  HexWp := HexB(Hi(word(A^)))+HexB(Lo(word(A^)));
+  HexWp := HexB(Hi(Word(A^)))+HexB(Lo(Word(A^)));
   end;
 
 type
@@ -709,7 +709,7 @@ function SHexWp(A: ___): String;
   SHexWp := S+HexB(Hi(Abs(A^)))+HexB(Lo(Abs(A^)));
   end;
 
-function HexW(A: word): String;
+function HexW(A: Word): String;
   begin
   HexW := HexB(Hi(A))+HexB(Lo(A));
   end;
@@ -825,7 +825,7 @@ procedure ScanCode(var InstrData: XCHGData);
       end
     else
       begin
-      RelW := HexD(Offset+Cur+2+integer((@M[Cur])^));
+      RelW := HexD(Offset+Cur+2+Integer((@M[Cur])^));
       Inc(Cur, 2)
       end;
     end;
@@ -907,7 +907,7 @@ procedure ScanCode(var InstrData: XCHGData);
       3:
         Op := R(_m);
     end {case};
-    exit; {All done with 16-bit}
+    Exit; {All done with 16-bit}
     {******************************************************}
 
 _386: {32-bit x386}
@@ -952,7 +952,7 @@ _386: {32-bit x386}
       3:
         Op := R(_m);
     end {case};
-    exit;
+    Exit;
 
     {SIB 32-bit x386}
     {******************************************************}
@@ -968,7 +968,7 @@ SIB:
       {SIB exeption}
       begin
       Exeption := True;
-      exit
+      Exit
       end;
 
     Op := Op+'['; {SIB decoding exeption on MOD=00}
@@ -1056,7 +1056,7 @@ SIB:
         CheckOS(M[Cur]);
         Inc(Cur);
         Stop := True;
-        break
+        Break
         end;
     end { I1Byte };
 
@@ -1079,7 +1079,7 @@ SIB:
           Com := Com+'w';
         Stop := True;
         Inc(Cur);
-        break
+        Break
         end;
     end;
 
@@ -1113,7 +1113,7 @@ SIB:
         end {case};
         Stop := True;
         Inc(Cur);
-        break
+        Break
         end;
     end { xxxReg };
 
@@ -1148,7 +1148,7 @@ SIB:
             Op := RelB;
         end {case};
         Stop := True;
-        break
+        Break
         end;
     end { JMPxx };
 
@@ -1178,7 +1178,7 @@ SIB:
             Op := R(0)+','+Hex;
         end {case};
         Stop := True;
-        break
+        Break
         end;
     end { IAccum };
 
@@ -1194,7 +1194,7 @@ SIB:
       if CurB = Exept1[i].C then
         begin
         if  (CurB = $D4) and (M[Cur+1] <> $0A) then
-          break;
+          Break;
         if M[Cur] = $D5 then
           Com := CodeName[_AAD]
         else
@@ -1242,7 +1242,7 @@ SIB:
 
         Stop := True;
         Inc(Cur);
-        break
+        Break
         end;
 
     if not Stop then
@@ -1341,7 +1341,7 @@ SIB:
 
           end {case};
           Stop := True;
-          break
+          Break
           end;
     end { Exeptions };
 
@@ -1355,7 +1355,7 @@ SIB:
       Op := R(M[Cur] and 7);
       Inc(Cur);
       Stop := True;
-      exit
+      Exit
       end;
     for i := 0 to _Codes1N do
       {Scanning for 1 byte instructions}
@@ -1366,7 +1366,7 @@ SIB:
           Op := Sg[Get3(M[Cur])];
         Inc(Cur);
         Stop := True;
-        break
+        Break
         end;
     end { _I1Byte };
 
@@ -1383,7 +1383,7 @@ SIB:
         Inc(Cur);
         Op := RelW;
         Stop := True;
-        break
+        Break
         end;
     end;
 
@@ -1407,7 +1407,7 @@ SIB:
             if _RegF6[i].C = 0 then
               Op := Op+','+Hex; {TEST extend}
             Stop := True;
-            break
+            Break
             end;
 
       $80, $82:
@@ -1426,7 +1426,7 @@ SIB:
               Inc(Cur);
               end;
             Stop := True;
-            break
+            Break
             end;
 
       $FE:
@@ -1451,7 +1451,7 @@ SIB:
             if _RegFE[i].C in [3, 5] then
               OSp := fl;
             Stop := True;
-            break
+            Break
             end;
 
       $D0, $D2, $C0: {Scanning for R/M Shift-instructions}
@@ -1474,7 +1474,7 @@ SIB:
                 end;
             end {case};
             Stop := True;
-            break
+            Break
             end;
 
     end {case};
@@ -1499,7 +1499,7 @@ SIB:
         else
           Op := Op+','+R(Reg);
         Stop := True;
-        break
+        Break
         end;
     end;
 
@@ -1519,7 +1519,7 @@ SIB:
             Inc(Cur);
             ModR_M;
             Stop := True;
-            break
+            Break
             end;
       $01:
         for i := 0 to _Reg01N do
@@ -1530,7 +1530,7 @@ SIB:
             Inc(Cur);
             ModR_M;
             Stop := True;
-            break
+            Break
             end;
 
       $BA:
@@ -1544,7 +1544,7 @@ SIB:
             Op := Op+','+HexB(M[Cur]);
             Inc(Cur);
             Stop := True;
-            break
+            Break
             end;
     end {case};
     end { _Group1 };
@@ -1563,7 +1563,7 @@ SIB:
         ModR_M;
         Op := R(Reg)+','+Op;
         Stop := True;
-        break
+        Break
         end;
     if not Stop then
       for i := 0 to _Group3_N do
@@ -1574,7 +1574,7 @@ SIB:
           ModR_M;
           Op := Op+','+R(Reg);
           Stop := True;
-          break
+          Break
           end;
     end { _Group2_3 };
 
@@ -1592,7 +1592,7 @@ SIB:
         ModR_M;
         Stop := True;
         {inc(Cur);}
-        exit
+        Exit
         end;
 
       $B2, $B5, $B4: {LxS}
@@ -1611,7 +1611,7 @@ SIB:
         Op := R(Reg)+','+Op;
         Stop := True;
         Inc(Cur);
-        exit
+        Exit
         end;
 
       $20..$24, {MOV}
@@ -1653,7 +1653,7 @@ SIB:
         OSp := Fl;
         Stop := True;
         Inc(Cur);
-        exit
+        Exit
         end;
     end {case};
     Reg := Get3(M[Cur+1]);
@@ -1702,7 +1702,7 @@ SIB:
             end;
         end {case};
         Stop := True;
-        break
+        Break
         end;
     end { _Other };
 
@@ -1719,7 +1719,7 @@ SIB:
         W := False;
         ModR_M;
         Stop := True;
-        break
+        Break
         end;
     end;
 
@@ -1743,7 +1743,7 @@ SIB:
     Operands := '';
     InstrLen := 0;
     if  (Offset < 0) or (MemBuff = nil) or (InstrMaxLen <= 0) then
-      exit;
+      Exit;
     if InstrMaxLen > 15 then
       CMax := 15
     else

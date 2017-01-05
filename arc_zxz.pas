@@ -50,7 +50,7 @@ unit arc_ZXZ; {ZXZ}
 interface
 
 uses
-  Archiver, advance, advance1, Defines, Objects2, Streams
+  Archiver, Advance, Advance1, Defines, Objects2, Streams
   ;
 
 type
@@ -89,13 +89,11 @@ constructor TZXZArchive.Init;
   FreeStr := SourceDir+DNARC;
   TObject.Init;
   {$IFNDEF OS2}
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'ZXZIP386.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,
-         'ZXUNZIP.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'ZXZIP386'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'ZXUNZIP'));
   {$ELSE}
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'ZXZIP2.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,
-         'ZXUNZIP2.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'ZXZIP2'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'ZXUNZIP2'));
   {$ENDIF}
   Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, ''));
   ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, ''));
@@ -169,7 +167,7 @@ procedure TZXZArchive.GetFile;
   if  (ArcFile^.Status <> stOK) or (FP > 65280) then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   if  (P.Name[0] < #32) or
       (P.PackedSize > P.SectorSize*256) or
@@ -179,7 +177,7 @@ procedure TZXZArchive.GetFile;
   then
     begin
     FileInfo.Last := 1;
-    exit;
+    Exit;
     end;
   FileInfo.FName := P.Name;
   DelRight(FileInfo.FName);

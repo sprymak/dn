@@ -54,7 +54,7 @@ interface
 uses
   xTime, Defines, Objects2, Streams, DNApp, Drivers, Dialogs, Menus,
    Views, DNStdDlg, RStrings,
-  DNHelp, advance, advance1, advance2, advance3, Messages, ObjType,
+  DNHelp, Advance, Advance1, Advance2, Advance3, Messages, ObjType,
    Collect,
   StrView
   ;
@@ -66,7 +66,7 @@ type
     constructor Load(var S: TStream);
     constructor ShortLoad(var S: TStream);
     procedure ShortStore(var S: TStream);
-    function Compare(P1, P2: Pointer): integer; virtual;
+    function Compare(P1, P2: Pointer): Integer; virtual;
     procedure FreeItem(Item: Pointer); virtual;
     end;
 
@@ -105,7 +105,7 @@ type
     Info: PDStringView;
     destructor Done; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-    function GetText(Item: LongInt; MaxLen: integer): String; virtual;
+    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
     function GetKey(var S: String): Pointer; virtual;
     procedure SetList(Alpha: Boolean);
     {      procedure SetState(AState: Word; Enable: Boolean); virtual;}
@@ -123,7 +123,7 @@ var
 
 function CryptWith(Pass, S: String): String;
   var
-    I: integer;
+    I: Integer;
   begin
   if Pass <> '' then
     begin
@@ -147,10 +147,10 @@ procedure PhoneBook(Manual: Boolean);
     S: TBufStream;
     DT: record
       C: PCollection;
-      n: word;
+      n: Word;
       end;
     W: PWindow;
-    I: integer;
+    I: Integer;
     SS: String;
 
   procedure DoSearchButton(P: PView);
@@ -170,7 +170,7 @@ procedure PhoneBook(Manual: Boolean);
     if  (ExecResource(dlgManualDial, SS) <> cmOK)
          or (DelSpaces(SS) = '')
     then
-      exit;
+      Exit;
     New(PPH, Init(SS, GetString(dlMD_Manual)+SS, '', ''));
     end
   else
@@ -231,10 +231,10 @@ procedure PhoneBook(Manual: Boolean);
     D^.GetData(DT);
     Dispose(D, Done);
     if R.A.X <> cmDialPhone then
-      exit;
+      Exit;
     end;
   if PPH = nil then
-    exit;
+    Exit;
   {$IFDEF Modem}
   if Dialer = nil then
     begin
@@ -281,7 +281,7 @@ procedure TPhoneBox.SetList;
         begin
         FreeStr := UpStrg(P^.Name);
         if  (Length(FreeStr) = 2) and (FreeStr = '..') then
-          exit;
+          Exit;
         PP := New(PPhoneDir, Init('', FreeStr[1], '', ''));
         if PC^.Search(PP, I) then
           begin
@@ -307,7 +307,7 @@ procedure TPhoneBox.SetList;
 
   begin { TPhoneBox.SetList }
   if Phones = nil then
-    exit;
+    Exit;
   if  (AlphaMode xor Alpha) then
     begin
     if Alpha then
@@ -355,13 +355,13 @@ procedure TPhoneBox.HandleEvent;
     begin
     CheckPassword := True;
     if  (Ph^.Password = '') or Ph^.Encrypted then
-      exit;
+      Exit;
     repeat
       S := '';
       if ExecResource(dlgSetPassword, S) = cmCancel then
         begin
         CheckPassword := False;
-        exit
+        Exit
         end;
     until Ph^.Password = S;
     Ph^.Encrypted := True;
@@ -386,7 +386,7 @@ procedure TPhoneBox.HandleEvent;
       begin
       Ph := List^.At(Focused);
       if not CheckPassword(Ph) then
-        exit;
+        Exit;
       Dt.Name := Ph^.Name;
       Dt.Password := Ph^.Password;
       if Ph^.Memo1 <> nil then
@@ -399,7 +399,7 @@ procedure TPhoneBox.HandleEvent;
       Idx := dlgAppendDirectory;
 
     if ExecResource(Idx, Dt) <> cmOK then
-      exit;
+      Exit;
 
     C := List;
     if C = nil then
@@ -444,7 +444,7 @@ procedure TPhoneBox.HandleEvent;
     if Active = nil then
       begin
       EditDirectory(Append);
-      exit
+      Exit
       end;
     FillChar(DT, SizeOf(DT), 0);
     if not Append then
@@ -464,11 +464,11 @@ procedure TPhoneBox.HandleEvent;
 
     repeat
       if ExecResource(Idx, DT) <> cmOK then
-        exit;
+        Exit;
     until (DT.Number <> '');
 
     if  (DT.Number = '') or (DT.Name = '..') {or (DT.Name='')} then
-      exit;
+      Exit;
     C := List;
     if C = nil then
       C := New(PPhoneCollection, Init(10, 10));
@@ -498,16 +498,16 @@ procedure TPhoneBox.HandleEvent;
         Memo1, Memo2: String[50];
         end;
       Ph, P1: PPhoneDir;
-      I: integer;
+      I: Integer;
     begin
     if  (List = nil) or (Focused >= List^.Count) then
-      exit;
+      Exit;
     FillChar(Dt, SizeOf(Dt), 0);
     Ph := List^.At(Focused);
     if Ph = nil then
-      exit;
+      Exit;
     if not CheckPassword(Ph) then
-      exit;
+      Exit;
     Dt.Name := Ph^.Name;
     Dt.Password := Ph^.Password;
     if Ph^.Memo1 <> nil then
@@ -539,19 +539,19 @@ procedure TPhoneBox.HandleEvent;
 
   procedure CopyPhones;
     var
-      I: integer;
+      I: Integer;
     begin
     if  (List = nil) or (Focused >= List^.Count) then
-      exit;
+      Exit;
     if Active = nil then
       begin
       CopyDirectory;
-      exit
+      Exit
       end;
     FillChar(DT, SizeOf(DT), 0);
     Ph := List^.At(Focused);
     if Ph = nil then
-      exit;
+      Exit;
     DT.Name := Ph^.Name;
     if Ph^.Number <> nil then
       DT.Number := Ph^.Number^;
@@ -591,9 +591,9 @@ procedure TPhoneBox.HandleEvent;
     begin
     CE;
     if Focused = 0 then
-      exit;
+      Exit;
     if  (Active = nil) or (List = nil) or (List^.Count = 0) then
-      exit;
+      Exit;
     P := List^.At(Focused);
     New(PPH, Init(P^.Number^, P^.Name, '', ''));
     Owner^.EndModal(cmDialPhone);
@@ -601,7 +601,7 @@ procedure TPhoneBox.HandleEvent;
 
   procedure EnterDir;
     var
-      I: integer;
+      I: Integer;
       S: String;
       PD: PPhoneDir;
       P: PPhone;
@@ -609,11 +609,11 @@ procedure TPhoneBox.HandleEvent;
     if Active = nil then
       begin
       if List^.Count = 0 then
-        exit;
+        Exit;
 
       PD := List^.At(Focused);
       if not CheckPassword(PD) then
-        exit;
+        Exit;
 
       DisableCommands([cmDialPhone, cmImportPhones]);
       GroupLabel^.Hide;
@@ -647,7 +647,7 @@ procedure TPhoneBox.HandleEvent;
           PPhoneCollection(Phones)^.ShortStore(Stream);
         Stream.Done;
         DrawView;
-        exit;
+        Exit;
         end;
       PSortedCollection(List)^.Sort;
       if  (PPhone(List^.At(0))^.Name <> '..') and (List^.Count > 0) then
@@ -668,7 +668,7 @@ procedure TPhoneBox.HandleEvent;
       if Focused > 0 then
         begin
         DialPhone;
-        exit;
+        Exit;
         end;
 
       if SearchMode and (List <> nil) then
@@ -695,7 +695,7 @@ procedure TPhoneBox.HandleEvent;
     procedure SearchDir(Ph: PPhoneDir);
       procedure DoPhone(P: PPhone);
         var
-          I: integer;
+          I: Integer;
         begin
         if  (P <> nil)
                  and ((Pos(S, UpStrg(P^.Name)) <> 0) or (Pos(S,
@@ -712,12 +712,12 @@ procedure TPhoneBox.HandleEvent;
 
     begin { SearchPhone }
     if  (Phones = nil) or (Phones^.Count = 0) then
-      exit;
+      Exit;
     S := '';
     if InputBox(GetString(dlPB_SearchPhone),
          GetString(dlPB_S_earchString), S, 30, 0) <> cmOK
     then
-      exit;
+      Exit;
     UpStr(S);
     New(PC, Init(10, 10));
     PC^.Duplicates := True;
@@ -725,7 +725,7 @@ procedure TPhoneBox.HandleEvent;
     if PC^.Count = 0 then
       begin
       MessageBox(GetString(dlPB_NoFind), nil, mfError+mfOKButton);
-      exit;
+      Exit;
       end;
     if SearchMode then
       begin
@@ -754,14 +754,14 @@ procedure TPhoneBox.HandleEvent;
       P: String;
       Ph: PPhone;
       C: Char;
-      I, J, K, M: integer;
+      I, J, K, M: Integer;
       PV: PView;
       Fr: Boolean;
       Template: String;
 
     procedure MakePhone;
       var
-        I, J, K: integer;
+        I, J, K: Integer;
       begin
       for I := 2 to Length(S) do
         if  (S[I] >= '0') and (S[I] <= '9') and (S[I-1] = ' ') then
@@ -777,7 +777,7 @@ procedure TPhoneBox.HandleEvent;
             Inc(J)
             end;
           if Length(P) < 3 then
-            continue;
+            Continue;
           S := Copy(S, 1, K-1);
           DelLeft(S);
           DelRight(S);
@@ -789,7 +789,7 @@ procedure TPhoneBox.HandleEvent;
             Active^.Phones^.Insert(Ph);
             Inc(M);
             end;
-          break;
+          Break;
           end;
       end { MakePhone };
 
@@ -801,16 +801,16 @@ procedure TPhoneBox.HandleEvent;
     begin { ImportPhones }
     M := 0;
     if  (Active = nil) or AlphaMode or SearchMode then
-      exit;
+      Exit;
     S := GetFileNameDialog(x_x, GetString(dlPB_ImportPhones),
         GetString(dlFileName), fdOKButton+fdHelpButton, hsImportPhones);
     if S = '' then
-      exit;
+      Exit;
     F := New(PTextReader, Init(S));
     if F = nil then
       begin
       MessageBox(GetString(dlFBBNoOpen)+S, nil, mfError+mfOKButton);
-      exit
+      Exit
       end;
     PV := WriteMsg(GetString(dlPB_Working));
     Fr := True;
@@ -824,7 +824,7 @@ procedure TPhoneBox.HandleEvent;
           begin
           Fr := False;
           Template := S;
-          continue;
+          Continue;
           end;
         if Template = '' then
           MakePhone
@@ -932,25 +932,25 @@ procedure TPhoneBox.HandleEvent;
           begin
           CE;
           if  (List = nil) or (List^.Count = 0) then
-            exit;
+            Exit;
           if AlphaMode or SearchMode then
-            exit;
+            Exit;
           if  (Active <> nil) and (Focused = 0) then
-            exit;
+            Exit;
           if Active = nil then
             begin
             if Msg(dlPhoneDirDelete, nil,
                  mf2YesButton+mfNoButton+mfConfirmation) <> cmYes
             then
-              exit;
+              Exit;
             if not CheckPassword(List^.At(Focused)) then
-              exit;
+              Exit;
             end
           else if (List^.Count > 0) and
               (MessageBox(GetString(dlPhoneDeleteQuery), nil,
                 mfYesButton+mfNoButton+mfConfirmation) <> cmYes)
           then
-            exit;
+            Exit;
           if  (List <> nil) and (Focused < List^.Count) then
             begin
             List^.AtFree(Focused);
@@ -977,7 +977,7 @@ procedure TPhoneBox.HandleEvent;
             Focused := 0;
             EnterDir;
             CE;
-            exit;
+            Exit;
             end;
           kbEnter:
             begin
@@ -1110,7 +1110,7 @@ procedure TPhoneCollection.ShortStore(var S: TStream);
 constructor TPhoneCollection.ShortLoad(var S: TStream);
   var
     q: AWord;
-    C, I: integer;
+    C, I: Integer;
     ACount, ALimit, ADelta: AInt;
   begin
   S.Read(q, 2);
@@ -1129,7 +1129,7 @@ constructor TPhoneCollection.ShortLoad(var S: TStream);
     else if q = otPhoneDir then
       AtInsert(I, New(PPhoneDir, Load(S)))
     else
-      break;
+      Break;
     end;
   S.Read(Duplicates, SizeOf(Boolean));
   Sort;

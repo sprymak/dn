@@ -320,6 +320,8 @@ dlSortLADate,         'Last ~a~ccess time'
 dlSortDIZ,            '~D~escription'
 dlSortSize,           '~S~ize'
 dlSortUnsorted,       '~U~nsorted'
+dlSortOwner,          'Sort by path'
+dlSortInverted,       'Inverted order'
 
 dlViewQuery,          ^C'Information was modified. Save changes?'
 dlViewSearchFor,      '~S~earch for'
@@ -1384,22 +1386,16 @@ dl_Failed_to_set_volume_label  'Sorry, can''t set volume label'
 ;JO-
 
 ;X-Man >>>
-sdtError      = 'Unknown   ';
+sdtError      = 'Unknown';
 sdtFixed      = 'Fixed';
-sdtRemovable  = 'Removable ';
-sdtRemote     = 'Remote    ';
-sdtCDROM      = 'CD-ROM    ';
-sdtDblSpace   = 'DblSpace  ';
-sdtSUBST      = 'SUBST     ';
-sdtStacker    = 'Stacker   ';
-sdtRAMDrive   = 'RAM       ';
-sdtDublDisk   = 'DoubleDisk';
-sdtBernoully  = 'Bernoully ';
-sdtDiskreet   = 'Diskreet  ';
-sdtSuperStor  = 'SuperStor ';
+sdtRemovable  = 'Remov.';
+sdtRemote     = 'Remote ';
+sdtProgram    - 'Program';
+sdtCDROM      = 'CD-ROM';
+sdtRAMDrive   = 'RAM';
 ;X-Man <<<
 ;JO+
-sdtFixed1     = '  ';
+sdtOptical    = 'Optical';
 dlDoes_Not_Exist = 'does not exist'
 dlCmdLineTooLong = 'Command line too long'
 dlCantLoad = 'Can''t load '

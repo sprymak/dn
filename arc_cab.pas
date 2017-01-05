@@ -50,7 +50,7 @@ unit arc_CAB; {CAB}
 interface
 
 uses
-  Archiver, advance, advance1, Defines, Objects2, Streams, Dos
+  Archiver, Advance, Advance1, Defines, Objects2, Streams, Dos
   ;
 
 type
@@ -94,17 +94,20 @@ constructor TCABArchive.Init;
   Sign := Sign+#0;
   FreeStr := SourceDir+DNARC;
   TObject.Init;
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, ''));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,
-         'EXTRACT.EXE'));
-  Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, '/A /L .\'));
-  ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,
-         '/A /L .\'));
-  Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, ''));
-  Move := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove, ''));
-  Delete := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete, ''));
+  {-i0 turns on console output}
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'MSCAB -i0'));
+  {$IFDEF SEVENZIP}
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, '7Z'));
+  {$ELSE SEVENZIP}
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'MSCAB -i0'));
+  {$ENDIF}
+  Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'e'));
+  ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, 'x'));
+  Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, '-dirs -r0 a'));
+  Move := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove, '-dirs -r0 m'));
+  Delete := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete, 'd'));
   Garble := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble, ''));
-  Test := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest, ''));
+  Test := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest, 't'));
   IncludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths, ''));
   ExcludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths, ''));
   ForceMode := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode, ''));
@@ -128,9 +131,9 @@ constructor TCABArchive.Init;
   UltraCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
          PUltraCompression, ''));
   ComprListChar := NewStr(GetVal(@Sign[1], @FreeStr[1], PComprListChar,
-         ' '));
+         '@'));
   ExtrListChar := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtrListChar,
-       ' '));
+       '@'));
 
   q := GetVal(@Sign[1], @FreeStr[1], PAllVersion, '0');
   AllVersion := q <> '0';
@@ -185,14 +188,14 @@ procedure TCABArchive.GetFile;
   if  (FilesNumber = 0) then
     begin
     FileInfo.Last := 1;
-    exit;
+    Exit;
     end;
   Dec(FilesNumber);
   ArcFile^.Read(FH, SizeOf(FH));
   if  (ArcFile^.Status <> 0) then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   FileInfo.FName := '';
   repeat
@@ -204,7 +207,7 @@ procedure TCABArchive.GetFile;
   then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   FileInfo.Attr := FH.attribs and not Hidden;
   FileInfo.USize := FH.cbFile;

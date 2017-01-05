@@ -7,7 +7,7 @@ procedure CopyIniVarsToCfgVars;
 
 implementation
 uses
-  DnIni, Startup, advance1, FlPanelX
+  DnIni, Startup, Advance1, FlPanelX
   , fnotify
   {$IFDEF Win32}
   , VpKbdW32 {for AltGreyAsAlt}
@@ -17,18 +17,16 @@ uses
 
 procedure CopyIniVarsToCfgVars;
   var
-    i: integer;
+    i: Integer;
   begin
   SystemData.Options := SystemDataOpt;
   InterfaceData.Options := InterfaceDataOpt;
-  InterfaceData.DrvInfType := DriveInfoType;
   Startup.FMSetup.Options := FMSetupOpt;
   EditorDefaults.EdOpt := EditorDefaultsOpt;
   EditorDefaults.EdOpt2 := EditorDefaultsOpt2;
   EditorDefaults.ViOpt := ViewerOpt;
   StartupData.Load := StartupDataLoad;
   StartupData.Unload := StartupDataUnload;
-  StartupData.Slice2 := StartupDataSlice2;
   Confirms := ConfirmsOpt;
   SystemData.CopyLimitBuf := CopyLimit;
   SystemData.ForceDefArch := ForceDefaultArchiver;

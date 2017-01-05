@@ -770,8 +770,8 @@ const
   ouiTrackEditors = $0200;
   ouiTrackViewers = $0400;
   ouiTrackDirs = $0800;
-  ouiHideDriveInfo = $1000; {-$VIV}
-  ouiShowScrollBar = $2000;
+ {ouiHideDriveInfo = $1000;} {-$VIV}
+  ouiShowScrollBar = $1000;
 
   omsReverse = $01;
   omsCursor = $02;
@@ -794,13 +794,6 @@ const
   osuInt2F = $04;
   osuInt15 = $08;
 
-  osuOnceRelease = $01;
-  osuReleaseOpen = $02;
-  osuReleaseCopy = $04;
-  osuReleaseArch = $08;
-  osuReleaseFind = $10;
-  {osuReleaseDrag    = $20;}
-
   ossEditor = $01;
   ossUseSysClip = $02;
   ossShowHidden = $04;
@@ -819,15 +812,16 @@ const
 
   cdnHideCmdLine = $0001; { DN Misc Information }
 
-  {-DataCompBoy-}
-  ditMediaType = $01;
-  ditLocalDir = $02;
-  ditCDdir = $04;
-  ditNetDir = $08;
-  ditIncludeQick = $10;
-  ditIncludeTempInfo = $20;
-  ditShowVolume = $40;
-  ditSkipFloppy = $80;
+  {JO}
+  ditAddQick = $01;
+  ditAddTemp = $02;
+
+  ditHDD = $01;
+  ditFloppy = $02;
+  ditCDMO = $04;
+  ditProgr = $08;
+  ditNet = $10;
+  {/JO}
 
   dfMDY = 00;
   dfDMY = 01;
@@ -889,6 +883,9 @@ const
   hsCreateWPSObject = 158;
   hsDBFGotoRow = 159; {John_SW}
   hsDBFGotoCol = 160; {John_SW}
+  hsKbdToggleLayot = 165; {AK155}
+  hsWinCodeTable = 166; {AK155}
+  hsCodeTables = 167; {AK155}
 
   {UU Encode options}
 
@@ -1143,9 +1140,15 @@ const
   cmSwitchWrap = 12157;
   cmSwitchHiLine = 12158;
   cmSwitchHiColumn = 12159;
+
+{ Каждая команда перекодировки строки должна иметь код меньше, чем
+  cmUpcaseBlock, см. TFileEditor.ChangeBlockCase}
   cmUpString = 12160;
   cmLowString = 12161;
   cmCapString = 12162;
+  cmToggleCaseString = 12163;
+  cmRusEngConvString = 12164;
+
   cmInsertTime = 12166;
   cmInsertDate = 12167;
   cmMoveBlockStart = 12168;
@@ -1158,22 +1161,27 @@ const
   cmPlayMacro = 12175;
   cmSwitchBrackets = 12176;
   cmBracketPair = 12177;
-  cmUpWord = 12178;
-  cmLowWord = 12179;
-  cmCapWord = 12180;
-  cmSwitchDrawMode = 12181;
-  cmLoadXlatTable = 12182;
+
+{ Каждая команда перекодировки строки должна иметь код меньше, чем
+  cmUpcaseBlock, см. TFileEditor.ChangeBlockCase}
+  cmUpcaseBlock = 12178;
+  cmLowcaseBlock = 12179;
+  cmCapitalizeBlock = 12180;
+  cmToggleCaseBlock = 12181;
+  cmRusEngConvBlock = 12182;
+
   cmAdvancePortSetup = 12183;
   cmNavyLinkSetup = 12184;
   cmSwitchKeyMapping = 12185; {-$VIV}
   cmOpenFileAtCursor = 12186; {-$VIV}
   cmEditSPF = 12187; {-$VIV}
   cmEditINI = 12188; {-$VIV}
-  cmChangeCharCase = 12189;
   cmSwitchTabReplace = 12190; {-$VOL}
   cmEditCrLfMode = 12191;
   cmEditLfMode = 12192;
   cmEditCrMode = 12193;
+  cmSwitchDrawMode = 12195;
+  cmLoadXlatTable = 12196;
 
   cmGotoLineNumber2 = 12198;
   cmSwitchSmartTab = 12199;
@@ -1606,13 +1614,10 @@ const
   cmCopyBlock = 129;
   cmMoveBlock = 130;
   cmHideBlock = 131;
-  cmUpcaseBlock = 132;
-  cmLowcaseBlock = 133;
-  cmCapitalizeBlock = 134;
+
   cmIndentBlock = 135;
   cmUnIndentBlock = 136;
-  cmRusEngConv = 137; {-$VIV 20.05.99--}
-  cmChangeCaseBlock = 138;
+
   cmRevSortBlock = 139;
 
   { Panel Commands }
@@ -1687,6 +1692,9 @@ const
   cmSortType = 13060;
   cmSortUnsorted = 13000;
 
+  cmSortOwnerToggle = 13257; {JO}
+  cmSortInvToggle = 13258; {JO}
+
   { Panel sort mode }
   psmLongName = 1;
   psmLongExt = 2;
@@ -1697,6 +1705,9 @@ const
   psmDIZ = 7;
   psmUnsorted = 0;
   psmOrdered = 60;
+
+  psfOwnerFirst = 1; {JO: сортировать сначала пути к файлам}
+  psfInverted = 2; {JO: сортировать в обратном порядке}
 
   { DblWnd Commands }
 
@@ -2036,6 +2047,8 @@ type
     dlSortDIZ,
     dlSortSize,
     dlSortUnsorted,
+    dlSortOwner, {JO}
+    dlSortInverted, {JO}
     dlViewQuery,
     dlViewSearchFor,
     dlViewCase,
@@ -2985,16 +2998,10 @@ type
     sdtFixed,
     sdtRemovable,
     sdtRemote,
+    sdtProgram,
     sdtCDROM,
-    sdtDblSpace,
-    sdtSUBST,
-    sdtStacker,
-    sdtRAMDrive,
-    sdtDublDisk,
-    sdtBernoully,
-    sdtDiskreet,
-    sdtSuperStor, {X-Man <<<}
-    sdtFixed1, {JO}
+    sdtRAMDrive, {X-Man <<<}
+    sdtOptical, {JO}
 
     dlDoes_Not_Exist, {JO}
     dlCmdLineTooLong, {JO}

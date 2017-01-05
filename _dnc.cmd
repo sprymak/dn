@@ -89,8 +89,12 @@ del exe.%Target%\advance.*
 del exe.%Target%\drivers.*
 
 if not [%Target%]==[D32] goto OS2W32
-vpc dn -m -q -vVPD.VPO
+vpc dn /dDN /dDNPRG -b -q -CW:d32:DPMI32
+@if not errorlevel 1 goto pe2LE
+@echo Это что-то переполняется в VP, со второго раза получится.
+vpc dn /dDN /dDNPRG -m -q -CW:d32:DPMI32
 @if errorlevel 1 pause Error
+:pe2LE
 PE2LE.EXE EXE.D32\dn.EXE /* /S:WDOSXLE.EXE /Q'
 @if errorlevel 1 pause Error
 del EXE.D32\dn.exe
@@ -98,7 +102,7 @@ goto end_dn
 
 :OS2W32
 if [%Target%]==[W32] vpc LIB.W32\vpkbdw32.pas /m /dDN /dDNPRG /q %plugin% /c%T%
-vpc dn /m /dDN /dDNPRG /q %plugin% /c%T%
+vpc dn /b /dDN /dDNPRG /q %plugin% /c%T%
 if not errorlevel 1 goto end_dn
 @echo Это что-то переполняется в VP, со второго раза получится.
 vpc dn /m /dDN /dDNPRG /q %plugin% /c%T%

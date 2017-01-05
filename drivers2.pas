@@ -61,7 +61,7 @@ procedure DoDump;
 implementation
 
 uses
-  Dos, advance, Lfn, advance1, Drivers
+  Dos, Advance, Lfn, Advance1, Drivers
   {, SysUtils}, VpSysLow
   ;
 
@@ -72,7 +72,7 @@ procedure DoDump;
     PByteArray = ^TByteArray;
     TByteArray = array[0..65528] of Byte;
   var
-    C, AC, PP, FH: word;
+    C, AC, PP, FH: Word;
     PPP: TByteArray absolute FreeStr;
     PhysAddr: Pointer;
     I: Byte;
@@ -80,7 +80,7 @@ procedure DoDump;
     Temp: LongInt;
     {FileName: String;}
 
-  function StoreBuffer(var Buf; Size: word; FH: word): word;
+  function StoreBuffer(var Buf; Size: Word; FH: Word): Word;
     begin
     StoreBuffer := SysFileWrite(FH, Buf, Size, Size);
     end;
@@ -99,10 +99,10 @@ procedure DoDump;
     if SysFileCreate(@SourceDir[1], Open_Access_ReadWrite or
          open_share_DenyNone, $20 {Archive}, FH) <> 0
     then
-      FH := word(-1);
+      FH := Word(-1);
   SysFileSeek(FH, 0, 2, Temp);
 
-  if FH <> word(-1) then
+  if FH <> Word(-1) then
     begin
     (*
      {$IFNDEF NONBP}

@@ -50,7 +50,7 @@ unit arc_HYP; {HYP}
 interface
 
 uses
-  Archiver, advance, advance1, Defines, Objects2, Streams
+  Archiver, Advance, Advance1, Defines, Objects2, Streams
   ;
 
 type
@@ -87,9 +87,8 @@ constructor THYPArchive.Init;
   Sign := Sign+#0;
   FreeStr := SourceDir+DNARC;
   TObject.Init;
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'HYPER.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,
-       'HYPER.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'HYPER'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'HYPER'));
   Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, '-x'));
   ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, '-x'));
   Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, '-a'));
@@ -159,26 +158,26 @@ procedure THYPArchive.GetFile;
   if ArcFile^.GetPos = ArcFile^.GetSize then
     begin
     FileInfo.Last := 1;
-    exit;
+    Exit;
     end;
   ArcFile^.Read(P, 4);
   if  (P.Id and $ffff = 0) then
     begin
     FileInfo.Last := 1;
-    exit;
+    Exit;
     end;
   if  (ArcFile^.Status <> stOK) or
       ( (P.Id <> $2550481A {^Z'HP%'}) and (P.Id <> $2554531A {^Z'ST%'}))
   then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   ArcFile^.Read(P.PackedSize, SizeOf(P)-4);
   if  (ArcFile^.Status <> stOK) then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
   FileInfo.Last := 0;

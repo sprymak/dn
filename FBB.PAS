@@ -58,8 +58,9 @@ function LongCopy(Fn1: String): Boolean; {DataCompBoy}
 
 implementation
 uses
+  VPSysLow,
   Lfn, {DataCompBoy}
-  advance, advance1, advance2, advance3, FileCopy, DNApp, Messages, Views,
+  Advance, Advance1, Advance2, Advance3, FileCopy, DNApp, Messages, Views,
   Defines, Dialogs, Commands, Drivers, Memory, FilesCol, RStrings,
   HistList, Gauge, Startup, DNUtil, xTime, DiskInfo
   , ErrMess
@@ -70,9 +71,9 @@ type
   ArPtr = ^Ar65000;
 
   HRec = record
-    Num: word;
-    NR: word;
-    NW: word;
+    Num: Word;
+    NR: Word;
+    NW: Word;
     Buf: ArPtr;
     end;
 
@@ -153,12 +154,13 @@ function LongCopy(Fn1: String): Boolean;
     Ls: LongInt;
     Tuda: Boolean;
     i: Byte;
-    NumW: word;
+    NumW: Word;
     Count: Byte;
-    wx, wy: integer;
+    wx, wy: Integer;
     wl: Byte;
     d, Fn2: String;
     n, x: String;
+    PathBuffer: array[0..255] of Char; {целевой каталог}
     nhd: NHdr;
     ohd: OHdr absolute nhd;
     PInfo: PWhileView;
@@ -200,7 +202,7 @@ function LongCopy(Fn1: String): Boolean;
            mfError+mfOKButton);
         Abort := True;
         NewTimer(Timer, 0);
-        NewTimerSecs(AlarmTimer, 20);
+        NewTimer(AlarmTimer, 20*1000);
         end;
       {DataCompBoy      DskOn;}
       DispatchEvents(PInfo, CopyCancelled);
@@ -208,7 +210,7 @@ function LongCopy(Fn1: String): Boolean;
         begin
         Close(F2.F);
         lEraseFile(F2);
-        exit;
+        Exit;
         end;
       Bf[i].NW := 0;
       Inc(Cs, Bf[i].NR);
@@ -222,7 +224,7 @@ function LongCopy(Fn1: String): Boolean;
       SR: lSearchRec;
       lF: lFile;
     begin
-    FreeSpc := Disk_Free(Byte(D[1])-64);
+    FreeSpc := SysDiskSizeLongX(@PathBuffer);
     DosError := 0;
     OverWr := True;
     Abort := False;
@@ -238,7 +240,7 @@ function LongCopy(Fn1: String): Boolean;
             (GetString(dlFBBOver1)+SR.FullName+GetString(dlFBBOver2), nil,
           mfQuery+mfYesButton+mfNextDButton+mfCancelButton);
       NewTimer(Timer, 0);
-      NewTimerSecs(AlarmTimer, 20);
+      NewTimer(AlarmTimer, 20*1000);
       Abort := i = cmCancel;
       if i = cmYes
       then
@@ -255,7 +257,7 @@ function LongCopy(Fn1: String): Boolean;
          nil,
         mfConfirmation+mfOKButton+mfCancelButton) <> cmOK;
     NewTimer(Timer, 0);
-    NewTimerSecs(AlarmTimer, 20);
+    NewTimer(AlarmTimer, 20*1000);
     end;
 
   procedure RequireNew;
@@ -270,26 +272,27 @@ function LongCopy(Fn1: String): Boolean;
         SetFTime(F2.F, Olddate);
         Close(F2.F);
         ClrIO;
-        FreeSpc := Disk_Free(Byte(D[1])-64);
+        FreeSpc := SysDiskSizeLongX(@PathBuffer);
         if  (PartSize = 0) or (FreeSpc < PartSize) then
           RequireDisk;
         end;
-      lFSplit(Fn2, D, n, X);
-      Fn2 := D+n+'.d'+SStr(Count, 2, '0');
+      lFSplit(Fn2, d, n, X);
+      Strings.StrPCopy(@PathBuffer, d);
+      Fn2 := d+n+'.d'+SStr(Count, 2, '0');
     until OverWr or Abort or CopyCancelled;
     if Abort or CopyCancelled then
-      exit;
-    FreeSpc := Disk_Free(Byte(D[1])-64);
+      Exit;
+    FreeSpc := SysDiskSizeLongX(@PathBuffer);
     while (FreeSpc < 512) do
       begin
       i := MessageBox(GetString(dlFBBDiskFull1), nil,
            mfWarning+mfOKButton+mfCancelButton);
       NewTimer(Timer, 0);
-      FreeSpc := Disk_Free(Byte(D[1])-64);
+      FreeSpc := SysDiskSizeLongX(@PathBuffer);
       if i <> cmOK then
         begin
         Abort := True;
-        exit;
+        Exit;
         end;
       {DataCompBoy     DskOn;}
       end;
@@ -310,11 +313,11 @@ function LongCopy(Fn1: String): Boolean;
       i := MessageBox(GetString(dlFBBNoCreate)+SStr(Count, 2, '0'), nil,
           mfError+mfOKButton+mfCancelButton);
       NewTimer(Timer, 0);
-      NewTimerSecs(AlarmTimer, 20);
+      NewTimer(AlarmTimer, 20*1000);
       if i <> cmOK then
         begin
         Abort := True;
-        exit;
+        Exit;
         end;
       goto 1;
       end;
@@ -328,7 +331,7 @@ function LongCopy(Fn1: String): Boolean;
     begin
 Rep:
     if Abort or CopyCancelled then
-      exit;
+      Exit;
     for i := 1 to NBf do
       if Bf[i].NW < Bf[i].NR then
         begin
@@ -341,7 +344,7 @@ Rep:
           BlockWrite(F2.F, Bf[i].Buf^[Bf[i].NW+1], Min(wr,
                PartSize-PartWrt), NumW)
         else
-          BlockWrite(F2.F, Bf[i].Buf^[Bf[i].NW+1], word(wr), NumW);
+          BlockWrite(F2.F, Bf[i].Buf^[Bf[i].NW+1], Word(wr), NumW);
         if DiskVerify then
           begin
           {$IFDEF OS_DOS}
@@ -356,7 +359,7 @@ Rep:
             BlockRead(F2.F, Bf[i].Buf^[Bf[i].NW+1], Min(wr,
                  PartSize-PartWrt), NumW)
           else
-            BlockRead(F2.F, Bf[i].Buf^[Bf[i].NW+1], word(wr), NumW);
+            BlockRead(F2.F, Bf[i].Buf^[Bf[i].NW+1], Word(wr), NumW);
           end;
         if  (IOResult <> 0) then
           begin
@@ -388,7 +391,7 @@ Rep:
           CopyCancelled := True;
           Close(F2.F);
           lEraseFile(F2);
-          exit;
+          Exit;
           end;
 1:
         if  (NumW = 0) or ((PartWrt = PartSize) and (PartSize <> 0))
@@ -398,7 +401,7 @@ Rep:
             MessageBox(GetString(dlFBBDiskFull2), nil, mfError+mfOKButton);
             NewTimer(Timer, 0);
             Abort := True;
-            exit;
+            Exit;
             end
           else
             begin
@@ -460,14 +463,14 @@ Rep:
       begin
       Dispose(D, Done);
       Abort := True;
-      exit
+      Exit
       end;
     Abort := False;
     D^.GetData(S);
     Dispose(D, Done);
     Fn1 := MakeNormName(S, K+L);
     NewTimer(Timer, 0);
-    NewTimerSecs(AlarmTimer, 20);
+    NewTimer(AlarmTimer, 20*1000);
     end { RequirePath };
 
   procedure InsCor;
@@ -483,7 +486,7 @@ Rep:
         ClrIO;
         RequirePath;
         if Abort then
-          exit;
+          Exit;
         end;
       Inc(j);
       ClrIO;
@@ -520,12 +523,12 @@ Rep:
       R: TRect;
       S, Mask: String;
       SR: lSearchRec;
-      I: integer;
+      I: Integer;
       L: LongInt;
       F: lFile;
       DTA: record
         S: String;
-        W: word;
+        W: Word;
         SPLSiz, NumSect: String[10]
         end;
       a, aa, aaa: String;
@@ -574,7 +577,7 @@ Rep:
     if Desktop^.ExecView(D) = cmCancel then
       begin
       Dispose(D, Done);
-      exit
+      Exit
       end;
     D^.GetData(DTA);
     BinarySplit := DTA.W and 1 <> 0;
@@ -641,7 +644,7 @@ Rep:
       {JO}
       lFindClose(SR);
       if Abort or CopyCancelled then
-        exit;
+        Exit;
       if  (DosError = 0)
       then
         begin
@@ -718,7 +721,7 @@ Rep:
     begin
     MessFileNotOpen(Fn1, RC);
     LongCopy := False;
-    exit;
+    Exit;
     end;
   GetFtime(F1.F, Olddate);
   lFSplit(Fn1, d, n, x);
@@ -731,7 +734,7 @@ Rep:
     Close(F1.F);
     Message(Desktop, evCommand, cmSingleCopy, nil);
     LongCopy := False;
-    exit;
+    Exit;
     end;
 
   if Tuda then
@@ -750,7 +753,7 @@ Rep:
       if Abort then
         begin
         LongCopy := False;
-        exit;
+        Exit;
         end;
       FileMode := 0;
       lResetFile(F1, 1);
@@ -776,7 +779,7 @@ _Abort_:
     begin
     Close(F1.F);
     LongCopy := False;
-    exit;
+    Exit;
     end;
 
   if NewMode then
@@ -881,7 +884,7 @@ Ex:
   if not (Abort or CopyCancelled) then
 
     if  (FMSetup.Options and fmoBeep <> 0) and
-        (ElapsedTimeInSecs(Timer) > 20)
+        (ElapsedTime(Timer) > 20*1000)
     then
       BeepAftercopy;
   end { LongCopy };

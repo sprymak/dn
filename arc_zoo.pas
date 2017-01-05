@@ -52,7 +52,7 @@ unit arc_ZOO; {ZOO}
 interface
 
 uses
-  Archiver, advance, advance1, Defines, Objects2, Streams
+  Archiver, Advance, Advance1, Defines, Objects2, Streams
   ;
 
 type
@@ -92,8 +92,8 @@ constructor TZOOArchive.Init;
   Sign := Sign+#0;
   FreeStr := SourceDir+DNARC;
   TObject.Init;
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'ZOO.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'ZOO.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'ZOO'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'ZOO'));
   Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'eo'));
   ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, 'xo'));
   Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'a'));
@@ -170,13 +170,13 @@ procedure TZOOArchive.GetFile;
   if  (ArcFile^.Status <> stOK) or (P.Id <> $FDC4A7DC) then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   ArcFile^.Read(P.Info, 2);
   if  (ArcFile^.Status <> stOK) then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   {if (P.Info = $0002) then begin FileInfo.Last := 1;Exit;end;}
   ArcFile^.Read(P.NextHDR, SizeOf(P)-6);
@@ -204,7 +204,7 @@ procedure TZOOArchive.GetFile;
   if FileInfo.FName = '' then
     begin
     FileInfo.Last := 1;
-    exit;
+    Exit;
     end;
   ArcFile^.Seek(P.NextHDR);
   end { TZOOArchive.GetFile };

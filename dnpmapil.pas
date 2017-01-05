@@ -60,7 +60,7 @@ function WinCreateObjectSh(pszClassName: PChar; pszTitle: PChar;
       pszSetupString, pszLocation, 0);
   end;
 
-function WinSetTitleAndIconSh(szTitle, szIconPath: PChar): integer;
+function WinSetTitleAndIconSh(szTitle, szIconPath: PChar): Integer;
   begin
   WinSetTitleAndIconSh := WinSetTitleAndIcon(szTitle, szIconPath);
   end;
@@ -195,7 +195,7 @@ label
     FailedModule: array[0..255] of Char;
     LibHandle: hModule;
     Dos32QuerySysState: function (func, arg1, Pid, _res_: ULong;
-       Buf: Pointer; BufSz: ULong): apiret cdecl;
+       Buf: Pointer; BufSz: ULong): ApiRet cdecl;
     ModuleInfo: PChar;
     SearchPos, I: LongInt;
   begin
@@ -222,7 +222,7 @@ label
         if StrComp(@ModuleInfo[SearchPos], PMSHELL) = 0 then
           begin
           CheckPM := True;
-          break;
+          Break;
           end
         else
           Inc(SearchPos);

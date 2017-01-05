@@ -72,8 +72,8 @@ type
     procedure UpdateView(Progress: LongInt); virtual;
     procedure AddProgress(Progress: LongInt);
     procedure HandleEvent(var Event: TEvent); virtual;
-    function SolveForX(Y, Z: LongInt): integer;
-    function SolveForY(X, Z: LongInt): integer;
+    function SolveForX(Y, Z: LongInt): Integer;
+    function SolveForY(X, Z: LongInt): Integer;
     end;
 
   PBarGauge = ^TBarGauge;
@@ -90,10 +90,10 @@ type
     QuitNormal: Boolean;
     Top, Bottom: String[SizeOf(String)-1];
     constructor Init(Bounds: TRect);
-    procedure Write(N: integer; S: String);
+    procedure Write(N: Integer; S: String);
     function GetPalette: PPalette; virtual;
-    function Valid(C: word): Boolean; virtual;
-    procedure SetState(AState: word; Enable: Boolean); virtual;
+    function Valid(C: Word): Boolean; virtual;
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
     procedure Draw; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     destructor Done; virtual;
@@ -107,7 +107,7 @@ procedure DispatchEvents(InfoView: PWhileView; var CancelParam: Boolean);
 
 implementation
 uses
-  DNApp, RStrings, Commands, advance, advance1, advance2, advance3
+  DNApp, RStrings, Commands, Advance, Advance1, Advance2, Advance3
   ;
 
 constructor TPercentGauge.Init(var Bounds: TRect; AMaxValue: LongInt);
@@ -121,7 +121,7 @@ constructor TPercentGauge.Init(var Bounds: TRect; AMaxValue: LongInt);
 procedure TPercentGauge.Draw;
   var
     B: TDrawBuffer;
-    C: word;
+    C: Word;
     S: String[10];
     PercentDone: LongInt;
   begin
@@ -168,13 +168,13 @@ procedure TPercentGauge.HandleEvent(var Event: TEvent);
   end;
 
 { This function solves for x in the equation "x is y% of z". }
-function TPercentGauge.SolveForX(Y, Z: LongInt): integer;
+function TPercentGauge.SolveForX(Y, Z: LongInt): Integer;
   begin
   SolveForX := Trunc(Z*(Y*0.01));
   end;
 
 { This function solves for y in the equation "x is y% of z". }
-function TPercentGauge.SolveForY(X, Z: LongInt): integer;
+function TPercentGauge.SolveForY(X, Z: LongInt): Integer;
   begin
   if Z = 0 then
     SolveForY := 0
@@ -186,9 +186,9 @@ function TPercentGauge.SolveForY(X, Z: LongInt): integer;
 procedure TBarGauge.Draw;
   var
     B: TDrawBuffer;
-    C: word;
+    C: Word;
     PercentDone: LongInt;
-    FillSize: integer;
+    FillSize: Integer;
   begin
   C := GetColor(1);
   MoveChar(B, #176, C, Size.X);
@@ -212,7 +212,7 @@ procedure TWhileView.InsBut;
 
 constructor TWhileView.Init;
   var
-    I: integer;
+    I: Integer;
   begin
   TGroup.Init(Bounds);
   QuitNormal := False;
@@ -230,17 +230,17 @@ procedure TWhileView.Write;
   var
     R: TRect;
     B: TDrawBuffer;
-    I: integer;
+    I: Integer;
     S1: String;
   begin
   if N < Lines^.Count then
     begin
     if CnvString(Lines^.At(N)) = S then
-      exit;
+      Exit;
     Lines^.AtFree(N);
     end
   else
-    exit;
+    Exit;
   Lines^.AtInsert(N, NewStr(S));
   if Length(S) > Size.X-4 then
     begin
@@ -276,7 +276,7 @@ procedure TWhileView.Write;
 
 procedure TWhileView.ClearInterior;
   var
-    I, C: integer;
+    I, C: Integer;
   begin
   C := Lines^.Count-1;
   Lines^.FreeAll;
@@ -391,7 +391,7 @@ procedure TWhileView.Draw;
       A: Byte;
       end absolute B;
     C1, C2: Byte;
-    I: integer;
+    I: Integer;
     S: String;
     R: TRect;
   begin
@@ -481,10 +481,7 @@ procedure TWhileView.Draw;
 
 function TWhileView.Valid;
   begin
-  if  (C <> cmQuit) then
-    Valid := inherited Valid(C)
-  else
-    Valid := False;
+  Result := (C <> cmQuit) and (C <> cmClose) and inherited Valid(C);
   end;
 
 destructor TWhileView.Done;

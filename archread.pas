@@ -50,7 +50,7 @@ unit ArchRead;
 interface
 
 uses
-  Archiver, FStorage, Dos, ArcView, advance, advance1, advance2, Messages,
+  Archiver, FStorage, Dos, ArcView, Advance, Advance1, Advance2, Messages,
   DNApp, Commands, Drivers, Lfn, Objects2, Views
   ;
 
@@ -68,7 +68,7 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
     PC: PDirStorage;
     F: PTextReader;
     DT: DateTime;
-    I, J: integer;
+    I, J: Integer;
     Drv: PArcDrive;
   label 1, 2;
   begin
@@ -87,7 +87,7 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
       if not ExistFile(FuckName) then
         begin
         MessageBox(GetString(dlArcMsg6), nil, mfOKButton or mfError);
-        exit;
+        Exit;
         end;
       EraseFile(FuckName);
       lGetDir(0, CurDir); {GetDir(0, CurDir);}
@@ -95,7 +95,7 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
       GlobalMessage(evCommand, cmRereadDir, @CurDir);
       F := New(PTextReader, Init(S));
       if F = nil then
-        exit;
+        Exit;
       P := nil;
       New(PC, Init);
       while not F^.Eof do
@@ -108,11 +108,11 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
           begin
           I := PosChar('[', S);
           if I = 0 then
-            continue;
+            Continue;
           Delete(S, 1, I);
           I := PosChar(']', S);
           if I < 2 then
-            continue;
+            Continue;
           SetLength(S, I-1);
           CurDir := S;
           end
@@ -145,7 +145,7 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
             DisposeStr(P^.FName);
             Dispose(P);
             end;
-          break
+          Break
           end
         else
           begin
@@ -157,11 +157,11 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
             begin
             I := PosChar('[', S);
             if I = 0 then
-              continue;
+              Continue;
             Delete(S, 1, I);
             I := PosChar(']', S);
             if I < 2 then
-              continue;
+              Continue;
             SetLength(S, I-1);
             if P^.Attr = Directory then
               S := S+'\';
@@ -200,7 +200,7 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
       begin
       F := New(PTextReader, Init(S));
       if F = nil then
-        exit;
+        Exit;
       P := nil;
       New(PC, Init);
       repeat

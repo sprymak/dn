@@ -242,10 +242,6 @@
                               with long waiting time.
                               (default: 0 - unlimited search)
 
- CapitalCodePageName = bool - The current code page symbols in editor will
-                              appear in Capitalized mode (for Chip)
-                              (default: 0)
-
  DefCodePage = str          - Allows to set default code page for new files.
                               This key can take values Dos, Win, Koi, Auto.
                               When Auto set, then the attempt of code page
@@ -267,10 +263,6 @@
 
  DrawRShift = bool          - To switch between single and double line drawing
                               in editor by Right Shift.
-                              (default: 1)
-
- Koi8rKeyMap = bool         - To switch with F8 from WIN to KOI code page (1)
-                              or immediately back to DOS code page (0).
                               (default: 1)
 
  UnlimitUnindent = bool     - Allows to define behaviour of block shifting

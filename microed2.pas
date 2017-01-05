@@ -54,7 +54,7 @@ uses
   ;
 
 const
-  TabStep: integer = 8;
+  TabStep: Integer = 8;
 
 procedure MISaveFileAs(AED: PFileEditor);
 procedure MISaveFile(AED: PFileEditor);
@@ -77,7 +77,7 @@ const
 
 implementation
 uses
-  DNStdDlg, advance, DNApp, Commands, Lfn, advance2, ed2, advance1, Views,
+  DNStdDlg, Advance, DNApp, Commands, Lfn, Advance2, ed2, Advance1, Views,
   Collect, WinClp, Dos, Messages, Startup, DnIni, CopyIni,
   {SBlocks,}U_KeyMap, Macro,
   xTime, Memory, Drivers,
@@ -85,6 +85,7 @@ uses
   fnotify,
   {$IFDEF PLUGIN}Plugin, {$ENDIF}
   ErrMess
+  , Events {AK155 для LongWorkBegin - LongWorkEnd}
   ;
 
 type
@@ -131,7 +132,7 @@ procedure MISaveFileAs(AED: PFileEditor);
       if S = nil then
         begin
         MILockFile(AED);
-        exit;
+        Exit;
         end;
       EditName := lFExpand(FileName);
       if EditName[Length(EditName)] = '.' then
@@ -175,7 +176,7 @@ procedure MIOpenFile(AED: PFileEditor);
         isValid := True;
         Message(Owner, evCommand, cmClose, nil);
         MILockFile(AED);
-        exit;
+        Exit;
         end;
       ScrollTo(0, 0);
       Owner^.Redraw;
@@ -193,7 +194,7 @@ procedure MISaveFile(AED: PFileEditor);
     Dr: String;
     Nm: String;
     Xt: String;
-    OldAttr: word;
+    OldAttr: Word;
     L: array[0..0] of LongInt;
     PC: PLineCollection;
     FileExist: Boolean;
@@ -230,7 +231,7 @@ procedure MISaveFile(AED: PFileEditor);
       if EditName = '' then
         begin
         MISaveFileAs(AED);
-        exit
+        Exit
         end;
       FileExist := False;
       lAssignFile(F, EditName);
@@ -246,7 +247,7 @@ procedure MISaveFile(AED: PFileEditor);
         then
           begin
           MILockFile(AED);
-          exit;
+          Exit;
           end;
         end;
       ClrIO;
@@ -254,7 +255,7 @@ procedure MISaveFile(AED: PFileEditor);
       if Abort then
         begin
         MILockFile(AED);
-        exit;
+        Exit;
         end;
       if FileExist then
         begin
@@ -281,7 +282,7 @@ procedure MISaveFile(AED: PFileEditor);
       if S = nil then
         begin
         MILockFile(AED);
-        exit;
+        Exit;
         end;
       {Cat: раньше почему-то проверка статуса происходила в этом месте,
       т.е. считалось, что если поток создан успешно, то и записан
@@ -297,7 +298,7 @@ procedure MISaveFile(AED: PFileEditor);
         MILockFile(AED);
         if not (SmartPad or ClipBrd) then
           FileChanged(EditName);
-        exit;
+        Exit;
         end;
       {/Cat}
       Dispose(S, Done);
@@ -398,14 +399,12 @@ procedure MILoadFile(AED: PFileEditor; Name: String);
       end
     else
       begin
-      if  (StartupData.Slice2 and osuReleaseOpen) = 0 then
-        Application^.bfSpeed;
+      LongWorkBegin;
       FileLines := MIReadBlock(AED, Name, True);
       {/Cat}
-      if  (StartupData.Slice2 and osuReleaseOpen) = 0 then
-        Application^.EFSpeed;
+      LongWorkEnd;
       if not isValid then
-        exit;
+        Exit;
       if FileLines = nil then
         begin
         {FileLines := GetCollector(1000, 100);}
@@ -427,9 +426,7 @@ procedure MILoadFile(AED: PFileEditor; Name: String);
     Modified := False; {DrawMode := 0;}
     WorkModified := False;
     LastLine := -1;
-    LastShape := '';
     SpecChar := False;
-    WasDelete := False;
     Marking := False;
     MouseMark := False;
     RulerVisible := False;
@@ -661,7 +658,7 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
         if LLL then
           goto L2;
         ST := ST+MMM;
-        exit;
+        Exit;
 L2:
         ST := ST+MMM;
         if not NNN then
@@ -692,7 +689,7 @@ L2:
       begin
       FileName := '';
       isValid := False;
-      exit;
+      Exit;
       end;
     CodePageDetector.Init;
     KeyMap := ProcessDefCodepage(DefCodePage);
@@ -717,7 +714,7 @@ L2:
       if  (K <> 2) and (K <> 3) and (K <> 110) then
         MessFileNotOpen(FileName, K); {JO, AK155}
       Dispose(S, Done);
-      exit
+      Exit
       end;
     if  (S^.GetSize > MemAvail-$4000)
       {$IFDEF OS_DOS} and (EditorDefaults.EdOpt and (ebfEMS+ebfXMS) = 0)
@@ -728,14 +725,14 @@ L2:
       Dispose(S, Done);
       FileName := '';
       isValid := False;
-      exit
+      Exit
       end;
     B := MemAlloc(FBufSize);
     if B = nil then
       begin
       Dispose(S, Done);
       FileName := '';
-      exit
+      Exit
       end;
     Info := WriteMsg(^M^M^C+GetString(dlReadingFile));
     I := 0;
@@ -753,7 +750,7 @@ L2:
       UpdateWriteView(Info);
       if TimerExpired(tmr) then
         begin
-        NewTimer(tmr, 3);
+        NewTimer(tmr, 150);
         ep := ESC_Pressed;
         end;
       if  (S^.Status <> stOK) or Abort or ep then
@@ -763,11 +760,11 @@ L2:
         Info^.Free;
         FileName := '';
         isValid := False;
-        exit
+        Exit
         end;
       CountLines;
       if S^.Eof then
-        break; {-$VOL}
+        Break; {-$VOL}
       B^[1] := B^[J+Byte(I > 0)-1];
       I := S^.GetPos;
       if FFSize-I > FBufSize-1 then
@@ -787,7 +784,7 @@ L2:
       FileName := '';
       Info^.Free;
       isValid := False;
-      exit
+      Exit
       end;
     {if RetCollector then Lines := GetCollector(LCount*11, LCount+50)}
     {else Lines := New(PStdCollector, Init(LCount+50));}
@@ -822,7 +819,7 @@ L2:
       S^.Read(B^, J);
       if TimerExpired(tmr) then
         begin
-        NewTimer(tmr, 3);
+        NewTimer(tmr, 150);
         ep := ESC_Pressed;
         end;
       if  (S^.Status <> stOK) or ep or Abort or (MemAvail < $4000) or
@@ -837,7 +834,7 @@ L2:
         Info^.Free;
         Application^.OutOfMemory;
         isValid := False;
-        exit
+        Exit
         end;
       if  (B^[J] = 13) and (S^.GetPos < S^.GetSize) then
         begin
@@ -886,7 +883,7 @@ procedure MILockFile(AED: PFileEditor);
   with AED^ do
     begin
     if EditorDefaults.EdOpt and ebfLck = 0 then
-      exit;
+      Exit;
     if Locker <> nil then
       Dispose(Locker, Done);
     Locker := New(PDosStream, Init(EditName, (stOpenRead and fmDeny) or
@@ -899,9 +896,9 @@ procedure MIUnLockFile(AED: PFileEditor);
   with AED^ do
     begin
     if EditorDefaults.EdOpt and ebfLck = 0 then
-      exit;
+      Exit;
     if Locker = nil then
-      exit; { на всякий случай }
+      Exit; { на всякий случай }
     Dispose(Locker, Done);
     Locker := nil;
     end

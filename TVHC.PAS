@@ -132,7 +132,7 @@ program TVHC;
 uses
   Lfn, {DataCompBoy}
   Drivers, Defines, Streams, Objects2, Dos, Strings,
-  HelpKern, advance, advance1, advance2, advance3, Collect, ObjType
+  HelpKern, Advance, Advance1, Advance2, Advance3, Collect, ObjType
   , Commands {Cat}
   ;
 {$I Version.Inc}
@@ -159,11 +159,11 @@ type
   PProtectedStream = ^TProtectedStream;
   TProtectedStream = object(TBufStream)
     FileName: String; {DataCompBoy}
-    Mode: word;
-    constructor Init(AFileName: String; AMode, ASize: word);
+    Mode: Word;
+    constructor Init(AFileName: String; AMode, ASize: Word);
     {DataCompBoy}
     destructor Done; virtual;
-    procedure Error(Code, Info: integer); virtual;
+    procedure Error(Code, Info: Integer); virtual;
     end;
 
 var
@@ -173,7 +173,7 @@ var
 const
   HelpStrm: PProtectedStream = nil;
 
-constructor TProtectedStream.Init(AFileName: String; AMode, ASize: word)
+constructor TProtectedStream.Init(AFileName: String; AMode, ASize: Word)
   ; {DataCompBoy}
   begin
   inherited Init(AFileName, AMode, ASize);
@@ -195,7 +195,7 @@ destructor TProtectedStream.Done;
   end;
 {-DataCompBoy-}
 
-procedure TProtectedStream.Error(Code, Info: integer);
+procedure TProtectedStream.Error(Code, Info: Integer);
   begin
   case Code of
     stError:
@@ -264,7 +264,7 @@ function ReplaceExt(FileName: String; Next: String; Force: Boolean)
 function FExists(FileName: String): Boolean;
   var
     F: lFile;
-    Attr: word;
+    Attr: Word;
   begin
   lAssignFile(F, FileName);
   lGetFAttr(F, Attr);
@@ -292,7 +292,7 @@ function GetLine(var S: TStream): String;
   if S.Status <> stOK then
     begin
     GetLine := #26;
-    exit;
+    Exit;
     end;
   if not LineInBuffer then
     begin
@@ -435,7 +435,7 @@ function IsBuiltInContext(Text: String; var Number: AWord): Boolean;
       begin
       Number := BuiltInContextTable[Mid].Number;
       IsBuiltInContext := True;
-      exit;
+      Exit;
       end;
     end;
   IsBuiltInContext := False;
@@ -460,7 +460,7 @@ type
 
   PRefTable = ^TRefTable;
   TRefTable = object(TSortedCollection)
-    function Compare(Key1, Key2: Pointer): integer; virtual;
+    function Compare(Key1, Key2: Pointer): Integer; virtual;
     procedure FreeItem(Item: Pointer); virtual;
     function GetReference(var Topic: String): PReference;
     function KeyOf(Item: Pointer): Pointer; virtual;
@@ -489,7 +489,7 @@ procedure DisposeFixUps(P: PFixUp);
 {  value it has is used.                                                }
 {-----------------------------------------------------------------------}
 
-function TRefTable.Compare(Key1, Key2: Pointer): integer;
+function TRefTable.Compare(Key1, Key2: Pointer): Integer;
   var
     K1, K2: String;
   begin
@@ -682,7 +682,7 @@ destructor TTopicDefinition.Done;
 function TopicDefinition(var Line: String; var i: AInt): PTopicDefinition;
   var
     J: AInt;
-    K: integer;
+    K: Integer;
     TopicDef: PTopicDefinition;
     Value: AWord;
     Topic, W: String;
@@ -744,7 +744,7 @@ function TopicDefinitionList(var Line: String; var i: AInt):
         Dispose(TopicList, Done);
       TopicList := nil;
       TopicDefinitionList := nil;
-      exit;
+      Exit;
       end;
     P^.Next := TopicList;
     TopicList := P;
@@ -773,7 +773,7 @@ function TopicHeader(var Line: String): PTopicDefinition;
   if W <> CommandChar then
     begin
     TopicHeader := nil;
-    exit;
+    Exit;
     end;
   W := UpStr(GetWord(Line, I));
   if W = 'TOPIC' then
@@ -891,7 +891,7 @@ end;
           begin
           Delete(Line, I, 1);
           if Line[I] <> BegXRef then
-            continue;
+            Continue;
           end;
 
         {------ Look for alias ------}
@@ -902,20 +902,20 @@ end;
         repeat
           Inc(Alias);
           if Alias > Length(Line) then
-            break;
+            Break;
           if  (Line[Alias] = EndXRef) then
             if  (Succ(Alias) <= Length(Line)) and
                 (Line[Succ(Alias)] = EndXRef)
             then
               begin
               Delete(Line, Alias, 1);
-              continue;
+              Continue;
               end
             else
               begin
               EndPos := Alias-I+1;
               Alias := 255;
-              break;
+              Break;
               end;
           if Line[Alias] = AliasCh then
             if  (Succ(Alias) <= Length(Line)) and
@@ -923,10 +923,10 @@ end;
             then
               begin
               Delete(Line, Alias, 1);
-              continue;
+              Continue;
               end
             else
-              break;
+              Break;
         until False;
         if Alias > Length(Line)
         then
@@ -945,17 +945,17 @@ end;
           repeat
             Inc(EndPos);
             if EndPos > Length(Line) then
-              break;
+              Break;
             if Line[EndPos] = EndXRef then
               if  (Succ(EndPos) <= Length(Line)) and
                   (Line[Succ(EndPos)] = EndXRef)
               then
                 begin
                 Delete(Line, EndPos, 1);
-                continue
+                Continue
                 end
               else
-                break;
+                Break;
           until False;
           if EndPos > Length(Line)
           then
@@ -1043,7 +1043,7 @@ end;
     begin
     ReadParagraph := nil;
     UnGetLine(Line);
-    exit;
+    Exit;
     end;
   while not IsEndParagraph do
     begin

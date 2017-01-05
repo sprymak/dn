@@ -53,14 +53,14 @@ interface
 
 uses
   Defines, Objects2, Streams, Strings, FViewer, Dialogs, Views, Drivers,
-  Messages, Dos, Collect, advance1, advance, Lfn,
+  Messages, Dos, Collect, Advance1, Advance, Lfn,
   Scroller
   , use16
   ;
 
 type
   TNetAddr = record
-    Net, Node: word;
+    Net, Node: Word;
     end;
 
   PCharArray = ^TCharArray;
@@ -126,7 +126,7 @@ type
     FV: PLineViewer;
     PS1, Ps2, Ps3, Ps4: PString;
     constructor Init(Buf: PCharArray; S1, S2, S3, S4: String;
-         MsgN: word; AllMsg: word;
+         MsgN: Word; AllMsg: Word;
         FA, TA: TNetAddr);
     destructor Done; virtual;
     function GetPalette: PPalette; virtual;
@@ -166,7 +166,7 @@ const
 implementation
 
 uses
-  DNHelp, advance2, U_KeyMap, xTime, Commands, DNApp
+  DNHelp, Advance2, U_KeyMap, xTime, Commands, DNApp
 
   ;
 
@@ -176,30 +176,30 @@ var
 
 type
   PacketHeader = record
-    origNode: word;
-    DestNode: word;
-    Year: word;
-    Month: word;
-    Day: word;
-    Hour: word;
-    Minute: word;
-    Second: word;
-    baud: word;
-    PacketType: word; {generally 0200H}
-    origNet: word;
-    DestNet: word;
+    origNode: Word;
+    DestNode: Word;
+    Year: Word;
+    Month: Word;
+    Day: Word;
+    Hour: Word;
+    Minute: Word;
+    Second: Word;
+    baud: Word;
+    PacketType: Word; {generally 0200H}
+    origNet: Word;
+    DestNet: Word;
     ProductCode: Char;
     fill: array[0..32] of Char;
     end;
 
   PacketMessageHeader = record
-    PacketType: word; {0200H}
-    origNode: word;
-    DestNode: word;
-    origNet: word;
-    DestNet: word;
-    Attribute: word;
-    cost: word;
+    PacketType: Word; {0200H}
+    origNode: Word;
+    DestNode: Word;
+    origNet: Word;
+    DestNet: Word;
+    Attribute: Word;
+    cost: Word;
     DateTime: array[0..19] of Char;
     {-----------
           toUserName   : array [0..35] of char;
@@ -215,23 +215,23 @@ type
         toUserName: array[0..35] of Char;
         Subject: array[0..71] of Char;
         DateTime: array[1..20] of Char;
-        TimedRead: word;
-        DestNode: word;
-        origNode: word;
-        cost: word;
-        origNet: word;
-        DestNet: word;
+        TimedRead: Word;
+        DestNode: Word;
+        origNode: Word;
+        cost: Word;
+        origNet: Word;
+        DestNet: Word;
         DateWritten: LongInt;
         DateArriven: LongInt;
         {fill         : array [1..8] of char;}
-        ReplyTo: word;
-        Attribute: word;
-        nextReply: word);
+        ReplyTo: Word;
+        Attribute: Word;
+        nextReply: Word);
     end;
 
-function Spaces(num: integer): String;
+function Spaces(num: Integer): String;
   var
-    sp1: integer;
+    sp1: Integer;
     space: String;
   begin
   space := '';
@@ -240,7 +240,7 @@ function Spaces(num: integer): String;
   Spaces := space;
   end;
 
-function rpad(ch: String; Num: integer): String;
+function rpad(ch: String; Num: Integer): String;
   begin
   rpad := Copy(ch+Spaces(Num), 1, Num);
   end;
@@ -252,10 +252,10 @@ function DLS(S: String): String;
   DLS := S;
   end;
 
-function lpad(ch: String; Num: integer): String;
+function lpad(ch: String; Num: Integer): String;
   var
-    sp1: integer;
-    sp2: integer;
+    sp1: Integer;
+    sp2: Integer;
   begin
   sp1 := Length(ch);
   sp2 := Num-sp1;
@@ -286,7 +286,7 @@ function just(S: String; len, LRC: LongInt): String;
   end {case};
   end { just };
 
-function fns_z(n: integer): String;
+function fns_z(n: Integer): String;
   var
     c: String;
   begin
@@ -302,13 +302,13 @@ procedure Msg2Strs(FName: String; var FromUser, ToUser, Subj, Date: String;
   var
     message: TBufStream; {file of char;}
     header: MessageHeader;
-    i, j: integer;
+    i, j: Integer;
     buf: Char;
     txtbuf: String;
   begin
   message.Init(FName, stOpenRead, 4096);
   if message.Status <> stOK then
-    exit;
+    Exit;
   for i := 1 to 190 do
     message.Read(header.head[i], 1);
   FromUser := '';
@@ -317,7 +317,7 @@ procedure Msg2Strs(FName: String; var FromUser, ToUser, Subj, Date: String;
     if header.fromUserName[i] <> #0 then
       FromUser := FromUser+header.fromUserName[i]
     else
-      break;
+      Break;
     end;
   FromUser := FromUser+',( 2:'+ItoS(header.origNet)
       +'/'+ItoS(header.origNode)+' )';
@@ -327,7 +327,7 @@ procedure Msg2Strs(FName: String; var FromUser, ToUser, Subj, Date: String;
     if header.toUserName[i] <> #0 then
       ToUser := ToUser+header.toUserName[i]
     else
-      break;
+      Break;
     end;
   ToUser := ToUser+',( 2:'+ItoS(header.DestNet)+'/'+ItoS(header.DestNode)
     +' )';
@@ -337,7 +337,7 @@ procedure Msg2Strs(FName: String; var FromUser, ToUser, Subj, Date: String;
     if header.Subject[i] <> #0 then
       Subj := Subj+header.Subject[i]
     else
-      break;
+      Break;
     end;
   Date := '';
   for i := 1 to 20 do
@@ -345,7 +345,7 @@ procedure Msg2Strs(FName: String; var FromUser, ToUser, Subj, Date: String;
     if header.DateTime[i] <> #0 then
       Date := Date+header.DateTime[i]
     else
-      break;
+      Break;
     end;
   i := 1;
   txtbuf := '';
@@ -365,7 +365,7 @@ procedure Msg2Strs(FName: String; var FromUser, ToUser, Subj, Date: String;
   message.Done;
   end { Msg2Strs };
 
-function ReadPktHeader(FName: String; var PType: word;
+function ReadPktHeader(FName: String; var PType: Word;
      var DT, FromUser, ToUser: String): Boolean;
   label l1;
   var
@@ -423,8 +423,8 @@ constructor TPktCol.Init(PktFile: String);
     PH: PacketHeader;
     PMH: PacketMessageHeader;
     F: TBufStream;
-    Rb: word;
-    i: word;
+    Rb: Word;
+    i: Word;
     ch: Char;
     LPos, LSize: LongInt;
     St: String;
@@ -443,14 +443,14 @@ constructor TPktCol.Init(PktFile: String);
     begin
     F.Done;
 l1:
-    exit;
+    Exit;
     end;
   LSize := F.GetSize;
   repeat
     LPos := F.GetPos;
     F.Read(PMH, SizeOf(PacketMessageHeader));
     if F.Status <> stOK then
-      break;
+      Break;
     Date := StrPas(PMH.DateTime);
     with PMH do
       begin
@@ -515,16 +515,16 @@ destructor TPktObj.Done;
   inherited Done;
   end;
 
-procedure TPktObj.GetMsgTxt(var Buffer: PCharArray; var MsgLen: word);
+procedure TPktObj.GetMsgTxt(var Buffer: PCharArray; var MsgLen: Word);
   var
     F: TBufStream;
     LPos: LongInt;
     PktMsg: PPktObj;
     st: String;
-    I: word;
+    I: Word;
     PH: PacketHeader;
     PMH: PacketMessageHeader;
-    Rb: word;
+    Rb: Word;
     ch: Char;
   begin
   MsgLen := 0;
@@ -536,7 +536,7 @@ procedure TPktObj.GetMsgTxt(var Buffer: PCharArray; var MsgLen: word);
   if F.Status <> stOK then
     begin
     F.Done;
-    exit;
+    Exit;
     end;
   for I := 1 to 3 do
     begin
@@ -596,7 +596,7 @@ procedure CutFromAddr(st: String);
 
 procedure Buffer2Strs(Buffer: PCharArray; var C: PLineCollection);
   var
-    I: word;
+    I: Word;
     st: String;
     Ch: Char;
   begin
@@ -733,9 +733,9 @@ function PktHeaderDlg(AText: String): PDialog;
   PktHeaderDlg := Dialog
   end;
 
-procedure ViewPktHeader(MsgCount: integer);
+procedure ViewPktHeader(MsgCount: Integer);
   var
-    W: word;
+    W: Word;
     s1, s2, s3: String;
     S: String;
     D: PDialog;
@@ -754,7 +754,7 @@ procedure TPktListDialog.HandleEvent(var Event: TEvent);
     Pc: PPktObj;
     Buf: PCharArray;
     D: PPktMsgViewer;
-    M: word;
+    M: Word;
     s1, s2, s3, s4: String;
   begin
   if  (Event.What = evKeyDown) then
@@ -763,7 +763,7 @@ procedure TPktListDialog.HandleEvent(var Event: TEvent);
         begin
         Pc := lb^.List^.At(lb^.Focused);
         if Pc = nil then
-          exit;
+          Exit;
         New(Buf);
         Pc^.GetMsgTxt(Buf, M);
         s1 := Pc^.Fu^;
@@ -804,12 +804,12 @@ procedure TLineViewer.Draw;
   var
     B: TDrawBuffer;
     CNormal: Byte;
-    I: integer;
+    I: Integer;
     S: String;
     P: PString;
     Color: Byte;
     Bkg: Byte;
-    OrigColor, AreaColor, Citate, WorkStrColor: word;
+    OrigColor, AreaColor, Citate, WorkStrColor: Word;
   begin
   CNormal := GetColor(1);
   Bkg := Lo((CNormal and $F0) shr 4);
@@ -905,7 +905,7 @@ destructor TMsgViewer.Done;
   end;
 
 constructor TPktMsgViewer.Init(Buf: PCharArray; S1, S2, S3, S4: String;
-     MsgN: word; AllMsg: word;
+     MsgN: Word; AllMsg: Word;
     FA, TA: TNetAddr);
   var
     R: TRect;
@@ -990,7 +990,7 @@ procedure TPktMsgViewer.SaveAsText;
       S: String;
     begin
     if Area <> '' then
-      exit;
+      Exit;
     S := Ps^;
     if Pos('AREA', S) <> 0 then
       begin
@@ -1012,7 +1012,7 @@ procedure TPktMsgViewer.SaveAsText;
   if InputBox(GetString(dlSaveMsg), GetString(dlMsgFile), TName, 255, 0) =
     cmCancel
   then
-    exit;
+    Exit;
   Assign(F, TName);
   DoneSysError;
   if ExistFile(TName) then
@@ -1023,7 +1023,7 @@ procedure TPktMsgViewer.SaveAsText;
     begin
     MessageBox(GetString(dlErrorWriting)+TName+'!', nil,
       mfError+mfOKButton);
-    exit;
+    Exit;
     end;
   InitSysError;
   Area := '';
@@ -1098,7 +1098,7 @@ function GetPrevMsg(FName: String): String;
   var
     D, N, E: String;
     Er: LongInt;
-    Num: word;
+    Num: Word;
     Tm: TEventTimer;
     Sr: lSearchRec;
     VM: PView;
@@ -1109,7 +1109,7 @@ function GetPrevMsg(FName: String): String;
   if N = '' then
     N := '0';
   Val(N, Num, Er);
-  NewTimer(Tm, 4);
+  NewTimer(Tm, 200);
   VM := nil;
   if  (Er <> 0) or (Num = 0) then
     GetPrevMsg := ''
@@ -1127,7 +1127,7 @@ function GetPrevMsg(FName: String): String;
         if VM <> nil then
           Dispose(VM, Done);
         lFindClose(Sr);
-        exit;
+        Exit;
         end;
       lFindClose(Sr);
       end;
@@ -1142,7 +1142,7 @@ function GetNextMsg(FName: String): String;
   var
     D, N, E: String;
     Er: LongInt;
-    Num, St: word;
+    Num, St: Word;
     Tm: TEventTimer;
     Sr: lSearchRec;
     VM: PView;
@@ -1154,7 +1154,7 @@ function GetNextMsg(FName: String): String;
     N := '0';
   Val(N, Num, Er);
   St := Num;
-  NewTimer(Tm, 4);
+  NewTimer(Tm, 200);
   VM := nil;
   if  (Er <> 0) then
     GetNextMsg := ''
@@ -1172,13 +1172,13 @@ function GetNextMsg(FName: String): String;
         if VM <> nil then
           Dispose(VM, Done);
         lFindClose(Sr);
-        exit;
+        Exit;
         end
       else
         begin
         GetNextMsg := '';
         lFindClose(Sr);
-        continue;
+        Continue;
         end;
       end;
     if VM <> nil then
@@ -1249,7 +1249,7 @@ procedure TMsgViewerDlg.SaveAsText;
   if InputBox(GetString(dlSaveMsg), GetString(dlMsgFile), TName, 255, 0) =
     cmCancel
   then
-    exit;
+    Exit;
   Assign(F, TName);
   DoneSysError;
   if ExistFile(TName) then
@@ -1260,7 +1260,7 @@ procedure TMsgViewerDlg.SaveAsText;
     begin
     MessageBox(GetString(dlErrorWriting)+TName+'!', nil,
       mfError+mfOKButton);
-    exit;
+    Exit;
     end;
   InitSysError;
   Writeln(F,
@@ -1364,7 +1364,7 @@ destructor TMsgViewerDlg.Done;
   inherited Done;
   end;
 
-function TestDiap(Value, Min, Max: word): Boolean;
+function TestDiap(Value, Min, Max: Word): Boolean;
   begin
   if  (Value < Min) or (Value > Max) then
     TestDiap := False
@@ -1385,7 +1385,7 @@ function IsPktFile(Fname: String): Boolean;
 l_e:
     IsPktFile := False;
     S.Done;
-    exit;
+    Exit;
     end;
   S.Read(Head, SizeOf(PacketHeader));
   if S.Status <> stOK then
@@ -1417,7 +1417,7 @@ procedure ViewPktFile(FName: String);
     begin
     MessageBox(FName+#13+^C+GetString(dlNotPkt), nil,
       mfError+mfOKButton);
-    exit;
+    Exit;
     end;
   W := WriteMsg(^M^M^C+GetString(dlReadingPkt));
   UpdateWriteView(W);
@@ -1433,10 +1433,10 @@ procedure ViewPktFile(FName: String);
 type
   PLimitStream = ^TLimitStream;
   TLimitStream = object(TDOSStream)
-    constructor Init(FileName: FNameStr; Mode: word; Limit: LongInt);
+    constructor Init(FileName: FNameStr; Mode: Word; Limit: LongInt);
     end;
 
-constructor TLimitStream.Init(FileName: FNameStr; Mode: word;
+constructor TLimitStream.Init(FileName: FNameStr; Mode: Word;
      Limit: LongInt);
   begin
   inherited Init(FileName, Mode);
@@ -1489,7 +1489,7 @@ procedure ViewMsgFile(FName: String);
     begin
     MessageBox(FName+#13+^C+GetString(dlNotPkt), nil,
       mfError+mfOKButton);
-    exit;
+    Exit;
     end;
   D := New(PMsgViewerDlg, Init(FName));
   Desktop^.ExecView(D);

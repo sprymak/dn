@@ -58,7 +58,7 @@ type
   PSSaver = ^TSSaver;
   TSSaver = object(TView)
     constructor Init(var Bounds: TRect);
-    function Execute: word; virtual;
+    function Execute: Word; virtual;
     procedure Update; virtual;
     procedure Draw; virtual;
     destructor Done; virtual;
@@ -70,11 +70,11 @@ type
   PProjector = ^TProjector;
   TProjector = object(TSSaver)
     Center: TPoint;
-    Radius: integer;
+    Radius: Integer;
     Screen: Pointer;
     NextU: LongInt;
     LastDay: Byte;
-    DX, DY, DDX: integer;
+    DX, DY, DDX: Integer;
     constructor Init;
     procedure Draw; virtual;
     procedure Update; virtual;
@@ -86,7 +86,7 @@ const
 
 type
   TSkyStar = record
-    X, Y, DX, DY, Speed, Stat, Stage: integer;
+    X, Y, DX, DY, Speed, Stat, Stage: Integer;
     Attr: Byte;
     Next: TEventTimer
     end;
@@ -94,22 +94,22 @@ type
   PStarSkySaver = ^TStarSkySaver;
   TStarSkySaver = object(TSSaver)
     Stars: array[1..CNumSkyStars] of TSkyStar;
-    NumSkyStars: integer;
+    NumSkyStars: Integer;
     CommonDelay: Byte;
     constructor Init;
     procedure Draw; virtual;
     procedure Update; virtual;
-    procedure InitStar(Index: integer);
+    procedure InitStar(Index: Integer);
     end;
 
   TDestination = (dsUp, dsRight, dsDown, dsLeft);
 
   PClockSaver = ^TClockSaver;
   TClockSaver = object(TSSaver)
-    X, Y, DX, DY, DDY: integer;
+    X, Y, DX, DY, DDY: Integer;
     Dest: TDestination;
     Rest, Clr: Byte; {JO}
-    dH, dM, dS, dSS: word;
+    dH, dM, dS, dSS: Word;
     constructor Init;
     procedure Update; virtual;
     procedure Draw; virtual;
@@ -122,7 +122,7 @@ const
 implementation
 
 uses
-  Dos, DnExec, DNApp, advance, advance1, Memory, Startup, Commands,
+  Dos, DnExec, DNApp, Advance, Advance1, Memory, Startup, Commands,
    VideoMan
   ;
 
@@ -137,19 +137,19 @@ procedure TSSaver.Update;
 function TSSaver.Execute;
   var
     Event: TEvent;
-    W: word;
-    WW: word;
+    W: Word;
+    WW: Word;
     T: TEventTimer;
   begin
   W := ShiftState shl 8+ShiftState2;
-  NewTimerSecs(T, 3600);
+  NewTimer(T, 60*60*1000);
   repeat
     GetEvent(Event);
     Update;
     HideCursor;
     Application^.Idle;
     if StartupData.Unload and osuInactivityExit = 0 then
-      NewTimerSecs(T, 3600);
+      NewTimer(T, 60*60*1000);
     WW := ShiftState shl 8+ShiftState2;
   until (Event.What <> evNothing) or (WW <> W) or TimerExpired(T);
   if TimerExpired(T) then
@@ -185,7 +185,7 @@ constructor TStarSkySaver.Init;
   label 1;
   var
     R: TRect;
-    I, J: integer;
+    I, J: Integer;
   begin
   Randomize;
   Application^.GetExtent(R);
@@ -198,7 +198,7 @@ constructor TStarSkySaver.Init;
 
 procedure TStarSkySaver.InitStar;
   var
-    A, R: integer;
+    A, R: Integer;
   begin
   if Random(4) = 3 then
     with Stars[Index] do
@@ -223,8 +223,8 @@ procedure TStarSkySaver.InitStar;
 procedure TStarSkySaver.Draw;
   var
     B: TDrawBuffer;
-    I, K: integer;
-    W: word;
+    I, K: Integer;
+    W: Word;
   begin
   MoveChar(B, ' ', $07, Size.X);
   WriteLine(0, 0, Size.X, Size.Y, B);
@@ -242,17 +242,17 @@ procedure TStarSkySaver.Draw;
 
 procedure TStarSkySaver.Update;
   var
-    W, I, J, K: word;
+    W, I, J, K: Word;
     M: LongInt;
-    Hour, Min, Sec, Sec100: word;
+    Hour, Min, Sec, Sec100: Word;
     P: TPoint;
   const
-    MM: array[0..1] of integer = (-1, 1);
+    MM: array[0..1] of Integer = (-1, 1);
   label 1;
 
-  function MMM(X, Y: integer): integer;
+  function MMM(X, Y: Integer): Integer;
     var
-      DX, DY: integer;
+      DX, DY: Integer;
     begin
     DX := 8*Abs(X div StarSkyMult-Size.X div 2) div Size.X+1;
     DY := 8*Abs(Y div StarSkyMult-Size.Y div 2) div Size.Y+1;
@@ -286,7 +286,7 @@ procedure TStarSkySaver.Update;
           end;
         W := Attr*256+Byte(StarChars[Stat]);
         WriteBuf(X div StarSkyMult, Y div StarSkyMult, 1, 1, W);
-        NewTimer(Next, (CommonDelay+Speed)*18 div 100);
+        NewTimer(Next, (CommonDelay+Speed)*10);
         end;
   if not MouseVisible then
     HideMouse;
@@ -296,7 +296,7 @@ constructor TProjector.Init;
   label 1;
   var
     R: TRect;
-    I, J: integer;
+    I, J: Integer;
   begin
   I := ScreenHeight*ScreenWidth*2;
   if MaxAvail < I then
@@ -331,8 +331,8 @@ procedure TProjector.Draw;
       );
   var
     B: array[-20..220] of AWord;
-    I, K, L: integer;
-    W: word;
+    I, K, L: Integer;
+    W: Word;
   begin
   if ScreenHeight*2 > ScreenWidth then
     K := 1
@@ -344,7 +344,7 @@ procedure TProjector.Draw;
     L := I-Center.Y;
     if  (L >= -3) and (L <= 4) and (RR[Radius][L].L >= 0) then
       begin
-      Move(PWordArray(Screen)^
+      Move(PAWordArray(Screen)^
         [I*ScreenWidth+1+Center.X-RR[Radius][L].L*K],
         B[1+Center.X-RR[Radius][L].L*K],
           (RR[Radius][L].L+RR[Radius][L].R)*2*K);
@@ -356,14 +356,14 @@ procedure TProjector.Draw;
 procedure TProjector.Update;
   label 1;
   var
-    Hour, Min, Sec, Sec100: word;
+    Hour, Min, Sec, Sec100: Word;
     DT: DateTime;
     M, K: LongInt;
     P: TPoint;
 
-  function MMM(X, Y: integer): integer;
+  function MMM(X, Y: Integer): Integer;
     var
-      DX, DY: integer;
+      DX, DY: Integer;
     begin
     DX := 6*Abs(X-Size.X div 2) div Size.X+1;
     DY := 6*Abs(Y-Size.Y div 2) div Size.Y+1;
@@ -378,7 +378,7 @@ procedure TProjector.Update;
   GetDate(DT.Year, DT.Month, DT.Day, DT.Sec);
   M := Sec100+Sec*100+LongInt(Min)*10000+LongInt(Hour)*1000000;
   if  (M < NextU) and (LastDay = DT.Day) then
-    exit;
+    Exit;
   LastDay := DT.Day;
   if ScreenHeight*2 > ScreenWidth then
     K := 1
@@ -431,7 +431,7 @@ constructor TClockSaver.Init;
 procedure TClockSaver.Draw;
   var
     B, BB: TDrawBuffer;
-    I: integer;
+    I: Integer;
   begin
   MoveChar(BB, ' ', $07, Size.X);
   for I := 0 to Size.Y-1 do
@@ -451,8 +451,8 @@ procedure TClockSaver.Draw;
 
 procedure TClockSaver.Update;
   var
-    H, M, S, SS: word;
-    sX, sY: integer;
+    H, M, S, SS: Word;
+    sX, sY: Integer;
     B: TDrawBuffer;
   label
     Skip;
@@ -507,9 +507,9 @@ destructor TClockSaver.Done;
 
 procedure CallExternalSaver(const FN: String);
   var
-    MX, MY: word;
+    MX, MY: Word;
     Event: TEvent;
-    SM: word;
+    SM: Word;
   begin
   MX := MouseX;
   MY := MouseY;

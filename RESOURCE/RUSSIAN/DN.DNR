@@ -252,52 +252,52 @@ ColorDialog
          ColorItem 'Курсор',                      171,
 END
 
-DIALOG dlgCountrySetup, 51, 20, 'Информация о стране'
+DIALOG dlgCountrySetup, 54, 20, 'Информация о стране'
     HELPCTX hcCountrySetup
-    RadioButtons 3, 3, 23, 6, ofPostProcess, ofPreProcess
+    RadioButtons 2, 3, 22, 6
       ITEM '~М~есяц-день-Год'
       ITEM '~Д~ень-Месяц-Год'
       ITEM '~Г~од-Месяц-День'
-    END
-    Label 3, 2, 'Формат даты', ofPostProcess, ofPreProcess
-    RadioButtons 25, 3, 45, 5, ofPostProcess, ofPreProcess
-      ITEM '~1~2 Час. Формат'
-      ITEM '~2~4 Час. Формат'
-    END
-    Label 25, 2, 'Время', ofPostProcess, ofPreProcess
-    InputLine 19, 7, 22, 8, 1, 0
-    Label 3, 7, 'Разд. д~а~ты', ofPostProcess, ofPreProcess
-    InputLine 19, 8, 22, 9, 1, 0
-    Label 3, 8, 'Разд. в~р~емени', ofPostProcess, ofPreProcess
-    InputLine 45, 6, 48, 7, 1, 0
-    Label 24, 6, 'Разд. ~Т~ысячи', ofPostProcess, ofPreProcess
-    InputLine 45, 7, 48, 8, 1, 0
-    Label 24, 7, 'Д~е~сятичный разд.', ofPostProcess, ofPreProcess
-    InputLine 45, 8, 48, 9, 1, 0
-    Label 24, 8, '~О~тображение валюты', ofPostProcess, ofPreProcess
-    InputLine 3, 11, 19, 12, 4, 0
-    Label 3, 10, '~В~алютный символ', ofPostProcess, ofPreProcess
-    RadioButtons 21, 11, 48, 13, ofPostProcess, ofPreProcess
+      END
+    Label 2, 2, 'Формат даты'
+    RadioButtons 24, 3, 36, 5
+      ITEM '~1~2 час'
+      ITEM '~2~4 час'
+      END
+    Label 22, 2, 'Формат времени'
+    InputLine 20, 7, 23, 8, 1, 0
+    Label 2, 7, 'Разд. д~а~ты'
+    InputLine 20, 8, 23, 9, 1, 0
+    Label 2, 8, 'Разд. в~р~емени'
+    InputLine 20, 9, 23, 10, 1, 0
+    Label 2, 9, 'Разд. ~Т~ысячи'
+    InputLine 20, 10, 23, 11, 1, 0
+    Label 2, 10, 'Д~е~сятичный разд.'
+    InputLine 20, 11, 23, 12, 1, 0
+    Label 2, 11, 'Др~о~бных цифр'
+    RadioButtons 38, 3, 52, 8
       ITEM '$123.00'
       ITEM '123.00$'
       ITEM '$ 123.00'
       ITEM '123.00 $'
-    END
-    Label 21, 10, '~Ф~ормат', ofPostProcess, ofPreProcess
-    UpperTable 11, 14, 48, 16
-    Label 3, 13, 'Регистp с~и~мволов', ofPostProcess, ofPreProcess
-    Label 2, 14, 'Норм.', ofPostProcess, ofPreProcess
-    Label 2, 15, 'Верх.', ofPostProcess, ofPreProcess
-;$IFNDEF NONBP
-    Button  2, 17, 12, 19, '~D~OS', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
-    Button 14, 17, 24, 19, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 26, 17, 36, 19, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
-    Button 38, 17, 48, 19, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
-;$ELSE
-    Button  8, 17, 18, 19, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 20, 17, 30, 19, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
-    Button 32, 17, 42, 19, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
-;$ENDIF
+      ITEM '123$00'
+      END
+    Label 38, 2, '~Ф~ормат валюты'
+    InputLine 46, 9, 52, 10, 4, 0
+    Label 28, 9, '~В~алютный символ'
+    InputLine 36, 11, 50, 12, 79, 0
+    History 50, 11, hsKbdToggleLayot
+    Label 24, 11, '~К~лавиатура'
+    InputLine 36, 13, 50, 14, 79, 0
+    History 50, 13, hsWinCodeTable
+    Label 30, 13, 'WIN:'
+    InputLine 2, 15, 50, 16, 255, 0
+    History 50, 15, hsCodeTables
+    Label 1, 14, 'До~б~авочные кодировки'
+    Button 25, 6, 36, 8, '~С~истема', cmYes
+    Button 7, 17, 17, 19, 'O~K~', cmOK, bfDefault
+    Button 22, 17, 32, 19, 'Отмена', cmCancel
+    Button 37, 17, 47, 19, 'Помо~щ~ь', cmHelp
 END
 
 DIALOG dlgConfirmations, 50, 15, 'Подтверждение'
@@ -446,7 +446,7 @@ DIALOG dlgMouseSetup, 41, 13, 'Установки мышки'
 END
 
 ;{-$VIV}
-DIALOG dlgInterfaceSetup, 74, 22, 'Установки интерфейса'
+DIALOG dlgInterfaceSetup, 76, 22, 'Установки интерфейса'
     HELPCTX hcInterfaceSetup
     CheckBoxes 2, 2, 72, 9, ofPostProcess, ofPreProcess
       ITEM '~Ч~асы'
@@ -461,20 +461,61 @@ DIALOG dlgInterfaceSetup, 74, 22, 'Установки интерфейса'
       ITEM 'Истоpия ~р~едактиpования файлов'
       ITEM 'Истоpия ~п~pосмотpа файлов'
       ITEM '~И~стоpия смены каталогов'
-      ITEM 'Скрыть и~н~формацию о дисках'
       ITEM 'Показывать полосу прокрутки'
     END
-    CheckBoxes 2, 11, 72, 18, ofPostProcess, ofPreProcess
-      ITEM 'Тип дискового устройства'
-      ITEM 'Текущий каталог для локальных дисков'
-      ITEM 'Текущий каталог для CD-ROM'
-      ITEM 'Текущий каталог для сетевых дисков'
-      ITEM 'Включать каталоги быстрого доступа в меню'
-      ITEM 'Количество файлов на устройстве TEMP'
-      ITEM 'Метка тома'
-      ITEM 'Не для дисководов'
+    RadioButtons 2, 11, 23, 14, ofPostProcess, ofPreProcess
+      ITEM 'Для всех дисков'
+      ITEM 'Для всех, кроме:'
+      ITEM 'Hи для каких'
     END
-    Label 3, 10, 'Тип информации отображаемой в меню выбора дисков:', ofPostProcess, ofPreProcess
+    InputLine 24, 12, 29, 13, 30, 0
+    StaticText 35, 11, 45, 13, 'Показывать для:'
+    StaticText 35, 13, 46, 14, 'Жёстких'
+    StaticText 35, 14, 46, 15, 'Сменных'
+    StaticText 35, 15, 46, 16, 'CD и MO'
+    StaticText 35, 16, 46, 17, 'Программных'
+    StaticText 35, 17, 46, 18, 'Сетевых'
+    CheckBoxes 46, 13, 50, 18, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    Label 46, 11, 'Тип', ofPostProcess, ofPreProcess
+    CheckBoxes 53, 13, 57, 17, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    Label 51, 11, 'Файловую', ofPostProcess, ofPreProcess
+    Label 51, 12, 'систему', ofPostProcess, ofPreProcess
+    CheckBoxes 61, 13, 65, 17, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    Label 60, 11, 'Метку', ofPostProcess, ofPreProcess
+    Label 60, 12, 'тома', ofPostProcess, ofPreProcess
+    CheckBoxes 67, 13, 71, 17, ofPostProcess, ofPreProcess
+      ITEM ''
+      ITEM ''
+      ITEM ''
+      ITEM ''
+    END
+    Label 66, 11, 'Свобод.', ofPostProcess, ofPreProcess
+    Label 66, 12, 'место', ofPostProcess, ofPreProcess
+    CheckBoxes 2, 16, 33, 18, ofPostProcess, ofPreProcess
+      ITEM 'Каталоги быстрого доступа'
+      ITEM 'Количество файлов на TEMP:'
+    END
+    Label 2, 15, 'Включать дополнительно:', ofPostProcess, ofPreProcess
+    CheckBoxes 2, 19, 31, 20, ofPostProcess, ofPreProcess
+      ITEM 'Табулированный показ'
+    END
+    StaticText 18, 10, 57, 11, 'Информация в меню выбора дисков:', ofPostProcess, ofPreProcess
     Button 40, 19, 50, 21, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 50, 19, 60, 21, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
     Button 60, 19, 70, 21, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
@@ -1022,7 +1063,7 @@ DIALOG dlgEditorReplace, 57, 18, 'Замена'
 END
 
 ;{-$VIV 14.05.99}
-DIALOG dlgFileFind, 54, 18, 'Поиск файла'
+DIALOG dlgFileFind, 54, 19, 'Поиск файла'
     HELPCTX hcFileFind
     InputLine 16, 2, 51, 3, 255, 0
     Label 2, 2, 'Маска ~Ф~айла', ofPostProcess, ofPreProcess
@@ -1032,28 +1073,29 @@ DIALOG dlgFileFind, 54, 18, 'Поиск файла'
     History 49, 4, hsFindText, ofPostProcess
     HexLine 16, 5, 49, 6
     Label 2, 5, '        Код~ы~', ofPostProcess, ofPreProcess
-    CheckBoxes 3, 7, 51, 10, ofPostProcess, ofPreProcess
+    CheckBoxes 3, 7, 51, 11, ofPostProcess, ofPreProcess
       ITEM 'Р~а~сширенный поиск'
       ITEM '~Р~азличать регистр'
       ITEM 'Р~е~куpсивный поиск'
       ITEM 'Полные ~с~лова'
       ITEM 'Во всех к~о~дировках'
       ITEM '~П~оиск в архивах'
+      ITEM '~Н~е сортировать'
 ;$IFDEF REGEXP
       ITEM 'Ре~г~улярное выражение'
 ;$ENDIF
     END
     Label 3, 6, 'Опции', ofPostProcess, ofPreProcess
-    RadioButtons 3, 12, 49, 14, ofPostProcess, ofPreProcess
+    RadioButtons 3, 13, 49, 15, ofPostProcess, ofPreProcess
       ITEM '~Д~иск'
       ITEM '~Т~екущий каталог'
       ITEM '~В~се диски'
     END
-    Label 3, 11, 'Область', ofPostProcess, ofPreProcess
-    Button  3, 15, 13, 17, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 13, 15, 28, 17, 'Рас~ш~иренный', cmSearchAdvance, ofPostProcess, ofPreProcess
-    Button 28, 15, 38, 17, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
-    Button 38, 15, 48, 17, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
+    Label 3, 12, 'Область', ofPostProcess, ofPreProcess
+    Button  3, 16, 13, 18, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 13, 16, 28, 18, 'Рас~ш~иренный', cmSearchAdvance, ofPostProcess, ofPreProcess
+    Button 28, 16, 38, 18, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
+    Button 38, 16, 48, 18, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
     InputLine 1, 1, 1, 1, 1, 0
 END
 
@@ -2244,21 +2286,16 @@ Menu dlgEditorMenu
       MenuItem '~О~тступы...', '', kbNoKey, cmSetMargins, hcedParagraph,
     END
  SubMenu 'Б~л~ок', hcEditBlockMenu,
-      MenuItem '~П~еpеместить', 'Ctrl K V', kbNoKey, cmMoveBlock, hcedParagraph,
-      MenuItem '~К~опиpовать', 'Ctrl K C', kbNoKey, cmCopyBlock, hcedParagraph,
-      MenuItem 'Сдвиг вп~р~аво', 'Ctrl K I', kbNoKey, cmIndentBlock, hcedParagraph,
-      MenuItem 'Сдвиг в~л~ево', 'Ctrl K U', kbNoKey, cmUnIndentBlock, hcedParagraph,
-      MenuLine
-      MenuItem '~В~ерхний pегистp', 'Ctrl K [', kbNoKey, cmUpcaseBlock, hcedParagraph,
-      MenuItem '~Н~ижний pегистp', 'Ctrl K ]', kbNoKey, cmLowcaseBlock, hcedParagraph,
-      MenuItem '~З~аглавные буквы', 'Ctrl K \', kbNoKey, cmCapitalizeBlock, hcedParagraph,
+      MenuItem '~П~еpеместить', 'Ctrl-K V', kbNoKey, cmMoveBlock, hcedParagraph,
+      MenuItem '~К~опиpовать', 'Ctrl-K C', kbNoKey, cmCopyBlock, hcedParagraph,
+      MenuItem 'Сдвиг вп~р~аво', 'Ctrl-K I', kbNoKey, cmIndentBlock, hcedParagraph,
+      MenuItem 'Сдвиг в~л~ево', 'Ctrl-K U', kbNoKey, cmUnIndentBlock, hcedParagraph,
+      MenuItem 'Скрыть/показать блок', 'Ctrl-H', kbCtrlH, cmHideBlock, hcedParagraph,
       MenuLine
 ;{Added by PaSkol}
       MenuItem 'Соpтиpовать в обpатном поpядке', 'Ctrl-R', kbCtrlR, cmRevSortBlock, hcEditBlockMenu,
       MenuItem 'С~о~ртировать', 'Alt-T', kbAltT, cmSortBlock, hcedParagraph,
       MenuItem 'В~ы~числить сумму', 'Alt-Ins', kbAltIns, cmCalcBlock, hcedParagraph,
-;{-$VIV 18.05.99--}
-      MenuItem 'Р~у~с/Анг Конвертировать Строку', 'Alt-F12', kbAltF12, cmRusEngConv, 0,
     END
  SubMenu 'Pа~з~ное', hcEditMiscMenu,
       MenuItem 'Вставить ~д~ату  ', 'Ctrl Q D', kbNoKey, cmInsertDate, hcedParagraph,
@@ -2270,26 +2307,30 @@ Menu dlgEditorMenu
       MenuItem 'Код~и~ровка', 'F8', kbF8, cmSwitchKeyMapping, 0,
      MenuLine
      SubMenu '~С~тpочные буквы', hcMiscUpper,
-      MenuItem '~С~лово', 'Ctrl ]', kbNoKey, cmLowWord, hcMiscUpper,
+      MenuItem '~С~лово/блок', 'Ctrl ]', kbNoKey, cmLowcaseBlock, hcMiscUpper,
       MenuItem 'С~т~pока', 'Ctrl-Shift ]', kbNoKey, cmLowString, hcMiscUpper,
-      MenuItem '~Б~лок', 'Ctrl K ]', kbNoKey, cmLowcaseBlock, hcMiscUpper,
      END
      SubMenu '~П~pописные буквы', hcMiscLower,
-      MenuItem '~С~лово', 'Ctrl [', kbNoKey, cmUpWord, hcMiscLower,
+      MenuItem '~С~лово/блок', 'Ctrl [', kbNoKey, cmUpcaseBlock, hcMiscLower,
       MenuItem 'С~т~pока', 'Ctrl-Shift [', kbNoKey, cmUpString, hcMiscLower,
-      MenuItem '~Б~лок', 'Cltr K [', kbNoKey, cmUpcaseBlock, hcMiscLower,
      END
      SubMenu '~З~аглавные буквы', hcMiscCapitalize,
-      MenuItem '~С~лово', 'Ctrl \', kbNoKey, cmCapWord, hcMiscCapitalize,
+      MenuItem '~С~лово/блок', 'Ctrl \', kbNoKey, cmCapitalizeBlock, hcMiscCapitalize,
       MenuItem 'С~т~pока', 'Ctrl-Shift \', kbNoKey, cmCapString, hcMiscCapitalize,
-      MenuItem '~Б~лок', 'Ctrl K \', kbNoKey, cmCapitalizeBlock, hcMiscCapitalize,
+     END
+     SubMenu 'Исправить раскладку', hcMiscKbdLayout,
+      MenuItem '~С~лово/блок', 'Alt-F12', kbAltF12, cmRusEngConvBlock, hcMiscKbdLayout,
+      MenuItem 'С~т~pока', 'Alt-Shift-F12', kbAltShiftF12, cmRusEngConvString, hcMiscKbdLayout,
+     END
+     SubMenu 'Из~м~енить регистр', hcMiscToggleCase
+      MenuItem '~С~лово/блок', 'Ctrl-Gray/', kbCtrlSlash, cmToggleCaseBlock, hcMiscToggleCase,
+      MenuItem 'С~т~pока', 'Ctrl-Shift-Gray/', kbCtrlShiftSlash, cmToggleCaseString, hcMiscToggleCase,
      END
      SubMenu 'Перевод строки', 0,
       MenuItem 'CR~+~LF', '', kbNoKey, cmEditCrLfMode, 0,
       MenuItem '~L~F',   '', kbNoKey, cmEditLfMode, 0,
       MenuItem '~C~R',   '', kbNoKey, cmEditCrMode, 0,
      END
-     MenuItem 'Из~м~енить регистр буквы', 'Ctrl-/', kbCtrlSlash, cmChangeCharCase, 0,
    END
  SubMenu 'Оп~ц~ии', hcedOptions,
       MenuItem 'Отступ при ~з~абое', 'Off', kbNoKey, cmSwitchBack, hcedOptions,
@@ -2933,7 +2974,7 @@ END
 
 DIALOG dlgPanelSetup, 62, 21, 'Установки панели'
     HELPCTX hcPanelSetup
-    RadioButtons 2, 3, 28, 14, ofPostProcess, ofPreProcess
+    RadioButtons 2, 3, 28, 12, ofPostProcess, ofPreProcess
       ITEM '~И~мени'
       ITEM '~Р~асширению'
       ITEM 'Ра~з~меру'
@@ -2945,6 +2986,10 @@ DIALOG dlgPanelSetup, 62, 21, 'Установки панели'
       ITEM '~Н~е сортировать'
     END
     Label 2, 2, 'Сортировать по...', ofPostProcess, ofPreProcess
+    CheckBoxes 2, 12, 28, 14, ofPostProcess, ofPreProcess
+      ITEM 'Сортировать по пути'
+      ITEM 'Обратный порядок'
+    END
     CheckBoxes 29, 3, 60, 14, ofPostProcess, ofPreProcess
       ITEM 'Размер катало~г~ов'
       ITEM '~Т~екущий файл'
@@ -3080,53 +3125,6 @@ DIALOG dlgDriveInfoSetup, 61, 14, 'Установки панели информации'
     Button 49, 11, 59, 13, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
 END
 
-;$IFNDEF VIRTUALPASCAL
-DIALOG dlgStartupSetup, 70, 22, 'Процесс загрузки и выгрузки'
-    HELPCTX hcOptionsStartup
-    CheckBoxes 2, 3, 68, 6, ofPostProcess, ofPreProcess
-      ITEM 'Авто ~з~апуск меню            '
-      ITEM '~В~осстанавливать ~в~идеорежим  '
-      ITEM '~У~ничтожать историю команд   '
-      ITEM 'Оверлеи в ХMS               '
-      ITEM 'Оверлеи в ЕMS               '
-      ITEM 'Установка ~п~алитpы VGA       '
-    END
-    Label 2, 2, 'Загрузка', ofPostProcess, ofPreProcess
-
-    CheckBoxes 2, 7, 68, 10, ofPostProcess, ofPreProcess
-      ITEM 'В~ы~ход после часа бездействия'
-      ITEM 'Авто запись ~с~остояния       '
-      ITEM 'Разрешать ~м~игание           '
-      ITEM 'Запоминать ка~т~алог          '
-      ITEM '~В~осстанавливать палитpу VGA '
-    END
-    Label 2, 6, 'Выгрузка', ofPostProcess, ofPreProcess
-
-    CheckBoxes 2, 11, 68, 13, ofPostProcess, ofPreProcess
-      ITEM 'DOS Idle (Int28)            '
-      ITEM 'Спать во время бездействия  '
-      ITEM 'DPMI Idle (Int2F)           '
-      ITEM 'DESQ Idle (Int15)           '
-    END
-    Label 2, 10, 'Разделение времени', ofPostProcess, ofPreProcess
-
-    CheckBoxes 2, 14, 68, 17, ofPostProcess, ofPreProcess
-      ITEM 'Отдавать тики только pаз    '
-      ITEM 'Отдавать пpи откpытии файла '
-      ITEM 'Отдавать пpи копиpовании    '
-      ITEM 'Отдавать пpи чтении аpхива  '
-      ITEM 'Отдавать пpи поиске         '
-    END
-
-    Label 2, 13, 'Дополнительно:', ofPostProcess, ofPreProcess
-
-    InputLine 42, 17, 68, 18, 3, 0
-    Label 2, 17, 'Размер ~б~уфера оверлеев (64-200 Кбайт):', ofPostProcess, ofPreProcess
-
-    Button 41, 19, 51, 21, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 52, 19, 62, 21, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
-END
-;$ELSE
 DIALOG dlgStartupSetup, 70, 20, 'Процесс загрузки и выгрузки'
     HELPCTX hcOptionsStartup
     CheckBoxes 2, 3, 68, 5, ofPostProcess, ofPreProcess
@@ -3148,20 +3146,10 @@ DIALOG dlgStartupSetup, 70, 20, 'Процесс загрузки и выгрузки'
     END
     Label 2, 6, 'Выгрузка', ofPostProcess, ofPreProcess
 
-    CheckBoxes 2, 11, 68, 16, ofPostProcess, ofPreProcess
-      ITEM 'Всегда отдавать длинные тики (32мс)'
-      ITEM 'Отдавать тики пpи откpытии файла '
-      ITEM 'Отдавать тики пpи копиpовании    '
-      ITEM 'Отдавать тики пpи чтении аpхива  '
-      ITEM 'Отдавать тики пpи поиске         '
-;     ITEM 'Отдавать тики пpи перетаскивании файлов'
-    END
-    Label 2, 10, 'Разделение времени', ofPostProcess, ofPreProcess
 
     Button 41, 17, 51, 19, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 52, 17, 62, 19, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
 END
-;$ENDIF
 
 DIALOG dlgArvidFileFind, 52, 13, 'Поиск файла'
     HELPCTX hcFileFind
@@ -3344,11 +3332,12 @@ EDITOR COMMANDS
     COMMAND       cmPgDn,         kbPgDn,     kbShiftPgDn,  ^C#0,      #0#0
     COMMAND       cmClose,        kbESC,       kbAltF3,     ^C#0,      #0#0
     COMMAND       cmMenu,         kbF10,         0,         #0#0,      #0#0
-    COMMAND       cmUpWord,       kbCtrlSqBracketL, 0,      #0#0,      #0#0
-    COMMAND       cmLowWord,      kbCtrlSqBracketR, 0,      #0#0,      #0#0
+    COMMAND       cmUpcaseBlock,  kbCtrlSqBracketL, 0,      #0#0,      #0#0
+    COMMAND       cmLowcaseBlock, kbCtrlSqBracketR, 0,      #0#0,      #0#0
     COMMAND       cmUpString,     kbCtrlShiftSqBracketL, 0, #0#0,      #0#0
     COMMAND       cmLowString,    kbCtrlShiftSqBracketR, 0, #0#0,      #0#0
-    COMMAND       cmCapWord,      0,             0,         ^\#0,      #0#0
+    COMMAND       cmCapString,    kbCtrlShiftBSlash, 0,     #0#0,      #0#0
+    COMMAND       cmCapitalizeBlock,    0,       0,         ^\#0,      #0#0
     COMMAND       cmPrintBlock,   0,             0,         ^K^P,      #0#0
     COMMAND       cmClear,        kbCtrlDel,     0,         ^K^Y,      #0#0
     COMMAND       cmCopyBlock,    0,             0,         ^K^C,      #0#0
@@ -3379,7 +3368,7 @@ EDITOR COMMANDS
     COMMAND     cmUpcaseBlock,    0,             0,         ^K^[       #0#0
     COMMAND    cmLowcaseBlock,    0,             0,         ^K^]       #0#0
     COMMAND cmCapitalizeBlock,    0,             0,         ^K^\       #0#0
-    COMMAND  cmChangeCaseBlock,   0,             0,         ^K^A       #0#0
+    COMMAND  cmToggleCaseBlock,   0,             0,         ^K^A       #0#0
     COMMAND     cmSyncClipOut,    0,             0,         ^Q^O       #0#0
     COMMAND      cmSyncClipIn,    0,             0,         ^Q^I       #0#0
     COMMAND    cmWindowsPaste,    0,             0,         ^Q^P       #0#0

@@ -46,12 +46,12 @@
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
-unit advance2; {File related functions}
+unit Advance2; {File related functions}
 
 interface
 
 uses
-  Defines, Streams, advance, Dos, Lfn, UFNMatch
+  Defines, Streams, Advance, Dos, Lfn, UFNMatch
   ;
 
 var
@@ -64,7 +64,6 @@ function FileNewer(FileA, FileB: String): Boolean;
 function CalcTmpFName(Id: LongInt; const AExt: String; ANew: Boolean)
   : String; {DataCompBoy}
 function CalcTmpId: LongInt;
-function IsDriveCDROM(Drive: Char): Boolean;
 procedure lChDir(S: String); {DataCompBoy}
 procedure EraseByName(const FName: String); {DataCompBoy}
 procedure EraseFile(const N: String); {DataCompBoy}
@@ -138,7 +137,7 @@ function GetPath(const S: String): String;
 function GetName(const S: String): String;
 function GetSName(const S: String): String;
 function GetIName(const S: String): String;
-function GetAttrStr(Attr: word): Str6;
+function GetAttrStr(Attr: Word): Str6;
 {$IFNDEF OS2}
 function GetShortRelPath(Path: String): String;
 {$ENDIF}
@@ -147,8 +146,8 @@ function GetLongRelPath(Path: String): String;
 {-DataCompBoy-}
 function MakeFileName(S: String): String;
 function MakeNormName(const S, S1: String): String; {DataCompBoy}
-function GetFileAttr(const S: String): word;
-function SetFileAttr(const S: String; Attr: word): word;
+function GetFileAttr(const S: String): Word;
+function SetFileAttr(const S: String; Attr: Word): Word;
 function CorrectFile(const N: String): Boolean;
 function PathExist(s: String): Boolean; {Is path exist}
 
@@ -156,23 +155,23 @@ function PathFoundInArc(S: String): Boolean; {JO}
 
 {-DataCompBoy-}
 procedure GetFTimeSizeAttr(const A: String; var ATime: LongInt;
-    var ASize: TSize; var AAttr: word);
+    var ASize: TSize; var AAttr: Word);
 {-DataCompBoy-}
 
 {-DataCompBoy-}
 type
   TQuickSearchData = record
     Mask: String;
-    NumExt: word;
-    ExtD: word;
+    NumExt: Word;
+    ExtD: Word;
     end;
 
 function InQSMask(Name, Mask: String): Boolean; {JO}
 
 procedure InitQuickSearch(var QS: TQuickSearchData);
-procedure DoQuickSearch(var QS: TQuickSearchData; Key: word);
+procedure DoQuickSearch(var QS: TQuickSearchData; Key: Word);
 function GetCursorPos(const QS: TQuickSearchData; const Name: String;
-    Size, ExtSize: word): word;
+    Size, ExtSize: Word): Word;
 procedure FileChanged(const Name: String);
 {-DataCompBoy-}
 
@@ -193,9 +192,9 @@ function CompareFiles(const N1, N2: String): Boolean;
 implementation
 uses
   Drivers,
-  advance1, advance3, Strings,
+  Advance1, Advance3, Strings,
   Commands, DNApp, DnIni, Memory
-  , VpSysLow, VPUtils
+  , VpSysLow, VPUtils, U_KeyMap
   ;
 
 {$IFDEF OS_DOS}
@@ -222,12 +221,12 @@ destructor TTempFile.Done;
 
 function CorrectFile(const N: String): Boolean;
   var
-    I: integer;
+    I: Integer;
   begin
   CorrectFile := False;
   for I := 1 to Length(N) do
     if N[I] in IllegalCharSet then
-      exit; {DataCompBoy}
+      Exit; {DataCompBoy}
   CorrectFile := True;
   end;
 
@@ -288,7 +287,7 @@ function FileNewer(FileA, FileB: String): Boolean;
 {-DataCompBoy-}
 function CalcTmpFName;
   var
-    I: integer;
+    I: Integer;
     S: String;
   begin
   I := 0;
@@ -296,7 +295,7 @@ function CalcTmpFName;
     begin
     S := MakeNormName(SwpDir, Hex8(Id)+'.'+AExt);
     if not ExistFile(S) or not ANew then
-      break;
+      Break;
     Inc(Id);
     Inc(I);
     end;
@@ -310,7 +309,7 @@ const
 function GetTmpId: LongInt;
   var
     IdL, lm, ld, lh, lmin: LongInt;
-    y, m, d, dow, h, min, s, hund: word;
+    y, m, d, dow, h, min, s, hund: Word;
   begin
   GetDate(y, m, d, dow);
   GetTime(h, min, s, hund);
@@ -338,11 +337,6 @@ function CalcTmpId: LongInt;
   CalcTmpId := Id;
   end;
 
-function IsDriveCDROM(Drive: Char): Boolean;
-  begin
-  IsDriveCDROM := SysGetDriveType(Drive) = dtCDRom;
-  end;
-
 {-DataCompBoy-}
 procedure lChDir;
   begin
@@ -351,7 +345,7 @@ procedure lChDir;
   if PosChar(':', S) > 2 then
     begin
     InOutRes := 666;
-    exit;
+    Exit;
     end;
   Lfn.lChDir(S);
   end;
@@ -426,7 +420,9 @@ function ValidDrive(dr: Char): Boolean;
     DriveNum, LogDrvMap: LongInt;
   begin { LogDrvMap: Bit 0: 'A:', Bit 1: 'B:', etc }
   LogDrvMap := SysGetValidDrives;
-  ValidDrive := ((1 shl (Ord(dr)-Ord('A'))) and LogDrvMap) <> 0;
+  dr := Upcase(dr);
+  ValidDrive := (dr >= 'A') and (dr <= 'Z') and
+    (((1 shl (Ord(dr)-Ord('A'))) and LogDrvMap) <> 0);
   end;
 
 function GetDrive: Byte;
@@ -506,9 +502,9 @@ function GetExt;
   var
     i: Byte;
   begin
-  for i := Length(s) DownTo 1 do
+  for i := Length(s) downto 1 do
     if s[i] in ['.', '\', '/'] then
-      break;
+      Break;
   if  ( (i > 1) or (s[1] = '.')) and not (s[i] in ['/', '\']) then
     GetExt := Copy(s, i, MaxStringLength)
   else
@@ -524,7 +520,7 @@ function Norm12;
   if s[1] = '.' then
     begin
     Norm12 := AddSpace(s, 12);
-    exit
+    Exit
     end;
   System.FillChar(R[1], 12, ' ');
   R[0] := #12;
@@ -623,7 +619,7 @@ function InMask;
   if  (Mask = x_x) or (Mask = '*') then
     begin
     InMask := True;
-    exit;
+    Exit;
     end;
 
   j := Mask[Length(Mask)] = '.';
@@ -692,7 +688,7 @@ function InFilter;
     DelLeft(S);
     DelRight(S);
     if  (S <> '') and InMask(Name, S) then
-      exit;
+      Exit;
     end;
   InFilter := False;
   end { InFilter };
@@ -729,7 +725,7 @@ function InDirFilter;
     if  (S <> '') and (S[Length(S)] = '\')
            and InMask(Name, Copy(S, 1, Length(S)-1))
     then
-      exit;
+      Exit;
     end;
   InDirFilter := False;
   end { InDirFilter };
@@ -817,7 +813,7 @@ procedure MakeTMaskData(var MD: TMaskData);
     FreeTMaskData(MD);
 
     if Filter = '' then
-      exit;
+      Exit;
     if Filter[1] in [' ', #9] then
       DelLeft(Filter);
     if not (Filter[1] in [';', ',']) then
@@ -842,7 +838,7 @@ procedure MakeTMaskData(var MD: TMaskData);
     Dina1[0].CurPos := 0;
     NumMP := 0;
 
-    for i := Length(Filter) DownTo 2 do
+    for i := Length(Filter) downto 2 do
       if  (Filter[i] in [';', ',']) and not InSq then
         if not (Filter[i-1] in [';', ',']) then
           begin
@@ -879,10 +875,10 @@ procedure MakeTMaskData(var MD: TMaskData);
                 begin
                 Dec(e);
                 InS := False;
-                for k := e DownTo 1 do
+                for k := e downto 1 do
                   if  (Filter[k] = '[') and not InS
                   then
-                    break
+                    Break
                   else if Filter[k] = '"' then
                     InS := not InS;
                 o := k-1;
@@ -960,7 +956,7 @@ function InExtFilter;
   if Byte(Name[Length(Name)]) < 32 then
     begin
     InExtFilter := False;
-    exit
+    Exit
     end;
   InExtFilter := True; {JO}
   Num1 := F.MP[Byte(UpCaseArray[Name[Length(Name)]])].Num;
@@ -994,7 +990,7 @@ Try2:
       then
         begin
         if Name[j] = '.' then
-          exit;
+          Exit;
         end
       else if (F.Filter[Dina1[i].CurPos] = '-') and
           (F.Filter[Dina1[i].CurPos-1] in [';', ',']) and
@@ -1004,7 +1000,7 @@ Try2:
         if Name[j] = '.' then
           begin
           InExtFilter := False;
-          exit;
+          Exit;
           end
         end
       else if (F.Filter[Dina1[i].CurPos] = '.') and
@@ -1013,22 +1009,22 @@ Try2:
       then
         begin
         if  (PosChar('.', Name) = 0) then
-          exit;
+          Exit;
         end
       else if (F.Filter[Dina1[i].CurPos] = ']') and
         not Dina1[i].InSq
       then
         begin
         InSq := Dina1[i].InSq;
-        for l := Dina1[i].CurPos-1 DownTo 1 do
+        for l := Dina1[i].CurPos-1 downto 1 do
           if F.Filter[l] = '"' then
             InSq := not InSq
           else if not InSq and (F.Filter[l] = '[') then
-            break
+            Break
           else if F.Filter[l] = ';' then
-            break;
+            Break;
         if F.Filter[l] <> '[' then
-          continue;
+          Continue;
         e := Dina1[i].CurPos-1;
         Inc(Num2);
         Dina2[Num2].CurPos := l-1;
@@ -1044,10 +1040,10 @@ Try2:
             then
               begin
               Dec(Num2);
-              break
+              Break
               end
             else
-              break
+              Break
           else
             begin
             if Dina2[Num2].InSq xor
@@ -1055,11 +1051,11 @@ Try2:
                   (UpCaseArray[Name[j]] <= UpCaseArray[F.Filter[l+2]])
                 )
             then
-              break
+              Break
             else
               begin
               Dec(Num2);
-              break
+              Break
               end;
             Inc(l, 2);
             end;
@@ -1084,28 +1080,28 @@ q:
     if F.MP[Byte('*')].Num <= 2 then
       for i := 1 to F.MP[Byte('*')].Num do
         begin
-        for j := F.MP[Byte('*')].A[i].CurPos DownTo 1 do
+        for j := F.MP[Byte('*')].A[i].CurPos downto 1 do
           if F.Filter[j] = ';' then
-            break;
+            Break;
         if F.Filter[j] = ';' then
           Inc(j);
         if InMask(Name, '*.'+Copy(F.Filter, j,
               F.MP[Byte('*')].A[i].CurPos-j+1))
         then
-          exit;
+          Exit;
         end
     else
       for i := 1 to F.MP[Byte('*')].Num do
         begin
-        for j := PMasksPos(F.MP[Byte('*')].P)^[i].CurPos DownTo 1 do
+        for j := PMasksPos(F.MP[Byte('*')].P)^[i].CurPos downto 1 do
           if F.Filter[j] = ';' then
-            break;
+            Break;
         if F.Filter[j] = ';' then
           Inc(j);
         if InMask(Name, '*.'+Copy(F.Filter, j,
               PMasksPos(F.MP[Byte('*')].P)^[i].CurPos-j))
         then
-          exit;
+          Exit;
         end;
   InExtFilter := False
   end { InExtFilter };
@@ -1170,7 +1166,7 @@ function InSpaceMask;
     else
       begin
       InSpaceMask := False;
-      exit
+      Exit
       end
   until i = 0;
   InSpaceMask := True
@@ -1188,7 +1184,7 @@ function InSpaceFilter;
   UpStr(Filter);
   UpStr(Name);
   if Filter = '' then
-    exit;
+    Exit;
   Name := Norm12(Name);
   repeat
     if Filter[Length(Filter)] = ';' then
@@ -1205,7 +1201,7 @@ function InSpaceFilter;
         Delete(S, 1, 1); {DelFC(S);}
       DelLeft(S);
       if  (S <> '') and InSpaceMask(Name, Norm12(S), True) then
-        exit;
+        Exit;
       SetLength(Filter, pred(i));
       end
   until Length(Filter) = 0;
@@ -1276,7 +1272,7 @@ function MkName(const Nm, Mask: String): String;
           Delete(os, Pos('?', os), 1);
         while Pos('*', os) <> 0 do
           Delete(os, Pos('*', os), 1);
-        break;
+        Break;
         end;
       '>':
         if fp > 2 then
@@ -1303,7 +1299,7 @@ function MkName(const Nm, Mask: String): String;
           Delete(os, Pos('?', os), 1);
         while Pos('*', os) <> 0 do
           Delete(os, Pos('*', os), 1);
-        break;
+        Break;
         end;
       '>':
         if fp > 2 then
@@ -1338,12 +1334,12 @@ function GetName;
   var
     B: Byte;
   begin
-  for B := Length(S) DownTo 1 do
+  for B := Length(S) downto 1 do
     if S[B] in ['\', '/']
     then
       begin
       GetName := Copy(S, B+1, MaxStringLength);
-      exit
+      Exit
       end;
   GetName := S;
   end;
@@ -1356,12 +1352,12 @@ function GetSName;
     Pe: Byte;
   begin
   Pe := Length(S)+1;
-  for B := Length(S) DownTo 1 do
+  for B := Length(S) downto 1 do
     begin
     if  (S[B] = '.') and (Pe = Length(S)+1) then
       Pe := B;
     if S[B] in ['\', '/'] then
-      break;
+      Break;
     end;
   if S[B] in ['\', '/'] then
     B := B+1
@@ -1379,7 +1375,7 @@ function GetIName;
 {-DataCompBoy-}
 
 {-DataCompBoy-}
-function GetAttrStr(Attr: word): Str6;
+function GetAttrStr(Attr: Word): Str6;
   var
     AttrStr: Str6;
   begin
@@ -1445,7 +1441,7 @@ function GetLongRelPath(Path: String): String;
 
 function MakeFileName(S: String): String;
   var
-    I: integer;
+    I: Integer;
   begin
   if  (S <> '..') and (S[Length(S)] = '.') then
     SetLength(S, Length(S)-1);
@@ -1476,7 +1472,7 @@ function MakeNormName(const S, S1: String): String;
 {-DataCompBoy-}
 
 {-DataCompBoy-}
-function SetFileAttr(const S: String; Attr: word): word;
+function SetFileAttr(const S: String; Attr: Word): Word;
   var
     F: lFile;
   begin
@@ -1487,10 +1483,10 @@ function SetFileAttr(const S: String; Attr: word): word;
 {-DataCompBoy-}
 
 {-DataCompBoy-}
-function GetFileAttr(const S: String): word;
+function GetFileAttr(const S: String): Word;
   var
     F: lFile;
-    Attr: word;
+    Attr: Word;
   begin
   Attr := 0;
   lAssignFile(F, S);
@@ -1499,16 +1495,51 @@ function GetFileAttr(const S: String): word;
   end;
 {-DataCompBoy-}
 
-{-DataCompBoy-}
 function PathExist(s: String): Boolean;
+{ Проверка существования каталога s (путь относительный).
+Никаких специальных усилий по проверке на корень диска или
+шары не делается, что, возможно, и неправильно.
+  Параметр допускается как со слешем на конце, так и без него.
+}
   var
-    lSR: lSearchRec;
+    SR: TOSSearchRec;
+    l: Integer;
+    Attr: Longint;
   begin
-  lFindFirst(MakeNormName(s, '*.*'), AnyFile, lSR);
-  lFindClose(lSR);
-  PathExist := DosError = 0;
+  if s = '' then
+    Result := false
+  else
+    begin
+    l := Length(s);
+    if S[l] = '\' then
+      begin
+      Dec(l);
+      SetLength(S, l);
+      end;
+    if (l = 2) and (S[2] = ':') then
+      begin
+      Result := ValidDrive(S[1]);
+      exit;
+      end;
+    Attr := AnyFile or (Directory shl 8);
+    s[l + 1] := #0;
+    Result := SysFindFirst(@s[1], Attr, SR, True) = 0;
+    if not Result then
+      begin { Бывает, что каталог есть, а SysFindFirst даёт ошибку.
+       Так бывает, например, в корне шары, а также при каких-то
+       невыясненных обстоятельствах под OS/2 на FAT16. Поэтому, если
+       сам каталог в лоб не нашни, то попытаемся найти что-то внутри
+       каталога. Ограничиваться только этом тоже нельзя, так как бывает,
+       что каталог совсем-совсем пустой, даже без '.' и '..' внутри.
+       Так бывает, например, под Win на DirectCD CDRW.}
+      Attr := AnyFile;
+      S := S + '\*';
+      s[l + 3] := #0;
+      Result := SysFindFirst(@s[1], Attr, SR, True) = 0;
+      end;
+    SysFindClose(SR);
+    end;
   end;
-{-DataCompBoy-}
 
 {JO}
 function PathFoundInArc(S: String): Boolean;
@@ -1522,7 +1553,7 @@ function PathFoundInArc(S: String): Boolean;
 
 {-DataCompBoy-}
 procedure GetFTimeSizeAttr(const A: String; var ATime: LongInt;
-    var ASize: TSize; var AAttr: word);
+    var ASize: TSize; var AAttr: Word);
   var
     SR: lSearchRec;
   begin
@@ -1554,7 +1585,7 @@ procedure InitQuickSearch(var QS: TQuickSearchData);
   QS.ExtD := 0;
   end;
 
-procedure DoQuickSearch(var QS: TQuickSearchData; Key: word);
+procedure DoQuickSearch(var QS: TQuickSearchData; Key: Word);
   begin
   if QuickSearchType = 1 then
     if Key = kbBack then
@@ -1574,9 +1605,9 @@ procedure DoQuickSearch(var QS: TQuickSearchData; Key: word);
           QS.Mask[Length(QS.Mask)] := '*';
           Dec(QS.NumExt);
           QS.ExtD := 0;
-          for Key := Length(QS.Mask)-1 DownTo 1 do
+          for Key := Length(QS.Mask)-1 downto 1 do
             if QS.Mask[Key] = '.' then
-              break
+              Break
             else if QS.Mask[Key] <> '"' then
               Inc(QS.ExtD);
           end
@@ -1621,10 +1652,10 @@ procedure DoQuickSearch(var QS: TQuickSearchData; Key: word);
   end { DoQuickSearch };
 
 function GetCursorPos(const QS: TQuickSearchData; const Name: String;
-    Size, ExtSize: word): word;
+    Size, ExtSize: Word): Word;
   var
-    O: word;
-    D: word;
+    O: Word;
+    D: Word;
   begin
   D := 1;
 
@@ -1633,7 +1664,7 @@ function GetCursorPos(const QS: TQuickSearchData; const Name: String;
     if not InMask(Name, QS.Mask) then
       begin
       GetCursorPos := 0;
-      exit
+      Exit
       end;
     for O := 1 to QS.NumExt do
       begin
@@ -1648,7 +1679,7 @@ function GetCursorPos(const QS: TQuickSearchData; const Name: String;
     if not InQSMask(Name, QS.Mask) then
       begin
       GetCursorPos := QS.ExtD+1;
-      exit
+      Exit
       end;
     end;
 
@@ -1775,7 +1806,7 @@ function CompareFiles(const N1, N2: String): Boolean;
   if S1.Status <> stOK then
     begin
     S1.Done;
-    exit
+    Exit
     end;
   S2.Init(N2, stOpenRead);
   if  (S2.Status <> stOK) or (S1.GetSize <> S2.GetSize) then
@@ -1795,7 +1826,7 @@ function CompareFiles(const N1, N2: String): Boolean;
     if S1.GetSize-S1.GetPos < I then
       I := S1.GetSize-S1.GetPos;
     if I = 0 then
-      break;
+      Break;
     S1.Read(B1^, I);
     S2.Read(B2^, I);
     asm

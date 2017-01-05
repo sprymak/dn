@@ -1,0 +1,269 @@
+ 
+I:\DN2-2DIF\05\ak40426a.dif 
+patching file `ARCHIVER.PAS'
+patching file `arcview.pas'
+ 
+I:\DN2-2DIF\05\jo40523a.dif 
+patching file `arcview.pas'
+Hunk #1 succeeded at 2122 (offset 6 lines).
+Hunk #3 succeeded at 2287 (offset 6 lines).
+patching file `filefind.pas'
+Hunk #1 succeeded at 570 (offset 4 lines).
+Hunk #3 succeeded at 708 (offset 4 lines).
+ 
+I:\DN2-2DIF\05\ak40523b.dif 
+patching file `advance1.pas'
+patching file `fviewer.pas'
+patching file `Microed.pas'
+ 
+I:\DN2-2DIF\05\ak40603a.dif 
+patching file `advance2.pas'
+ 
+I:\DN2-2DIF\05\ak40603b.dif 
+patching file `filecopy.pas'
+patching file `Microed.pas'
+Hunk #1 succeeded at 2991 (offset 14 lines).
+ 
+I:\DN2-2DIF\05\ak40606a.dif 
+patching file `dnini.pas'
+ 
+I:\DN2-2DIF\05\ak40607a.dif 
+patching file `dialogs.pas'
+patching file `dnutil.pas'
+patching file `FLTools.pas'
+Hunk #1 succeeded at 1612 (offset 2 lines).
+patching file `helpfile.pas'
+patching file `Microed.001'
+patching file `microed.pas'
+patching file `swe.pas'
+patching file `Views.001'
+patching file `views.pas'
+Hunk #2 succeeded at 2266 (offset -3 lines).
+ 
+I:\DN2-2DIF\05\jo40609a.dif 
+patching file `microed.pas'
+Hunk #1 succeeded at 4699 (offset 8 lines).
+ 
+I:\DN2-2DIF\05\ak40612a.dif 
+patching file `RESOURCE/UKRAIN/dn.dnr'
+ 
+I:\DN2-2DIF\05\ak40616a.dif 
+patching file `advance2.pas'
+patching file `dnutil.pas'
+patching file `FlPanelX.pas'
+ 
+I:\DN2-2DIF\05\ak40704a.dif 
+patching file `DblWnd.pas'
+ 
+I:\DN2-2DIF\05\ak40723a.dif 
+patching file `arcview.pas'
+patching file `diskinfo.pas'
+patching file `dnapp.pas'
+patching file `drivers.pas'
+patching file `editor.pas'
+patching file `fbb.pas'
+patching file `filecopy.pas'
+patching file `FlPanel.pas'
+patching file `FLTools.pas'
+patching file `fviewer.pas'
+patching file `gauges.pas'
+patching file `idlers.pas'
+patching file `LIB.OS2/Events.pas'
+patching file `LIB.OS2/fnotify.pas'
+patching file `LIB.W32/Events.pas'
+patching file `LIB.W32/fnotify.pas'
+patching file `MicroEd2.pas'
+patching file `pktview.pas'
+patching file `tetris.pas'
+patching file `tree.pas'
+patching file `u_myapp.pas'
+patching file `UUCODE.PAS'
+Hunk #1 succeeded at 1775 (offset -19 lines).
+patching file `xtime.pas'
+ 
+I:\DN2-2DIF\05\ak40727a.dif 
+patching file `views.pas'
+ 
+I:\DN2-2DIF\05\ak40727c.dif 
+patching file `advance.pas'
+patching file `arcview.pas'
+patching file `Commands.pas'
+patching file `copyini.pas'
+patching file `dn1.pas'
+patching file `dnapp.pas'
+patching file `dnexec.pas'
+patching file `dnini.pas'
+patching file `Events.inc'
+patching file `filecopy.pas'
+patching file `filefind.pas'
+patching file `FLTools.pas'
+patching file `LIB.OS2/Events.pas'
+patching file `LIB.W32/Events.pas'
+patching file `MicroEd2.pas'
+patching file `RESOURCE/ENGLISH/dn.dnr'
+patching file `RESOURCE/RUSSIAN/dn.dnr'
+patching file `RESOURCE/UKRAIN/dn.dnr'
+patching file `setups.pas'
+patching file `startup.pas'
+patching file `u_myapp.pas'
+patching file `vars.pas'
+ 
+I:\DN2-2DIF\05\ak40803a.dif 
+patching file `profile.pas'
+patching file `streams.pas'
+ 
+I:\DN2-2DIF\05\ak40924a.dif 
+patching file `vpsyslow.pas'
+Hunk #1 succeeded at 397 (offset -3 lines).
+ 
+I:\DN2-2DIF\05\ak41027a.dif 
+patching file `dnutil.pas'
+patching file `RESOURCE/ENGLISH/dnhelp.htx'
+patching file `RESOURCE/RUSSIAN/dnhelp.htx'
+patching file `RESOURCE/UKRAIN/dnhelp.htx'
+ 
+I:\DN2-2DIF\05\ak41027b.dif 
+patching file `usermenu.pas'
+ 
+I:\DN2-2DIF\05\ak41108a.dif 
+patching file `UUCODE.PAS'
+ 
+I:\DN2-2DIF\05\ak41118a.dif 
+patching file `arc_uc2.pas'
+patching file `arcview.pas'
+Hunk #1 succeeded at 516 with fuzz 2 (offset -1 lines).
+ 
+I:\DN2-2DIF\05\jo41122a.dif 
+patching file `LIB.OS2/vpsysos2.pas'
+ 
+I:\DN2-2DIF\05\ak41122c.dif 
+patching file `_dnc.cmd'
+patching file `_dnc.bat'
+ 
+I:\DN2-2DIF\05\jo41122c.dif 
+patching file `advance2.pas'
+patching file `commands.pas'
+patching file `copyini.pas'
+patching file `diskinfo.pas'
+patching file `dn1.pas'
+Hunk #1 succeeded at 733 (offset 3 lines).
+patching file `dnini.pas'
+Hunk #1 succeeded at 255 (offset -2 lines).
+Hunk #2 succeeded at 641 (offset -5 lines).
+patching file `filecopy.pas'
+patching file `filefind.pas'
+Hunk #2 succeeded at 833 (offset -2 lines).
+patching file `filescol.pas'
+patching file `fltl.001'
+patching file `LIB.OS2/fltl.pas'
+patching file `LIB.OS2/vpsysos2.001'
+patching file `LIB.OS2/vpsysos2.pas'
+patching file `LIB.W32/fltl.pas'
+patching file `LIB.W32/vpsysw32.pas'
+patching file `RESOURCE/ENGLISH/dn.dnl'
+patching file `RESOURCE/ENGLISH/dn.dnr'
+Hunk #1 succeeded at 1716 (offset 9 lines).
+patching file `RESOURCE/RUSSIAN/dn.dnl'
+patching file `RESOURCE/RUSSIAN/dn.dnr'
+Hunk #1 succeeded at 446 (offset 9 lines).
+patching file `RESOURCE/UKRAIN/dn.dnl'
+patching file `RESOURCE/UKRAIN/dn.dnr'
+Hunk #1 succeeded at 446 (offset 9 lines).
+patching file `setups.pas'
+Hunk #1 succeeded at 266 (offset 14 lines).
+patching file `startup.pas'
+patching file `vars.pas'
+Hunk #1 succeeded at 172 (offset 1 line).
+patching file `vpsyslow.pas'
+ 
+I:\DN2-2DIF\05\ak41122d.dif 
+patching file `advance.pas'
+patching file `ADVANCE1.pas'
+patching file `advance2.pas'
+Hunk #1 succeeded at 194 (offset -1 lines).
+patching file `advance6.pas'
+patching file `arc_zip.pas'
+patching file `archdet.pas'
+patching file `arvidavt.pas'
+patching file `cmdline.pas'
+patching file `dbview.pas'
+patching file `dialogs.pas'
+patching file `diskinfo.pas'
+patching file `dn1.pas'
+Hunk #2 succeeded at 799 (offset -1 lines).
+patching file `dnini.pas'
+Hunk #3 succeeded at 292 (offset -1 lines).
+Hunk #5 succeeded at 602 (offset -1 lines).
+Hunk #6 succeeded at 924 (offset -2 lines).
+patching file `dnutil.pas'
+patching file `DOC/ENGLISH/dnini.txt'
+patching file `DOC/RUSSIAN/dnini.txt'
+patching file `drives.pas'
+patching file `ed2.pas'
+patching file `editor.pas'
+patching file `EXE.OS2/dn.ini'
+patching file `EXE.OS2/XLT/kbd866.xlt'
+patching file `EXE.OS2/XLT/ru441.xlt'
+patching file `EXE.W32/dn.ini'
+patching file `EXE.W32/XLT/kbd866.xlt'
+patching file `EXE.W32/XLT/ru441.xlt'
+patching file `filefind.pas'
+Hunk #1 succeeded at 468 (offset 1 line).
+Hunk #3 succeeded at 510 (offset 1 line).
+patching file `fviewer.pas'
+patching file `histries.pas'
+patching file `lfnvp.pas'
+patching file `LIB.OS2/country_.pas'
+patching file `LIB.W32/country_.pas'
+patching file `menus.pas'
+patching file `microed.pas'
+patching file `objtype.pas'
+patching file `rcp.pas'
+patching file `RegAll.pas'
+patching file `RESOURCE/ENGLISH/dn.dnr'
+patching file `RESOURCE/RUSSIAN/dn.dnr'
+patching file `RESOURCE/UKRAIN/dn.dnr'
+patching file `setups.pas'
+Hunk #3 succeeded at 319 (offset -2 lines).
+patching file `titleset.pas'
+patching file `U_KeyMap.001'
+patching file `U_KeyMap.pas'
+patching file `vars.pas'
+patching file `XCode.pas'
+ 
+I:\DN2-2DIF\05\ak41122a.dif 
+patching file `ARCHIVER.PAS'
+patching file `arcview.pas'
+patching file `arvid.pas'
+patching file `arvidavt.pas'
+patching file `arvidtdr.pas'
+patching file `dn.pas'
+patching file `dnini.pas'
+patching file `drives.pas'
+patching file `filecopy.pas'
+patching file `filediz.pas'
+patching file `filefind.pas'
+patching file `filescol.pas'
+patching file `FlPanel.pas'
+patching file `FlPanelX.pas'
+patching file `FLTools.pas'
+patching file `LIB.D32/country_.pas'
+patching file `LIB.D32/DosLow.pas'
+patching file `LIB.D32/Events.pas'
+patching file `LIB.D32/files.pas'
+patching file `LIB.D32/fltl.pas'
+patching file `LIB.D32/fnotify.pas'
+patching file `LIB.D32/import32.asm'
+patching file `LIB.D32/os2.asm'
+patching file `LIB.D32/VPSYSD32.PAS'
+patching file `LIB.OS2/vpsysos2.pas'
+patching file `LIB.W32/vpsysw32.pas'
+patching file `stdefine.inc'
+patching file `tree.pas'
+patching file `usermenu.pas'
+patching file `vpsyslo2.pas'
+patching file `vpsyslow.pas'
+ 
+I:\DN2-2DIF\05\ver06.dif 
+patching file `version.pas'
+

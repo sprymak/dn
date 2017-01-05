@@ -11,7 +11,7 @@ uses
 const
   MaxLongStringLength = 1048575;
   MaxBytes = 128*1024*1024;
-  MaxWords = MaxBytes div SizeOf(word);
+  MaxWords = MaxBytes div SizeOf(Word);
   MaxPtrs = MaxBytes div SizeOf(Pointer);
 
 type
@@ -49,7 +49,7 @@ type
     end;
 
   LongRec = record
-    Lo, Hi: word;
+    Lo, Hi: Word;
     end;
 
   SW_Word = LongInt;
@@ -62,14 +62,17 @@ type
   TByteArray = array[0..MaxBytes-1] of Byte;
 
   PWordArray = ^TWordArray;
-  TWordArray = array[0..MaxWords-1] of AWord;
+  TWordArray = array[0..MaxWords-1] of Word;
+
+  PAWordArray = ^TAWordArray;
+  TAWordArray = array[0..MaxWords-1] of AWord;
 
   PPointerArray = ^TPointerArray;
   TPointerArray = array[0..MaxPtrs-1] of Pointer;
 
   FNameStr = String;
   AsciiZ = array[0..255] of Char;
-  THandle = integer;
+  THandle = Integer;
 
   PPoint = ^TPoint;
   TPoint = object

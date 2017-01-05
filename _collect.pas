@@ -23,7 +23,7 @@ type
     Count: LongInt;
     Limit: LongInt;
     Delta: LongInt;
-    Status, ErrorInfo: integer;
+    Status, ErrorInfo: Integer;
     constructor Init(ALimit, ADelta: LongInt);
     constructor Load(var S: TStream);
     {destructor Done; virtual;}
@@ -35,7 +35,7 @@ type
     procedure AtReplace(Index: LongInt; Item: Pointer);
     procedure Delete(Item: Pointer);
     procedure DeleteAll;
-    procedure Error(Code, Info: integer); virtual;
+    procedure Error(Code, Info: Integer); virtual;
     function FirstThat(Test: Pointer): Pointer;
     procedure ForEach(Action: Pointer);
     procedure Free(Item: Pointer);
@@ -56,7 +56,7 @@ type
     Duplicates: Boolean;
     constructor Init(ALimit, ADelta: LongInt);
     constructor Load(var S: TStream);
-    function Compare(Key1, Key2: Pointer): integer; virtual;
+    function Compare(Key1, Key2: Pointer): Integer; virtual;
     {function IndexOf(Item: Pointer): LongInt; virtual;}
     {procedure Insert(Item: Pointer); virtual;}
     function KeyOf(Item: Pointer): Pointer; virtual;
@@ -163,7 +163,7 @@ procedure TCollection.DeleteAll;
   _TCollection^.DeleteAll(@Self);
   end;
 
-procedure TCollection.Error(Code, Info: integer);
+procedure TCollection.Error(Code, Info: Integer);
   assembler; {&Frame-}
 asm
 end;
@@ -243,7 +243,7 @@ constructor TSortedCollection.Load(var S: TStream);
   _TSortedCollection^.Load(_Model1.TStream(S), nil, @Self);
   end;
 
-function TSortedCollection.Compare(Key1, Key2: Pointer): integer;
+function TSortedCollection.Compare(Key1, Key2: Pointer): Integer;
   assembler; {&Frame-}
 asm
 end;

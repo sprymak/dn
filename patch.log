@@ -141,4 +141,71 @@ patching file `LIB.W32/vpsysw32.pas'
  
 I:\DN2-2DIF\03\ver.dif 
 patching file `version.pas'
+ 
+I:\DN2-2DIF\04\ak40409a.dif 
+patching file `DblWnd.pas'
+patching file `DNFuncs.pas'
+patching file `FlPanel.pas'
+patching file `FlPanelX.pas'
+patching file `RegAll.pas'
+patching file `XDblWnd.pas'
+ 
+I:\DN2-2DIF\04\ak40414a.dif 
+patching file `Commands.pas'
+patching file `FilesCol.pas'
+patching file `FlPanel.pas'
+Hunk #1 succeeded at 1640 (offset -93 lines).
+patching file `FlPanelX.pas'
+Hunk #5 succeeded at 316 (offset 2 lines).
+Hunk #6 succeeded at 988 (offset -14 lines).
+Hunk #7 succeeded at 1016 (offset 2 lines).
+Hunk #8 succeeded at 1016 (offset -14 lines).
+patching file `FLTools.pas'
+patching file `RESOURCE/ENGLISH/dn.dnl'
+patching file `RESOURCE/ENGLISH/dn.dnr'
+Hunk #1 succeeded at 3118 (offset 6 lines).
+patching file `RESOURCE/RUSSIAN/dn.dnl'
+patching file `RESOURCE/RUSSIAN/dn.dnr'
+Hunk #1 succeeded at 2933 (offset 14 lines).
+patching file `RESOURCE/UKRAIN/dn.dnl'
+patching file `RESOURCE/UKRAIN/dn.dnr'
+Hunk #1 succeeded at 2932 (offset 12 lines).
+ 
+I:\DN2-2DIF\04\ak40420a.dif 
+patching file `DNStdDlg.pas'
+ 
+I:\DN2-2DIF\04\ak40420b.dif 
+patching file `Calc.PAS'
+Hunk #1 succeeded at 2300 (offset 1 line).
+ 
+I:\DN2-2DIF\04\ak40515a.dif 
+patching file `advance.pas'
+patching file `archset.pas'
+Hunk #1 succeeded at 141 with fuzz 1.
+patching file `arcview.pas'
+patching file `dnutil.pas'
+patching file `drives.001'
+patching file `drives.pas'
+patching file `filefind.pas'
+Hunk #3 succeeded at 2085 with fuzz 1.
+patching file `FlPanel.pas'
+patching file `FlPanelX.pas'
+Hunk #1 succeeded at 886 (offset 5 lines).
+Hunk #2 succeeded at 1490 (offset 2 lines).
+Hunk #3 succeeded at 1887 (offset 5 lines).
+Hunk #4 succeeded at 1919 (offset 2 lines).
+Hunk #5 succeeded at 2705 (offset 5 lines).
+patching file `startup.pas'
+ 
+I:\DN2-2DIF\04\jo40216a.dif 
+patching file `fviewer.pas'
+ 
+I:\DN2-2DIF\04\ak40517a.dif 
+patching file `advance1.pas'
+ 
+I:\DN2-2DIF\04\ak40517b.dif 
+patching file `advance2.pas'
+ 
+I:\DN2-2DIF\04\ver.dif 
+patching file `version.pas'
 

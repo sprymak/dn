@@ -127,13 +127,13 @@ type
 
   PHighliteParams = ^THighliteParams;
   THighliteParams = record
-    GenFlags: word;
-    HexFlags: word;
-    DecFlags: word;
-    OctFlagsQ: word;
-    OctFlagsO: word;
-    BinFlags: word;
-    StrFlags: word;
+    GenFlags: Word;
+    HexFlags: Word;
+    DecFlags: Word;
+    OctFlagsQ: Word;
+    OctFlagsO: Word;
+    BinFlags: Word;
+    StrFlags: Word;
     RulesBuffer: array[1..$800] of Char;
     end;
 
@@ -144,7 +144,7 @@ type
     hrKeywords2
     );
 
-procedure Highlites(Len: integer; S: PChar; const Params: THighliteParams);
+procedure Highlites(Len: Integer; S: PChar; const Params: THighliteParams);
 procedure FixHighliteParams(var Params: THighliteParams);
 function InsertHighliteRule(var Params: THighliteParams;
      Index: THighliteRule; const Rule: String): Boolean;
@@ -170,8 +170,8 @@ implementation
 uses
   {Consts,} {Cat: зачем? и без этого отлично компилится}
   Defines, { TCharSet }
-  advance, { BreakChars }
-  advance1
+  Advance, { BreakChars }
+  Advance1
   ; { UpStr, UpCase }
 
 const
@@ -215,7 +215,7 @@ function GetHighliteRules(const Params: THighliteParams;
       c := P^;
       Inc(P);
       if c = #0 then
-        break;
+        Break;
       end;
     NextStr := P;
     end;
@@ -240,7 +240,7 @@ function GetHighliteRules(const Params: THighliteParams;
   var
     pend: PChar;
     p: PChar;
-    i: integer;
+    i: Integer;
   begin { GetHighliteRules }
   pend := @Params.RulesBuffer[High(Params.RulesBuffer)];
   p := @Params.RulesBuffer;
@@ -272,7 +272,7 @@ function GetHighliteRules(const Params: THighliteParams;
  *
  *****************************************************************)
 
-procedure Highlites(Len: integer; S: PChar; const Params: THighliteParams);
+procedure Highlites(Len: Integer; S: PChar; const Params: THighliteParams);
 
   const
     HexDigits = ['0'..'9', 'A'..'F', 'a'..'f'];
@@ -280,16 +280,16 @@ procedure Highlites(Len: integer; S: PChar; const Params: THighliteParams);
     OctDigits = ['0'..'7'];
     BinDigits = ['0'..'1'];
 
-  function CheckEmpty(Len: integer; S: PChar): Boolean;
+  function CheckEmpty(Len: Integer; S: PChar): Boolean;
     {$IFDEF NOASM}
     var
-      i: integer;
+      i: Integer;
     begin
     CheckEmpty := False;
     while Len > 0 do
       begin
       if not (S^ in [' ', #9]) then
-        exit;
+        Exit;
       Inc(S);
       Dec(Len);
       end;
@@ -318,18 +318,18 @@ procedure Highlites(Len: integer; S: PChar; const Params: THighliteParams);
    end;
   {$ENDIF}
 
-  function CheckStartComment(Len: integer; S: PChar; T: PChar): Boolean;
+  function CheckStartComment(Len: Integer; S: PChar; T: PChar): Boolean;
     {$IFDEF NOASM}
     var
-      i: integer;
-      j: integer;
+      i: Integer;
+      j: Integer;
       c: Char;
     begin
     CheckStartComment := False;
     while S^ in [#32, #9] do
       begin
       if S^ = #0 then
-        exit;
+        Exit;
       Inc(S)
       end;
     CheckStartComment := True;
@@ -339,7 +339,7 @@ procedure Highlites(Len: integer; S: PChar; const Params: THighliteParams);
       c := T^;
       Inc(T);
       if  (c in [#0, ',']) and (j > 0) then
-        exit
+        Exit
       else if (j < Len) and (c = S[j]) then
         Inc(j)
       else
@@ -392,11 +392,11 @@ procedure Highlites(Len: integer; S: PChar; const Params: THighliteParams);
    end;
   {$ENDIF}
 
-  function CheckPattern(I: integer; len: integer; S: PChar;
+  function CheckPattern(I: Integer; len: Integer; S: PChar;
        const P: String; CaseSensitive: Boolean): Boolean;
     {$IFDEF NOASM}
     var
-      j: integer;
+      j: Integer;
       c: Char;
     begin
     CheckPattern := False;
@@ -404,12 +404,12 @@ procedure Highlites(Len: integer; S: PChar; const Params: THighliteParams);
     while j <= Length(P) do
       begin
       if  (I >= len) then
-        exit;
+        Exit;
       c := S[I];
       if not CaseSensitive then
         c := UpCase(c);
       if  (c <> P[j]) then
-        exit;
+        Exit;
       Inc(j);
       Inc(I);
       end;
@@ -454,17 +454,17 @@ procedure Highlites(Len: integer; S: PChar; const Params: THighliteParams);
    end;
   {$ENDIF}
 
-  function ParseChars(I: integer; const Prefix: String;
-       const Allowed: TCharSet; const Suffix: String): integer;
+  function ParseChars(I: Integer; const Prefix: String;
+       const Allowed: TCharSet; const Suffix: String): Integer;
     var
-      j: integer;
-      k: integer;
+      j: Integer;
+      k: Integer;
       {   t : String; }
     begin
     ParseChars := 0;
     j := I;
     if not CheckPattern(j, len, S, Prefix, False) then
-      exit;
+      Exit;
     Inc(j, Length(Prefix));
     k := 0;
     while (j < len) and (S[j] in Allowed) do
@@ -473,24 +473,24 @@ procedure Highlites(Len: integer; S: PChar; const Params: THighliteParams);
       Inc(k);
       end;
     if k <= 0 then
-      exit;
+      Exit;
     if not CheckPattern(j, len, S, Suffix, False) then
-      exit;
+      Exit;
     Inc(j, Length(Suffix));
     ParseChars := j-I;
     end { ParseChars };
 
-  function CheckNumber(I: integer): integer;
+  function CheckNumber(I: Integer): Integer;
 
-    function ParseNumber(Max: integer; Mode: Char; Options: word;
-         const Digits: TCharSet): integer;
+    function ParseNumber(Max: Integer; Mode: Char; Options: Word;
+         const Digits: TCharSet): Integer;
       const
         strSuffix: String[1] = 'X';
         strAmpersandPrefix: String[2] = '&X';
         strAmpersandText: String[3] = '&X''';
         strPrefix: String[2] = 'X''';
       var
-        j: integer;
+        j: Integer;
       begin
       if  ( (hoSuffix and Options) <> 0) and (S[i] in DecDigits) then
         begin
@@ -530,18 +530,18 @@ procedure Highlites(Len: integer; S: PChar; const Params: THighliteParams);
       ParseNumber := Max;
       end { ParseNumber };
 
-    function ParseFloat: integer;
+    function ParseFloat: Integer;
       var
-        max: integer;
-        j: integer;
-        k: integer;
+        max: Integer;
+        j: Integer;
+        k: Integer;
       begin
       ParseFloat := 0;
       j := i;
       while (j < len) and (S[j] in DecDigits) do
         Inc(j);
       if  (i = j) and ((Params.GenFlags and hoAllowShortFloat) = 0) then
-        exit;
+        Exit;
       max := j-i;
       k := j;
       if S[j] = '.' then
@@ -549,7 +549,7 @@ procedure Highlites(Len: integer; S: PChar; const Params: THighliteParams);
       else if j = i then
         begin
         ParseFloat := max;
-        exit;
+        Exit;
         end;
       if j > k then
         begin
@@ -559,7 +559,7 @@ procedure Highlites(Len: integer; S: PChar; const Params: THighliteParams);
         if j = k then
           begin
           ParseFloat := max;
-          exit;
+          Exit;
           end;
         end;
       max := j-i;
@@ -578,8 +578,8 @@ procedure Highlites(Len: integer; S: PChar; const Params: THighliteParams);
       end { ParseFloat: };
 
     var
-      max: integer;
-      j: integer;
+      max: Integer;
+      j: Integer;
     begin { CheckNumber }
 
     {Default is float or decimal}
@@ -636,12 +636,12 @@ procedure Highlites(Len: integer; S: PChar; const Params: THighliteParams);
 
     end { CheckNumber };
 
-  function CheckString(I: integer): integer;
+  function CheckString(I: Integer): Integer;
     var
-      opts: word;
-      j: integer;
-      k: integer;
-      l: integer;
+      opts: Word;
+      j: Integer;
+      k: Integer;
+      l: Integer;
       term: Char;
       esc: Boolean;
     begin
@@ -672,7 +672,7 @@ procedure Highlites(Len: integer; S: PChar; const Params: THighliteParams);
             then
               begin
               Inc(k);
-              break;
+              Break;
               end;
             end
           else
@@ -718,13 +718,13 @@ procedure Highlites(Len: integer; S: PChar; const Params: THighliteParams);
 
     end { CheckString };
 
-  function CheckComment(I: integer; len: integer; S: PChar; T: PChar)
-    : integer;
+  function CheckComment(I: Integer; len: Integer; S: PChar; T: PChar)
+    : Integer;
     {$IFDEF NOASM}
     var
-      j: integer;
-      k: integer;
-      o: integer;
+      j: Integer;
+      k: Integer;
+      o: Integer;
       c: Char;
     begin
     k := I;
@@ -758,7 +758,7 @@ procedure Highlites(Len: integer; S: PChar; const Params: THighliteParams);
           if k > o then
             CheckComment := k-I;
           end;
-        exit;
+        Exit;
         end;
       if c <> #0 then
         begin
@@ -852,12 +852,12 @@ procedure Highlites(Len: integer; S: PChar; const Params: THighliteParams);
    end;
   {$ENDIF}
 
-  function CheckKeyword(I: integer; len: integer; S: PChar;
-       Keywords: PChar): integer;
+  function CheckKeyword(I: Integer; len: Integer; S: PChar;
+       Keywords: PChar): Integer;
     {$IFDEF NOASM}
     var
-      j: integer;
-      k: integer;
+      j: Integer;
+      k: Integer;
       c: Char;
     begin
     j := I;
@@ -940,11 +940,11 @@ procedure Highlites(Len: integer; S: PChar; const Params: THighliteParams);
   {$ENDIF}
 
   var
-    i: integer;
-    max: integer;
-    j: integer;
-    k: integer;
-    l: integer;
+    i: Integer;
+    max: Integer;
+    j: Integer;
+    k: Integer;
+    l: Integer;
     c: Char;
     d: Char;
     b: Boolean;
@@ -1117,9 +1117,9 @@ function InsertHighliteRule(var Params: THighliteParams;
   var
     exrules: array[Low(THighliteRule)..Succ(High(THighliteRule))] of PChar;
     rules: THiliteRules absolute exrules;
-    space: integer;
+    space: Integer;
     comma: Boolean;
-    needed: integer;
+    needed: Integer;
   const
     L = Low(exrules);
     H = High(exrules);

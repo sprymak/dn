@@ -21,7 +21,7 @@ type
     destructor Done; virtual;
     constructor Load(var S: TStream);
     procedure Store(var S: TStream);
-    function Valid(Command: word): Boolean; virtual;
+    function Valid(Command: Word): Boolean; virtual;
     end;
 
 procedure InsertUserSaver(ACheck: Boolean);

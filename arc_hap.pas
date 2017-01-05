@@ -50,7 +50,7 @@ unit arc_HAP; {HAP}
 interface
 
 uses
-  Archiver, advance, advance1, Defines, Objects2, Streams, Dos
+  Archiver, Advance, Advance1, Defines, Objects2, Streams, Dos
   ;
 
 type
@@ -87,8 +87,8 @@ constructor THAPArchive.Init;
   Sign := Sign+#0;
   FreeStr := SourceDir+DNARC;
   TObject.Init;
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'HAP3.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'PAH3.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'HAP3'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'PAH3'));
   Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'e'));
   ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, 'x'));
   Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'a'));
@@ -159,14 +159,14 @@ procedure THAPArchive.GetFile;
   if  (ArcFile^.GetPos = ArcFile^.GetSize) then
     begin
     FileInfo.Last := 1;
-    exit;
+    Exit;
     end;
   ArcFile^.Read(P.Id, SizeOf(P)-1);
   if  (ArcFile^.Status <> stOK) or (P.Id <> $574a688e {#142#104#74#87})
   then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
   FileInfo.Last := 0;
@@ -186,7 +186,7 @@ procedure THAPArchive.GetFile;
   if  (ArcFile^.Status <> stOK) or (Length(FileInfo.FName) > 79) then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   ArcFile^.Seek(ArcFile^.GetPos+P.PackedSize-1);
   end { THAPArchive.GetFile };

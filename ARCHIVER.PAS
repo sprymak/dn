@@ -136,7 +136,7 @@ type
 
   PFileInfo = ^TFileInfo;
   TFileInfo = object(TSortedCollection)
-    function Compare(P1, P2: Pointer): integer; virtual;
+    function Compare(P1, P2: Pointer): Integer; virtual;
     procedure FreeItem(Item: Pointer); virtual;
     procedure PutItem(var S: TStream; Item: Pointer); virtual;
     function GetItem(var S: TStream): Pointer; virtual;
@@ -266,7 +266,7 @@ const
 implementation
 
 uses
-  Lfn, {DnUtil, }advance, advance1, advance2, advance3, DNApp, Commands,
+  Lfn, {DnUtil, }Advance, Advance1, Advance2, Advance3, DNApp, Commands,
   Dialogs, FilesCol, FViewer, Startup, RStrings, {Memory, Messages,}
   ArcView, FileCopy, HistList, {FStorage,}Menus, ArchDet,
    {UserSavr,}DnIni, Messages,
@@ -295,7 +295,7 @@ function TFileInfo.Compare;
   if UpStrg(F1^.FName^) = UpStrg(F2^.FName^) then
     Compare := 0
   else
-    Compare := 1-2*integer(UpStrg(F1^.FName^) > UpStrg(F2^.FName^));
+    Compare := 1-2*Integer(UpStrg(F1^.FName^) > UpStrg(F2^.FName^));
   end;
 
 procedure TFileInfo.PutItem;
@@ -531,13 +531,47 @@ constructor TARJArchive.Init;
   Sign := Sign+#0;
   FreeStr := SourceDir+DNARC;
   inherited Init;
-  {$IFNDEF OS2}
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'ARJ.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'ARJ.EXE'));
+  {$IFDEF SEVENZIP}
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'ARJ'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, '7Z'));
+  Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'e'));
+  ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, 'x'));
+  Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'a -a -a1'));
+  Move := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove, 'm -a -a1 -p1'));
+  Delete := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete, 'd -p1'));
+  Test := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest, 't'));
+  Garble := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble, '-g'));
+  IncludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths, ''));
+  ExcludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths,
+         '-e'));
+  ForceMode := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode, '-y'));
+  RecoveryRec := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec, ''));
+  SelfExtract := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,
+         '-je1'));
+  Solid := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid, ''));
+  RecurseSubDirs := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,
+         ''));
+  SetPathInside := NewStr(GetVal(@Sign[1], @FreeStr[1], PSetPathInside,
+         ''));
+  StoreCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PStoreCompression, '-m0'));
+  FastestCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PFastestCompression, '-m4'));
+  FastCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PFastCompression, '-m3'));
+  NormalCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PNormalCompression, '-m1'));
+  GoodCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PGoodCompression, '-jm1 -jh65535'));
+  UltraCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PUltraCompression, '-jm -jh65535'));
+  ComprListChar := NewStr(GetVal(@Sign[1], @FreeStr[1], PComprListChar,
+         '!'));
+  ExtrListChar := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtrListChar,
+       '@'));
   {$ELSE}
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'ARJ.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'ARJ.EXE'));
-  {$ENDIF}
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'ARJ'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'ARJ'));
   Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract,
          'e -p1 -v -jycv'));
   ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,
@@ -575,6 +609,7 @@ constructor TARJArchive.Init;
          '!'));
   ExtrListChar := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtrListChar,
        '!'));
+  {$ENDIF}
 
   q := GetVal(@Sign[1], @FreeStr[1], PAllVersion, '0');
   AllVersion := q <> '0';
@@ -644,13 +679,13 @@ procedure TARJArchive.GetFile;
   if  (i <> 60000) or (ArcFile^.Status <> 0) then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   ArcFile^.Read(i, 2);
   if  (i = 0) then
     begin
     FileInfo.Last := 1;
-    exit;
+    Exit;
     end;
   FP := ArcFile^.GetPos;
 
@@ -688,12 +723,12 @@ procedure TARJArchive.GetFile;
     if C <> #0 then
       FileInfo.FName := FileInfo.FName+C
     else
-      break;
+      Break;
   until ArcFile^.Status <> stOK;
   if  (ArcFile^.Status <> stOK) then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   FileInfo.Last := 0;
   ArcFile^.Seek(FP+i+4);
@@ -712,11 +747,11 @@ function ArchiveFiles;
   begin
   ArchiveFiles := False;
   if PosChar(':', S) < 3 then
-    exit;
+    Exit;
   C := UpStrg(Copy(S, 1, PosChar(':', S)));
   q := GetArchiveTagBySign(C);
   if q = arcUNK then
-    exit;
+    Exit;
   DefaultAddArchiver := q;
   ArchiveFiles := True;
   MakeArchive(Copy(S, PosChar(':', S)+1, 255), Files, MoveMode, True,
@@ -735,7 +770,7 @@ function CheckForSpaces(S: String): Boolean;
 procedure MakeArchive;
 
   var
-    AID: word;
+    AID: Word;
     C: String[40];
     CurDir: String;
     Arc: PARJArchive;
@@ -744,9 +779,9 @@ procedure MakeArchive;
       Name: String;
       Password: String[40];
       Add: String[80];
-      Options: word;
-      Archiver: word;
-      Mode: word;
+      Options: Word;
+      Archiver: Word;
+      Mode: Word;
       end;
     ST1: AnsiString;
     B: Boolean;
@@ -756,14 +791,14 @@ procedure MakeArchive;
     var
       F: lText;
       PF: PFileRec;
-      I: integer;
+      I: Integer;
       S: AnsiString;
       S1: String;
       SR: lSearchRec; {JO}
 
     procedure PutDir(const SS: String);
       var
-        I: integer;
+        I: Integer;
         S1: String;
         SR: lSearchRec;
       begin
@@ -843,7 +878,7 @@ procedure MakeArchive;
       begin
       PF := Files^.At(I);
       if PathFoundInArc(PF^.Owner^) then
-        continue; {JO}
+        Continue; {JO}
       {$IFNDEF OS2}
       if Arc^.UseLFN
       then
@@ -924,8 +959,8 @@ procedure MakeArchive;
     var
       S: String;
       SS1: AnsiString;
-      SM: word;
-      DE: word;
+      SM: Word;
+      DE: Word;
       CmdLineLim, ListLineLim: AWord;
       CmdLineOK: Boolean;
       I, J: LongInt;
@@ -955,7 +990,7 @@ procedure MakeArchive;
     if Arc^.Swap then
       begin
       ArcExec := Message(Application, evCommand, cmExecString, @S) = nil;
-      exit;
+      Exit;
       end;
     {$ENDIF}
     DoneSysError;
@@ -999,12 +1034,12 @@ procedure MakeArchive;
       repeat
         if Length(Lst) >= ListLineLim then
           begin
-          for I := ListLineLim DownTo 1 do
+          for I := ListLineLim downto 1 do
             if Lst[I] = #$14 then
               begin
               SS1 := Copy(Lst, 1, I-1);
               Delete(Lst, 1, I);
-              break;
+              Break;
               end;
           end
         else
@@ -1083,7 +1118,7 @@ procedure MakeArchive;
 TryAgain:
     {$ENDIF}
     if ExecResource(dlgArchiveFiles, D) <> cmOK then
-      exit;
+      Exit;
     AID := (D.Mode and 255) or (D.Options shl 8);
     if  (D.Archiver <> DefaultArchiver) or
         (AID <> DefaultArcMode)
@@ -1097,7 +1132,7 @@ TryAgain:
     AID := D.Archiver;
     Arc := GetArchiveByTag(AID);
     if Arc = nil then
-      exit;
+      Exit;
     { Flash >>> }
     {$IFNDEF OS2}
     if D.Password <> '' then
@@ -1168,9 +1203,10 @@ TryAgain:
         SetLength(SIntern, Length(SIntern)-1);
       while (SIntern[1] = '\') do
         Delete(SIntern, 1, 1);
-      if  (SIntern[Length(SIntern)] <> '\') then
-        SIntern := SIntern+'\';
-      SIntern := CnvString(Arc^.SetPathInside)+SIntern+' ';
+      if  (SIntern[Length(SIntern)] = '\') then
+        SetLength(SIntern, Length(SIntern)-1);
+      SIntern := CnvString(Arc^.SetPathInside)+
+        SquashesName(SIntern)+' ';
       end;
     end;
   S := C+' '+D.Add+' '+SIntern+SquashesName(
@@ -1197,7 +1233,7 @@ procedure UnarchiveFiles;
     S: String;
     DT: record
       S: String;
-      W: word;
+      W: Word;
       Psw: String[30];
       end;
     ExtrDir: String;
@@ -1212,7 +1248,7 @@ procedure UnarchiveFiles;
     TempDirUsed: Boolean;
     FCT: PFilesCollection;
     FRT: PFileRec;
-    OldConfirms: word;
+    OldConfirms: Word;
     PV: PView;
     Inhr: Byte;
     DDr: Char;
@@ -1230,14 +1266,14 @@ procedure UnarchiveFiles;
     StdMsg(4);
     FreeObject(ArcFile);
     Abort := True;
-    exit;
+    Exit;
     end;
   ArcPos := 0;
   SkipSFX;
   AType := DetectArchive;
   FreeObject(ArcFile);
   if AType = nil then
-    exit;
+    Exit;
   ExtrDir := '';
   DT.S := '';
   DT.Psw := '';
@@ -1327,7 +1363,7 @@ TryAgain:
       if PathExist(TempExtrDir) then
         Inc(DNN)
       else
-        break;
+        Break;
       end;
     ClrIO;
     TempExtrDir := TempExtrDir+'\';
@@ -1338,7 +1374,7 @@ TryAgain:
   //JO: если каталог назначения не создался (напpимеp, если диск доступен
   //    только на чтение), то нет смысла и вызывать аpхиватоp
   if not PathExist(TempExtrDir) then
-    exit;
+    Exit;
   {/JO}
 
   ExtrChar := CnvString(AType^.ExtractWP);
@@ -1392,7 +1428,7 @@ TryAgain:
   if Xt = '' then
     S := S+'.'; {piwamoto: extracting from extensionless archives}
   lGetDir(0, DirToChange);
-  advance2.lChDir(TempExtrDir);
+  Advance2.lChDir(TempExtrDir);
   DelDoubles('  ', S);
   ExecStringRR(@S, '', False);
   {JO}
@@ -1409,7 +1445,7 @@ TryAgain:
     SetLength(TempExtrDir, Length(TempExtrDir)-1);
     S := GetPath(TempExtrDir);
     FRT := NewFileRec(GetName(TempExtrDir),
-        {$IFNDEF OS2}
+        {$IFDEF DualName}
         GetName(TempExtrDir),
         {$ENDIF}
         0, 0, 0, 0, Directory,
@@ -1418,7 +1454,7 @@ TryAgain:
     FCT^.AtInsert(0, FRT);
     OldConfirms := Confirms;
     Confirms := 0;
-    advance2.lChDir(S);
+    Advance2.lChDir(S);
     Eraser.EraseFiles(FCT);
     Confirms := OldConfirms;
     FCT^.DeleteAll;
@@ -1426,7 +1462,7 @@ TryAgain:
     end;
   {/JO}
 ex:
-  advance2.lChDir(DirToChange);
+  Advance2.lChDir(DirToChange);
   DirToChange := '';
   FreeObject(AType);
   if  (not TempDirUsed) or (Inhr > 0) then
@@ -1651,6 +1687,9 @@ procedure Check4ArcId; {piwamoto}
   {ZOO}(ArcId = $fdc4a7dc {#$DC#$A7#$C4#$FD}) or
   {CHZ}(ArcId = $46684353 {'SChF'}) or
   {CHZ}(ArcId = $44684353 {'SChD'}) or
+  {LHA}((ArcId and $f8ffffff) = $30686C2D{-lh0...-lh7}) or {LHA/LZH}
+  {LHA}(ArcId = $736F5920) or {' Yos' LHA/LZH .COM SFX}
+  {7Z }(ArcId = $AFBC7A37) or {7-Zip}
   {$ENDIF}
 
   {COFF}(ArcId = $0003014c {#$4c#$01#$03#$00}) or
@@ -1661,6 +1700,29 @@ procedure Check4ArcId; {piwamoto}
   {CAB}(ArcId = $4643534d {'MSCF'});
   if  ( (ArcPosID-ArcPos) < $1fd) and not (ArcFile^.Eof) then
     ArcPos := ArcPosID-1;
+  {$IFNDEF MINARCH}
+  if (ArcId and $f8ffffff) = $30686C2D {LHA/LZH} then ArcPos := ArcPos - 2;
+  if ArcId = $736F5920 {LHA .COM SFX} then
+     begin {must be after LHA/LZH ArcPos correction}
+     ArcPosID := ArcPos - 8;
+     ArcFile^.Seek(ArcPosID);
+     repeat
+       ArcFile^.Read(ArcID, 1);
+       Inc (ArcPosID);
+     until (Byte(ArcID) = $29{')'}) or (ArcPosID = ArcPos);
+     {don't care if ArcID <> $29}
+     ArcFile^.Seek(ArcPosID - 5);
+     ArcFile^.Read(ArcId, SizeOf(ArcId));{DataSize}
+     if (ArcId = $63282053) or (ArcId = $6328204C) then
+       begin
+       ArcPos := ArcPos + $4c0;{SFX 'S' edition minlen=4ef, max=686}
+       if Byte(ArcId) = $4C {'L'}
+         then ArcPos := ArcPos + $200;{SFX 'L' edition minlen=72d, max=7ba}
+       Check4ArcId;
+       Exit;
+       end;
+     end;
+  {$ENDIF}
   if ArcId = $0003014c {#$4c#$01#$03#$00} then
     begin
     {unix-style COFF executable - GNU C / go32stub 2.02 // DJ Delorie}
@@ -1668,7 +1730,7 @@ procedure Check4ArcId; {piwamoto}
     ArcFile^.Read(ArcPosID, SizeOf(ArcPosID)); {DataOffset}
     ArcFile^.Read(ArcId, SizeOf(ArcId)); {DataSize}
     ArcPos := ArcPos+ArcPosID+ArcId;
-    exit;
+    Exit;
     end;
   if ArcId = $78667321 {!sfx - ACE-SFX script} then
     begin {must be before '*ACE' & '*SFX' ArcPos correction}
@@ -1697,22 +1759,25 @@ procedure Check4ArcId; {piwamoto}
     ArcFile^.Read(ArcPosID, 3); {skip 3 bytes}
     ArcFile^.Read(ArcPosID, SizeOf(ArcPosID)); {size of **SFX** script}
     ArcPos := ArcPos+ArcPosID;
-    exit;
+    Exit;
     end;
-  if  (ArcPosID-ArcPos) = $1fd then
-    begin {check for PackageForTheWeb script}
-    ArcFile^.Seek(ArcPos);
-    ArcFile^.Read(ArcPosID, SizeOf(ArcPosID)); {size of script}
-    if _Cardinal(ArcPosID) < $4000 then
-      begin {script?}
-      ArcPosID := ArcPosID+ArcPos+4;
-      ArcFile^.Seek(ArcPosID);
-      ArcFile^.Read(ArcId, SizeOf(ArcId));
-      if ArcId = $4643534d {'MSCF'} then
-        ArcPos := ArcPosID;
-      exit;
-      end;
-    end;
+   {last check - uses ArcId}
+   if  (ArcPosID - ArcPos) = $1fd {No known ArcId found} then
+     begin {check for PackageForTheWeb script}
+     ArcFile^.Seek(ArcPos);
+     ArcFile^.Read(ArcPosID, SizeOf(ArcPosID));{size of script}
+     if ((ArcPosID and $fffc0000) = 0) then
+        {<$40000}{feel free to change it}
+        begin
+        ArcPosID := ArcPosID + ArcPos + 4;
+        if ArcPosID < ArcFile^.GetSize then
+          begin
+          ArcFile^.Seek(ArcPosID);
+          ArcFile^.Read(ArcId, SizeOf(ArcId));
+          if ArcID = $4643534d {'MSCF'} then ArcPos := ArcPosID;
+          end;
+        end;
+     end;
   end { Check4ArcId }; {Check4ArcId}
 
 function _Cardinal(L: LongInt): Real; {piwamoto}

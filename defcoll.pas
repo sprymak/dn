@@ -50,7 +50,7 @@ unit DefColl;
 interface
 
 uses
-  Collect, Lfn, advance1, advance, Defines
+  Collect, Lfn, Advance1, Advance, Defines
   ;
 
 type
@@ -113,19 +113,19 @@ procedure TDefCollection.ProceedFile;
     F: lText;
     S: String;
     Q: String;
-    I, j: integer;
+    I, j: Integer;
     B: Boolean;
   begin
   lAssignText(F, FName);
   lResetText(F);
   if IOResult <> 0 then
-    exit;
+    Exit;
   while not Eof(F.T) do
     begin
     Readln(F.T, S);
     S := ProceedStr(S);
     if S = '' then
-      continue;
+      Continue;
     repeat
       I := Pos('{$DEFINE', S);
       if I = 0 then
@@ -137,7 +137,7 @@ procedure TDefCollection.ProceedFile;
         DelLeft(S);
         for I := 1 to Length(S) do
           if S[I] in BreakChars then
-            break;
+            Break;
         if  (S[I] in BreakChars) then
           Dec(I);
         Q := Copy(S, 1, I);
@@ -163,7 +163,7 @@ procedure TDefCollection.ProceedFile;
         DelLeft(S);
         for I := 1 to Length(S) do
           if S[I] in BreakChars then
-            break;
+            Break;
         if  (S[I] in BreakChars) then
           Dec(I);
         Q := Copy(S, 1, I);
@@ -211,9 +211,9 @@ procedure TDefCollection.Undef(Name: String);
 
 function TDefCollection.ProceedStr(Str: String): String;
   var
-    i: integer;
-    j: integer;
-    k: integer;
+    i: Integer;
+    j: Integer;
+    k: Integer;
     b: Boolean;
     S: String;
     Q: String;
@@ -327,9 +327,9 @@ function TDefCollection.ProceedStr(Str: String): String;
 
 function TDefCollection.ProceedStr2(Str: String): String;
   var
-    i: integer;
-    j: integer;
-    k: integer;
+    i: Integer;
+    j: Integer;
+    k: Integer;
     S: String;
     Q: String;
     Z: String;

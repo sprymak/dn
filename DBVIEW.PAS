@@ -95,13 +95,13 @@ interface
 uses
   Lfn, DBWatch, Defines, Objects2, Streams,
   Views, Drivers, Dos, Memory, Dialogs,
-  RStrings, FViewer, Commands, U_KeyMap, DNStdDlg
+  RStrings, FViewer, Commands, U_KeyMap, XCode
   ;
 
 type
 
   TDBPoint = record
-    X: integer;
+    X: Integer;
     Y: LongInt;
     end;
 
@@ -111,7 +111,7 @@ type
   { -------- Eugeny Zvyagintzev ---------}
   PDBScrollBar = ^TDBScrollBar;
   TDBScrollBar = object(TScrollBar)
-    ScrollBarType: integer;
+    ScrollBarType: Integer;
     DBViewer: PDBViewer;
     procedure HandleEvent(var Event: TEvent); virtual;
     function GetPalette: PPalette; virtual;
@@ -125,18 +125,15 @@ type
     Buf: Pointer;
     SearchString: PString;
     StartRec: LongInt;
-    NumRec: word;
+    NumRec: Word;
     Indicator: PDBIndicator;
     Delta, Pos: TDBPoint;
     VerticalScrollBar: PDBScrollBar;
     HorizontalScrollBar: PDBScrollBar;
-    XLAT: TXlat; {John_SW 18-03-2003}
-    UseXLat: Boolean; {John_SW 18-03-2003}
-    XLatFile: PString; {John_SW 18-03-2003}
-    KeyMap: TKeyMap; {John_SW 14-03-2003}
+    XCoder: TXCoder;
     constructor Init(R: TRect; FName: String; var FileIsDBF: Boolean);
     {DataCompBoy}
-    function Valid(Command: word): Boolean; virtual;
+    function Valid(Command: Word): Boolean; virtual;
     function GetRecord(N: LongInt): Pointer;
     procedure GetInfo(StrIdx: TStrIdx);
     procedure HandleEvent(var Event: TEvent); virtual;
@@ -146,10 +143,6 @@ type
     constructor Load(var S: TStream);
     procedure Store(var S: TStream);
     function Failed(var FileIsDBF: Boolean): Boolean;
-    function KeyMapConvertStr(S: String; toAscii: Boolean): String;
-    {-$VIV} {John_SW 14-03-2003}
-    procedure SetXlatFile(const aFName: String; DoRedraw: Boolean);
-    {John_SW 18-03-2003}
     end;
 
   PMemoStream = ^TMemoStream;
@@ -161,10 +154,10 @@ type
     destructor Done; virtual;
     function GetPos: LongInt; virtual;
     function GetSize: LongInt; virtual;
-    procedure Read(var Buf; Count: word); virtual;
+    procedure Read(var Buf; Count: Word); virtual;
     procedure Seek(Pos: LongInt); virtual;
     procedure Truncate; virtual;
-    procedure Write(const Buf; Count: word); virtual;
+    procedure Write(const Buf; Count: Word); virtual;
     end;
 
   TDBIndicator = object(TView)
@@ -176,7 +169,7 @@ type
 
   PFieldListBox = ^TFieldListBox;
   TFieldListBox = object(TListBox)
-    function GetText(Item: LongInt; MaxLen: integer): String; virtual;
+    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
     end;
 
   PDBWindow = ^TDBWindow;
@@ -192,7 +185,7 @@ type
     function GetPalette: PPalette; virtual;
     constructor Load(var S: TStream);
     procedure Store(var S: TStream);
-    procedure SetState(AState: word; Enable: Boolean); virtual;
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
     {John_SW 14-03-2003}
     destructor Done; virtual;
     end;
@@ -205,15 +198,16 @@ const
 const
   SearchData: record
     S: String[250]; {Inputline}
-    OPT: word; {Checkbox}
-    Scope: word; {Radiobuttons}
-    Direction: integer; {Radiobuttons}
+    OPT: Word; {Checkbox}
+    Scope: Word; {Radiobuttons}
+    Direction: Integer; {Radiobuttons}
     end = (S: ''; OPT: 0; Scope: 0; Direction: 0);
 
 implementation
 uses
-  advance, advance1, advance2, advance3, Startup, DNHelp, DNApp, Messages,
+  Advance, Advance1, Advance2, Advance3, Startup, DNHelp, DNApp, Messages,
   Histries, Gauge, xTime, DnIni
+  , Events
   ;
 
 function MaxAvail: LongInt;
@@ -330,7 +324,7 @@ function TMemoStream.GetSize: LongInt;
   GetSize := Length;
   end;
 
-procedure TMemoStream.Read(var Buf; Count: word);
+procedure TMemoStream.Read(var Buf; Count: Word);
   begin
   BaseStream^.Read(Buf, Count);
   ErrorInfo := BaseStream^.ErrorInfo;
@@ -354,7 +348,7 @@ procedure TMemoStream.Truncate;
   Status := BaseStream^.Status;
   end;
 
-procedure TMemoStream.Write(const Buf; Count: word);
+procedure TMemoStream.Write(const Buf; Count: Word);
   begin
   BaseStream^.Write(Buf, Count);
   ErrorInfo := BaseStream^.ErrorInfo;
@@ -379,10 +373,7 @@ constructor TDBViewer.Init;
     isValid := False
   else if isValid then
     TempFile := '';
-  KeyMap := kmAscii; {John_SW 14-03-2003}
-  XLatFile := nil; {John_SW 18-03-2003}
-  NullXLAT(XLAT);
-  UseXLat := False; {John_SW 18-03-2003}
+  XCoder.Init(8);
   end;
 {-DataCompBoy-}
 
@@ -394,15 +385,12 @@ procedure TDBViewer.Store;
   S.WriteStr(FileName);
   S.Write(Delta, SizeOf(Delta));
   S.Write(Pos, SizeOf(Pos));
-  S.Write(KeyMap, SizeOf(KeyMap)); {John_SW 14-03-2003}
-  S.WriteStr(XLatFile); {John_SW 18-03-2003}
-  S.Write(XLAT, SizeOf(XLAT)); {John_SW 18-03-2003}
-  S.Write(UseXLat, SizeOf(UseXLat)); {John_SW 18-03-2003}
+  XCoder.Store(S);
   end;
 
 function DateToHuman(const S: String): String;
   var
-    I: integer;
+    I: Integer;
     C: Char;
     BB: Byte;
     D, M: String[2];
@@ -442,7 +430,7 @@ function TDBViewer.Failed(var FileIsDBF: Boolean): Boolean;
       {     DisposeStr(FileName);}
       Failed := True;
       FileIsDBF := True;
-      exit;
+      Exit;
       end;
     if MaxAvail < I then
       I := MaxAvail;
@@ -478,10 +466,7 @@ constructor TDBViewer.Load;
   S.Read(Delta, SizeOf(Delta));
   S.Read(Pos, SizeOf(Pos));
 
-  S.Read(KeyMap, SizeOf(KeyMap)); {John_SW 14-03-2003}
-  XLatFile := S.ReadStr;
-  S.Read(XLAT, SizeOf(XLAT)); {John_SW 18-03-2003}
-  S.Read(UseXLat, SizeOf(UseXLat)); {John_SW 18-03-2003}
+  XCoder.Load(S);
   end;
 
 destructor TDBViewer.Done;
@@ -519,13 +504,13 @@ function TDBWindow.GetPalette;
 
 function TDBViewer.GetRecord;
   var
-    I: integer;
+    I: Integer;
   begin
   GetRecord := nil;
   if N < 0 then
     N := 0;
   if N >= DBFile^.NumRec then
-    exit;
+    Exit;
   if  (N < StartRec) or (N >= StartRec+NumRec) then
     begin
     StartRec := N-(NumRec div 2);
@@ -549,7 +534,7 @@ procedure TDBViewer.GetInfo;
     P: PView;
     Data: record
       List: Pointer {PCollection};
-      Focused: integer;
+      Focused: Integer;
       end;
   begin
   R.Assign(1, 1, 50, 18);
@@ -578,7 +563,7 @@ procedure TDBViewer.GetInfo;
 
   D := PDialog(Application^.ValidView(D));
   if D = nil then
-    exit;
+    Exit;
 
   Data.List := DBFile^.Fields;
   Data.Focused := Delta.X;
@@ -595,90 +580,6 @@ procedure TDBViewer.GetInfo;
   Dispose(D, Done);
   end { TDBViewer.GetInfo };
 
-{--- start -------- Eugeny Zvyagintzev ---- 14-03-2003 ----}
-function TDBViewer.KeyMapConvertStr(S: String; toAscii: Boolean)
-  : String; {-$VIV}
-  begin
-  if not UseXLat then
-    case KeyMap of
-      kmAnsi:
-        if toAscii then
-          KeyMapConvertStr := Ansi_Ascii(S)
-        else
-          KeyMapConvertStr := Ascii_Ansi(S);
-      kmKoi8r:
-        if toAscii then
-          KeyMapConvertStr := koi8r_ascii(S)
-        else
-          KeyMapConvertStr := Ascii_Koi8r(S);
-      else {case}
-        KeyMapConvertStr := S;
-    end
-  else if toAscii then
-    begin
-    XLatBuf(S[1], Length(S), XLAT);
-    KeyMapConvertStr := S;
-    end
-  else
-    begin
-    CharsConvertBufBack(S[1], Length(S), String(XLAT));
-    KeyMapConvertStr := S;
-    end;
-  end { TDBViewer.KeyMapConvertStr }; {-$VIV}
-
-procedure TDBViewer.SetXlatFile;
-  var
-    Dr: String;
-    Nm: String;
-    Xt: String;
-    S: TDOSStream;
-    Table: array[1..256] of record
-      A, B: Char
-      end;
-    C, CC: Char;
-    I, J: integer;
-    {      PC: PChar;}
-  begin
-  if aFName <> '' then
-    begin
-    lFSplit(aFName, Dr, Nm, Xt);
-    if Dr = '' then
-      begin
-      Dr := SourceDir+'XLT\';
-      Xt := '.xlt';
-      end;
-    S.Init(Dr+Nm+Xt, stOpenRead);
-    if  (S.Status = stOK) and (S.GetSize >= 2) then
-      begin
-      J := Min(256, S.GetSize shr 1);
-      S.Read(Table, J*2);
-      NullXLAT(XLAT);
-      for I := 1 to J do
-        XLAT[Table[I].A] := Table[I].B;
-      UseXLat := S.Status = stOK;
-      if XLatFile <> nil then
-        DisposeStr(XLatFile);
-      XLatFile := nil;
-      if UseXLat then
-        XLatFile := NewStr(Nm);
-      end;
-    S.Done;
-    end;
-  if aFName = '' then
-    begin
-    UseXLat := False;
-    if not GetToAsciiRecodeTable(KeyMap, XLAT) then
-      NullXLAT(XLAT);
-    end;
-  if DoRedraw then
-    begin
-    DrawView;
-    if Indicator <> nil then
-      Indicator^.Draw;
-    end;
-  end { TDBViewer.SetXlatFile };
-{--- finish -------- Eugeny Zvyagintzev ---- 14-03-2003 ----}
-
 procedure TDBViewer.HandleEvent;
 
   {--- start -------- Eugeny Zvyagintzev ---- 31-07-2002 ----}
@@ -689,7 +590,7 @@ procedure TDBViewer.HandleEvent;
         S2: String[10]; {Field Name}
         end = (S1: ''; S2: '');
     var
-      FldCnt: integer;
+      FldCnt: Integer;
       Done: Boolean;
       PFR: PFieldRec;
     begin
@@ -699,7 +600,7 @@ procedure TDBViewer.HandleEvent;
     if  (ExecResource(dlgDBFGoto, GotoRec) <> cmOK) or
         ( (GotoRec.S1 = ItoS(Delta.Y+1)) and (GotoRec.S2 = PFR^.Name))
     then
-      exit;
+      Exit;
     FldCnt := 0;
     GotoRec.S2 := UpStrg(DelSpaces(GotoRec.S2));
     Done := False;
@@ -724,63 +625,6 @@ procedure TDBViewer.HandleEvent;
     end { GotoRecFld };
   {--- finish -------- Eugeny Zvyagintzev ---- 31-07-2002 ----}
 
-  {--- start -------- Eugeny Zvyagintzev ---- 14-03-2003 ----}
-  procedure LoadXlatTable; {JO}
-    var
-      FN: String;
-      More: Boolean;
-      None: Boolean;
-      OldFN: String; {JOHN_SW}
-    begin
-    FN := CnvString(XLatFile);
-    OldFN := FN; {JOHN_SW}
-    if FN <> '' then
-      FN := FN+'.xlt';
-    More := True;
-    None := UseXLat;
-    FN := GetFileNameMenu(SourceDir+'XLT\', '*.XLT', FN, True, More, None);
-    if None then
-      begin
-      KeyMap := kmAscii;
-      SetXlatFile('', True);
-      UseXLat := False;
-      DisposeStr(XLatFile);
-      XLatFile := nil;
-      exit;
-      end;
-    if More then
-      FN := GetFileNameDialog(SourceDir+'XLT\*.XLT',
-          GetString(dlSelectXLT),
-          GetString(dlOpenFileName),
-          fdOKButton+fdHelpButton,
-          hsOpenXLT);
-    DisposeStr(XLatFile);
-    XLatFile := nil;
-    if FN <> '' then
-      SetXlatFile(FN, True)
-    else if UseXLat then
-      SetXlatFile(OldFN, True); {JOHN_SW}
-    end { LoadXlatTable }; {JO}
-
-  procedure NextXLat;
-    begin
-    case KeyMap of
-      kmAscii:
-        KeyMap := kmAnsi;
-      kmAnsi:
-        if Koi8rKeyMap then
-          KeyMap := kmKoi8r
-        else
-          KeyMap := kmAscii;
-      kmKoi8r:
-        KeyMap := kmAscii;
-      else {case}
-        KeyMap := kmAscii;
-    end {case};
-    SetXlatFile('', True); {John_SW 18-03-2003}
-    end;
-  {--- finish -------- Eugeny Zvyagintzev ---- 14-03-2003 ----}
-
   {-DataCompBoy-}
   procedure ViewMemo;
     var
@@ -788,7 +632,7 @@ procedure TDBViewer.HandleEvent;
       PFR: PFieldRec;
       S: String;
       L, ML: LongInt;
-      I: integer;
+      I: Integer;
       D: PDialog;
       R: TRect;
       PV: PView;
@@ -799,12 +643,12 @@ procedure TDBViewer.HandleEvent;
     begin
     P := GetRecord(Delta.Y);
     if P = nil then
-      exit;
+      Exit;
     PFR := DBFile^.GetFieldRec(Delta.X);
     if PFR = nil then
-      exit;
+      Exit;
     if  (PFR^.Who <> 'M') then
-      exit;
+      Exit;
     Move(P^[PFR^.Pos], S[1], PFR^.len);
     S[0] := Char(PFR^.len);
     Val(DelSpaces(S), L, I);
@@ -825,7 +669,7 @@ procedure TDBViewer.HandleEvent;
         if MemoStream <> nil then
           Dispose(MemoStream, Done);
         MemoStream := nil;
-        exit;
+        Exit;
         end;
       if L <> 0 then
         {JOHN_SW}
@@ -837,7 +681,7 @@ procedure TDBViewer.HandleEvent;
           if Nm[1] <> #$1A then
             Inc(ML)
           else
-            break
+            Break
         until MemoStream^.Status <> stOK;
         if  (MemoStream = nil) or (MemoStream^.Status <> stOK) then
           begin
@@ -845,7 +689,7 @@ procedure TDBViewer.HandleEvent;
           if MemoStream <> nil then
             Dispose(MemoStream, Done);
           MemoStream := nil;
-          exit;
+          Exit;
           end;
         end;
       end
@@ -887,7 +731,7 @@ procedure TDBViewer.HandleEvent;
       begin
       Dispose(MemoStream, Done);
       MemoStream := nil;
-      exit
+      Exit
       end;
     Desktop^.GetExtent(R);
     R.Grow(-2, -2);
@@ -903,14 +747,6 @@ procedure TDBViewer.HandleEvent;
     R.Assign(2, 2, D^.Size.X-2, D^.Size.Y-4);
     PV := New(PNFileViewer, Init(R, MemoStream, '', '', PV, False, False));
 
-    PNFileViewer(PV)^.KeyMap := KeyMap; {John_SW 14-03-2003}
-    PNFileViewer(PV)^.UseXLat := UseXLat; {John_SW 18-03-2003}
-    if not UseXLat then
-      PNFileViewer(PV)^.SetXlatFile('', True) {John_SW 14-03-2003}
-    else
-      PNFileViewer(PV)^.SetXlatFile(CnvString(XLatFile), True);
-    {John_SW 18-03-2003}
-
     D^.Insert(PV);
 
     R.Assign(30, D^.Size.Y-3, 40, D^.Size.Y-1);
@@ -922,7 +758,7 @@ procedure TDBViewer.HandleEvent;
 
     D := PDialog(Application^.ValidView(D));
     if D = nil then
-      exit;
+      Exit;
     Desktop^.ExecView(D);
     Dispose(D, Done);
     end { ViewMemo };
@@ -938,6 +774,7 @@ procedure TDBViewer.HandleEvent;
       R: TRect;
       T: TEventTimer;
     begin
+    LongWorkBegin;
     SS := SearchData.S;
     if SearchData.OPT and 1 = 0 then
       UpStr(SS);
@@ -976,7 +813,7 @@ procedure TDBViewer.HandleEvent;
     V^.Write(1, GetString(dlPercentComplete));
     Desktop^.Insert(V);
     Abort := False;
-    NewTimer(T, 1);
+    NewTimer(T, 50);
     while ((CurRow < DBFile^.NumRec) and (SearchData.Direction <> 1)) or
         ( (SearchData.Direction = 1) and (CurRow >= 0))
     do
@@ -985,10 +822,10 @@ procedure TDBViewer.HandleEvent;
         begin
         DispatchEvents(V, Abort);
         if Abort then
-          break;
+          Break;
         V^.Write(1, StrGrd(DBFile^.NumRec, CurRow, 30, False));
         V^.Write(2, ZtoS(Percent(DBFile^.NumRec, CurRow))+'%');
-        NewTimer(T, 1);
+        NewTimer(T, 50);
         end;
       P := GetRecord(CurRow);
       while ((CurFld <= LastFld) and (SearchData.Direction <> 1)) or
@@ -996,7 +833,7 @@ procedure TDBViewer.HandleEvent;
       do
         begin
         if Abort then
-          break;
+          Break;
         PFR := DBFile^.GetFieldRec(CurFld);
         Move(P^[PFR^.Pos], S[1], PFR^.len);
         S[0] := Char(PFR^.len);
@@ -1010,16 +847,15 @@ procedure TDBViewer.HandleEvent;
           S := DelSpaces(S);
         {String to find is empty-searching empty field}
 
-        S := KeyMapConvertStr(S, True); {John_SW 14-03-2003}
-        if SearchData.OPT and 1 = 0 then
-          UpStr(S);
+        XLatStr(S, XCoder.XLatCP[Ord(SearchData.OPT and 1 = 0)]);
         if  (System.Pos(SS, S) > 0) or (SS = S) then
           begin
           Delta.Y := CurRow;
           Delta.X := CurFld;
           DrawView;
           V^.Free;
-          exit;
+          LongWorkEnd;
+          Exit;
           end;
         if SearchData.Direction = 1 then
           Dec(CurFld)
@@ -1038,12 +874,13 @@ procedure TDBViewer.HandleEvent;
     V^.Free;
     if not Abort then
       ErrMsg(dlDBViewSearchNot);
+    LongWorkEnd;
     end { ContSearch };
 
   procedure StartSearch;
     begin
     if ExecResource(dlgDbFind, SearchData) <> cmOK then
-      exit;
+      Exit;
     ContSearch(True);
     end;
 
@@ -1068,10 +905,10 @@ procedure TDBViewer.HandleEvent;
         1:
           begin
           ErrMsg(dlDBCantEdit);
-          exit
+          Exit
           end;
         2:
-          break;
+          Break;
       end {case};
     until False;
     p := GetRecord(Delta.Y);
@@ -1091,23 +928,23 @@ procedure TDBViewer.HandleEvent;
       PFR: PFieldRec;
       S: String;
       R: Real;
-      I: integer;
-      MM, DD, YY: word;
-      II, N1, N2, N3: word;
+      I: Integer;
+      MM, DD, YY: Word;
+      II, N1, N2, N3: Word;
       LL: array[0..3] of LongInt;
       FldLen: AWord; { Kirill }
 
     procedure StoreField;
       begin
       S := AddSpace(S, FldLen);
-      S := KeyMapConvertStr(S, False); {John_SW 14-03-2003}
+      XLatStr(S, XCoder.XlatCP[FromAscii]); {John_SW 14-03-2003}
       Move(S[1], P[PFR^.Pos], FldLen);
       DBFile^.Seek(Delta.Y);
       DBFile^.BaseFile.Seek(DBFile^.BaseFile.GetPos+PFR^.Pos);
       DBFile^.BaseFile.Write(S[1], FldLen);
       end;
 
-    function GetDig: word;
+    function GetDig: Word;
       var
         D: String;
       begin
@@ -1139,15 +976,15 @@ procedure TDBViewer.HandleEvent;
         1:
           begin
           ErrMsg(dlDBCantEdit);
-          exit
+          Exit
           end;
         2:
-          break;
+          Break;
       end {case};
     until False;
     PFR := DBFile^.GetFieldRec(Delta.X);
     if PFR^.Who = 'M' then
-      exit;
+      Exit;
     P := GetRecord(Delta.Y);
     FldLen := PFR^.len;
     if FldLen > 252 then
@@ -1164,7 +1001,7 @@ procedure TDBViewer.HandleEvent;
         DelLeft(S);
       DelRight(S); {Oleg Redut}
       end;
-    S := KeyMapConvertStr(S, True); {John_SW 14-03-2003}
+    XLatStr(S, XCoder.XLatCP[ToAscii]); {John_SW 14-03-2003}
     case PFR^.Who of
       'C', 'N':
         if InputBox(GetString(dlDBEditField), GetString(dlDBValue), S,
@@ -1259,7 +1096,7 @@ redat:
   var
     F: lFile; {DataCompBoy}
     P: TPoint;
-    RD: word;
+    RD: Word;
 
   begin { TDBViewer.HandleEvent }
   inherited HandleEvent(Event);
@@ -1353,12 +1190,14 @@ redat:
           end;
         cmSwitchKeyMapping:
           begin
-          NextXLat;
+          XCoder.NextXLat;
           CED;
+          Indicator^.Draw;
           end; {John_SW 14-03-2003}
         cmLoadXlatTable:
           begin
-          LoadXlatTable;
+          XCoder.LoadXlatTable;
+          Indicator^.Draw;
           CED;
           end; {John_SW 18-03-2003}
       end {case};
@@ -1463,10 +1302,10 @@ procedure TDBViewer.Draw;
       A: Byte;
       end;
     FN: array[0..132] of PFieldRec;
-    C1, C2, C3: word;
+    C1, C2, C3: Word;
     C: Byte;
-    I, J, K, NFN: integer;
-    FldLen: word; { Kirill }
+    I, J, K, NFN: Integer;
+    FldLen: Word; { Kirill }
     FldPart: Byte;
     Idx: LongInt;
     PFR: PFieldRec;
@@ -1536,7 +1375,7 @@ procedure TDBViewer.Draw;
     if  (Delta.X > Pos.X+NFN-1) and (Pos.X <> Delta.X) then
       Inc(Pos.X)
     else
-      break;
+      Break;
   until False;
 
   WriteLine(0, 0, Size.X, 1, B);
@@ -1587,7 +1426,7 @@ procedure TDBViewer.Draw;
                 FldLen := Size.X-I;
               Move(P^[PFR^.Pos], S[1], FldLen);
               S[0] := Char(FldLen);
-              S := KeyMapConvertStr(S, True); {John_SW 14-03-2003}
+              XLatStr(S, XCoder.XLatCP[ToAscii]); {John_SW 14-03-2003}
               MoveStr(B[I], S, C);
               Inc(I, PFR^.ln+1);
               end;
@@ -1606,7 +1445,7 @@ procedure TDBIndicator.Draw;
   begin
   {10171114/10171114ÍÍÍ[C 10,10]ÍWINÍ}
   if  (DBViewer = nil) or (DBViewer^.DBFile = nil) then
-    exit;
+    Exit;
   if DBViewer^.Delta.Y < 0 then
     DBViewer^.Delta.Y := 0;
   if DBViewer^.Delta.X > DBViewer^.DBFile^.NumFields-1 then
@@ -1624,26 +1463,12 @@ procedure TDBIndicator.Draw;
   S1 := AddSpace(ItoS(PFR^.len)+','+ItoS(PFR^.Dec)+']', 7);
   Replace(' ', Char(C), S1);
   S := S+Char(C)+'['+PFR^.Who+' '+S1;
-  {--- start -------- Eugeny Zvyagintzev ---- 14-03-2003 -----}
-  if  (DBViewer^.UseXLat) and (DBViewer^.XLatFile <> nil) then
-    S := S+Char(C)+Cut(DBViewer^.XLatFile^, 8)
-  else
-    case DBViewer^.KeyMap of
-      kmAscii:
-        S := S+Char(C)+'DOS';
-      kmAnsi:
-        S := S+Char(C)+'WIN';
-      kmKoi8r:
-        S := S+Char(C)+'KOI';
-      else {case}
-        S := S+Char(C)+'XXX';
-    end {case};
-  {--- finish -------- Eugeny Zvyagintzev ---- 14-03-2003 -----}
+  S := S+Char(C)+DBViewer^.XCoder.CodeTag;
   S := Copy(S, 1, Owner^.Size.X-4);
   if Byte(S[0]) <> Size.X then
     begin
     GrowTo(Byte(S[0]), 1);
-    exit;
+    Exit;
     end;
   {--- start -------- Eugeny Zvyagintzev ---- 14-03-2003 -----}
   if State and sfDragging <> 0 then
@@ -1660,7 +1485,7 @@ procedure TDBIndicator.Draw;
 constructor TDBWindow.Init;
   var
     R: TRect;
-    I: integer;
+    I: Integer;
     s: String;
   begin
   Desktop^.GetExtent(R);
@@ -1751,7 +1576,7 @@ procedure TDBWindow.Store;
   end;
 
 {--- start -------- Eugeny Zvyagintzev ---- 14-03-2003 ----}
-procedure TDBWindow.SetState(AState: word; Enable: Boolean);
+procedure TDBWindow.SetState(AState: Word; Enable: Boolean);
   begin
   inherited SetState(AState, Enable);
   if P1 <> nil then

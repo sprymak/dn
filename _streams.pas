@@ -19,13 +19,13 @@ uses
 type
   PStream = ^TStream;
   TStream = object(TObject)
-    Status: integer;
-    ErrorInfo: integer;
+    Status: Integer;
+    ErrorInfo: Integer;
     StreamSize: LongInt;
     Position: LongInt;
     constructor Init;
     procedure CopyFrom(var S: TStream; Count: LongInt);
-    procedure Error(Code, Info: integer); virtual;
+    procedure Error(Code, Info: Integer); virtual;
     procedure Flush; virtual;
     function Get: PObject;
     function GetPos: LongInt; virtual;
@@ -45,20 +45,20 @@ type
     procedure WriteStr(P: PString);
     procedure WriteLongStr(P: PLongString);
     function Eof: Boolean;
-    procedure DoOpen(OpenMode: word); virtual;
+    procedure DoOpen(OpenMode: Word); virtual;
     procedure Close; virtual;
     end;
 
   PDosStream = ^TDosStream;
   TDOSStream = object(TStream)
-    Handle: integer;
+    Handle: Integer;
     FName: AsciiZ;
-    FMode: word;
-    constructor Init(FileName: String; Mode: word);
-    procedure Open(FileName: String; Mode: word);
+    FMode: Word;
+    constructor Init(FileName: String; Mode: Word);
+    procedure Open(FileName: String; Mode: Word);
     {destructor Done; virtual;}
     {procedure Read(var Buf; Count: LongInt); virtual;}
-    procedure ReadBlock(var Buf; Count: LongInt; var BytesRead: word);
+    procedure ReadBlock(var Buf; Count: LongInt; var BytesRead: Word);
      virtual;
     {procedure Seek(Pos: LongInt); virtual;}
     {procedure Truncate; virtual;}
@@ -74,7 +74,7 @@ type
     BufPtr: LongInt;
     BufEnd: LongInt;
     LastMode: Byte;
-    constructor Init(FileName: String; Mode: word; Size: LongInt);
+    constructor Init(FileName: String; Mode: Word; Size: LongInt);
     {destructor Done; virtual;}
     {procedure Flush; virtual;}
     {procedure Read(var Buf; Count: LongInt); virtual;}
@@ -88,10 +88,10 @@ type
   PMemoryStream = ^TMemoryStream;
   TMemoryStream = object(TStream)
     BlkCount: LongInt;
-    BlkSize: word;
+    BlkSize: Word;
     MemSize: LongInt;
     BlkList: PPointerArray;
-    constructor Init(ALimit: LongInt; ABlockSize: word);
+    constructor Init(ALimit: LongInt; ABlockSize: Word);
     {destructor Done; virtual;}
     {procedure Read(var Buf; Count: LongInt); virtual;}
     {procedure Truncate; virtual;}
@@ -114,7 +114,7 @@ procedure TStream.CopyFrom(var S: TStream; Count: LongInt);
   _TStream^.CopyFrom(_Model1.TStream(S), Count, @Self);
   end;
 
-procedure TStream.Error(Code, Info: integer);
+procedure TStream.Error(Code, Info: Integer);
   assembler; {&Frame-}
 asm
 end;
@@ -214,7 +214,7 @@ function TStream.Eof: Boolean;
   Result := _TStream^.Eof(@Self);
   end;
 
-procedure TStream.DoOpen(OpenMode: word);
+procedure TStream.DoOpen(OpenMode: Word);
   assembler; {&Frame-}
 asm
 end;
@@ -224,28 +224,28 @@ procedure TStream.Close;
 asm
 end;
 
-constructor TDOSStream.Init(FileName: String; Mode: word);
+constructor TDOSStream.Init(FileName: String; Mode: Word);
   begin
   _TDosStream^.Init(FileName, Mode, nil, @Self);
   end;
 
-procedure TDOSStream.Open(FileName: String; Mode: word);
+procedure TDOSStream.Open(FileName: String; Mode: Word);
   begin
   _TDosStream^.Open(FileName, Mode, @Self);
   end;
 
 procedure TDOSStream.ReadBlock(var Buf; Count: LongInt;
-     var BytesRead: word);
+     var BytesRead: Word);
   assembler; {&Frame-}
 asm
 end;
 
-constructor TBufStream.Init(FileName: String; Mode: word; Size: LongInt);
+constructor TBufStream.Init(FileName: String; Mode: Word; Size: LongInt);
   begin
   _TBufStream^.Init(FileName, Mode, Size, nil, @Self);
   end;
 
-constructor TMemoryStream.Init(ALimit: LongInt; ABlockSize: word);
+constructor TMemoryStream.Init(ALimit: LongInt; ABlockSize: Word);
   begin
   _TMemoryStream^.Init(ALimit, ABlockSize, nil, @Self);
   end;

@@ -69,7 +69,7 @@ type
 implementation
 
 uses
-  Objects2, advance2, advance, DNApp, DnExec, Commands, advance1, Messages,
+  Objects2, Advance2, Advance, DNApp, DnExec, Commands, Advance1, Messages,
   Dos
   ;
 
@@ -85,8 +85,8 @@ constructor TUC2Archive.Init;
   Sign := Sign+#0;
   FreeStr := SourceDir+DNARC;
   TObject.Init;
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'UC.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'UC.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'UC'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'UC'));
   Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'E'));
   ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,
          'E !NOF ##.'));
@@ -197,6 +197,8 @@ procedure TUC2Archive.GetFile;
   begin { TUC2Archive.GetFile }
   if TextRec(ListFile).Handle = 0 then
     begin { первый вызов: вызов архиватора для вывода оглавления }
+    FreeObject(ArcFile); {AK155 если архив не закрыть, то архиватор
+      выдаёт sharing violation }
     ListFileName := MakeNormName(TempDir, '!!!DN!!!.TMP');
     S := '/C '
       {$IFDEF OS2}
@@ -207,7 +209,7 @@ procedure TUC2Archive.GetFile;
       +' > '+ListFileName
       {$ENDIF}
       ;
-    if Length(S) < 100 then
+    if Length(S) < 126 then
       AnsiExec(GetEnv('COMSPEC'), S)
     else
       MessageBox(^C+GetString(dlCmdLineTooLong), nil, mfOKButton+mfError);
@@ -215,7 +217,7 @@ procedure TUC2Archive.GetFile;
       begin
       FileInfo.Last := 1;
       MessageBox(GetString(dlArcMsg6), nil, mfOKButton or mfError);
-      exit;
+      Exit;
       end;
     EraseFile(FuckName);
     System.Assign(ListFile, ListFileName);
@@ -245,7 +247,7 @@ NextRecord:
     EraseFile(ListFileName);
     TextRec(ListFile).Handle := 0;
     FileInfo.Last := 1;
-    exit;
+    Exit;
     end;
   if s1 = '   DIR' then
     begin

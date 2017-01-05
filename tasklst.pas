@@ -30,7 +30,7 @@ const
 type
   PProcessList = ^TProcessList;
   TProcessList = object(TListBox)
-    function GetText(Item: integer; MaxLen: integer): String; virtual;
+    function GetText(Item: Integer; MaxLen: Integer): String; virtual;
     end;
 
   PProcessDialog = ^TProcessDialog;
@@ -48,7 +48,7 @@ uses
   DNApp, Commands, DnIni, DNHelp
   ;
 
-function TProcessList.GetText(Item: integer; MaxLen: integer): String;
+function TProcessList.GetText(Item: Integer; MaxLen: Integer): String;
   begin
   GetText := PProcessItem(List^.At(Item))^.GetString;
   end;

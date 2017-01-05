@@ -299,7 +299,6 @@ const
   otMouseBar = 15004;
   otSaversDialog = 15005;
   otSaversListBox = 15006;
-  otUpperTable = 15007;
 
   { --- Startup }
 

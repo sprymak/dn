@@ -59,12 +59,12 @@ uses
 {----------------------------------------------------------------------------}
 type
   TSysData = record
-    Options: word;
+    Options: Word;
     Mode1: String[5];
     Mode2: String[5];
     Temp: String;
     Drives: TTextListboxRec;
-    Current: word;
+    Current: Word;
     CopyLimitBuf: String[5];
     ForceDefArch: String[3];
     end;
@@ -82,7 +82,7 @@ type
   PCurrDriveInfo = ^TCurrDriveInfo;
   TCurrDriveInfo = object(TCheckBoxes)
     procedure HandleEvent(var Event: TEvent); virtual;
-    procedure Press(Item: integer); virtual;
+    procedure Press(Item: Integer); virtual;
     end;
 
   PMouseBar = ^TMouseBar;
@@ -90,7 +90,7 @@ type
     constructor Init(var Bounds: TRect);
     procedure SetData(var Rec); virtual;
     procedure GetData(var Rec); virtual;
-    function DataSize: word; virtual;
+    function DataSize: Word; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     end;
 
@@ -109,21 +109,15 @@ type
     end;
   {$ENDIF}
 
-  PUpperTable = ^TUpperTable;
-  TUpperTable = object(TView)
-    Table: array[0..127] of Char;
-    CurrentChar: integer;
-    Delta: integer;
-    constructor Init(var R: TRect);
-    procedure Draw; virtual;
-    procedure HandleEvent(var Event: TEvent); virtual;
-    function DataSize: word; virtual;
-    procedure GetData(var Rec); virtual;
-    procedure SetData(var Rec); virtual;
-    function GetPalette: PPalette; virtual;
-    end;
-
 procedure SetupCountryInfo;
+  {` Диалог настоек страны `}
+function ApplyCodetables: Integer;
+  {` Применить настройки коировок из CountryInfo. Результат:
+     0 - нет ошибок,
+     1 - ошибка в KbdToggleLayout
+     2 - ошибка в WinCodeTable,
+     3 - ошибка в Codetables,
+     `}
 procedure FMDefaults;
 procedure FMSetup;
 procedure DriveInfoSetup;
@@ -143,15 +137,25 @@ function SetupColumnDefaultsArvd: Boolean;
 procedure SaversSetup;
 function MakeSaversDialog: PDialog;
 {$ENDIF}
+
+ {! AK155 28-12-2004 Собщения об ошибках перекодлировочных настроек.
+ Наглухо забитые тексты - это временно.
+ Надо будет сделать текст на языке интерфейса.}
+const
+  CodeErrMessage: array[1..3] of string[36] =
+    ('CountryInfo.KbdToggleLayout error',
+     'CountryInfo.WinCodeTable error',
+     'CountryInfo.CodeTables error');
+
 implementation
 uses
-  Tree, Drives, advance, advance1, advance2, advance3, Messages, DNHelp,
-  advance6, DnIni
+  Tree, Drives, Advance, Advance1, Advance2, Advance3, Messages, DNHelp,
+  Advance6, DnIni, Country_, U_KeyMap
   ;
 
 procedure ConfirmSetup;
   var
-    D: word;
+    D: Word;
   begin
   Confirms := Confirms and $7F+
       (Confirms and cfFmtOs2Warning) shr 1+
@@ -161,7 +165,7 @@ procedure ConfirmSetup;
       (Confirms and cfFmtOs2Warning) shr 1+
       (Confirms and cfExitConfirm) shl 1;
   if D <> cmOK then
-    exit;
+    Exit;
   ConfigModified := True;
 
   ConfirmsOpt := Confirms;
@@ -173,14 +177,14 @@ function TerminalSetup;
   begin
   TerminalSetup := False;
   if ExecResource(dlgSetupTerminal, TerminalDefaults) <> cmOK then
-    exit;
+    Exit;
   TerminalSetup := True;
   Message(Application, evCommand, cmUpdateConfig, nil);
   end;
 
 procedure SystemSetup;
   var
-    W: word;
+    W: Word;
     D: PDialog;
     B: Boolean;
     Data: TSysData;
@@ -188,12 +192,12 @@ procedure SystemSetup;
   begin
   OpenResource;
   if Resource = nil then
-    exit;
+    Exit;
   D := PDialog
             (Application^.ValidView(PDialog(Resource^.Get(dlgSystemSetup))
         ));
   if D = nil then
-    exit;
+    Exit;
   W := Desktop^.ExecView(D);
   if W <> cmCancel then
     begin
@@ -266,35 +270,29 @@ procedure InterfaceSetup;
           Clock^.Hide;
       end;
   InterfaceDataOpt := InterfaceData.Options;
-  DriveInfoType := InterfaceData.DrvInfType;
   SaveDnIniSettings(@InterfaceDataOpt);
-  SaveDnIniSettings(@DriveInfoType);
   DoneIniEngine;
   end { InterfaceSetup };
 
 procedure StartupSetup;
   var
     Data: record
-      Load, Unload, Slice2: word;
+      Load, Unload: Word;
       end;
   begin
   Data.Load := StartupData.Load;
   Data.Unload := StartupData.Unload;
-  Data.Slice2 := StartupData.Slice2;
   if ExecResource(dlgStartupSetup, Data) <> cmCancel then
     begin
     StartupData.Load := Data.Load;
     StartupData.Unload := Data.Unload;
-    StartupData.Slice2 := Data.Slice2;
     LSliceCnt := -3;
     Message(Application, evCommand, cmUpdateConfig, nil);
 
     StartupDataLoad := StartupData.Load;
     StartupDataUnload := StartupData.Unload;
-    StartupDataSlice2 := StartupData.Slice2;
     SaveDnIniSettings(@StartupDataLoad);
     SaveDnIniSettings(@StartupDataUnload);
-    SaveDnIniSettings(@StartupDataSlice2);
     DoneIniEngine;
     end;
   end { StartupSetup };
@@ -302,7 +300,7 @@ procedure StartupSetup;
 procedure MouseSetup;
   begin
   if ExecResource(dlgMouseSetup, MouseData) <> cmOK then
-    exit;
+    Exit;
   if MouseVisible xor (MouseData.Options and omsCursor <> 0) then
     begin
     DoneEvents;
@@ -316,18 +314,18 @@ procedure MouseSetup;
 {$IFDEF SS}
 procedure SaversSetup;
   var
-    W: word;
+    W: Word;
     D: PDialog;
     B: Boolean;
   begin
   OpenResource;
   if Resource = nil then
-    exit;
+    Exit;
   D := PDialog
             (Application^.ValidView(PDialog(Resource^.Get(dlgSaversSetup))
         ));
   if D = nil then
-    exit;
+    Exit;
   W := Desktop^.ExecView(D);
   if W <> cmCancel then
     begin
@@ -338,11 +336,66 @@ procedure SaversSetup;
   end;
 {$ENDIF}
 
-procedure SetupCountryInfo;
+function ApplyCodetables: Integer;
   begin
-  if ExecResource(dlgCountrySetup, CountryInfo) <> cmOK then
-    exit;
-  InitUpcase;
+  with CountryInfo do
+    begin
+    {$IFDEF Win32}
+    if WinCodetable = '' then
+      WinCodetable := '0'{CP_ACP};
+    {$ENDIF}
+    if not BuildLayoutConvXlat(KbdToggleLayout) then
+      begin
+      Result := 1;
+      Exit;
+      end;
+    FreeCodetables;
+    if (WinCodetable <> '') and not BuildWinCodeTable(WinCodeTable)
+    then
+      begin
+      Result := 2;
+      Exit;
+      end;
+    if not InitCodeTables(CodeTables) then
+      begin
+      Result := 3;
+      Exit;
+      end;
+    end;
+  Result := 0;
+  end;
+
+procedure SetupCountryInfo;
+  var
+    SaveCountryInfo: TCountryInfo;
+    C: Word;
+    Err: Integer;
+  label
+    TryDialog;
+  begin
+  SaveCountryInfo := CountryInfo;
+TryDialog:
+  while True do
+    begin
+    C := ExecResource(dlgCountrySetup, CountryInfo);
+    if C = cmYes then
+      GetSysCountryInfo
+    else
+      Break;
+    end;
+  if C <> cmOK then
+    begin
+    CountryInfo := SaveCountryInfo;
+     // CountryInfo мог измениться по cmYes
+    ApplyCodetables;
+    Exit;
+    end;
+  Err := ApplyCodetables;
+  if Err <> 0 then
+    begin
+    MessageBox(CodeErrMessage[Err], nil, mfError+mfYesButton);
+    goto TryDialog;
+    end;
   GlobalMessage(evCommand, cmReboundPanel, nil);
   ConfigModified := True;
   end;
@@ -350,7 +403,7 @@ procedure SetupCountryInfo;
 procedure FMDefaults;
   begin
   if ExecResource(dlgFMDefaults, Startup.PanelDefaults) <> cmOK then
-    exit;
+    Exit;
   Message(Application, evCommand, cmUpdateConfig, nil);
   GlobalMessage(evCommand, cmReboundPanel, nil);
   end;
@@ -358,7 +411,7 @@ procedure FMDefaults;
 procedure FMSetup;
   begin
   if ExecResource(dlgFMSetup, Startup.FMSetup) <> cmOK then
-    exit;
+    Exit;
   Message(Application, evCommand, cmUpdateConfig, nil);
   GlobalMessage(evCommand, cmReboundPanel, nil);
 
@@ -369,14 +422,14 @@ procedure FMSetup;
 
 procedure DriveInfoSetup;
   var
-    W: word;
+    W: Word;
   begin
   Startup.DriveInfoData := Startup.DriveInfoData and $001F+
     Startup.DriveInfoData and $07E0 shl 2+
     Startup.DriveInfoData and $1800 shr 6;
 
   if ExecResource(dlgDriveInfoSetup, Startup.DriveInfoData) <> cmOK then
-    exit;
+    Exit;
   Startup.DriveInfoData := Startup.DriveInfoData and $001F+
     Startup.DriveInfoData and $FF80 shr 2+
     Startup.DriveInfoData and $0060 shl 6;
@@ -500,7 +553,7 @@ function SetupColumnDefaultsArvd: Boolean;
 
 procedure TCurrDriveInfo.HandleEvent;
   var
-    W: word;
+    W: Word;
     Data: TSysData;
   begin
   inherited HandleEvent(Event);
@@ -588,12 +641,12 @@ asm mov eax,4 end;
 
 procedure TMouseBar.SetData;
   begin
-  SetValue(integer(Rec))
+  SetValue(Integer(Rec))
   end;
 
 procedure TMouseBar.GetData;
   begin
-  integer(Rec) := Value
+  Integer(Rec) := Value
   end;
 
 procedure TMouseBar.HandleEvent;
@@ -608,7 +661,7 @@ procedure TMouseBar.HandleEvent;
 procedure TSaversListBox.HandleEvent;
   var
     PS: PString;
-    F: integer;
+    F: Integer;
     A, S: PCollection;
     LocalData: TSaversData;
   function SeekStr(P: PString): Boolean;
@@ -802,98 +855,5 @@ function MakeSaversDialog: PDialog;
   MakeSaversDialog := New(PSaversDialog, Init);
   end;
 {$ENDIF}
-
-constructor TUpperTable.Init;
-  var
-    I: integer;
-  begin
-  inherited Init(R);
-  for I := 0 to 127 do
-    Table[I] := Char(I+128);
-  CurrentChar := 0;
-  Delta := 0;
-  Options := Options or ofSelectable;
-  EventMask := evKeyDown or evMouse or evBroadcast; {PZ - 2000.03.26}
-  end;
-
-function TUpperTable.GetPalette;
-  const
-    S: String[Length(CInputLine)] = CInputLine;
-  begin
-  GetPalette := @S;
-  end;
-
-function TUpperTable.DataSize;
-  begin
-  DataSize := 128;
-  end;
-procedure TUpperTable.GetData;
-  begin
-  Move(Table, Rec, 128);
-  end;
-procedure TUpperTable.SetData;
-  begin
-  Move(Rec, Table, 128);
-  end;
-
-procedure TUpperTable.Draw;
-  var
-    B: TDrawBuffer;
-    I: integer;
-    C: word;
-  begin
-  if CurrentChar < Delta then
-    Delta := CurrentChar;
-  if CurrentChar-Delta > Size.X-1 then
-    Delta := CurrentChar-Size.X+1;
-  C := GetColor(1);
-  MoveChar(B, ' ', C, Size.X);
-  for I := 0 to Size.X-1 do
-    WordRec(B[I]).Lo := I+Delta+128;
-  WordRec(B[CurrentChar-Delta]).Hi := GetColor(3);
-  WriteLine(0, 0, Size.X, 1, B);
-  MoveChar(B, ' ', C, Size.X);
-  for I := 0 to Size.X-1 do
-    WordRec(B[I]).Lo := Byte(Table[I+Delta]);
-  WordRec(B[CurrentChar-Delta]).Hi := GetColor(3);
-  WriteLine(0, 1, Size.X, 1, B);
-  ShowCursor;
-  SetCursor(CurrentChar-Delta, 1);
-  NormalCursor;
-  end { TUpperTable.Draw };
-
-procedure TUpperTable.HandleEvent;
-  procedure CE;
-    begin
-    ClearEvent(Event);
-    DrawView;
-    end;
-  begin
-  inherited HandleEvent(Event);
-  case Event.What of
-    evKeyDown:
-      case Event.KeyCode of
-        kbLeft:
-          begin
-          if CurrentChar > 0 then
-            Dec(CurrentChar);
-          CE
-          end;
-        kbRight:
-          begin
-          if CurrentChar < 127 then
-            Inc(CurrentChar);
-          CE
-          end;
-        else {case}
-          if Event.CharCode in ['A'..'Z', 'a'..'z', #128..#255] then
-            begin
-            Table[CurrentChar] := Event.CharCode;
-            Message(@Self, evKeyDown, kbRight, nil);
-            CE
-            end;
-      end {case};
-  end {case};
-  end { TUpperTable.HandleEvent };
 
 end.

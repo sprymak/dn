@@ -91,12 +91,12 @@ var
   Dos32OpenChangeNotify: function (PathBuf: PCNPath;
     LogSize: ULong;
     var hdir: lHandle;
-    ulReserved: ULong): apiret cdecl;
+    ulReserved: ULong): ApiRet cdecl;
   Dos32ResetChangeNotify: function (LogBuf: PCNInfo;
     BufferSize: ULong;
     var LogCount: ULong;
-    hdir: lHandle): apiret cdecl;
-  Dos32CloseChangeNotify: function (hdir: lHandle): apiret cdecl;
+    hdir: lHandle): ApiRet cdecl;
+  Dos32CloseChangeNotify: function (hdir: lHandle): ApiRet cdecl;
 
 var
   NotifyHandle: lHandle;
@@ -129,7 +129,7 @@ procedure DebugLog(const S: String);
   end;
 {$ENDIF}
 
-function NotifyThreadFunction(P: ULong): apiret;
+function NotifyThreadFunction(P: ULong): ApiRet;
   cdecl;
   var
     LogCount: LongInt;
@@ -219,7 +219,7 @@ procedure NotifyDone;
 
 procedure NotifyInit;
   begin
-  xTime.NewTimerSecs(NotifyTmr, 1); {JO}
+  xTime.NewTimer(NotifyTmr, 1000); {JO}
   Initialized := (DosLoadModule(nil, 0, 'DOSCALLS', DosCalls) = 0)
     and (DosQueryProcAddr(DosCalls, 440, nil, @Dos32OpenChangeNotify) = 0)
     and (DosQueryProcAddr(DosCalls, 441, nil, @Dos32ResetChangeNotify) = 0)

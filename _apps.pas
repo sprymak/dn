@@ -49,7 +49,7 @@ type
     constructor Init;
     {destructor Done; virtual;}
     function CanMoveFocus: Boolean;
-    function ExecuteDialog(P: PDialog; Data: Pointer): word;
+    function ExecuteDialog(P: PDialog; Data: Pointer): Word;
     {procedure GetEvent(var Event: TEvent); virtual;}
     {function GetPalette: PPalette; virtual;}
     {procedure HandleEvent(var Event: TEvent); virtual;}
@@ -64,7 +64,7 @@ type
     procedure OutOfMemory; virtual;
     {procedure PutEvent(var Event: TEvent); virtual;}
     procedure Run; virtual;
-    procedure SetScreenMode(Mode: word);
+    procedure SetScreenMode(Mode: Word);
     function ValidView(P: PView): PView;
     {procedure Redraw; virtual;}
     end;
@@ -178,7 +178,7 @@ function TProgram.CanMoveFocus: Boolean;
   Result := _TProgram^.CanMoveFocus(@Self);
   end;
 
-function TProgram.ExecuteDialog(P: PDialog; Data: Pointer): word;
+function TProgram.ExecuteDialog(P: PDialog; Data: Pointer): Word;
   begin
   Result := _TProgram^.ExecuteDialog(_Model1.PDialog(P), Data, @Self);
   end;
@@ -233,7 +233,7 @@ procedure TProgram.Run;
 asm
 end;
 
-procedure TProgram.SetScreenMode(Mode: word);
+procedure TProgram.SetScreenMode(Mode: Word);
   begin
   _TProgram^.SetScreenMode(Mode, @Self);
   end;

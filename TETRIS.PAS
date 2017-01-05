@@ -58,12 +58,12 @@
 {JO: временно заменил PLUGIN на несуществующий дефайн PLUGIN1 }
 library Tetris;
 
-uses
+uses VpSysLow
   Defines, Streams, Drivers, Views, DNApp, Dialogs, Memory, Menus,
    Messages,
-  Commands, advance, advance1, advance2, advance3, RStrings,
+  Commands, Advance, Advance1, Advance2, Advance3, RStrings,
   xTime, Startup, DNHelp,
-  VPUtils
+  , Events
   ;
 
 
@@ -75,15 +75,17 @@ interface
 uses
   Defines, Streams, Drivers, Views, DNApp, Dialogs, Memory, Menus,
    Messages,
-  Commands, advance, advance1, advance2, advance3, RStrings
+  Commands, Advance, Advance1, Advance2, Advance3, RStrings
   ;
 {$ENDIF}
 
 const
-  Shi = 12;
-  Vis = 19;
+  Shi = 12; {Ширина стакана}
+  MaxVis = 22; {Максимальная высота стакана}
   F = False;
   T = True;
+var
+  Vis: Integer;{Фактическая высота стакана}
 
 type
   PGameWindow = ^TGameWindow;
@@ -97,10 +99,10 @@ type
     Info: PView;
     {Hi  : PView;}
 
-    Glass: array[-2..Vis+2, -1..Shi+2] of Byte;
+    Glass: array[-2..MaxVis+2, -1..Shi+2] of Byte;
 
-    Delay: word;
-    CurFig: integer;
+    Delay: Word;
+    CurFig: Integer;
     Fig, OldF: array[1..5, 1..2] of Byte;
 
     Pos: TPoint;
@@ -113,7 +115,7 @@ type
 
     TMaxFig: Byte;
 
-    Level, StartLevel: integer;
+    Level, StartLevel: Integer;
     Preview: Boolean;
     Pentix: Boolean;
     HiScores: array[1..20] of record
@@ -130,12 +132,12 @@ type
     procedure Rotate;
     procedure ReadFig;
     procedure Update; virtual;
-    function MoveFig(DeltaX, DeltaY: integer): Boolean;
-    function ValidMove(DeltaX, DeltaY: integer): Boolean;
+    function MoveFig(DeltaX, DeltaY: Integer): Boolean;
+    function ValidMove(DeltaX, DeltaY: Integer): Boolean;
     function MoveDown: Boolean;
     procedure MakeTime;
-    procedure ShowScores(HighLight: integer);
-    procedure SetState(AState: word; Enable: Boolean); virtual;
+    procedure ShowScores(HighLight: Integer);
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
     destructor Done; virtual;
     end;
 
@@ -155,7 +157,7 @@ const
 implementation
 
 uses
-  xTime, Startup, DNHelp, VPUtils
+  xTime, Startup, DNHelp, Events
   ;
 {$ENDIF}
 
@@ -199,9 +201,9 @@ const
     (4, 4, 4, 4, 3, 4, 4, 1, 2, 3, 2, 5, 3, 4, 4, 3, 3, 4, 4, 3, 3, 3, 3,
      3, 4, 4, 3, 4);
 
-function LevelDelay(Level: Byte): word;
+function LevelDelay(Level: Byte): Word;
   var
-    Delay: word;
+    Delay: Word;
   begin
   case Level of
     1:
@@ -234,26 +236,32 @@ constructor TGameWindow.Init;
     Gm: PGameView;
     Hi, Info: PGameInfo;
   begin
+  Desktop^.GetBounds(R);
+  Vis := R.B.Y-R.A.Y - 4;
+  if TetrisRec.S = 1 then
+    Vis := Min(22, Vis) {Pentix}
+  else
+    Vis := Min(19, Vis) {Tetris};
   R.Assign(1, 1, 30+Shi*2, 4+Vis);
   inherited Init(R, GetString(dlGameTitle));
   Number := GetNum;
-  HelpCtx := hcTetris+Byte(TetrisRec.S = 1);
+  HelpCtx := hcTetris+TetrisRec.S;
   Options := Options or ofCentered;
   R.Assign(2, 2, 2+Shi*2, 2+Vis);
   Gm := New(PGameView, Init(R));
   Insert(Gm);
-  R.Assign(4+Shi*2, 1, 27+Shi*2, 16);
+  R.Assign(4+Shi*2, 1, 27+Shi*2, Vis-3);
   Info := New(PGameInfo, Init(R));
   Insert(Info);
   Info^.Gm := Gm;
   Gm^.Info := Info;
-  R.Assign(4+Shi*2, 17, 15+Shi*2, 19);
+  R.Assign(4+Shi*2, Vis-2, 15+Shi*2, Vis);
   Insert(New(PButton, Init(R, GetString(dlNewButton), cmNewGame, 0)));
-  R.Assign(15+Shi*2, 17, 26+Shi*2, 19);
+  R.Assign(15+Shi*2, Vis-2, 26+Shi*2, Vis);
   Insert(New(PButton, Init(R, GetString(dlSetupButton), cmSetup, 0)));
-  R.Assign(4+Shi*2, 19, 15+Shi*2, 21);
+  R.Assign(4+Shi*2, Vis, 15+Shi*2, Vis+2);
   Insert(New(PButton, Init(R, GetString(dlTop10Button), cmShowHi, 0)));
-  R.Assign(15+Shi*2, 19, 26+Shi*2, 21);
+  R.Assign(15+Shi*2, Vis, 26+Shi*2, Vis+2);
   Insert(New(PButton, Init(R, GetString(dlPauseButton), cmStop, 0)));
   SelectNext(False);
   end { TGameWindow.Init };
@@ -281,7 +289,7 @@ procedure TGameInfo.Draw;
   var
     B: TDrawBuffer;
     S: String;
-    C, I, J, K: word;
+    C, I, J, K: Word;
   begin
   C := GetColor($0201);
   MoveChar(B, #196, C, Size.X);
@@ -336,6 +344,11 @@ procedure TGameInfo.Draw;
   MoveChar(B[Size.X-1], #217, C, 1);
   WriteLine(0, 10, Size.X, 1, B);
 
+{ Для высокого пентикса - пустое место между следующей фигурой и кнопками }
+  MoveChar(B, ' ', C, Size.X);
+  for I := 15 to Vis-5 do
+    WriteLine(0, I, Size.X, 1, B);
+
   C := Owner^.GetColor($1112);
   MoveChar(B, #196, C, Size.X);
   S := GetString(dlTetrisBest);
@@ -349,13 +362,8 @@ procedure TGameInfo.Draw;
   MoveChar(B[Size.X-1], #179, C, 1);
   WriteLine(0, 12, Size.X, 1, B);
   MoveChar(B, ' ', C, Size.X);
-  MoveCStr(B,
-
-
-
-
-     +GetString(dlGameScore)+ItoS(Gm^.HiScores[1+10*Byte(Gm^.Pentix)].Score),
-     C);
+  MoveCStr(B, GetString(dlGameScore) +
+    ItoS(Gm^.HiScores[1+10*Byte(Gm^.Pentix)].Score), C);
   MoveChar(B[Size.X-1], #179, C, 1);
   WriteLine(0, 13, Size.X, 1, B);
   MoveChar(B, #196, C, Size.X);
@@ -366,9 +374,9 @@ procedure TGameInfo.Draw;
 
 constructor TGameView.Init;
   var
-    I, J: integer;
+    I, J: Integer;
     S: PDosStream;
-    C: word;
+    C: Word;
     B: array[0..1024] of Byte;
   begin
   Randomize;
@@ -420,7 +428,7 @@ constructor TGameView.Init;
       S := New(PDosStream, Init(SourceDir+'TETRIS.CFG', stCreate));
       S^.Write(HiScores, SizeOf(HiScores));
       Dispose(S, Done);
-      break;
+      Break;
       end;
   NewGame;
   RegisterToBackground(@Self);
@@ -499,7 +507,7 @@ destructor TGameView.Done;
 
 procedure TGameView.NewGame;
   var
-    I, J: integer;
+    I, J: Integer;
   begin
   TMaxFig := 7;
 
@@ -527,12 +535,12 @@ procedure TGameView.NewGame;
 
 function TGameView.ValidMove;
   var
-    I: integer;
+    I: Integer;
   begin
   ValidMove := False;
   for I := 1 to ColPo[CurFig] do
     if Glass[Fig[I, 1]+Y+DeltaY, Fig[I, 2]+X+DeltaX+1] <> 0 then
-      exit;
+      Exit;
   ValidMove := True;
   end;
 
@@ -549,11 +557,11 @@ procedure TGameView.SetState;
 function TGameView.MoveFig;
   label 1;
   var
-    I, J: integer;
+    I, J: Integer;
   begin
   MoveFig := False;
   if not ValidMove(DeltaX, DeltaY) then
-    exit;
+    Exit;
   MoveFig := True;
   ChPos := True;
   HideFig := True;
@@ -567,12 +575,12 @@ function TGameView.MoveFig;
 
 function TGameView.MoveDown;
   var
-    I, J, K, L, W, BW: integer;
-    B, BB, BBW: Boolean;
+    I, J, K, L, W, BW: Integer;
+    B, {BB, AK155} BBW: Boolean;
 
   procedure CheckHiScores;
     var
-      I, J: integer;
+      I, J: Integer;
       S: PDosStream;
       Nm: String;
       B: array[0..1024] of Byte;
@@ -581,9 +589,9 @@ function TGameView.MoveDown;
     for I := 1 to 10 do
       if HiScores[I+10*Byte(Pentix)].Score < Score then
         goto 1;
-    exit;
+    Exit;
 1:
-    for J := 10 DownTo I+1 do
+    for J := 10 downto I+1 do
       HiScores[J+10*Byte(Pentix)] := HiScores[J-1+10*Byte(Pentix)];
     Nm := GetString(dlAnonymous);
     ExecResource(dlgTetrisWinner, Nm);
@@ -612,7 +620,7 @@ function TGameView.MoveDown;
 
   begin { TGameView.MoveDown }
   if Stop then
-    exit;
+    Exit;
   if MoveFig(0, 1) then
     MoveDown := True
   else
@@ -620,7 +628,7 @@ function TGameView.MoveDown;
     for I := 1 to ColPo[CurFig] do
       Glass[Fig[I, 1]+Y, Fig[I, 2]+X+1] := 15-CurFig mod 7;
     Inc(Score, ((Size.Y-Y)*2+Level*6)*(10-3*Byte(Preview)) div 10);
-    BB := False;
+    {AK155 BB := False;}
     W := 0;
     BW := 0;
     for I := 0 to Vis-1 do
@@ -635,7 +643,7 @@ function TGameView.MoveDown;
       Inc(BW, Byte(BBW));
       if B then
         begin
-        for K := I DownTo 1 do
+        for K := I downto 1 do
           for J := 1 to Shi do
             begin
             Glass[K, J] := Glass[K-1, J];
@@ -644,7 +652,7 @@ function TGameView.MoveDown;
         Inc(Score, (W+Size.Y-I)*30);
         Inc(Lines);
         Inc(W);
-        BB := True;
+        {AK155 BB := True;}
         end;
       end;
     if BW = Vis then
@@ -665,10 +673,16 @@ function TGameView.MoveDown;
       end;
     Info^.DrawView;
     Stop := not ValidMove(0, 0);
+{AK155 23-07-2004
+Зачем нужны эти DelayTics и почему они бывают разные - я не понял.
+Их устранение никакого видимого глазу влияния не оказывает и
+загрузку процессора не меняет. Соответственно, переменная BB
+и вся работа с ней тоже исключены.
     if BB then
       xTime.DelayTics(2)
     else
       xTime.DelayTics(1);
+/AK155}
     if Stop then
       begin
       for I := 1 to ColPo[CurFig] do
@@ -688,7 +702,7 @@ function TGameView.MoveDown;
 procedure TGameView.Draw;
   var
     B: TDrawBuffer;
-    I, J, K: integer;
+    I, J, K: Integer;
   begin
   if not ChPos then
     for I := 0 to Vis do
@@ -717,43 +731,17 @@ procedure TGameView.Draw;
   end { TGameView.Draw };
 
 procedure TGameView.MakeTime;
-  var
-    A, B, C: Byte;
   begin
   if Stop then
-    exit;
-  {$IFDEF OS_DOS}
-  asm
-  mov ah, 2Ch
-  int 21h
-  mov A, DH
-  mov B, DL
-  mov C, CL
- end;
-  LastT := LongInt(A+LongInt(C)*60)*100+B;
-  {$ELSE}
-  LastT := GetTimemSec*10;
-  {$ENDIF}
+    Exit;
+  LastT := GetCurMSec*10;
   end;
 
 procedure TGameView.Update;
-  var
-    A, B, C: Byte;
   begin
   if Stop then
-    exit;
-  {$IFDEF OS_DOS}
-  asm
-  mov ah, 2Ch
-  int 21h
-  mov A, DH
-  mov B, DL
-  mov C, CL
- end;
-  if LongInt(LongInt(C)*60+word(A))*100+B > LastT+Delay then
-  {$ELSE}
-  if GetTimemSec*10 > LastT+Delay then
-    {$ENDIF}
+    Exit;
+  if GetCurMSec*10 > LastT+Delay then
     begin
     MoveDown;
     MakeTime
@@ -776,7 +764,7 @@ procedure TGameView.HandleEvent;
       P := Byte(Preview);
       end;
     if ExecResource(dlgGameSetup, TetrisRec) <> cmOK then
-      exit;
+      Exit;
     with TetrisRec do
       begin
       StartLevel := l+1;
@@ -892,7 +880,7 @@ procedure TGameView.HandleEvent;
 
 procedure TGameView.Rotate;
   var
-    i: integer;
+    i: Integer;
   begin
   for i := 1 to ColPo[CurFig] do
     begin
@@ -903,7 +891,7 @@ procedure TGameView.Rotate;
 
 procedure TGameView.ReadFig;
   var
-    I: integer;
+    I: Integer;
   begin
   for I := 1 to ColPo[CurFig] do
     begin

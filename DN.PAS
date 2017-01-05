@@ -57,10 +57,13 @@ program DN;
       закомментировал; прежний код убивать пока жалко}
 
 uses
+{$IFDEF DPMIDEBUG}
+  deb_link,
+{$ENDIF}
   Drivers, Lfn, Files,
   DN1, Dos, DNApp,
   Menus, FlPanelX, FlPanel, FileCopy, Filediz, Filelst, Eraser,
-  DiskInfo, advance, advance1, advance2, advance3, advance4, highlite,
+  DiskInfo, Advance, Advance1, Advance2, Advance3, Advance4, highlite,
   Startup, Dialogs, Gauges, Memory, DblWnd, Messages, HistList,
   FileFind, Commands, Tree, FViewer, CmdLine, FBB, DNStdDlg,
   FilesCol, UserMenu, RStrings, Colors, Microed, Editor, Macro,
@@ -84,6 +87,7 @@ uses
   {$IFDEF LINEPOSIT}, SysUtils, VPUtils {$ENDIF}
   {$IFDEF OS2}, EAOper {$ENDIF}
   , VpSysLow
+//{$IFDEF DPMI32} , deb_link {$ENDIF}
   ;
 
 {$IFDEF LINEPOSIT}

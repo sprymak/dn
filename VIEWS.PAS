@@ -221,30 +221,30 @@ type
     procedure CalcBounds(var Bounds: TRect; Delta: TPoint); virtual;
     procedure ChangeBounds(var Bounds: TRect); virtual;
     procedure ClearEvent(var Event: TEvent);
-    function CommandEnabled(Command: word): Boolean;
-    function DataSize: word; virtual;
+    function CommandEnabled(Command: Word): Boolean;
+    function DataSize: Word; virtual;
     procedure DisableCommands(Commands: TCommandSet);
     procedure DragView(var Event: TEvent; Mode: Byte; var Limits: TRect;
         MinSize, MaxSize: TPoint);
     procedure Draw; virtual;
     procedure DrawView;
     procedure EnableCommands(Commands: TCommandSet);
-    procedure EndModal(Command: word); virtual;
+    procedure EndModal(Command: Word); virtual;
     function EventAvail: Boolean;
-    function Execute: word; virtual;
+    function Execute: Word; virtual;
     function Exposed: Boolean;
     function Focus: Boolean;
     procedure GetBounds(var Bounds: TRect);
     procedure GetClipRect(var Clip: TRect);
-    function GetColor(Color: word): word;
+    function GetColor(Color: Word): Word;
     procedure GetCommands(var Commands: TCommandSet);
     procedure GetData(var Rec); virtual;
     procedure GetEvent(var Event: TEvent); virtual;
     procedure GetExtent(var Extent: TRect);
-    function GetHelpCtx: word; virtual;
+    function GetHelpCtx: Word; virtual;
     function GetPalette: PPalette; virtual;
     procedure GetPeerViewPtr(var S: TStream; var P);
-    function GetState(AState: word): Boolean;
+    function GetState(AState: Word): Boolean;
     procedure GrowTo(X, Y: LongInt);
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure Hide;
@@ -254,7 +254,7 @@ type
     procedure MakeFirst;
     procedure MakeGlobal(Source: TPoint; var Dest: TPoint);
     procedure MakeLocal(Source: TPoint; var Dest: TPoint);
-    function MouseEvent(var Event: TEvent; Mask: word): Boolean;
+    function MouseEvent(var Event: TEvent; Mask: Word): Boolean;
     function MouseInView(Mouse: TPoint): Boolean;
     procedure MoveTo(X, Y: LongInt);
     function NextView: PView;
@@ -272,20 +272,20 @@ type
 }
     procedure SetCursor(X, Y: LongInt);
     procedure SetData(var Rec); virtual;
-    procedure SetState(AState: word; Enable: Boolean); virtual;
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
     procedure Show;
     procedure ShowCursor;
     procedure SizeLimits(var Min, Max: TPoint); virtual;
     procedure Store(var S: TStream);
     function TopView: PView;
-    function Valid(Command: word): Boolean; virtual;
-    procedure WriteBuf(X, Y, W, H: integer; var Buf);
-    procedure WriteChar(X, Y: integer; C: Char; Color: Byte;
-        Count: integer);
-    procedure WriteLine(X, Y, W, H: integer; var Buf);
-    procedure WriteStr(X, Y: integer; Str: String; Color: Byte);
+    function Valid(Command: Word): Boolean; virtual;
+    procedure WriteBuf(X, Y, W, H: Integer; var Buf);
+    procedure WriteChar(X, Y: Integer; C: Char; Color: Byte;
+        Count: Integer);
+    procedure WriteLine(X, Y, W, H: Integer; var Buf);
+    procedure WriteStr(X, Y: Integer; Str: String; Color: Byte);
     procedure Update; virtual;
-    function MenuEnabled(Command: word): Boolean; {-$VOL}
+    function MenuEnabled(Command: Word): Boolean; {-$VOL}
     //  private
     procedure DrawCursor;
     procedure DrawHide(LastView: PView);
@@ -315,9 +315,9 @@ type
     procedure Draw; virtual;
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-    procedure SetState(AState: word; Enable: Boolean); virtual;
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
   private
-    procedure FrameLine(var FrameBuf; Y, N: integer; Color: Byte);
+    procedure FrameLine(var FrameBuf; Y, N: Integer; Color: Byte);
     end;
 
   { ScrollBar characters }
@@ -388,19 +388,19 @@ type
     destructor Done; virtual;
     procedure Awaken; virtual;
     procedure ChangeBounds(var Bounds: TRect); virtual;
-    function DataSize: word; virtual;
+    function DataSize: Word; virtual;
     procedure Delete(P: PView);
     procedure Draw; virtual;
-    procedure EndModal(Command: word); virtual;
+    procedure EndModal(Command: Word); virtual;
     procedure EventError(var Event: TEvent); virtual;
-    function ExecView(P: PView): word;
-    function Execute: word; virtual;
+    function ExecView(P: PView): Word;
+    function Execute: Word; virtual;
     function First: PView;
     function FirstThat(P: Pointer): PView;
     function FocusNext(Forwards: Boolean): Boolean;
     procedure ForEach(P: Pointer);
     procedure GetData(var Rec); virtual;
-    function GetHelpCtx: word; virtual;
+    function GetHelpCtx: Word; virtual;
     procedure GetSubViewPtr(var S: TStream; var P);
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure Insert(P: PView);
@@ -410,20 +410,20 @@ type
     procedure Redraw; virtual;
     procedure SelectNext(Forwards: Boolean);
     procedure SetData(var Rec); virtual;
-    procedure SetState(AState: word; Enable: Boolean); virtual;
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
     procedure Store(var S: TStream);
     procedure UnLock;
-    function Valid(Command: word): Boolean; virtual;
+    function Valid(Command: Word): Boolean; virtual;
     procedure FreeBuffer;
     procedure GetBuffer;
     procedure InsertView(P, Target: PView);
     procedure SetCurrent(P: PView; Mode: SelectMode);
   private
     LockFlag: Byte;
-    EndState: word;
+    EndState: Word;
     function At(Index: LongInt): PView;
     procedure DrawSubViews(P, Bottom: PView);
-    function FirstMatch(AState: word; AOptions: word): PView;
+    function FirstMatch(AState: Word; AOptions: Word): PView;
     function FindNext(Forwards: Boolean): PView;
     function IndexOf(P: PView): LongInt;
     procedure RemoveView(P: PView);
@@ -454,17 +454,17 @@ type
     Frame: PFrame;
     Title: PString;
     constructor Init(var Bounds: TRect; const ATitle: TTitleStr;
-         ANumber: integer);
+         ANumber: Integer);
     constructor Load(var S: TStream);
     destructor Done; virtual;
     procedure Close; virtual;
     function GetPalette: PPalette; virtual;
-    function GetTitle(MaxSize: integer): TTitleStr; virtual;
+    function GetTitle(MaxSize: Integer): TTitleStr; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure InitFrame; virtual;
-    procedure SetState(AState: word; Enable: Boolean); virtual;
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
     procedure SizeLimits(var Min, Max: TPoint); virtual;
-    function StandardScrollBar(AOptions: word): PScrollBar;
+    function StandardScrollBar(AOptions: Word): PScrollBar;
     procedure Store(var S: TStream);
     procedure Zoom; virtual;
     procedure Maxi; virtual;
@@ -474,9 +474,9 @@ type
 
   { Message dispatch function }
 
-function Message(Receiver: PView; What, Command: word; InfoPtr: Pointer)
+function Message(Receiver: PView; What, Command: Word; InfoPtr: Pointer)
   : Pointer;
-function MessageL(Receiver: PView; What, Command: word; InfoLng: LongInt)
+function MessageL(Receiver: PView; What, Command: Word; InfoLng: LongInt)
   : Pointer;
 
 { Views registration procedure }
@@ -530,9 +530,14 @@ procedure UpdateAll(All: Boolean);
 
 function GetNum: AInt;
 
+var
+  ModalCount: Word = 0; {<Views.001>}
+    {` счётчик модальных окон, открытых друг над другом. Влияет на
+    способ открытия окна хелпа `}
+
 implementation
 uses
-  Startup, DNApp, advance, advance1, advance2, advance3, DnIni,
+  Startup, DNApp, Advance, Advance1, Advance2, Advance3, DnIni,
   VpSysLow,
   Lfn, TitleSet, {DataCompBoy} {AK155 -}VideoMan
   ;
@@ -686,7 +691,7 @@ procedure TView.ClearEvent(var Event: TEvent);
   Event.InfoPtr := @Self;
   end;
 
-function TView.MenuEnabled(Command: word): Boolean; {-$VOL}
+function TView.MenuEnabled(Command: Word): Boolean; {-$VOL}
   begin
   {$IFNDEF GAME}
   if  (Command = cmGame) {$ELSE}
@@ -741,12 +746,12 @@ function TView.MenuEnabled(Command: word): Boolean; {-$VOL}
     MenuEnabled := (Command > 255) or (Lo(Command) in CurCommandSet);
   end { TView.MenuEnabled }; {-$VOL}
 
-function TView.CommandEnabled(Command: word): Boolean;
+function TView.CommandEnabled(Command: Word): Boolean;
   begin
   CommandEnabled := MenuEnabled(Command) or (Command = cmRedo);
   end;
 
-function TView.DataSize: word;
+function TView.DataSize: Word;
   begin
   DataSize := 0;
   end;
@@ -834,7 +839,7 @@ by Eugeny Zvyagintzev, но реализация более экономичная.
           if Event.KeyCode = kbESC then
             begin
             Locate(SaveBounds);
-            break;
+            Break;
             end;
           end
         else
@@ -855,7 +860,7 @@ by Eugeny Zvyagintzev, но реализация более экономичная.
           if Event.KeyCode = kbESC then
             begin
             Locate(SaveBounds);
-            break;
+            Break;
             end;
           end
         else
@@ -967,7 +972,7 @@ procedure TView.EnableCommands(Commands: TCommandSet);
   CurCommandSet := CurCommandSet+Commands;
   end;
 
-procedure TView.EndModal(Command: word);
+procedure TView.EndModal(Command: Word);
   var
     P: PView;
   begin
@@ -994,7 +999,7 @@ procedure TView.GetBounds(var Bounds: TRect);
   Bounds.B.Y := Origin.Y+Size.Y;
   end;
 
-function TView.Execute: word;
+function TView.Execute: Word;
   begin
   Execute := cmCancel;
   end;
@@ -1050,7 +1055,7 @@ procedure TView.GetExtent(var Extent: TRect);
   Extent.B.Y := Size.Y;
   end;
 
-function TView.GetHelpCtx: word;
+function TView.GetHelpCtx: Word;
   begin
   if State and sfDragging <> 0 then
     GetHelpCtx := hcDragging
@@ -1077,7 +1082,7 @@ procedure TView.GetPeerViewPtr(var S: TStream; var P);
     end;
   end;
 
-function TView.GetState(AState: word): Boolean;
+function TView.GetState(AState: Word): Boolean;
   begin
   GetState := State and AState = AState;
   end;
@@ -1192,11 +1197,11 @@ procedure TView.MakeLocal(Source: TPoint; var Dest: TPoint);
     end;
   end;
 
-function TView.MouseEvent(var Event: TEvent; Mask: word): Boolean;
+function TView.MouseEvent(var Event: TEvent; Mask: Word): Boolean;
   label Ex;
   begin
   if ButtonCount = 0 then
-    exit;
+    Exit;
   {  asm
     mov ax, 3
     push bp
@@ -1354,9 +1359,9 @@ procedure TView.SetData(var Rec);
   begin
   end;
 
-procedure TView.SetState(AState: word; Enable: Boolean);
+procedure TView.SetState(AState: Word; Enable: Boolean);
   var
-    Command: word;
+    Command: Word;
   begin
   if Enable then
     State := State or AState
@@ -1418,7 +1423,7 @@ procedure TView.SizeLimits(var Min, Max: TPoint);
 
 procedure TView.Store(var S: TStream);
   var
-    SaveState: word;
+    SaveState: Word;
   begin
   SaveState := State;
   State := State and not (sfActive+sfSelected+sfFocused+sfExposed);
@@ -1444,7 +1449,7 @@ function TView.TopView: PView;
     TopView := TheTopView;
   end;
 
-function TView.Valid(Command: word): Boolean;
+function TView.Valid(Command: Word): Boolean;
   begin
   Valid := True;
   end;
@@ -1458,7 +1463,7 @@ constructor TFrame.Init(var Bounds: TRect);
   EventMask := EventMask or evBroadcast;
   end;
 
-procedure TFrame.FrameLine(var FrameBuf; Y, N: integer;
+procedure TFrame.FrameLine(var FrameBuf; Y, N: Integer;
     Color: Byte);
   const
     InitFrame: array[0..17] of Byte =
@@ -1469,7 +1474,7 @@ procedure TFrame.FrameLine(var FrameBuf; Y, N: integer;
     ;
   var
     FrameMask: array[0..MaxViewWidth-1] of Byte;
-    ColorMask: word;
+    ColorMask: Word;
     i, j, k: LongInt;
     CurrView: PView;
   begin
@@ -1527,8 +1532,8 @@ procedure TFrame.FrameLine(var FrameBuf; Y, N: integer;
 
 procedure TFrame.Draw;
   var
-    CFrame, CTitle: word;
-    F, I, L, Width: integer;
+    CFrame, CTitle: Word;
+    F, I, L, Width: Integer;
     B: TDrawBuffer;
     Title: TTitleStr;
     Min, Max: TPoint;
@@ -1665,7 +1670,7 @@ procedure TFrame.HandleEvent(var Event: TEvent);
     end;
   end { TFrame.HandleEvent };
 
-procedure TFrame.SetState(AState: word; Enable: Boolean);
+procedure TFrame.SetState(AState: Word; Enable: Boolean);
   begin
   TView.SetState(AState, Enable);
   if AState and (sfActive+sfDragging) <> 0 then
@@ -1921,7 +1926,7 @@ procedure TScrollBar.HandleEvent(var Event: TEvent);
             kbEnd, kbShiftEnd:
               I := Max;
             else {case}
-              exit;
+              Exit;
           end
         else
           case {CtrlToArrow}(Event.KeyCode) of
@@ -1938,7 +1943,7 @@ procedure TScrollBar.HandleEvent(var Event: TEvent);
             kbCtrlPgDn, kbCtrlShiftPgDn:
               I := Max;
             else {case}
-              exit;
+              Exit;
           end {case};
         Clicked;
         if ClickPart <> sbIndicator then
@@ -2148,9 +2153,9 @@ procedure TGroup.ChangeBounds(var Bounds: TRect);
     end;
   end { TGroup.ChangeBounds };
 
-function TGroup.DataSize: word;
+function TGroup.DataSize: Word;
   var
-    T: word;
+    T: Word;
 
   procedure AddSubviewDataSize(P: PView);
     begin
@@ -2165,7 +2170,7 @@ function TGroup.DataSize: word;
 
 procedure TGroup.Delete(P: PView);
   var
-    SaveState: word;
+    SaveState: Word;
   begin
   SaveState := P^.State;
   P^.Hide;
@@ -2209,7 +2214,7 @@ procedure TGroup.DrawSubViews(P, Bottom: PView);
     end;
   end;
 
-procedure TGroup.EndModal(Command: word);
+procedure TGroup.EndModal(Command: Word);
   begin
   if State and sfModal <> 0 then
     EndState := Command
@@ -2223,27 +2228,30 @@ procedure TGroup.EventError(var Event: TEvent);
     Owner^.EventError(Event);
   end;
 
-function TGroup.Execute: word;
+function TGroup.Execute: Word;
   var
     E: TEvent;
   begin
   repeat
     EndState := 0;
     repeat
-      TinySlice; {AK155}
       GetEvent(E);
-      if E.What <> evNothing then
+      if E.What = evNothing then
+        TinySlice {AK155}
+      else
+        begin
         HandleEvent(E);
-      if E.What <> evNothing then
-        EventError(E);
+        if E.What <> evNothing then
+          EventError(E);
+        end;
     until EndState <> 0;
   until Valid(EndState);
   Execute := EndState;
   end;
 
-function TGroup.ExecView(P: PView): word;
+function TGroup.ExecView(P: PView): Word;
   var
-    SaveOptions: word;
+    SaveOptions: Word;
     SaveOwner: PGroup;
     SaveTopView: PView;
     SaveCurrent: PView;
@@ -2261,6 +2269,7 @@ function TGroup.ExecView(P: PView): word;
     TheTopView := P;
     P^.Options := P^.Options and not ofSelectable;
     P^.SetState(sfModal, True);
+    Inc(ModalCount);
     SetCurrent(P, EnterSelect);
     if SaveOwner = nil then
       Insert(P);
@@ -2268,6 +2277,7 @@ function TGroup.ExecView(P: PView): word;
     if SaveOwner = nil then
       Delete(P);
     SetCurrent(SaveCurrent, LeaveSelect);
+    Dec(ModalCount);
     P^.SetState(sfModal, False);
     P^.Options := SaveOptions;
     P := Current;
@@ -2296,7 +2306,7 @@ function TGroup.First: PView;
     First := Last^.Next;
   end;
 
-function TGroup.FirstMatch(AState: word; AOptions: word): PView;
+function TGroup.FirstMatch(AState: Word; AOptions: Word): PView;
 
   function Matches(P: PView): Boolean;
     begin
@@ -2468,7 +2478,7 @@ end; {/AK155}
       type
         Bytes = array[0..65534] of Byte;
       var
-        I: word;
+        I: Word;
         V: PView;
       begin
       I := 0;
@@ -2483,9 +2493,9 @@ end; {/AK155}
         end;
       end;
 
-    function TGroup.GetHelpCtx: word;
+    function TGroup.GetHelpCtx: Word;
       var
-        H: word;
+        H: Word;
       begin
       H := hcNoContext;
       if Current <> nil then
@@ -2497,9 +2507,9 @@ end; {/AK155}
 
     procedure TGroup.GetSubViewPtr(var S: TStream; var P);
       var
-        Index: word;
+        Index: Word;
       begin
-      S.Read(Index, SizeOf(word));
+      S.Read(Index, SizeOf(Word));
       if  (Index > 0) and (S.Status = stOK) then
         {Cat: добавил проверку статуса}
         Pointer(P) := At(Index)
@@ -2554,19 +2564,19 @@ end;
         if  (P = nil) or ((P^.State and sfDisabled <> 0) and
               (Event.What and (PositionalEvents or FocusedEvents) <> 0))
         then
-          exit;
+          Exit;
         case Phase of
           phPreProcess:
             if P^.Options and ofPreProcess = 0 then
-              exit;
+              Exit;
           phPostProcess:
             if P^.Options and ofPostProcess = 0 then
-              exit;
+              Exit;
         end {case};
         if  (Event.What <> evMouseMove) and
             (Event.What and P^.EventMask = 0)
         then
-          exit;
+          Exit;
         P^.HandleEvent(Event);
         DoHandleEvent := Event.What = evNothing;
         end;
@@ -2581,18 +2591,18 @@ end;
         NV: PView;
       begin { TGroup.HandleEvent }
       if Event.What and EventMask = 0 then
-        exit; { Fixed 05.22.95 }
+        Exit; { Fixed 05.22.95 }
       TView.HandleEvent(Event);
       if Event.What and FocusedEvents <> 0 then
         begin
         Phase := phPreProcess;
         FirstThat(@DoHandleEvent);
         if Event.What = evNothing then
-          exit;
+          Exit;
         Phase := phFocused;
         DoHandleEvent(Current);
         if Event.What = evNothing then
-          exit;
+          Exit;
         Phase := phPostProcess;
         FirstThat(@DoHandleEvent);
         end
@@ -2632,7 +2642,7 @@ end;
 
     procedure TGroup.InsertBefore(P, Target: PView);
       var
-        SaveState: word;
+        SaveState: Word;
       begin
       if  (P <> nil) and (P^.Owner = nil) and
           ( (Target = nil) or (Target^.Owner = @Self))
@@ -2682,13 +2692,13 @@ end;
 
     procedure TGroup.PutSubViewPtr(var S: TStream; P: PView);
       var
-        Index: word;
+        Index: Word;
       begin
       if P = nil then
         Index := 0
       else
         Index := IndexOf(P);
-      S.Write(Index, SizeOf(word));
+      S.Write(Index, SizeOf(Word));
       end;
 
     procedure TGroup.Redraw;
@@ -2714,11 +2724,11 @@ end;
                 Last := nil
               else
                 Last := cur;
-              break
+              Break
               end;
             end;
           if cur^.Next = Last then
-            break;
+            Break;
           cur := cur^.Next;
           end;
         end
@@ -2777,7 +2787,7 @@ end;
       type
         Bytes = array[0..65534] of Byte;
       var
-        I: word;
+        I: Word;
         V: PView;
       begin
       I := 0;
@@ -2792,7 +2802,7 @@ end;
         end;
       end;
 
-    procedure TGroup.SetState(AState: word; Enable: Boolean);
+    procedure TGroup.SetState(AState: Word; Enable: Boolean);
 
       procedure DoSetState(P: PView);
         begin
@@ -2857,7 +2867,7 @@ end;
         end;
       end;
 
-    function TGroup.Valid(Command: word): Boolean;
+    function TGroup.Valid(Command: Word): Boolean;
 
       function IsInvalid(P: PView): Boolean;
         begin
@@ -2879,7 +2889,7 @@ end;
     { TWindow }
 
     constructor TWindow.Init(var Bounds: TRect; const ATitle: TTitleStr;
-        ANumber: integer);
+        ANumber: Integer);
       begin
       TGroup.Init(Bounds);
       State := State or sfShadow;
@@ -2942,7 +2952,7 @@ end;
       GetPalette := @P[Palette];
       end;
 
-    function TWindow.GetTitle(MaxSize: integer): TTitleStr;
+    function TWindow.GetTitle(MaxSize: Integer): TTitleStr;
       begin
       if Title <> nil
       then
@@ -3037,7 +3047,7 @@ end;
       Frame := New(PFrame, Init(R));
       end;
 
-    procedure TWindow.SetState(AState: word; Enable: Boolean);
+    procedure TWindow.SetState(AState: Word; Enable: Boolean);
       var
         WindowCommands: TCommandSet;
       begin
@@ -3071,7 +3081,7 @@ end;
         end;
       end { TWindow.SetState };
 
-    function TWindow.StandardScrollBar(AOptions: word): PScrollBar;
+    function TWindow.StandardScrollBar(AOptions: Word): PScrollBar;
       var
         R: TRect;
         S: PScrollBar;
@@ -3155,7 +3165,7 @@ end;
 
     { Message dispatch function }
 
-    function Message(Receiver: PView; What, Command: word;
+    function Message(Receiver: PView; What, Command: Word;
          InfoPtr: Pointer): Pointer;
       var
         Event: TEvent;
@@ -3172,7 +3182,7 @@ end;
         end;
       end;
 
-    function MessageL(Receiver: PView; What, Command: word;
+    function MessageL(Receiver: PView; What, Command: Word;
          InfoLng: LongInt): Pointer;
       var
         Event: TEvent;
@@ -3198,7 +3208,7 @@ end;
     procedure RegisterToPrior(P: PView);
       begin
       if P = nil then
-        exit;
+        Exit;
       if UpdatePrior = nil then
         New(UpdatePrior, Init(10, 10));
       UpdatePrior^.AtInsert(0, P);
@@ -3207,7 +3217,7 @@ end;
     procedure RegisterToBackground(P: PView);
       begin
       if P = nil then
-        exit;
+        Exit;
       if UpdateViews = nil then
         New(UpdateViews, Init(10, 10));
       UpdateViews^.AtInsert(0, P);

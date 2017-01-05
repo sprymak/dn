@@ -14,7 +14,7 @@ Written by Cat 2:5030/1326.13
 interface
 
 uses
-  Defines, Dos, RTPatch, advance, advance1, advance7, Commands,
+  Defines, Dos, RTPatch, Advance, Advance1, Advance7, Commands,
    U_KeyMap, UFNMatch,
   xTime, Objects2, Streams, Drivers, RegExp, Collect, FilesCol, FLTools,
    Lfn,
@@ -23,6 +23,7 @@ uses
   DNUtil, UniWin, Editor, EdWin, FViewer, Calculat, FlPanelX, XDblWnd,
   Drives, FileFind, ArcView, Arvid,
   Plugin, PlugRez
+  , DblWnd
   ;
 
 type
@@ -51,7 +52,7 @@ type
   PSomeObjects3 = ^TSomeObjects3;
   TSomeObjects3 = packed record
     EventCatchers: PEventCatcherArray;
-    EventCatchersCount: integer;
+    EventCatchersCount: Integer;
     ArchiveViewers: TArchiveViewerArray;
     end;
 
@@ -106,16 +107,16 @@ type
 
   PDNFunctions = ^TDNFunctions;
   TDNFunctions = packed record
-    DN2Version: integer;
-    APIVersion: integer;
-    Reserved1: integer;
+    DN2Version: Integer;
+    APIVersion: Integer;
+    Reserved1: Integer;
     SystemVars: PSystemVars;
 
     SomeObjects1: PSomeObjects1;
     SomeObjects2: PSomeObjects2;
     SomeObjects3: PSomeObjects3;
-    Reserved2: integer;
-    Reserved3: integer;
+    Reserved2: Integer;
+    Reserved3: Integer;
 
     SpecialFunctions: PSpecialFunctions;
     TryExcept: function (Proc: TProcedure): Pointer;
@@ -128,9 +129,9 @@ type
     Evalue: function (const S: String; CCV: Pointer): CReal;
     EvalueError: ^Boolean;
 
-    DosError: function : integer;
+    DosError: function : Integer;
 
-    lFindFirst: procedure (const Path: String; Attr: word;
+    lFindFirst: procedure (const Path: String; Attr: Word;
        var R: lSearchRec);
     lFindNext: procedure (var R: lSearchRec);
     lFindClose: procedure (var R: lSearchRec);
@@ -138,7 +139,7 @@ type
     CopyFileRec: function (fr: PFileRec): PFileRec;
     CreateFileRec: function (Name: String): PFileRec;
     NewFileRec: function (const {$IFNDEF OS2}Lfn, {$ENDIF}Name: String;
-       Size: Comp; Date, CreationDate, LastAccDate: LongInt; Attr: word;
+       Size: Comp; Date, CreationDate, LastAccDate: LongInt; Attr: Word;
        AOwner: PString): PFileRec;
     DelFileRec: procedure (var fr: PFileRec);
     LoadFileRec: function (var S: TStream): PFileRec;
@@ -163,22 +164,21 @@ type
     UpStr: procedure (var S: String);
     UpLongStr: procedure (var S: LongString);
     LowStr: procedure (var S: String);
-    LowLongStr: procedure (var S: LongString);
 
     FormatStr: procedure (var Result: String; const Format: String;
        var Params);
-    MoveColor: procedure (var Buf; Num: word; Attr: Byte);
-    MoveBuf: procedure (var Dest; var Source; Attr: Byte; Count: word);
-    MoveChar: procedure (var Dest; C: Char; Attr: Byte; Count: word);
-    MoveCStr: procedure (var Dest; const Str: String; Attrs: word);
+    MoveColor: procedure (var Buf; Num: Word; Attr: Byte);
+    MoveBuf: procedure (var Dest; var Source; Attr: Byte; Count: Word);
+    MoveChar: procedure (var Dest; C: Char; Attr: Byte; Count: Word);
+    MoveCStr: procedure (var Dest; const Str: String; Attrs: Word);
     MoveStr: procedure (var Dest; const Str: String; Attr: Byte);
-    CStrLen: function (const S: String): integer;
+    CStrLen: function (const S: String): Integer;
 
-    ExecView: function (P: PView): integer;
-    Reserved4: integer;
+    ExecView: function (P: PView): Integer;
+    Reserved4: Integer;
 
     GetString: function (Index: TStrIdx): String;
-    ExecResource: function (Key: TDlgIdx; var Data): word;
+    ExecResource: function (Key: TDlgIdx; var Data): Word;
     LoadResource: function (Key: TDlgIdx): PObject;
 
     OpenRez: function (const PluginName: String): LongInt;
@@ -189,24 +189,24 @@ type
 
     NewSItem: function (const Str: String; ANext: PSItem): PSItem;
 
-    NewItem: function (Name, Param: TMenuStr; KeyCode: word;
-       Command: word; AHelpCtx: word; Next: PMenuItem): PMenuItem;
+    NewItem: function (Name, Param: TMenuStr; KeyCode: Word;
+       Command: Word; AHelpCtx: Word; Next: PMenuItem): PMenuItem;
     NewLine: function (Next: PMenuItem): PMenuItem;
-    NewSubMenu: function (Name: TMenuStr; AHelpCtx: word;
+    NewSubMenu: function (Name: TMenuStr; AHelpCtx: Word;
        SubMenu: PMenu; Next: PMenuItem): PMenuItem;
     NewMenu: function (Items: PMenuItem): PMenu;
     DisposeMenu: procedure (Menu: PMenu);
-    ExecAndDisposeMenu: function (Menu: PMenu): integer;
+    ExecAndDisposeMenu: function (Menu: PMenu): Integer;
     StoreMenuDefaults: procedure (Menu: PMenu; var S: TStream);
     LoadMenuDefaults: procedure (Menu: PMenu; var S: TStream);
-    LookUpMenu: function (Menu: PMenu; idCheckItem: word; Flags: word)
+    LookUpMenu: function (Menu: PMenu; idCheckItem: Word; Flags: Word)
     : PMenuItem;
-    MenuIndexOf: function (Menu: PMenu; idCheckItem: PMenuItem): word;
+    MenuIndexOf: function (Menu: PMenu; idCheckItem: PMenuItem): Word;
 
-    NewStatusDef: function (AMin, AMax: word; AItems: PStatusItem;
+    NewStatusDef: function (AMin, AMax: Word; AItems: PStatusItem;
        ANext: PStatusDef): PStatusDef;
-    NewStatusKey: function (const AText: String; AKeyCode: word;
-       ACommand: word; ANext: PStatusItem): PStatusItem;
+    NewStatusKey: function (const AText: String; AKeyCode: Word;
+       ACommand: Word; ANext: PStatusItem): PStatusItem;
 
     LngId: function : String;
     HelpLngId: function : String;
@@ -214,9 +214,9 @@ type
     RegisterType: procedure (var S: TStreamRec);
     ReRegisterType: procedure (var S: TStreamRec);
 
-    Message: function (Receiver: PView; What, Command: word;
+    Message: function (Receiver: PView; What, Command: Word;
        InfoPtr: Pointer): Pointer;
-    MessageL: function (Receiver: PView; What, Command: word;
+    MessageL: function (Receiver: PView; What, Command: Word;
        InfoLng: LongInt): Pointer;
 
     RegisterToPrior: procedure (P: PView);
@@ -226,51 +226,51 @@ type
 
     GetWinNumber: function : AInt;
 
-    MessageBox: function (Msg: String; Params: Pointer; AOptions: word)
-    : word;
+    MessageBox: function (Msg: String; Params: Pointer; AOptions: Word)
+    : Word;
     MessageBox2: function (Msg1, Msg2: String;
-       Params1, Params2: Pointer; AOptions: word): word;
+       Params1, Params2: Pointer; AOptions: Word): Word;
     MessageBoxRect: function (var R: TRect; Msg: String;
-       Params: Pointer; AOptions: word): word;
+       Params: Pointer; AOptions: Word): Word;
     MessageBox2Rect: function (var R: TRect; Msg1, Msg2: String;
-       Lines1: word; Params1, Params2: Pointer; AOptions: word): word;
+       Lines1: Word; Params1, Params2: Pointer; AOptions: Word): Word;
     InputBox: function (Title: String; ALabel: String; var S: String;
-       Limit: word; HistoryId: word): word;
+       Limit: Word; HistoryId: Word): Word;
     BigInputBox: function (Title: String; ALabel: String; var S: String;
-       Limit: word; HistoryId: word): word;
+       Limit: Word; HistoryId: Word): Word;
     InputBoxRect: function (var Bounds: TRect; Title: String;
-       ALabel: String; var S: String; Limit: word; HistoryId: word): word;
+       ALabel: String; var S: String; Limit: Word; HistoryId: Word): Word;
 
     GetFileNameDialog: function (Mask, Title, Name: String;
-       Buttons, HistoryId: word): String;
+       Buttons, HistoryId: Word): String;
     GetFileNameMenu: function (Path, Mask, Default: String;
        PutNumbers: Boolean; var More, None: Boolean): String;
 
-    Reserved5: integer;
-    Reserved6: integer;
+    Reserved5: Integer;
+    Reserved6: Integer;
 
     UpdateWriteView: procedure (P: Pointer);
-    GlobalMessage: function (What, Command: word; InfoPtr: Pointer)
+    GlobalMessage: function (What, Command: Word; InfoPtr: Pointer)
     : Pointer;
-    GlobalMessageL: function (What, Command: word; InfoLng: LongInt)
+    GlobalMessageL: function (What, Command: Word; InfoLng: LongInt)
     : Pointer;
-    GlobalEvent: procedure (What, Command: word; InfoPtr: Pointer);
-    ViewPresent: function (Command: word; InfoPtr: Pointer): PView;
+    GlobalEvent: procedure (What, Command: Word; InfoPtr: Pointer);
+    ViewPresent: function (Command: Word; InfoPtr: Pointer): PView;
     WriteMsg: function (Text: String): PView;
     ForceWriteShow: procedure (P: Pointer);
     ToggleCommandLine: procedure (OnOff: Boolean);
     AdjustToDesktopSize: procedure (var R: TRect; OldDeskSize: TPoint);
 
-    Reserved7: integer;
-    Reserved8: integer;
+    Reserved7: Integer;
+    Reserved8: Integer;
 
     HistoryAdd: procedure (Id: Byte; const Str: String);
-    HistoryCount: function (Id: Byte): word;
-    HistoryStr: function (Id: Byte; Index: integer): String;
-    DeleteHistoryStr: procedure (Id: Byte; Index: integer);
+    HistoryCount: function (Id: Byte): Word;
+    HistoryStr: function (Id: Byte; Index: Integer): String;
+    DeleteHistoryStr: procedure (Id: Byte; Index: Integer);
 
-    Reserved9: integer;
-    Reserved10: integer;
+    Reserved9: Integer;
+    Reserved10: Integer;
 
     GetMouseEvent: procedure (var Event: TEvent);
     GetKeyEvent: procedure (var Event: TEvent);
@@ -278,7 +278,7 @@ type
     DispWhileViewEvents: procedure (InfoView: PWhileView;
        var CancelParam: Boolean);
 
-    Reserved11: integer;
+    Reserved11: Integer;
 
     SetTitle: procedure (Text: String);
 
@@ -290,13 +290,11 @@ type
     CopyLines2Stream: procedure (PC: PCollection; var PCS: PStream);
     CopyStream2Lines: procedure (PCS: PStream; var PC: PCollection);
 
-    NewTimerSecs: procedure (var ET: TEventTimer; Secs: LongInt);
     NewTimer: procedure (var ET: TEventTimer; Tics: LongInt);
     TimerExpired: function (ET: TEventTimer): Boolean;
     ElapsedTime: function (ET: TEventTimer): LongInt;
-    ElapsedTimeInSecs: function (ET: TEventTimer): LongInt;
 
-    GetPossibleDizOwner: function (n: integer): String;
+    GetPossibleDizOwner: function (n: Integer): String;
     GetDizOwner: function (const Path, LastOwner: String; Add: Boolean)
     : String;
     CalcDizPath: function (P: PDiz; Owen: PString): String;
@@ -307,8 +305,8 @@ type
        const Name: String): String;
     SetDescription: procedure (PF: PFileRec; DizOwner: String);
 
-    Reserved12: integer;
-    Reserved13: integer;
+    Reserved12: Integer;
+    Reserved13: Integer;
 
     SelectFiles: function (AFP: Pointer; Select, XORs: Boolean): Boolean;
     InvertSelection: procedure (AFP: Pointer; dr: Boolean);
@@ -321,7 +319,7 @@ type
     CM_CompareDirs: procedure (AFP, IP: Pointer);
     CM_CopyFiles: procedure (AFP: Pointer; MoveMode, Single: Boolean);
     CM_CopyTemp: procedure (AFP: Pointer);
-    CM_DragDropper: procedure (AFP: Pointer; CurPos: integer; EV: Pointer);
+    CM_DragDropper: procedure (AFP: Pointer; CurPos: Integer; EV: Pointer);
     CM_Dropped: procedure (AFP, EI: Pointer);
     CM_EraseFiles: procedure (AFP: Pointer; Single: Boolean);
     CM_LongCopy: procedure (AFP: Pointer);
@@ -331,15 +329,15 @@ type
     CM_RenameSingleDialog: procedure (AFP, PEV: Pointer);
     CM_SelectColumn: procedure (AFP: Pointer);
     CM_SetAttributes: procedure (AFP: Pointer; Single: Boolean;
-       CurPos: integer);
+       CurPos: Integer);
     CM_SetShowParms: procedure (AFP: Pointer);
     CM_SortBy: procedure (AFP: Pointer);
     CM_ToggleLongNames: procedure (AFP: Pointer);
     CM_ToggleShowMode: procedure (AFP: Pointer);
     CM_ToggleDescriptions: procedure (AFP: Pointer);
 
-    Reserved14: integer;
-    Reserved15: integer;
+    Reserved14: Integer;
+    Reserved15: Integer;
 
     ExecString: procedure (S: PString; WS: String);
     SearchExt: function (FileRec: PFileRec; var HS: String): Boolean;
@@ -348,12 +346,12 @@ type
     ExecFile: procedure (const FileName: String);
     AnsiExec: procedure (const Path: String; const ComLine: AnsiString);
 
-    Reserved16: integer;
-    Reserved17: integer;
+    Reserved16: Integer;
+    Reserved17: Integer;
 
-    SelectDrive: function (X, Y: integer; Default: Char;
+    SelectDrive: function (X, Y: Integer; Default: Char;
        IncludeTemp: Boolean): String;
-    GetFileType: function (const S: String; Attr: Byte): integer;
+    GetFileType: function (const S: String; Attr: Byte): Integer;
     DosReread: procedure (Files: PFilesCollection);
 
     FnMatch: function (Pattern, Str: String): Boolean;
@@ -372,10 +370,10 @@ type
     end;
 
 function TryExcept(Proc: TProcedure): Pointer;
-function DosError: integer;
-function ExecView(P: PView): integer;
-function ExecAndDisposeMenu(Menu: PMenu): integer;
-function NewStatusDef(AMin, AMax: word; AItems: PStatusItem;
+function DosError: Integer;
+function ExecView(P: PView): Integer;
+function ExecAndDisposeMenu(Menu: PMenu): Integer;
+function NewStatusDef(AMin, AMax: Word; AItems: PStatusItem;
      ANext: PStatusDef): PStatusDef;
 function GetActivePanel: Pointer;
 function GetPassivePanel: Pointer;
@@ -415,7 +413,7 @@ const
       ReallocMem: SysReallocMem
       );
 
-    TinySlice: advance.TinySlice;
+    TinySlice: Advance.TinySlice;
 
     Evalue: Calculat.Evalue;
     EvalueError: @Calculat.EvalueError;
@@ -440,17 +438,16 @@ const
     GetSelection: FLTools.GetSelection;
     ClearSelection: ClearSelection;
 
-    NewStr: advance1.NewStr;
-    NewLongStr: advance1.NewLongStr;
-    DisposeStr: advance1.DisposeStr;
-    DisposeLongStr: advance1.DisposeLongStr;
-    CnvString: advance1.CnvString;
-    CnvLongString: advance1.CnvLongString;
+    NewStr: Advance1.NewStr;
+    NewLongStr: Advance1.NewLongStr;
+    DisposeStr: Advance1.DisposeStr;
+    DisposeLongStr: Advance1.DisposeLongStr;
+    CnvString: Advance1.CnvString;
+    CnvLongString: Advance1.CnvLongString;
 
-    UpStr: advance1.UpStr;
-    UpLongStr: advance1.UpLongStr;
-    LowStr: advance1.LowStr;
-    LowLongStr: advance1.LowLongStr;
+    UpStr: Advance1.UpStr;
+    UpLongStr: Advance1.UpLongStr;
+    LowStr: Advance1.LowStr;
 
     FormatStr: Drivers.FormatStr;
     MoveColor: Drivers.MoveColor;
@@ -489,8 +486,8 @@ const
     NewStatusDef: NewStatusDef;
     NewStatusKey: Menus.NewStatusKey;
 
-    LngId: advance7.LngId;
-    HelpLngId: advance7.HelpLngId;
+    LngId: Advance7.LngId;
+    HelpLngId: Advance7.HelpLngId;
 
     RegisterType: Streams.RegisterType;
     ReRegisterType: Streams.ReRegisterType;
@@ -557,11 +554,9 @@ const
     CopyLines2Stream: WinClp.CopyLines2Stream;
     CopyStream2Lines: WinClp.CopyStream2Lines;
 
-    NewTimerSecs: xTime.NewTimerSecs;
     NewTimer: xTime.NewTimer;
     TimerExpired: xTime.TimerExpired;
     ElapsedTime: xTime.ElapsedTime;
-    ElapsedTimeInSecs: xTime.ElapsedTimeInSecs;
 
     GetPossibleDizOwner: Filediz.GetPossibleDizOwner;
     GetDizOwner: Filediz.GetDizOwner;
@@ -1105,7 +1100,6 @@ type
     LimitX: Pointer;
     LimitY: Pointer;
     StoreUndoInfo: Pointer;
-    KeyMapConvertStr: Pointer;
     KeyMapAtInsert: Pointer;
     KeyMapAtReplace: Pointer;
     end;
@@ -1154,7 +1148,6 @@ type
     Init: Pointer;
     Load: Pointer;
     Store: Pointer;
-    SetXlatFile: Pointer;
     ReadFile: Pointer;
     WriteModify: Pointer;
     Seek: Pointer;
@@ -1210,9 +1203,9 @@ type
 
   PDNMethods = ^TDNMethods;
   TDNMethods = packed record
-    RecordSize: integer;
-    Reserved1: integer;
-    Reserved2: integer;
+    RecordSize: Integer;
+    Reserved1: Integer;
+    Reserved2: Integer;
     _TEmptyObject: PTEmptyObject;
     _TObject: PTObject;
     _TRegExp: PTRegExp;
@@ -1751,7 +1744,6 @@ const
     LimitX: @TXFileEditor.LimitX;
     LimitY: @TXFileEditor.LimitY;
     StoreUndoInfo: @TXFileEditor.StoreUndoInfo;
-    KeyMapConvertStr: @TXFileEditor.KeyMapConvertStr;
     KeyMapAtInsert: @TXFileEditor.KeyMapAtInsert;
     KeyMapAtReplace: @TXFileEditor.KeyMapAtReplace
     );
@@ -1800,7 +1792,6 @@ const
     Init: @TFileViewer.Init;
     Load: @TFileViewer.Load;
     Store: @TFileViewer.Store;
-    SetXlatFile: @TFileViewer.SetXlatFile;
     ReadFile: @TFileViewer.ReadFile;
     WriteModify: @TFileViewer.WriteModify;
     Seek: @TFileViewer.Seek;
@@ -1938,17 +1929,17 @@ function TryExcept(Proc: TProcedure): Pointer;
   end;
   end;
 
-function DosError: integer;
+function DosError: Integer;
   begin
   DosError := Dos.DosError;
   end;
 
-function ExecView(P: PView): integer;
+function ExecView(P: PView): Integer;
   begin
   ExecView := Desktop^.ExecView(P);
   end;
 
-function ExecAndDisposeMenu(Menu: PMenu): integer;
+function ExecAndDisposeMenu(Menu: PMenu): Integer;
   var
     R: TRect;
     MenuBox: PMenuBox;
@@ -1960,7 +1951,7 @@ function ExecAndDisposeMenu(Menu: PMenu): integer;
   Dispose(MenuBox, Done);
   end;
 
-function NewStatusDef(AMin, AMax: word; AItems: PStatusItem;
+function NewStatusDef(AMin, AMax: Word; AItems: PStatusItem;
      ANext: PStatusDef): PStatusDef;
   type
     PBuffer = ^TBuffer;
@@ -1979,15 +1970,15 @@ function NewStatusDef(AMin, AMax: word; AItems: PStatusItem;
       begin
       if  (PP^^.Min = 0) and (PP^^.Max = $FFFF) then
         begin
-        for I := $FFFF DownTo 0 do
+        for I := $FFFF downto 0 do
           if not Buffer^[I] then
             begin
             PP^:= Menus.NewStatusDef(I, I, AItems, PP^);
             NewStatusDef := Pointer(I);
-            break;
+            Break;
             end;
         Dispose(Buffer);
-        exit;
+        Exit;
         end
       else
         for I := PP^^.Min to PP^^.Max do
@@ -2004,41 +1995,44 @@ function NewStatusDef(AMin, AMax: word; AItems: PStatusItem;
 
 function GetActivePanel: Pointer;
   var
-    P: Pointer;
-    PX: PXDoubleWindow absolute P;
+    PX: PXDoubleWindow;
+    P: PView{PFilePanel};
+    i: TPanelNum;
   begin
-  P := Desktop^.Current;
+  PX := Pointer(Desktop^.Current);
+  Result := nil;
   if TypeOf(PX^) = TypeOf(TXDoubleWindow) then
     with PX^ do
-      if LPanel^.GetState(sfSelected) then
-        GetActivePanel := LPanel
-      else if RPanel^.GetState(sfSelected) then
-        GetActivePanel := RPanel
-      else
-        GetActivePanel := nil
-    else
-      GetActivePanel := nil;
+      for i := pLeft to pRight do
+        begin
+        P := Panel[i].FilePanel;
+        if P^.GetState(sfSelected) then
+          begin
+          Result := P;
+          Exit;
+          end;
+        end;
   end;
 
 function GetPassivePanel: Pointer;
   var
-    P: Pointer;
-    PX: PXDoubleWindow absolute P;
+    PX: PXDoubleWindow;
+    P: PView{PFilePanel};
+    i: TPanelNum;
   begin
-  P := Desktop^.Current;
+  PX := Pointer(Desktop^.Current);
+  Result := nil;
   if TypeOf(PX^) = TypeOf(TXDoubleWindow) then
     with PX^ do
-      if not LPanel^.GetState(sfSelected) then
-        if RPanel^.GetState(sfSelected) then
-          GetPassivePanel := LPanel
-        else
-          GetPassivePanel := nil
-      else if not RPanel^.GetState(sfSelected) then
-        GetPassivePanel := RPanel
-      else
-        GetPassivePanel := nil
-    else
-      GetPassivePanel := nil;
+      for i := pLeft to pRight do
+        begin
+        P := Panel[i].FilePanel;
+        if P^.GetState(sfSelected) then
+          begin
+          Result := Panel[not i].FilePanel;
+          Exit;
+          end;
+        end;
   end;
 
 function OpenRezX(const PluginName: String): LongInt;

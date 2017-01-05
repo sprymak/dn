@@ -49,11 +49,11 @@ unit ArchSet;
 
 interface
 uses
-  Archiver, Defines, advance, Startup, ArchDet, Dialogs, Views, Menus,
-  DNApp, advance1, Commands, Drivers, profile
+  Archiver, Defines, Advance, Startup, ArchDet, Dialogs, Views, Menus,
+  DNApp, Advance1, Commands, Drivers, profile
   ;
 
-procedure SetupArchive(ArchCommand: word);
+procedure SetupArchive(ArchCommand: Word);
 procedure UpdateARH(Arch: PARJArchive);
 
 implementation
@@ -64,7 +64,7 @@ uses
 
 procedure UpdateARH(Arch: PARJArchive);
   var
-    J: word;
+    J: Word;
     A: PARJArchive;
     P: PView;
   begin
@@ -94,7 +94,7 @@ procedure SetupArchive;
     P: PView;
     R: TRect;
     Arch: PARJArchive;
-    W: word;
+    W: Word;
 
     DT: record
       Pack: String; {Inputline}
@@ -122,25 +122,26 @@ procedure SetupArchive;
       MaxC: String[20]; {Inputline}
       CList: String[6]; {Inputline}
       EList: String[6]; {Inputline}
-      AllVersion: word; {Checkbox}
+      AllVersion: Word; {Checkbox}
       {AK155}
-      PutDirs: word; {Checkbox}
+      PutDirs: Word; {Checkbox}
       {JO}
       {$IFDEF OS_DOS}
-      Swap: word; {Checkbox}
+      Swap: Word; {Checkbox}
       {$ELSE}
-      ShortCmdLine: word; {Checkbox}
+      ShortCmdLine: Word; {Checkbox}
       {JO}
       {$ENDIF}
       {$IFNDEF OS2}
-      UseLFN: word; {Checkbox}
+      UseLFN: Word; {Checkbox}
       {нужен в DOS и W32-версиях}
       {$ENDIF}
       end;
 
-  function ArcName(ArcT: word): String;
+  function ArcName(ArcT: Word): String;
     var
       S: String;
+      FreeByte: byte;
     begin
     S := fReplace('~', '', CnvString(LookUpMenu(MenuBar^.Menu, ArcT,
              dfByCommand)^.Name));
@@ -166,7 +167,7 @@ procedure SetupArchive;
     Dec(ArchCommand, cmLoConfigArchiver);
   Arch := GetArchiveByTag(ArchCommand);
   if Arch = nil then
-    exit;
+    Exit;
   with Arch^ do
     begin
     DT.Pack := CnvString(Packer);
@@ -194,15 +195,15 @@ procedure SetupArchive;
     DT.MaxC := CnvString(UltraCompression);
     DT.CList := CnvString(ComprListChar);
     DT.EList := CnvString(ExtrListChar);
-    DT.AllVersion := word(AllVersion);
-    DT.PutDirs := word(PutDirs);
+    DT.AllVersion := Word(AllVersion);
+    DT.PutDirs := Word(PutDirs);
     {$IFDEF OS_DOS}
-    DT.Swap := word(Swap);
+    DT.Swap := Word(Swap);
     {$ELSE}
-    DT.ShortCmdLine := word(ShortCmdLine);
+    DT.ShortCmdLine := Word(ShortCmdLine);
     {$ENDIF}
     {$IFNDEF OS2}
-    DT.UseLFN := word(UseLFN);
+    DT.UseLFN := Word(UseLFN);
     {$ENDIF}
     end;
   D := PDialog(Application^.ValidView(PDialog(LoadResource(dlgSetupArc))));

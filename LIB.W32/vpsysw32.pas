@@ -122,8 +122,6 @@ const
   pKbdInit : TKbdInit = VpKbdW32.KbdInit; {Cat}
   pKbdUpdateEventQueues : TKbdUpdateEventQueues = VpKbdW32.KbdUpdateEventQueues; {Cat}
 
-  GetDiskFreeSpaceEx: function(Drive: PChar; var AvailableForCaller, Total, Free): LongBool stdcall = nil; {Cat}
-
 {&StdCall+}
 const
   // Function pointer to GetDiskFreeSpaceEx function, available in
@@ -841,8 +839,9 @@ var
   SectorsPerCluster, BytesPerSector, FreeClusters, TotalClusters: DWord;
   AvailableForCaller, Total, Free: TQuad;
 begin
-  if Assigned(GetDiskFreeSpaceEx) then
-     if GetDiskFreeSpaceEx(Path, AvailableForCaller, Total, Free) then
+  LoadOSR2Functions;
+  if Assigned(pGetDiskFreeSpaceEx) then
+     if pGetDiskFreeSpaceEx(Path, AvailableForCaller, Total, @Free) then
        Result := Free
      else
        Result := -1
@@ -858,8 +857,9 @@ var
   SectorsPerCluster, BytesPerSector, FreeClusters, TotalClusters: DWord;
   AvailableForCaller, Total, Free: TQuad;
 begin
-  if Assigned(GetDiskFreeSpaceEx) then
-     if GetDiskFreeSpaceEx(Path, AvailableForCaller, Total, Free) then
+  LoadOSR2Functions;
+  if Assigned(pGetDiskFreeSpaceEx) then
+     if pGetDiskFreeSpaceEx(Path, AvailableForCaller, Total, @Free) then
        Result := Total
      else
        Result := -1
@@ -929,9 +929,6 @@ begin
     FileTimeToDosDateTime(LocalFileTime, TDateTimeRec(Time).FDate, TDateTimeRec(Time).FTime);
     Size := FindData.nFileSizeLow;
     Attr := FindData.dwFileAttributes;
-    // Convert filename to OEM character set
-    if RecodeAnsiNames then                         {JO}
-      CharToOem(FindData.cFileName, FindData.cFileName);
     if IsPChar then
       StrCopy(PChar(@Name), FindData.cFileName)
     else
@@ -2304,6 +2301,11 @@ begin
   Result := 'C';
 end;
 
+//JO: 24-06-2004 - the function is changed to determine
+//    the drive type without access to this drive (using DosDevIOCtl)
+//JO: не рекомендуется использовать функцию SysGetDriveType
+//    в исходниках DN/2; желательно использовать вместо неё
+//    функцию GetDriveTypeNew из модуля FlTl
 function SysGetDriveType(Drive: Char): TDriveType;
 const
   Root: Array[0..4] of char = 'C:\'#0;
@@ -2340,7 +2342,8 @@ begin
         else if StrComp(FSName, 'LAN') = 0 then
           Result := dtLan
         else if StrComp(FSName, 'NOVELL') = 0 then
-          Result := dtNovellNet;
+          Result := dtNovellNet
+        else Result := dtUnknown;
       end;
 
   {KV: Данная проверка больше не нужна, так как для сетевых дисков
@@ -2757,12 +2760,6 @@ begin
   GetVersionEx(OSVersionInfo);
   SysPlatform := OSVersionInfo.dwPlatformId;
 
-  if ((OSVersionInfo.dwPlatformId = 1{Win9x}) and (OSVersionInfo.dwBuildNumber >= 1000)) {Cat:warn}
-  or (OSVersionInfo.dwPlatformId = 2{WinNT}) then
-    @GetDiskFreeSpaceEx := QueryProcAddr('GetDiskFreeSpaceExA', True)
-  else
-    @GetDiskFreeSpaceEx := nil;
-
   {WriteLn('Platform Id = ',OSVersionInfo.dwPlatformId,',  Build Number = ',OSVersionInfo.dwBuildNumber,',  GetDiskFreeSpaceExA loaded = ',Assigned(GetDiskFreeSpaceEx));}
   {/Cat}
 
@@ -2777,6 +2774,12 @@ begin
   else
     SetFileApisToAnsi;
 end;
+
+procedure SysLowInitPostTLS; {for 2.1 build 279 and later}
+  begin
+  SysLowInit;
+  end;
+
 {$IFDEF B243}{JO: in VP 2.1 build 274 SysLowInit called in System unit}
 begin
  SysLowInit;

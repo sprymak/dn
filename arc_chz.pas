@@ -50,7 +50,7 @@ unit arc_CHZ; {CHZ}
 interface
 
 uses
-  Archiver, advance, advance1, Defines, Objects2, Streams
+  Archiver, Advance, Advance1, Defines, Objects2, Streams
   ;
 
 type
@@ -87,9 +87,8 @@ constructor TCHZArchive.Init;
   Sign := Sign+#0;
   FreeStr := SourceDir+DNARC;
   TObject.Init;
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'CHARC.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,
-       'CHARC.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'CHARC'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'CHARC'));
   Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, '-E'));
   ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, '-E'));
   Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, '-A -T'));
@@ -165,14 +164,14 @@ procedure TCHZArchive.GetFile;
   if FP = ArcFile^.GetSize then
     begin
     FileInfo.Last := 1;
-    exit;
+    Exit;
     end;
   ArcFile^.Read(P, 4);
   if  (ArcFile^.Status <> stOK) or (Copy(P.Id, 1, 3) <> 'SCh')
   then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   if P.Id[4] = 'D' then
     begin
@@ -196,7 +195,7 @@ procedure TCHZArchive.GetFile;
   if  (ArcFile^.Status <> stOK) then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
   FileInfo.Last := 0;

@@ -50,7 +50,7 @@ unit arc_ARC; {ARC}
 interface
 
 uses
-  Archiver, advance, advance1, Defines, Objects2, Streams
+  Archiver, Advance, Advance1, Defines, Objects2, Streams
   ;
 
 type
@@ -87,8 +87,8 @@ constructor TARCArchive.Init;
   Sign := Sign+#0;
   FreeStr := SourceDir+DNARC;
   TObject.Init;
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'PAK.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'PAK.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'PAK'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'PAK'));
   Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'E'));
   ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, 'E /WA'));
   Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'A'));
@@ -163,12 +163,12 @@ procedure TARCArchive.GetFile;
   if  (P.Version = 0) then
     begin
     FileInfo.Last := 1;
-    exit;
+    Exit;
     end;
   if  (ArcFile^.Status <> stOK) then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   i := 1;
   FileInfo.FName := '';

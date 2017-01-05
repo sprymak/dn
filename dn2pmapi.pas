@@ -26,7 +26,7 @@ var
      Flag: Boolean): Boolean;
   DN_WinCreateObject: function (pszClassName: PChar; pszTitle: PChar;
      pszSetupString: PChar; pszLocation: PChar): lHandle;
-  DN_WinSetTitleAndIcon: function (szTitle, szIconPath: PChar): integer;
+  DN_WinSetTitleAndIcon: function (szTitle, szIconPath: PChar): Integer;
   DN_IsBGWindow: function : Boolean;
   DN_XSetTitle: procedure (Title: String);
   DN_XClipCopy: function (P: PChar; Size: LongInt): Boolean;
@@ -40,7 +40,7 @@ var
 implementation
 
 uses
-  Commands, advance, DNApp, Strings, Messages, VpSysLow
+  Commands, Advance, DNApp, Strings, Messages, VpSysLow
   ;
 
 var
@@ -68,7 +68,7 @@ function Fake_WinCreateObject(pszClassName: PChar; pszTitle: PChar;
      mfError+mfOKButton);
   end;
 
-function Fake_WinSetTitleAndIcon(szTitle, szIconPath: PChar): integer;
+function Fake_WinSetTitleAndIcon(szTitle, szIconPath: PChar): Integer;
   begin
   Result := 0;
   end;
@@ -155,7 +155,7 @@ procedure Init;
 
   begin { Init }
   if Initialized then
-    exit;
+    Exit;
   Initialized := True;
 
   SetFakeProcs; { на случай любых неурядиц }
@@ -171,7 +171,7 @@ procedure Init;
     begin
     Writeln('Cannot load module '+S);
     SetFakeProcs;
-    exit;
+    Exit;
     end;
 
   if  (DosQueryProcAddr(
@@ -184,14 +184,14 @@ procedure Init;
     begin
     Writeln('Cannot load module '+S);
     SetFakeProcs;
-    exit;
+    Exit;
     end;
 
   if DN_XCheckPM <= 1 then
     begin
     Writeln('Cannot find Presentation Manager');
     SetFakeProcs;
-    exit;
+    Exit;
     end;
   PMWindowed := (DN_XCheckPM = 3);
   if PMWindowed then

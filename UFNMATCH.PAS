@@ -76,7 +76,7 @@ function FnMatchFunc(Pattern, Str: String; AllLiters: Boolean): Boolean;
     if c = '"' then
       begin
       AllLiters := not AllLiters;
-      continue;
+      Continue;
       end;
 
     case (c) of
@@ -84,7 +84,7 @@ function FnMatchFunc(Pattern, Str: String; AllLiters: Boolean): Boolean;
         if  (n > Length(Str)) then
           begin
           FnMatchFunc := False;
-          exit;
+          Exit;
           end;
       {-------------------------------------------------------}
       '*':
@@ -98,7 +98,7 @@ function FnMatchFunc(Pattern, Str: String; AllLiters: Boolean): Boolean;
           if  (c = '?') and (n > Length(Str)) then
             begin
             FnMatchFunc := False;
-            exit;
+            Exit;
             end;
           c := Pattern[p];
           Inc(p);
@@ -107,7 +107,7 @@ function FnMatchFunc(Pattern, Str: String; AllLiters: Boolean): Boolean;
         if p-1 > Length(Pattern) then
           begin
           FnMatchFunc := True;
-          exit;
+          Exit;
           end;
 
         c1 := c;
@@ -120,12 +120,12 @@ function FnMatchFunc(Pattern, Str: String; AllLiters: Boolean): Boolean;
           then
             begin
             FnMatchFunc := True;
-            exit;
+            Exit;
             end;
           Inc(n);
           end;
         FnMatchFunc := False;
-        exit;
+        Exit;
         end;
       {-------------------------------------------------------}
       '[':
@@ -135,7 +135,7 @@ function FnMatchFunc(Pattern, Str: String; AllLiters: Boolean): Boolean;
         if n > Length(Str) then
           begin
           FnMatchFunc := False;
-          exit;
+          Exit;
           end;
         nt := Pattern[p] = '^';
         if nt then
@@ -149,7 +149,7 @@ function FnMatchFunc(Pattern, Str: String; AllLiters: Boolean): Boolean;
           if p > Length(Pattern) then
             begin
             FnMatchFunc := False;
-            exit;
+            Exit;
             end;
           c := Pattern[p];
           Inc(p);
@@ -160,13 +160,13 @@ function FnMatchFunc(Pattern, Str: String; AllLiters: Boolean): Boolean;
             if p > Length(Pattern) then
               begin
               FnMatchFunc := False;
-              exit;
+              Exit;
               end;
             c := Pattern[p];
             Inc(p);
             end;
           if  (Str[n] >= cstart) and (Str[n] <= cend) then
-            break;
+            Break;
         until c = ']';
 
         if not ((Str[n] >= cstart) and (Str[n] <= cend)) then
@@ -174,7 +174,7 @@ function FnMatchFunc(Pattern, Str: String; AllLiters: Boolean): Boolean;
           if not nt then
             begin
             FnMatchFunc := False;
-            exit;
+            Exit;
             end;
           end
         else
@@ -185,7 +185,7 @@ function FnMatchFunc(Pattern, Str: String; AllLiters: Boolean): Boolean;
             if p > Length(Pattern) then
               begin
               FnMatchFunc := False;
-              exit;
+              Exit;
               end;
             { [... (unterminated) loses.  }
             c := Pattern[p];
@@ -194,7 +194,7 @@ function FnMatchFunc(Pattern, Str: String; AllLiters: Boolean): Boolean;
           if nt then
             begin
             FnMatchFunc := False;
-            exit;
+            Exit;
             end;
           end;
         end;
@@ -205,13 +205,13 @@ Litera:
           then
             begin
             FnMatchFunc := False;
-            exit;
+            Exit;
             end
           else if Copy(Pattern, p, 255) = '*.*'
           then
             begin
             FnMatchFunc := True;
-            exit;
+            Exit;
             end;
       {checks only for '*.*', because '*' checked under Case (c) of '*'}
     end {case};
@@ -220,7 +220,7 @@ Litera:
     then
       begin
       FnMatchFunc := True;
-      exit;
+      Exit;
       end;
     Inc(n);
     end;
@@ -228,7 +228,7 @@ Litera:
   if n > Length(Str) then
     begin
     FnMatchFunc := True;
-    exit;
+    Exit;
     end;
 
   FnMatchFunc := False;

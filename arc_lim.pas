@@ -50,7 +50,7 @@ unit arc_LIM; {LIM}
 interface
 
 uses
-  Archiver, advance, advance1, Defines, Objects2, Streams, Dos
+  Archiver, Advance, Advance1, Defines, Objects2, Streams, Dos
   ;
 
 type
@@ -88,9 +88,8 @@ constructor TLIMArchive.Init;
   Sign := Sign+#0;
   FreeStr := SourceDir+DNARC;
   TObject.Init;
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'LIMIT.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,
-       'LIMIT.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'LIMIT'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'LIMIT'));
   Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'e'));
   ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, 'e -p'));
   Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'a -whs'));
@@ -183,7 +182,7 @@ procedure TLIMArchive.GetFile;
   then
     begin
     FileInfo.Last := 1;
-    exit;
+    Exit;
     end;
   if  (ArcFile^.Status = stOK) and (P.Id = $D180)
   then
@@ -195,13 +194,13 @@ procedure TLIMArchive.GetFile;
   if  (ArcFile^.Status <> stOK) or (P.Id <> $f123) then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   ArcFile^.Read(P.ThreeZeros[2], SizeOf(P)-4);
   if  (ArcFile^.Status <> stOK) then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
   FileInfo.Last := 0;

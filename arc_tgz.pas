@@ -50,8 +50,8 @@ unit arc_TGZ; {TGZ & TAZ & TAR.GZ}
 interface
 
 uses
-  Archiver, advance, advance1, Defines, Objects2, Streams, Dos, xTime,
-   advance2
+  Archiver, Advance, Advance1, Defines, Objects2, Streams, Dos, xTime,
+   Advance2
   ;
 
 type
@@ -77,8 +77,8 @@ constructor TTGZArchive.Init;
   Sign := Sign+#0;
   FreeStr := SourceDir+DNARC;
   {$IFDEF WIN32}
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, '7Z.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, '7Z.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, '7Z'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, '7Z'));
   Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'e'));
   ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, 'x'));
   Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'a -tgzip'));
@@ -114,8 +114,7 @@ constructor TTGZArchive.Init;
        '@'));
   {$ELSE}
   Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, ''));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,
-         'UNTGZOS2.EXE'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'UNTGZOS2'));
   Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, '-d'));
   ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, '-d'));
   Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, ''));
@@ -192,7 +191,7 @@ procedure TTGZArchive.GetFile;
   if ArcFile^.Eof then
     begin
     FileInfo.Last := 1;
-    exit;
+    Exit;
     end;
   GetUNIXDate(P.Time, DT.Year, DT.Month, DT.Day, DT.Hour, DT.Min, DT.Sec);
   PackTime(DT, FileInfo.Date);
@@ -221,7 +220,7 @@ procedure TTGZArchive.GetFile;
       if C <> #0 then
         FileInfo.FName := FileInfo.FName+C
       else
-        break;
+        Break;
     until ArcFile^.Status <> stOK;
     end;
   FileInfo.PSize := ArcFile^.GetSize;

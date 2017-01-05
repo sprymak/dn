@@ -55,7 +55,7 @@ uses
   fnotify,
   Dos, Defines, Objects2, Streams, Memory, Views, Drivers, DnIni,
    FilesCol, DiskInfo, {FStorage,}
-  advance, advance1, advance2, advance3, Collect
+  Advance, Advance1, Advance2, Advance3, Collect
   ;
 
 const
@@ -94,7 +94,7 @@ type
     procedure KillUse; virtual;
     procedure lChDir(ADir: String); virtual; {DataCompBoy}
     function GetDir: String; virtual; {DataCompBoy}
-    function GetDirectory(SortMode, PanelFlags: integer;
+    function GetDirectory(SortMode, PanelFlags: Integer;
          const FileMask: String;
         var FreeSpace: String; var TotalInfo: TSize): PCollection; virtual;
     procedure CopyFiles(Files: PCollection; Own: PView; MoveMode: Boolean)
@@ -102,29 +102,29 @@ type
     procedure CopyFilesInto(Files: PCollection; Own: PView;
          MoveMode: Boolean); virtual;
     procedure EraseFiles(Files: PCollection); virtual;
-    procedure UseFile(P: PFileRec; Command: word); virtual;
+    procedure UseFile(P: PFileRec; Command: Word); virtual;
     {DataCompBoy}
     procedure GetFreeSpace(var S: String); virtual;
     function Disposable: Boolean; virtual;
     function GetRealName: String; virtual;
     function GetInternalName: String; virtual;
-    procedure GetFull(var B; P: PFileRec; C, Sc: word); virtual;
+    procedure GetFull(var B; P: PFileRec; C, Sc: Word); virtual;
     {DataCompBoy}
-    procedure GetEmpty(var B; SC: word); virtual;
-    function CalcLengthWithoutName: integer; virtual;
-    function CalcLength: integer; virtual;
+    procedure GetEmpty(var B; SC: Word); virtual;
+    function CalcLengthWithoutName: Integer; virtual;
+    function CalcLength: Integer; virtual;
     procedure RereadDirectory(S: String); virtual; {DataCompBoy}
     procedure MakeTop(var S: String); virtual;
-    procedure GetDown(var B; C: word; P: PFileRec); virtual;
+    procedure GetDown(var B; C: Word; P: PFileRec); virtual;
     {DataCompBoy}
-    procedure HandleCommand(Command: word; InfoPtr: Pointer); virtual;
+    procedure HandleCommand(Command: Word; InfoPtr: Pointer); virtual;
     procedure GetDirInfo(var B: TDiskInfoRec); virtual;
     function GetRealDir: String; virtual;
     procedure MakeDir; virtual;
     function isUp: Boolean; virtual;
     procedure ChangeUp(var S: String); virtual;
     procedure ChangeRoot; virtual;
-    function GetFullFlags: word; virtual;
+    function GetFullFlags: Word; virtual;
     procedure EditDescription(PF: PFileRec); virtual; {DataCompBoy}
     procedure GetDirLength(PF: PFileRec); virtual; {DataCompBoy}
     procedure GetParam(n: Byte); virtual; {DataCompBoy}
@@ -135,12 +135,12 @@ type
 procedure RereadDirectory(Dir: String);
 function GetFilesColl(
     var TotalLen: TSize;
-    var TFiles: word;
-    PanelFlags: integer;
+    var TFiles: Word;
+    PanelFlags: Integer;
     CurDir: PString;
     const FileMask: String;
     Owner: Pointer;
-    SortMode: integer
+    SortMode: Integer
     {$IFNDEF OS2}; LFNActive: Boolean {$ENDIF}): PFilesCollection;
 
 const
@@ -149,9 +149,10 @@ const
 
 implementation
 uses
+  VPSysLow,
   Startup, Tree, DNApp, RStrings, FileCopy, Eraser, FlPanel, Commands,
   Dialogs, FileFind, FlPanelX, Filediz, CmdLine
-  , xTime, Messages
+  , xTime, Messages, Events
   ;
 
 const
@@ -170,7 +171,7 @@ type
   PDIZCol = ^TDIZCol;
   TDIZCol = object(TSortedCollection)
     procedure FreeItem(P: Pointer); virtual;
-    function Compare(P1, P2: Pointer): integer; virtual;
+    function Compare(P1, P2: Pointer): Integer; virtual;
     end;
 
 function ESC_Pressed: Boolean;
@@ -208,13 +209,13 @@ function TDIZCol.Compare;
       полного пути. Это должно повлиять в ситуациях сетевых путей, а
       также когда один диск подмонтирован к другому. Также отслеживается
       случай ошибки на диске - вместо "-1" возвращаем пустую строку.}
-procedure TDrive.GetFreeSpace;
+procedure TDrive.GetFreeSpace(var S: String);
   var
     FreeSpc: TSize;
     Buffer: array[0..255] of Char;
   begin
   Strings.StrPCopy(@Buffer, CurDir);
-  FreeSpc := VpSysLow.SysDiskFreeLongX(@Buffer);
+  FreeSpc := SysDiskFreeLongX(@Buffer);
   if FreeSpc < 0 then
     S := ''
   else
@@ -356,17 +357,17 @@ procedure TDrive.ChangeUp;
   S := GetName(CurDir);
   lChDir(MakeNormName(CurDir, '..'));
   if Abort then
-    exit;
+    Exit;
   lGetDir(0, CurDir);
   if Abort then
-    exit;
+    Exit;
   end;
 {-DataCompBoy-}
 
 {-DataCompBoy-}
 procedure TDrive.ChangeRoot;
   var
-    I: word;
+    I: Word;
     B: Boolean;
   begin
   {Cat: проверяем на сетевой путь}
@@ -379,7 +380,7 @@ procedure TDrive.ChangeRoot;
           begin
           CurDir := Copy(CurDir, 1, I-1);
           lChDir(CurDir);
-          break;
+          Break;
           end
         else
           B := True;
@@ -415,7 +416,7 @@ function TDrive.CalcLengthWithoutName;
 
 function TDrive.CalcLength;
   var
-    B: word;
+    B: Word;
   begin
   {$IFNDEF OS2}
   if Flags and psShowLongName <> 0 then
@@ -483,11 +484,11 @@ procedure TDrive.GetFull;
     S1, S2, S3: String[40];
     X: AWord;
     NFM: TNameFormatMode;
-    OPT: word;
+    OPT: Word;
     LogName: String;
     LS: Byte;
     LFNLonger250: Boolean;
-    CO: word;
+    CO: Word;
   label Longer250, Longer250_1;
   begin
   X := 0;
@@ -498,7 +499,7 @@ procedure TDrive.GetFull;
     {JO: если ширина колонки имени больше 250 символов, её показываем после остальных колонок}
 Longer250:
     begin
-    {$IFNDEF OS2}
+    {$IFDEF DualName}
     if Flags and psShowLongName <> 0 then
       begin
       S := {$IFDEF RecodeWhenDraw}CharToOemStr {$ENDIF}(P^.FlName[True]);
@@ -562,7 +563,7 @@ Longer250:
 
     if P^.Selected and (FMSetup.Show and fmsTagChar = 0) then
       S := '~'+S+'~';
-    {$IFNDEF OS2}
+    {$IFDEF DualName}
     end
   else
     begin
@@ -595,16 +596,16 @@ Longer250:
       S := '~'+S+'~';
     end;
   {$ENDIF}
-  MoveCStr(TWordArray(B)[X], S, C);
-  {$IFNDEF OS2}
+  MoveCStr(TAWordArray(B)[X], S, C);
+  {$IFDEF DualName}
   if Flags and psShowLongName <> 0 then
     {$ENDIF}Inc(X, LFNLen)
-    {$IFNDEF OS2}
+    {$IFDEF DualName}
   else
     Inc(X, 12) {$ENDIF}
     ;
   if X >= 255 then
-    exit;
+    Exit;
   {-----------}
   if LFNLonger250 then
     goto Longer250_1;
@@ -619,8 +620,8 @@ Longer250:
     end;
   Inc(X);
   if X >= 255 then
-    exit;
-  TWordArray(B)[X-1] := Sc;
+    Exit;
+  TAWordArray(B)[X-1] := Sc;
   end {условие 250 символов}
 else if P^.Selected then
   begin
@@ -658,59 +659,59 @@ else
   S3 := '';
 if Flags and psShowSize <> 0 then
   begin
-  MoveStr(TWordArray(B)[X], S, C);
+  MoveStr(TAWordArray(B)[X], S, C);
   X := X+10+CountryInfo.TimeFmt;
   if X >= 255 then
-    exit;
-  TWordArray(B)[X-1] := Sc;
+    Exit;
+  TAWordArray(B)[X-1] := Sc;
   end;
 if Flags and psShowDate <> 0 then
   begin
-  MoveStr(TWordArray(B)[X], Copy(S1, 1, 8), C);
+  MoveStr(TAWordArray(B)[X], Copy(S1, 1, 8), C);
   Inc(X, 9);
   if X >= 255 then
-    exit;
-  TWordArray(B)[X-1] := Sc;
+    Exit;
+  TAWordArray(B)[X-1] := Sc;
   end;
 if Flags and psShowTime <> 0 then
   begin
-  MoveStr(TWordArray(B)[X], Copy(S1, 10, 6-CountryInfo.TimeFmt), C);
+  MoveStr(TAWordArray(B)[X], Copy(S1, 10, 6-CountryInfo.TimeFmt), C);
   Inc(X, 7-CountryInfo.TimeFmt);
   if X >= 255 then
-    exit;
-  TWordArray(B)[X-1] := Sc;
+    Exit;
+  TAWordArray(B)[X-1] := Sc;
   end;
 if Flags and psShowCrDate <> 0 then
   begin
-  MoveStr(TWordArray(B)[X], Copy(S2, 1, 8), C);
+  MoveStr(TAWordArray(B)[X], Copy(S2, 1, 8), C);
   Inc(X, 9);
   if X >= 255 then
-    exit;
-  TWordArray(B)[X-1] := Sc;
+    Exit;
+  TAWordArray(B)[X-1] := Sc;
   end;
 if Flags and psShowCrTime <> 0 then
   begin
-  MoveStr(TWordArray(B)[X], Copy(S2, 10, 6-CountryInfo.TimeFmt), C);
+  MoveStr(TAWordArray(B)[X], Copy(S2, 10, 6-CountryInfo.TimeFmt), C);
   Inc(X, 7-CountryInfo.TimeFmt);
   if X >= 255 then
-    exit;
-  TWordArray(B)[X-1] := Sc;
+    Exit;
+  TAWordArray(B)[X-1] := Sc;
   end;
 if Flags and psShowLADate <> 0 then
   begin
-  MoveStr(TWordArray(B)[X], Copy(S3, 1, 8), C);
+  MoveStr(TAWordArray(B)[X], Copy(S3, 1, 8), C);
   Inc(X, 9);
   if X >= 255 then
-    exit;
-  TWordArray(B)[X-1] := Sc;
+    Exit;
+  TAWordArray(B)[X-1] := Sc;
   end;
 if Flags and psShowLATime <> 0 then
   begin
-  MoveStr(TWordArray(B)[X], Copy(S3, 10, 6-CountryInfo.TimeFmt), C);
+  MoveStr(TAWordArray(B)[X], Copy(S3, 10, 6-CountryInfo.TimeFmt), C);
   Inc(X, 7-CountryInfo.TimeFmt);
   if X >= 255 then
-    exit;
-  TWordArray(B)[X-1] := Sc;
+    Exit;
+  TAWordArray(B)[X-1] := Sc;
   end;
 if LFNLonger250 then
   begin
@@ -725,7 +726,7 @@ then
     S := Copy(AddSpace(CnvString(P^.DIZ^.DIZ), 255), 1, MaxViewWidth-X-1)
   else
     S := AddSpace(' ', MaxViewWidth-X-1);
-  MoveStr(TWordArray(B)[X], S, C);
+  MoveStr(TAWordArray(B)[X], S, C);
   end;
 Longer250_1:
 end;
@@ -745,8 +746,8 @@ procedure TDrive.GetEmpty;
     else
       X := 13 {$ENDIF};
     if X >= 255 then
-      exit;
-    TWordArray(B)[X-1] := SC;
+      Exit;
+    TAWordArray(B)[X-1] := SC;
     end
   else
     X := 0;
@@ -754,50 +755,50 @@ procedure TDrive.GetEmpty;
     begin
     X := X+10+CountryInfo.TimeFmt;
     if X >= 255 then
-      exit;
-    TWordArray(B)[X-1] := SC;
+      Exit;
+    TAWordArray(B)[X-1] := SC;
     end;
   if Flags and psShowDate <> 0 then
     begin
     Inc(X, 9);
     if X >= 255 then
-      exit;
-    TWordArray(B)[X-1] := SC;
+      Exit;
+    TAWordArray(B)[X-1] := SC;
     end;
   if Flags and psShowTime <> 0 then
     begin
     Inc(X, 7-CountryInfo.TimeFmt);
     if X >= 255 then
-      exit;
-    TWordArray(B)[X-1] := SC;
+      Exit;
+    TAWordArray(B)[X-1] := SC;
     end;
   if Flags and psShowCrDate <> 0 then
     begin
     Inc(X, 9);
     if X >= 255 then
-      exit;
-    TWordArray(B)[X-1] := SC;
+      Exit;
+    TAWordArray(B)[X-1] := SC;
     end;
   if Flags and psShowCrTime <> 0 then
     begin
     Inc(X, 7-CountryInfo.TimeFmt);
     if X >= 255 then
-      exit;
-    TWordArray(B)[X-1] := SC;
+      Exit;
+    TAWordArray(B)[X-1] := SC;
     end;
   if Flags and psShowLADate <> 0 then
     begin
     Inc(X, 9);
     if X >= 255 then
-      exit;
-    TWordArray(B)[X-1] := SC;
+      Exit;
+    TAWordArray(B)[X-1] := SC;
     end;
   if Flags and psShowLATime <> 0 then
     begin
     Inc(X, 7-CountryInfo.TimeFmt);
     if X >= 255 then
-      exit;
-    TWordArray(B)[X-1] := SC;
+      Exit;
+    TAWordArray(B)[X-1] := SC;
     end;
   end { TDrive.GetEmpty };
 
@@ -842,7 +843,7 @@ procedure TDrive.CopyFilesInto;
 {-DataCompBoy-}
 procedure TDrive.lChDir;
   var
-    I: word;
+    I: Word;
     S: String;
 
   function AskRetry(Drive: Char): Boolean;
@@ -858,7 +859,7 @@ procedure TDrive.lChDir;
       S: String;
       Drive: Char;
       OK: Boolean;
-      I: word;
+      I: Word;
     begin
     OK := False;
     ClrIO;
@@ -876,7 +877,7 @@ procedure TDrive.lChDir;
         if ATestDir[I] = '\' then
           begin
           OK := True;
-          break;
+          Break;
           end;
       end
     else
@@ -896,11 +897,11 @@ procedure TDrive.lChDir;
         if Abort then
           begin
           if Ask and AskRetry(Drive) then
-            continue;
+            Continue;
           end
         else
           OK := True;
-        break;
+        Break;
       until False;
       end;
     if OK then
@@ -918,11 +919,11 @@ procedure TDrive.lChDir;
           if S <> ATestDir then
             begin
             ATestDir := S;
-            continue;
+            Continue;
             end;
           OK := False;
           end;
-        break;
+        Break;
       until False;
     ClrIO;
     NeedAbort := False;
@@ -944,7 +945,7 @@ procedure TDrive.lChDir;
       NotifyAddWatcher(ADir); {Cat}
     {$ENDIF}
     CurDir := ADir;
-    exit;
+    Exit;
     end;
   if ValidPath(CurDir, False) then
     begin
@@ -953,7 +954,7 @@ procedure TDrive.lChDir;
       {JO}
       NotifyAddWatcher(CurDir); {Cat}
     {$ENDIF}
-    {CurDir:=CurDir;}exit;
+    {CurDir:=CurDir;}Exit;
     end;
   ADir := 'C:\';
   if ValidPath(ADir, False) then
@@ -964,7 +965,7 @@ procedure TDrive.lChDir;
       NotifyAddWatcher(ADir); {Cat}
     {$ENDIF}
     CurDir := ADir;
-    exit;
+    Exit;
     end;
   ADir := 'A:\';
   if ValidPath(ADir, False) then
@@ -975,7 +976,7 @@ procedure TDrive.lChDir;
       NotifyAddWatcher(ADir); {Cat}
     {$ENDIF}
     CurDir := ADir;
-    exit;
+    Exit;
     end;
   CurDir := '';
   end { TDrive.lChDir };
@@ -1088,10 +1089,10 @@ procedure ReadFileList(
     ReadNextS := False;
     repeat
       if T^.Eof then
-        exit;
+        Exit;
       S := T^.GetStr;
       if IOResult <> 0 then
-        exit;
+        Exit;
       Inc(CurLine);
       DelRight(S);
     until S <> '';
@@ -1112,13 +1113,13 @@ procedure ReadFileList(
   ClrIO;
   T := New(PTextReader, Init(MakeNormName(CurDir, FName)));
   if  (T = nil) or Abort then
-    exit;
+    Exit;
   PD := nil;
   CurLine := 0;
   if not ReadNextS then
     begin
     Dispose(T, Done);
-    exit;
+    Exit;
     end;
   while True do
     begin
@@ -1137,7 +1138,7 @@ procedure ReadFileList(
         if S[j] = '"' then
           begin
           NameEnd := j;
-          break;
+          Break;
           end;
       if NameEnd <= 2 then
         goto ReadNextLine;
@@ -1190,15 +1191,15 @@ AK155: Дочитываем многострочное описание (сколько влазит в S1).
     while True do
       begin
       if not ReadNextS then
-        break;
+        Break;
       if not (S[1] in [' ', #9, '>']) then
-        break;
+        Break;
       j := 2;
       while (j <= Length(S)) and (S[j] = ' ') do
         Inc(j);
       LS := Length(S1);
       if LS >= 253 then
-        break;
+        Break;
 
       S1 := S1+#20' '+Copy(S, j, 253-LS);
       end;
@@ -1262,7 +1263,7 @@ procedure TossDescriptions(
   for I := 1 to Files^.Count do
     begin
     P := Files^.At(I-1);
-    for iLFN := High(TUseLFN) DownTo Low(TUseLFN) do
+    for iLFN := High(TUseLFN) downto Low(TUseLFN) do
       begin
       FName := P^.FlName[iLFN];
       {if P^.Attr and (Directory+SysFile) <> 0 then LowStr(FName);}
@@ -1275,7 +1276,7 @@ procedure TossDescriptions(
         P^.DIZ^.Line := PD^.Line;
         P^.DIZ^.isDisposable := True;
         PD^.DIZ := nil;
-        break;
+        Break;
         end
       end;
     end;
@@ -1348,7 +1349,7 @@ function GetFilesColl;
         )
     then
       begin
-      P := NewFileRec(SR.FullName {$IFNDEF OS2}, SR.SR.Name {$ENDIF}
+      P := NewFileRec(SR.FullName {$IFDEF DualName}, SR.SR.Name {$ENDIF}
           , SR.FullSize, SR.SR.Time, SR.SR.CreationTime
           , SR.SR.LastAccessTime, SR.SR.Attr, CurDir);
       Inc(MemReq, SizeOf(TFileRec));
@@ -1409,7 +1410,7 @@ function GetFilesColl;
         end
       else
         L := 0;
-      {$IFNDEF OS2}
+      {$IFDEF DualName}
       Files^.AtInsert(0, NewFileRec('..', '..', L, 0, 0, 0, Directory,
            CurDir));
       {$ELSE}
@@ -1429,10 +1430,10 @@ function TDrive.GetDirectory;
     Files: PFilesCollection;
     SR: lSearchRec;
     P: PFileRec;
-    I, J: integer;
+    I, J: Integer;
     AllFiles, ShowD: Boolean;
     FreeSpc: TSize;
-    TFiles: word;
+    TFiles: Word;
     Descriptions: PDIZCol;
 
   begin
@@ -1502,7 +1503,7 @@ procedure TDrive.GetDown;
     S, S1, S2, SCreat, SLAcc: String;
   begin
   if P = nil then
-    exit;
+    Exit;
   Move(P^, FR, TFileRecFixedSize+Length(P^.FlName[True]));
   if  (FR.Attr and Directory = 0) or (FR.Attr and $8000 <> 0)
        and (FR.Size >= 0)
@@ -1538,7 +1539,7 @@ procedure TDrive.GetDown;
       end
   else
     SLAcc := '';
-  {$IFNDEF OS2}uLfn := Flags and psShowLongName <> 0;
+  {$IFDEF DualName}uLfn := Flags and psShowLongName <> 0;
   if not LFNinBottom then
     S2 := FR.FlName[uLfn xor InvLFN]
   else
@@ -1551,11 +1552,11 @@ procedure TDrive.GetDown;
     end;
   MoveStr(B, {$IFDEF RecodeWhenDraw}CharToOemStr {$ENDIF}(S2), C);
 
-  MoveStr(TWordArray(B)[22-Length(S)+CountryInfo.TimeFmt], S, C);
-  MoveStr(TWordArray(B)[23+CountryInfo.TimeFmt], S1, C);
-  MoveStr(TWordArray(B)[25+Length(S1)+CountryInfo.TimeFmt], SCreat, C);
+  MoveStr(TAWordArray(B)[22-Length(S)+CountryInfo.TimeFmt], S, C);
+  MoveStr(TAWordArray(B)[23+CountryInfo.TimeFmt], S1, C);
+  MoveStr(TAWordArray(B)[25+Length(S1)+CountryInfo.TimeFmt], SCreat, C);
   MoveStr
-    (TWordArray(B)[27+Length(S1)+Length(SCreat)+CountryInfo.TimeFmt],
+    (TAWordArray(B)[27+Length(S1)+Length(SCreat)+CountryInfo.TimeFmt],
      SLAcc, C);
   end { TDrive.GetDown };
 {-DataCompBoy-}
@@ -1594,7 +1595,7 @@ function TDrive.GetRealDir;
       if Abort then
         S := CurrentDirectory;
       NeedAbort := True;
-      advance2.lChDir(CurDir);
+      Advance2.lChDir(CurDir);
       repeat
         Abort := False;
         NeedAbort := True;
@@ -1613,11 +1614,11 @@ function TDrive.GetRealDir;
               D^.GetData(MM);
               Dispose(D, Done);
               end;
-            UpShortStr(MM.S);
+            UpStr(MM.S);
             if ValidDrive(MM.S[1]) then
               begin
               SetCurDrive(MM.S[1]);
-              break;
+              Break;
               end;
           until False;
           Abort := True;
@@ -1625,11 +1626,11 @@ function TDrive.GetRealDir;
       until not Abort;
       NeedAbort := False;
       lGetDir(0, CurDir);
-      advance2.lChDir(S);
+      Advance2.lChDir(S);
       end
     else
       begin
-      advance2.lChDir(CurDir);
+      Advance2.lChDir(CurDir);
       if not Abort then
         repeat
           Abort := False;
@@ -1649,11 +1650,11 @@ function TDrive.GetRealDir;
                 D^.GetData(MM);
                 Dispose(D, Done);
                 end;
-              UpShortStr(MM.S);
+              UpStr(MM.S);
               if ValidDrive(MM.S[1]) then
                 begin
                 SetCurDrive(MM.S[1]);
-                break;
+                Break;
                 end;
             until False;
             Abort := True;
@@ -1692,26 +1693,28 @@ procedure TDrive.GetDirLength(PF: PFileRec);
     S: String;
     I: TSize;
     J: LongInt;
-    NumDirs: integer;
+    NumDirs: Integer;
   begin
   if  (PF^.Attr and $8000 <> 0) or (PF^.Attr and Directory = 0) then
-    exit;
+    Exit;
   S := PF^.Owner^;
   if  (PF^.TType <> ttUpDir) then
     S := MakeNormName(S, PF^.FlName[True]);
   I := 1;
-  PF^.Size := CountDirLen(S, True, I, integer(J), NumDirs);
+  PF^.Size := CountDirLen(S, True, I, Integer(J), NumDirs);
   if not Abort then
     PF^.Attr := PF^.Attr or $8000;
   end;
 {-DataCompBoy-}
 
-{-DataCompBoy-}
 function TDrive.OpenDirectory(const Dir: String): PDrive;
   var
     I: LongInt;
     PI: PView;
     PDrv: PDrive;
+    DirsToProcess: PCollection;
+      { несортированная коллекция, элементы которой создаются при помощи
+      NewStr и после использования переносятся в Dirs }
     Dirs: PStringCollection;
     Files: PFilesCollection;
     P: PString;
@@ -1720,14 +1723,14 @@ function TDrive.OpenDirectory(const Dir: String): PDrive;
     MAvail: LongInt;
 
   procedure AddDirectory(S: String);
+    { добавить каталог в список для обработки }
     begin
     if MAvail <= MemReq then
-      exit;
+      Exit;
     if S[Length(S)] <> '\' then
       AddStr(S, '\');
-    S[1] := LowCase(S[1]);
-    Dirs^.Insert(NewStr(S));
-    Inc(MemReq, SizeOf(ShortString));
+    DirsToProcess^.Insert(NewStr(S));
+    Inc(MemReq, SizeOf(ShortString)); //почему 255, а не что-то+length(S)?
     end;
 
   procedure ReadDir(Dr: PString);
@@ -1744,7 +1747,7 @@ function TDrive.OpenDirectory(const Dir: String): PDrive;
         if SR.SR.Attr and Directory = 0 then
           begin
           Files^.AtInsert(Files^.Count, NewFileRec(SR.FullName,
-              {$IFNDEF OS2}
+              {$IFDEF DualName}
               SR.SR.Name,
               {$ENDIF}
               SR.FullSize,
@@ -1754,7 +1757,7 @@ function TDrive.OpenDirectory(const Dir: String): PDrive;
               SR.SR.Attr,
               Dr));
           Inc(MemReq, SizeOf(TFileRec));
-          Inc(MemReq, Length(Dr^+SR.FullName)+2);
+          Inc(MemReq, Length(Dr^)+Length(SR.FullName)+2); {<drives.001>}
           end
         else if {$IFNDEF OS2}(SR.SR.Name[1] <> '.')
              and (SR.FullName <> '.') and (SR.FullName <> '..')
@@ -1771,8 +1774,10 @@ function TDrive.OpenDirectory(const Dir: String): PDrive;
     end { ReadDir };
 
   begin { TDrive.OpenDirectory }
+  LongWorkBegin;
   NewTimer(tmr, 0);
   Dirs := New(PStringCollection, Init($10, $10, False));
+  DirsToProcess := New(PStringCollection, Init($10, $10, False));
 
   PI := WriteMsg(GetString(dlReadingList));
   New(Files, Init($10, $10));
@@ -1786,43 +1791,32 @@ function TDrive.OpenDirectory(const Dir: String): PDrive;
   MemReq := LowMemSize;
   MAvail := MaxAvail;
   AddDirectory(lFExpand(Dir));
-  I := Dirs^.Count-1;
+  I := DirsToProcess^.Count-1;
   Abort := False;
   while (I >= 0) and (not Abort) and (MAvail > MemReq) do
     begin
-    I := Dirs^.Count-1;
-    {if Files^.Count >= 2000 then Break;}
-    while (I >= 0) and (not Abort) and (MAvail > MemReq) do
+    P := DirsToProcess^.At(I);
+    DirsToProcess^.AtDelete(I);
+    Dirs^.Insert(P);
+    ReadDir(P);
+    if TimerExpired(tmr) then
       begin
-      UpdateWriteView(PI);
-      P := Dirs^.At(I);
-      if  (P^[1] >= 'a') and (P^[1] <= 'z') then
-        begin
-        P^[1] := UpCase(P^[1]);
-        Dirs^.AtDelete(I);
-        Dirs^.Insert(P);
-        ReadDir(P);
-        if TimerExpired(tmr) then
-          begin
-          NewTimer(tmr, 1);
-          if ESC_Pressed then
-            Abort := True;
-          end;
-        break;
-        end;
-      Dec(I);
+      NewTimer(tmr, 50);
+      if ESC_Pressed then
+        Abort := True;
       end;
+    I := DirsToProcess^.Count-1;
     end;
   PI^.Free;
   // JO: здесь сортировка не нужна, т.к. она делается в TFindDrive.GetDirectory
   //     и в результате мы получаем сортировку дважды
   {Files^.Sort;}
   PDrv := New(PFindDrive, Init(GetString(dlBranch)+Dir, Dirs, Files,
-         FreeByte));
+         PanelViewMode));
   PDrv^.NoMemory := MAvail <= MemReq;
   OpenDirectory := PDrv;
+  LongWorkEnd;
   end { TDrive.OpenDirectory };
-{-DataCompBoy-}
 
 procedure RereadDirectory;
   var

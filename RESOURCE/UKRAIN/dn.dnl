@@ -563,6 +563,9 @@ dlSortLADate,              'Час ос~т~. доступу'
 dlSortDIZ                  '~О~пису'
 dlSortType,                '~Г~рупi'
 dlSortUnsorted,            '~Н~е сортувати'
+dlSortOwner,               'Сортувати за шляхом'
+dlSortInverted,            'Зворотний порядок'
+
 dlStartingCluster,         '~П~очатковий кластер'
 dlStartingSector,          '~П~очатковий сектор'
 dlStdDlgManyFiles,         ^C'Багато файлiв.'
@@ -1294,22 +1297,16 @@ dl_Failed_to_set_volume_label  'Вибачте, не можу задати мiтку тома'
 ;JO-
 
 ;X-Man >>>
-sdtError      = 'Невiдомий ';
+sdtError      = 'Невiдомий';
 sdtFixed      = 'Жорсткий';
-sdtRemovable  = 'Змiнний   ';
+sdtRemovable  = 'Змiнний';
 sdtRemote     = 'Мережевий ';
-sdtCDROM      = 'CD-ROM    ';
-sdtDblSpace   = 'DblSpace  ';
-sdtSUBST      = 'SUBST     ';
-sdtStacker    = 'Stacker   ';
-sdtRAMDrive   = 'RAM       ';
-sdtDublDisk   = 'DoubleDisk';
-sdtBernoully  = 'Bernoully ';
-sdtDiskreet   = 'Diskreet  ';
-sdtSuperStor  = 'SuperStor ';
+sdtProgram    = 'Програмн.';
+sdtCDROM      = 'CD-ROM';
+sdtRAMDrive   = 'RAM';
 ;X-Man <<<
 ;JO+
-sdtFixed1     = '';
+sdtOptical    = 'Оптичний ';
 dlDoes_Not_Exist = 'не iснує'
 dlCmdLineTooLong = 'Командний рядок задовгий'
 dlCantLoad = 'Не можу завантажити '

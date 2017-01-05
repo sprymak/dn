@@ -34,7 +34,7 @@ function GetRezObject(RezId: LongInt; ItemId: SmallWord): PObject;
 implementation
 
 uses
-  Streams, advance, advance1, advance7
+  Streams, Advance, Advance1, Advance7
   ;
 
 type
@@ -68,7 +68,7 @@ function OpenRez(const PluginName: ShortString): LongInt;
     begin
     Dispose(S, Done);
     OpenRez := 0;
-    exit;
+    Exit;
     end;
 
   GetMem(P,
@@ -88,7 +88,7 @@ function OpenRez(const PluginName: ShortString): LongInt;
         {, SizeOf(TPluginRezData)-SizeOf(LongInt)+(SC+OC)*SizeOf(LongInt)}
         );
       OpenRez := 0;
-      exit;
+      Exit;
       end;
     end;
 

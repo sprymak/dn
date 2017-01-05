@@ -61,12 +61,12 @@ type
 
   {For calculating timeouts}
   TEventTimer = record
-    StartTics: LongInt;
-    ExpireTics: LongInt;
+    StartMSecs: LongInt;
+    ExpireMSecs: LongInt;
     end;
 
   {For internal date/time manipulations}
-  Date = word;
+  Date = Word;
   Time = LongInt;
 
   DateTimeRec =
@@ -77,24 +77,20 @@ type
 
 function xYMTimeStampToPack(YMTime: LongInt): LongInt;
 function xPackToYMTimeStamp(RawTime: LongInt): LongInt;
-procedure xIncDateTime(var DT1, DT2: DateTimeRec; Days: integer;
+procedure xIncDateTime(var DT1, DT2: DateTimeRec; Days: Integer;
      Secs: LongInt);
 
-procedure NewTimerSecs(var ET: TEventTimer; Secs: LongInt);
-procedure NewTimer(var ET: TEventTimer; Tics: LongInt);
+procedure NewTimer(var ET: TEventTimer; MSecs: LongInt);
 function TimerExpired(ET: TEventTimer): Boolean;
 
 function ElapsedTime(ET: TEventTimer): LongInt;
-function ElapsedTimeInSecs(ET: TEventTimer): LongInt;
-
-procedure DelayTics(Tics: LongInt);
 
 procedure GetUNIXDate(Julian: LongInt;
-     var Year, Month, Day, Hour, Min, Sec: word);
+     var Year, Month, Day, Hour, Min, Sec: Word);
 
 implementation
 uses
-  Dos, VPUtils
+  Dos, Events
   ;
 type
   DayType = (Sunday, Monday, Tuesday, Wednesday, Thursday, Friday,
@@ -103,33 +99,31 @@ type
 const
   {Set to 1/1/1970 00:00 GMT}
   StartDate: DateTimeRec = (D: 25567; T: 0);
-  GmtHourOffset: integer = 0; {Default no GMT adjustments}
-  Threshold2000: integer = 1900;
+  GmtHourOffset: Integer = 0; {Default no GMT adjustments}
+  Threshold2000: Integer = 1900;
 
   MinYear = 1900;
   MaxYear = 2078;
   BadDate = $FFFF;
   BadTime = $FFFFFFFF;
   First2Months = 58; {1900 was not a leap year}
-  SecondsInDay = 86400; {number of seconds in a day}
-  SecondsInHour = 3600; {number of seconds in an hour}
-  SecondsInMinute = 60; {number of seconds in a minute}
-  HoursInDay = 24; {number of hours in a day}
-  TicsPerDay = 1573040; {Assumes 18.20648 tics/sec}
-  TicsFreq = 1675;
-  SecsFreq = 92;
+  SecondsInMinute = 60;
+  SecondsInHour = 60*SecondsInMinute;
+  HoursInDay = 24;
+  SecondsInDay = SecondsInHour*HoursInDay;
+  MSecsInDay = 1000*SecondsInDay;
 
-function IsLeapYear(Year: integer): Boolean;
+function IsLeapYear(Year: Integer): Boolean;
   {-Return True if Year is a leap year}
   begin
   IsLeapYear := (Year mod 4 = 0) and (Year mod 4000 <> 0) and
       ( (Year mod 100 <> 0) or (Year mod 400 = 0));
   end;
 
-function DaysInMonth(Month, Year: integer): integer;
+function DaysInMonth(Month, Year: Integer): Integer;
   {-Return the number of days in the specified month of a given year}
   begin
-  if word(Year) < 100 then
+  if Word(Year) < 100 then
     begin
     Inc(Year, 1900);
     if Year < Threshold2000 then
@@ -148,10 +142,10 @@ function DaysInMonth(Month, Year: integer): integer;
   end {case};
   end;
 
-function ValidDate(Day, Month, Year: integer): Boolean;
+function ValidDate(Day, Month, Year: Integer): Boolean;
   {-Verify that day, month, year is a valid date}
   begin
-  if word(Year) < 100 then
+  if Word(Year) < 100 then
     begin
     Inc(Year, 1900);
     if Year < Threshold2000 then
@@ -169,10 +163,10 @@ function ValidDate(Day, Month, Year: integer): Boolean;
     end
   end;
 
-function DMYtoDate(Day, Month, Year: integer): Date;
+function DMYtoDate(Day, Month, Year: Integer): Date;
   {-Convert from day, month, year to a julian date}
   begin
-  if word(Year) < 100 then
+  if Word(Year) < 100 then
     begin
     Inc(Year, 1900);
     if Year < Threshold2000 then
@@ -202,7 +196,7 @@ function DMYtoDate(Day, Month, Year: integer): Date;
     end;
   end { DMYtoDate };
 
-procedure DateToDMY(Julian: Date; var Day, Month, Year: integer);
+procedure DateToDMY(Julian: Date; var Day, Month, Year: Integer);
   {-Convert from a julian date to month, day, year}
   var
     I: LongInt;
@@ -245,7 +239,7 @@ procedure DateToDMY(Julian: Date; var Day, Month, Year: integer);
     end;
   end { DateToDMY };
 
-procedure DateTimeDiff(DT1, DT2: DateTimeRec; var Days: word;
+procedure DateTimeDiff(DT1, DT2: DateTimeRec; var Days: Word;
      var Secs: LongInt);
   {-Return the difference in days and seconds between two points in time}
   var
@@ -302,7 +296,7 @@ function HMStoTime(Hours, Minutes, Seconds: Byte): Time;
   HMStoTime := T mod SecondsInDay;
   end;
 
-procedure xIncDateTime(var DT1, DT2: DateTimeRec; Days: integer;
+procedure xIncDateTime(var DT1, DT2: DateTimeRec; Days: Integer;
      Secs: LongInt);
   {-Increment (or decrement) DT1 by the specified number of days and seconds
       and put the result in DT2}
@@ -310,7 +304,7 @@ procedure xIncDateTime(var DT1, DT2: DateTimeRec; Days: integer;
   DT2 := DT1;
 
   {date first}
-  Inc(integer(DT2.D), Days);
+  Inc(Integer(DT2.D), Days);
 
   if Secs < 0 then
     begin
@@ -361,7 +355,7 @@ function xYMTimeStampToPack(YMTime: LongInt): LongInt;
   {Convert to DT format}
   with DT do
     begin
-    DateToDMY(DTR.D, integer(Day), integer(Month), integer(Year));
+    DateToDMY(DTR.D, Integer(Day), Integer(Month), Integer(Year));
     TimeToHMS(DTR.T, H, M, S);
     Hour := H;
     Min := M;
@@ -373,107 +367,49 @@ function xYMTimeStampToPack(YMTime: LongInt): LongInt;
   xYMTimeStampToPack := Ptime;
   end { xYMTimeStampToPack };
 
-function Secs2Tics(Secs: LongInt): LongInt;
-  {-Returns tics value for Secs seconds}
-  begin
-  Secs2Tics := (Secs*TicsFreq) div SecsFreq;
-  end;
-
-procedure NewTimer(var ET: TEventTimer; Tics: LongInt);
-  {-Returns a set EventTimer that will expire in Tics}
+procedure NewTimer(var ET: TEventTimer; MSecs: LongInt);
+  {-Returns a set EventTimer that will expire in MSecs}
   begin
   {Max acceptable value is 24 hours}
-  if Tics > TicsPerDay then
-    Tics := TicsPerDay;
+  if MSecs > MSecsInDay then
+    MSecs := MSecsInDay;
 
   with ET do
     begin
-    StartTics := GetTimemSec div 55;
-    ExpireTics := StartTics+Tics;
+    StartMSecs := GetCurMSec;
+    ExpireMSecs := StartMSecs+MSecs;
     end;
-  end;
-
-procedure NewTimerSecs(var ET: TEventTimer; Secs: LongInt);
-  {-Returns a set EventTimer}
-  begin
-  NewTimer(ET, Secs2Tics(Secs));
   end;
 
 function TimerExpired(ET: TEventTimer): Boolean;
   {-Returns True if ET has expired}
   var
-    CurTics: LongInt;
+    CurMSecs: LongInt;
   begin
   with ET do
     begin
-    {Get current tics; assume timer has expired}
-    CurTics := GetTimemSec div 55;
-    TimerExpired := True;
-
-    {Check normal expiration}
-    if CurTics > ExpireTics then
-      exit;
-    {Check wrapped CurTics}
-    if  (CurTics < StartTics) and ((CurTics+TicsPerDay) > ExpireTics)
-    then
-      exit;
-
-    {If we get here, timer hasn't expired yet}
-    TimerExpired := False;
+    CurMSecs := GetCurMSec;
+    dec(CurMSecs, ExpireMSecs);
+    Result := CurMSecs > 0;
     end;
-  end { TimerExpired };
+  end;
 
 function ElapsedTime(ET: TEventTimer): LongInt;
-  {-Returns elapsed time, in tics, for this timer}
-  var
-    CurTics: LongInt;
+  {-Returns elapsed time, in MSecs, for this timer}
   begin
   with ET do
     begin
-    CurTics := GetTimemSec div 55;
-    if CurTics >= StartTics then
-      {No midnight wrap yet}
-      ElapsedTime := CurTics-StartTics
-    else
-      {Got a midnight wrap, account for it}
-      ElapsedTime := (TicsPerDay-StartTics)+CurTics;
+    Result := ExpireMSecs;
+    dec(Result, GetCurMSec);
     end;
   end;
-
-function Tics2Secs(Tics: LongInt): LongInt;
-  {-Returns seconds value for Tics tics}
-  begin
-  Tics2Secs := ((Tics+9)*SecsFreq) div TicsFreq;
-  end;
-
-function ElapsedTimeInSecs(ET: TEventTimer): LongInt;
-  {-Returns elapsed time, in seconds, for this timer}
-  begin
-  ElapsedTimeInSecs := Tics2Secs(ElapsedTime(ET));
-  end;
-
-procedure DelayTics(Tics: LongInt);
-  {-Delay for Tics tics}
-  var
-    ET: TEventTimer;
-  begin
-  if Tics <= 0 then
-    exit
-  else if Tics > TicsPerDay then
-    Tics := TicsPerDay;
-
-  NewTimer(ET, Tics);
-  repeat
-  until TimerExpired(ET);
-  end;
-
 
 function xPackToYMTimeStamp(RawTime: LongInt): LongInt;
   {-Return date/time stamp as octal seconds since 1/1/1970 00:00 GMT}
   var
     DT: DateTime;
     DTR: DateTimeRec;
-    DiffDays: word;
+    DiffDays: Word;
     DiffSecs: LongInt;
   begin
   {Convert to julian date}
@@ -493,7 +429,7 @@ function xPackToYMTimeStamp(RawTime: LongInt): LongInt;
   end { xPackToYMTimeStamp };
 
 procedure GetUNIXDate(Julian: LongInt;
-     var Year, Month, Day, Hour, Min, Sec: word);
+     var Year, Month, Day, Hour, Min, Sec: Word);
   var
     L: LongInt;
     DT: DateTime;

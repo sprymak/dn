@@ -62,7 +62,7 @@ type
 
   PWindowList = ^TWindowList;
   TWindowList = object(TListBox)
-    function GetText(Item: LongInt; MaxLen: integer): String; virtual;
+    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
     end;
 
   PWindowCol = ^TWindowCol;
@@ -73,7 +73,7 @@ type
 implementation
 uses
   Messages, RStrings, Drives, Startup, DnIni, VideoMan, Defines, DNApp,
-  Drivers, Views, Memory, Commands, DNStdDlg, advance, DNHelp, advance2
+  Drivers, Views, Memory, Commands, DNStdDlg, Advance, DNHelp, Advance2
   ;
 
 procedure SetHighlightGroups;
@@ -129,7 +129,7 @@ procedure SetHighlightGroups;
       S11 := Copy(Filter, 2, Length(Filter)-2)
       end;
     if ExecResource(dlgHighlightGroups, D) <> cmOK then
-      exit;
+      Exit;
     while S1[Length(S1)] in [' ', ';'] do
       SetLength(S1, Length(S1)-1);
     CustomMask1^.Filter := S1;
@@ -219,14 +219,15 @@ procedure WindowManager;
     S: String;
     DT: record
       P: PCollection;
-      n: word;
+      n: Word;
       end;
-    I, Num: integer;
+    I, Num: Integer;
+    Cmd: Word;
 
   procedure InsView(P: PView);
     begin
     if P = nil then
-      exit;
+      Exit;
     S := '';
     if  (P^.GetState(sfVisible)) then
       begin
@@ -239,12 +240,14 @@ procedure WindowManager;
   begin { WindowManager }
   New(PC, Init(10, 10));
   Desktop^.ForEach(@InsView);
+(* AK155 Контроль на Count = 0 не нужен, так как если окон нет, то
+cmWindowManager задизейблена.
   if PC^.Count = 0 then
     begin
     Dispose(PC, Done);
-    exit
+    Exit
     end;
-
+*)
   D := PDialog(LoadResource(dlgWindowManager));
 
   R.Assign(D^.Size.X-13, 3, D^.Size.X-12, D^.Size.Y-2);
@@ -257,9 +260,7 @@ procedure WindowManager;
   PV^.Options := PV^.Options or ofPostProcess or ofSecurity;
   PListBox(PV)^.NewLisT(PC);
   if PC^.Count > 1 then
-    PListBox(PV)^.Focused := 1
-  else
-    PListBox(PV)^.Focused := 0;
+    PListBox(PV)^.Focused := 1;
   Num := 0; {-$VIV 28.05.99--}
   if  (WinManagerPosToEdit) and (PC^.Count > 0) and
       (Pos(GetString(dlEditTitle)+' -', PWindowList(PV)^.GetText(0, 255))
@@ -271,7 +272,7 @@ procedure WindowManager;
       then
         begin
         Num := I;
-        break;
+        Break;
         end;
   if  (WinManagerSelectNext) and (Num = 0) and (PC^.Count > 1) then
     Num := 1;
@@ -282,34 +283,36 @@ procedure WindowManager;
   PV := New(PLabel, Init(R, GetString(dlWindowsLabel), PV));
   D^.Insert(PV);
 
-1:
-  R.A.X := Desktop^.ExecView(D);
-  D^.GetData(DT);
-  if PC^.Count > 0 then
+while true do
+  begin
+  Cmd := Desktop^.ExecView(D);
+  D^.GetData(DT); { Теперь DT.P = PC }
+  PV := PView(DT.P^.At(DT.n));
+  if Cmd = cmCancel then
+    Break;
+  if Cmd = cmOK then { "Select" }
     begin
-    if R.A.X = cmNo then
-      begin
-      if PView(DT.P^.At(DT.n))^.Valid(cmClose) then
-        begin
-        PView(DT.P^.At(DT.n))^.Free;
-        New(PC, Init(10, 10));
-        Desktop^.ForEach(@InsView);
-        if PC^.Count > 0 then
-          begin
-          DT.P^.AtDelete(DT.n);
-          DT.P := nil;
-          D^.SetData(DT);
-          if  (DT.n > 0) and (DT.n >= PC^.Count) then
-            Dec(DT.n);
-          DT.P := PC;
-          D^.SetData(DT);
-          goto 1
-          end
-        end
-      end;
-    if R.A.X = cmOK then
-      PView(DT.P^.At(DT.n))^.Select;
+    PV^.Select;
+    Break;
     end;
+  if Cmd = cmNo then { "Close" }
+    begin
+    if PV^.Valid(cmClose) then
+      begin
+      PV^.Free;
+      DT.P := nil;
+      D^.SetData(DT); {при этом NewList освободит PC }
+      New(PC, Init(10, 10));
+      Desktop^.ForEach(@InsView);
+      if PC^.Count = 0 then
+        Break;
+      if DT.n >= PC^.Count then
+        Dec(DT.n);
+      DT.P := PC;
+      D^.SetData(DT);
+      end;
+    end
+  end;
   Dispose(D, Done);
   Dispose(PC, Done);
   end { WindowManager };

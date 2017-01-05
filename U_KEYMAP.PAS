@@ -44,20 +44,10 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
-{$I STDEFINE.INC}
-{$DEFINE NOASM} {JO - если убрать, в редакторе не работает}
-{---------------------------------------------------------------------------}
-{                                                                           }
-{ ASCII(DOS-866), ANSI(WIN-1251), KOI8-R CODEPAGES SUPPORT                  }
-{                                                                           }
-{ VIV (C) 1999                                                              }
-{                                                                           }
-{ PZ - 2000.03.25 - Totaly rebuild to save DATA segment space.              }
-{                                                                           }
-{---------------------------------------------------------------------------}
-{Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
 
 unit U_KeyMap;
+{<U_KeyMap.001>}
+
 interface
 
 uses
@@ -65,134 +55,154 @@ uses
   ;
 
 type
-  TKeyMap = (kmNone, kmAscii, kmAnsi, kmKoi8r); {-$VIV}
-  {kmNone обязательно должен быть первым, см. ProcessDefCodepage}
+  TKeyMap = (kmXlat, kmNone, kmAscii, kmAnsi,
+    kmKoi8r, km5, km6, km7, km8, km9);
+  {`kmXlat и kmNone должны быть перед kmAscii, а
+  остальные - после kmAscii`}
 
-  string3 = String[3];
+type
+  PCodeConv = ^TCodeConv;
+  TCodeConv = record
+    A, B: Char
+    end;
 
-  {AK155 Код следующий по кругу встроенной таблицы }
-const
-  RollKeyMap: array[TKeyMap] of TKeyMap =
-  {index: kmNone, kmAscii, kmAnsi,  kmKoi8r}
-    (kmAnsi, kmAnsi, kmKoi8r, kmAscii);
+var
+  RollKeyMap: array[TKeyMap] of TKeyMap;
+  {` Код следующий по кругу встроенной таблицы `}
+  MaxKeyMap: TKeyMap;
+  {` Максимальный номер установленной перекодировочной таблицы.`}
 
-  KeyMapDescriptor: array[TKeyMap] of string3 =
-  {index: kmNone, kmAscii, kmAnsi,  kmKoi8r}
-    ('XXX', 'DOS', 'WIN', 'KOI');
 type
   {(c) SeYKo}
   TCodePageDetector = object(TObject)
-    procedure CheckString(P1: PChar; len: integer);
+    procedure CheckString(P1: PChar; len: Integer);
     function DetectedCodePage: TKeyMap;
   private
     Koi, KoiA, Win, WinA, Win2: LongInt;
     end;
   {(c) SeYKo}
 
+  PXLat = ^TXlat;
   TXlat = array[Char] of Char;
+    {`Таблица перекодировки. Символ в исходной кодировке - индекс,
+     соответствующий элемент - символ в новой кодировке `}
+
+const
+  ToUpAscii = 0;
+    {` Индекс для TXLatCP - перекодировка в ASCII c
+    переводом на верхний регистр. Испоьзуется при регистронезависимом
+    поиске. (0 = ord(False))`}
+  ToAscii = 1;
+    {` Индекс для TXLatCP - перекодировка в ASCII. (1 = ord(True))`}
+  FromAscii = 2;
+    {` Индекс для TXLatCP, перекодировка из ASCII`}
+
+type
+  PXlatCP = ^TXLatCP;
+  TXlatCP = array[0..2] of TXLat;
+
+  TKeyMapDescr = record
+    {` Описатель кодировки}
+    Tag: string[3];
+      {` Обозначение для показа в рамке окна. Обязательно буквы
+      только английские только на верхнем регистре!
+      См. ProcessDefCodepage `}
+    XlatCP: PXlatCP;
+    end;
+    {`}
+
+var
+  LowCaseArray: TXlat;
+    {` Перевод на нижний регистр в ASCII`}
+  ToggleCaseArray: TXlat;
+    {` Переворот регистра в ASCII, типа "cAPS lOCK" <-> "Caps Lock"`}
+  LayoutConvXlat: TXLat;
+    {` Исправление раскладки `}
+
+ {Следующие три таблицы используются вместо XlatCP для "перекодировки"
+  Ascii-Ascii (см. первые элементы KeyMapDescr). Поэтому они должны
+  присутствовать все три, и именно в таком порядке. }
+  UpCaseArray: TXlat;
+    {` Перевод на верхний регистр в ASCII`}
+  NullXlatTable: TXlat;
+    {` Тождественная перекодировка `}
+  NullXlatTable1: TXlat;
+
+  DosXlatCP: TXLatCP absolute UpCaseArray;
+  WinXlatCP: TXLatCP;
+
+const
+  KeyMapDescr: array[TKeyMap] of TKeyMapDescr =
+   {`Встроенные кодировки `}
+    ((Tag: 'DOS'; XlatCP: @DosXlatCP) //kmXlat
+    ,(Tag: 'DOS'; XlatCP: @DosXlatCP) //kmNone
+    ,(Tag: 'DOS'; XlatCP: @DosXlatCP) //kmAscii
+    ,(Tag: 'WIN'; XlatCP: @WinXlatCP) //kmAnsi
+    ,(Tag: ''; XlatCP: nil)
+    ,(Tag: ''; XlatCP: nil)
+    ,(Tag: ''; XlatCP: nil)
+    ,(Tag: ''; XlatCP: nil)
+    ,(Tag: ''; XlatCP: nil)
+    ,(Tag: ''; XlatCP: nil)
+    );
 
 function ProcessDefCodepage(DefCodepageS: String): TKeyMap;
 
 procedure NullXLAT(var X: TXlat);
-function Ascii_Ansi(const S: LongString): LongString;
-function Ansi_Ascii(const S: LongString): LongString;
-procedure Ascii_Ansi_Buf(var Buf; L: word);
-procedure Ansi_Ascii_Buf(var Buf; L: word);
+  {` Заполнить отждественную перекодировку `}
 
-function Ascii_Koi8r(const S: LongString): LongString;
-function koi8r_ascii(const S: LongString): LongString;
-procedure Ascii_Koi8r_Buf(var Buf; L: word);
-procedure Koi8r_Ascii_Buf(var Buf; L: word);
+procedure AcceptToAscii(var XLatCP: TXLatCP);
+  {` В XLatCP на основе готовой таблицы [ToAscii] заполнить остальные `}
 
-function RusEngConv(const S: LongString): LongString;
-function GetToAsciiRecodeTable(K: TKeyMap; var Buf): Boolean;
+function LayoutConv(const S: LongString): LongString;
+  {` Для случая двух раскладок клавиатуры (например, 866 и 850)
+  перекодирует каждый символ в такой, какой был бы введен с той
+  же клавиши в другой раскладке.
+  Определяется xlt-файлом, заданным ini-переменной KbdToggleLayout `}
 
-procedure CharsConvertBuf(var Buf; Len: word; const AllChars: String);
-procedure CharsConvertBufBack(var Buf; Len: word; const AllChars: String);
-procedure XLatBuf(var B; Len: integer; var XTable);
+function ReadXlt(FN: string; var N: Integer): PCodeConv;
 
-{Cat: раньше: function ***AllChars:string в implementation
-      теперь: const ***AllChars:string в interface}
+function BuildCodeTable(const S: string; var XlatCP: TXLatCP): Boolean;
+  {` Строится XlatCP для кодировки S. S может представлять собой
+  либо число (тогда это номер кодовой страницы), либо имя
+  xlt-файла. Если имя файла не содержит пути (распознаётся по '\'),
+  то файл ищется в стандартном XLT-каталоге. Результат - успех. `}
 
-{ASCII-ANSI}
+function BuildLayoutConvXlat(FN: string): Boolean;
 
-const
-  AnsiAllChars: String =
-  #$01#$02#$03#$04#$05#$06#$07#$08#$09#$0A#$0B#$0C#$0D#$0E#$0F
-  +#$10#$11#$12#$13#$14#$15#$16#$17#$18#$19#$1A#$1B#$1C#$1D#$1E#$1F
-  +#$20#$21#$22#$23#$24#$25#$26#$27#$28#$29#$2A#$2B#$2C#$2D#$2E#$2F
-  +#$30#$31#$32#$33#$34#$35#$36#$37#$38#$39#$3A#$3B#$3C#$3D#$3E#$3F
-  +#$40#$41#$42#$43#$44#$45#$46#$47#$48#$49#$4A#$4B#$4C#$4D#$4E#$4F
-  +#$50#$51#$52#$53#$54#$55#$56#$57#$58#$59#$5A#$5B#$5C#$5D#$5E#$5F
-  +#$60#$61#$62#$63#$64#$65#$66#$67#$68#$69#$6A#$6B#$6C#$6D#$6E#$6F
-  +#$70#$71#$72#$73#$74#$75#$76#$77#$78#$79#$7A#$7B#$7C#$7D#$7E#$7F
+procedure XLatStr(var S: String; const XLat: TXLat);
 
-  +#$C0#$C1#$C2#$C3#$C4#$C5#$C6#$C7#$C8#$C9#$CA#$CB#$CC#$CD#$CE#$CF
-  +#$D0#$D1#$D2#$D3#$D4#$D5#$D6#$D7#$D8#$D9#$DA#$DB#$DC#$DD#$DE#$DF
-  +#$E0#$E1#$E2#$E3#$E4#$E5#$E6#$E7#$E8#$E9#$EA#$EB#$EC#$ED#$EE#$EF
-  +#$80#$81#$82#$83#$84#$85#$86#$87#$88#$89#$8A#$8B#$8C#$8D#$8E#$8F
-  +#$90#$91#$92#$93#$94#$95#$96#$97#$98#$99#$9A#$9B#$9C#$9D#$9E#$9F
-  +#$A0#$B5#$B6#$A3#$A4#$A5#$A6#$A7#$A9#$B1#$AB#$AC#$AD#$AE#$B3#$B0
-  +#$F0#$F1#$F2#$F3#$F4#$F5#$F6#$F7#$F8#$F9#$FA#$FB#$FC#$FD#$FE#$FF
-  +#$A8#$B8#$AA#$BA#$AF#$BF#$A1#$A2#$B7#$B9#$B2#$BB#$BC#$BD#$BE#$B4;
-  {Cat: переделал таблицу, чтобы буквы ЄєЇїЎў были на своих местах
-  + #$C0#$C1#$C2#$C3#$C4#$C5#$C6#$C7#$C8#$C9#$CA#$CB#$CC#$CD#$CE#$CF
-  + #$D0#$D1#$D2#$D3#$D4#$D5#$D6#$D7#$D8#$D9#$DA#$DB#$DC#$DD#$DE#$DF
-  + #$E0#$E1#$E2#$E3#$E4#$E5#$E6#$E7#$E8#$E9#$EA#$EB#$EC#$ED#$EE#$EF
-  + #$80#$81#$82#$83#$84#$85#$86#$87#$88#$89#$8A#$8B#$8C#$8D#$8E#$8F
-  + #$90#$91#$92#$93#$94#$95#$96#$97#$98#$99#$9A#$9B#$9C#$9D#$9E#$9F
-  + #$A0#$A1#$A2#$A3#$A4#$A5#$A6#$A7#$A9#$AA#$AB#$AC#$AD#$AE#$AF#$B0
-  + #$F0#$F1#$F2#$F3#$F4#$F5#$F6#$F7#$F8#$F9#$FA#$FB#$FC#$FD#$FE#$FF
-  + #$A8#$B8#$B1#$B2#$B3#$B4#$B5#$B6#$B7#$B9#$BA#$BB#$BC#$BD#$BE#$BF;
-}
+procedure XLatBuf(var B; Len: Integer; const XTable: TXLat);
 
-  {ASCII-KOI8R}
+procedure FreeCodetables;
+  {`Уничтожение всех таблиц, кроме ASCII. При построении таблиц
+  необходимо соблюдать порядок вызова функций: FreeCodetables,
+  BuildWinCodeTable, InitCodeTables. Только при таком порядке
+  значение MaxKeyMap будет корректным, не будет оставаться мусора
+  в куче и не будет адресации через nil`}
 
-const
-  Koi8rAllChars: String =
-  #$01#$02#$03#$04#$05#$06#$07#$08#$09#$0A#$0B#$0C#$0D#$0E#$0F
-  +#$10#$11#$12#$13#$14#$15#$16#$17#$18#$19#$1A#$1B#$1C#$1D#$1E#$1F
-  +#$20#$21#$22#$23#$24#$25#$26#$27#$28#$29#$2A#$2B#$2C#$2D#$2E#$2F
-  +#$30#$31#$32#$33#$34#$35#$36#$37#$38#$39#$3A#$3B#$3C#$3D#$3E#$3F
-  +#$40#$41#$42#$43#$44#$45#$46#$47#$48#$49#$4A#$4B#$4C#$4D#$4E#$4F
-  +#$50#$51#$52#$53#$54#$55#$56#$57#$58#$59#$5A#$5B#$5C#$5D#$5E#$5F
-  +#$60#$61#$62#$63#$64#$65#$66#$67#$68#$69#$6A#$6B#$6C#$6D#$6E#$6F
-  +#$70#$71#$72#$73#$74#$75#$76#$77#$78#$79#$7A#$7B#$7C#$7D#$7E#$7F
+function BuildWinCodeTable(S: string): Boolean;
+  {` Обработка виндовой кодовой страницы. S должен иметь имеет вид
+  837 'win866r.xlt'. См. также FreeCodetables`}
 
-  +#$E1#$E2#$F7#$E7#$E4#$E5#$F6#$FA#$E9#$EA#$EB#$EC#$ED#$EE#$EF#$F0
-  +#$F2#$F3#$F4#$F5#$E6#$E8#$E3#$FE#$FB#$FD#$FF#$F9#$F8#$FC#$E0#$F1
-  +#$C1#$C2#$D7#$C7#$C4#$C5#$D6#$DA#$C9#$CA#$CB#$CC#$CD#$CE#$CF#$D0
-  +#$90#$91#$92#$81#$87#$B2#$B4#$A7#$A6#$B5#$A1#$A8#$AE#$AD#$AC#$83
-  +#$84#$89#$88#$86#$80#$8A#$AF#$B0#$AB#$A5#$BB#$B8#$B1#$A0#$BE#$B9
-  +#$BA#$B6#$B7#$AA#$A9#$A2#$A4#$BD#$BC#$85#$82#$8D#$8C#$8E#$8F#$8B
-  +#$D2#$D3#$D4#$D5#$C6#$C8#$C3#$DE#$DB#$DD#$DF#$D9#$D8#$DC#$C0#$D1
-  +#$B3#$A3#$99#$98#$93#$9B#$9F#$97#$9C#$95#$9E#$96#$BF#$9D#$94#$9A;
+function InitCodeTables(CodeTables: string): Boolean;
+  {` Обработка ini-переменной CodeTables. Состоит из разделённых
+  пробелами элементов вида KOI:837 или вида KOI:koi8-r.xlt `}
 
-  {RUS-ENG}
-
-const
-  RusEngAllChars: String =
-  #$01#$02#$03#$04#$05#$06#$07#$08#$09#$0A#$0B#$0C#$0D#$0E#$0F
-  +#$10#$11#$12#$13#$14#$15#$16#$17#$18#$19#$1A#$1B#$1C#$1D#$1E#$1F
-  +#$20#$21#$9D#$23#$24#$25#$26#$ED#$28#$29#$2A#$2B#$A1#$2D#$EE#$2F
-  +#$30#$31#$32#$33#$34#$35#$36#$37#$38#$39#$86#$A6#$81#$3D#$9E#$3F
-  +#$40#$94#$88#$91#$82#$93#$80#$8F#$90#$98#$8E#$8B#$84#$9C#$92#$99
-  +#$87#$89#$8A#$9B#$85#$83#$8C#$96#$97#$8D#$9F#$E5#$5C#$EA#$5E#$5F
-  +#$F1#$E4#$A8#$E1#$A2#$E3#$A0#$AF#$E0#$E8#$AE#$AB#$A4#$EC#$E2#$E9
-  +#$A7#$A9#$AA#$EB#$A5#$A3#$AC#$E6#$E7#$AD#$EF#$95#$7C#$9A#$F0#$7F
-
-  +#$46#$3C#$44#$55#$4C#$54#$3A#$50#$42#$51#$52#$4B#$56#$59#$4A#$47
-  +#$48#$43#$4E#$45#$41#$7B#$57#$58#$49#$4F#$7D#$53#$4D#$22#$3E#$5A
-  +#$66#$2C#$64#$75#$6C#$74#$3B#$70#$62#$71#$72#$6B#$76#$79#$6A#$67
-  +#$B0#$B1#$B2#$B3#$B4#$B5#$B6#$B7#$B8#$B9#$BA#$BB#$BC#$BD#$BE#$BF
-  +#$C0#$C1#$C2#$C3#$C4#$C5#$C6#$C7#$C8#$C9#$CA#$CB#$CC#$CD#$CE#$CF
-  +#$D0#$D1#$D2#$D3#$D4#$D5#$D6#$D7#$D8#$D9#$DA#$DB#$DC#$DD#$DE#$DF
-  +#$68#$63#$6E#$65#$61#$5B#$77#$78#$69#$6F#$5D#$73#$6D#$27#$2E#$7A
-  +#$7E#$60#$F2#$F3#$F4#$F5#$F6#$F7#$F8#$F9#$FA#$FB#$FC#$FD#$FE#$FF;
+procedure OemToCharSt(var OemS: String); {JO}
+  {` Перевод из DOS в WIN `}
+procedure CharToOemSt(var CharS: String); {JO}
+  {` Перевод из WIN в DOS `}
+function OemToCharStr(const OemS: String): String;
+  {` Перевод из DOS в WIN `}
+function CharToOemStr(const CharS: String): String;
+  {` Перевод из WIN в DOS `}
 
 implementation
+  uses
+    Country_, advance, advance1, Streams;
 
-procedure XLatBuf(var B; Len: integer; var XTable);
+procedure XLatBuf(var B; Len: Integer; const XTable: TXLat);
   assembler;
   {&Frame-} {$USES ESI, EBX, ECX, EDI}
 asm
@@ -216,7 +226,7 @@ const
   WinSetA = [#224, #229, #232, #238, #243];
   KoiSetA = [#193, #197, #201, #207, #213];
 
-procedure TCodePageDetector.CheckString(P1: PChar; len: integer);
+procedure TCodePageDetector.CheckString(P1: PChar; len: Integer);
   var
     C: Char;
     P2: PChar;
@@ -251,7 +261,10 @@ function TCodePageDetector.DetectedCodePage: TKeyMap;
       (Win >= Koi div 500) and (Win <= Koi div 5) and
       (KoiA >= Koi div 5)
   then
-    DetectedCodePage := kmKoi8r
+    begin
+    if KeyMapDescr[kmKoi8r].Tag = 'KOI' then
+      DetectedCodePage := kmKoi8r;
+    end
   else if (Win <> 0) and (WinA <> 0) and (Koi <> 0) and
       (Koi >= Win div 500) and (Koi <= Win div 5) and
       (WinA >= Win div 5) and (Win2 >= Win div 5)
@@ -262,26 +275,26 @@ function TCodePageDetector.DetectedCodePage: TKeyMap;
 
 function ProcessDefCodepage(DefCodepageS: String): TKeyMap;
   var
-    i: integer;
+    i: Integer;
     k: TKeyMap;
   begin
 { Хочется написать UpStr(DefCodepageS), но лучше этого не делать, так
-как это создаёт жуткую закрутку ссылок между модулями через advance1
+как это создаёт жуткую закрутку ссылок между модулями через advance1.
 и, главное, работает с какой-то заранее неизвестной UpCaseArray.
 Поскольку параметры в dn.ini все английские, делаем просто:}
   for i := 1 to Length(DefCodepageS) do
-    DefCodepageS[i] := UpCase(DefCodepageS[i]);
+    DefCodepageS[i] := System.UpCase(DefCodepageS[i]);
 
   if DefCodepageS = 'AUTO' then
     Result := kmNone
   else
     begin
     Result := kmAscii; // на случай некорректного значения
-    for k := Succ(Low(TKeyMap)) to High(TKeyMap) do
-      if DefCodepageS = KeyMapDescriptor[k] then
+    for k := Succ(kmAscii) to MaxKeyMap do
+      if DefCodepageS = KeyMapDescr[k].Tag then
         begin
         Result := k;
-        exit;
+        Exit;
         end;
     end;
   end;
@@ -294,131 +307,266 @@ procedure NullXLAT;
     X[C] := C;
   end;
 
-type
-  TConvertTable = array[0..255] of Byte;
-
-procedure CharsToTable(var ConvertTable: TConvertTable;
-     const AllChars: String);
-  begin
-  FillChar(ConvertTable, SizeOf(ConvertTable), #$00);
-  Move(AllChars[1], ConvertTable[1], Length(AllChars));
-  end;
-
-procedure CharsToBackTable(var ConvertTable: TConvertTable;
-     const AllChars: String);
+procedure XLatLongStr(const InStr: LongString; var OutStr: LongString;
+   const XLat: TXLat);
   var
-    i: integer;
+    i: Longint;
   begin
-  FillChar(ConvertTable, SizeOf(ConvertTable), #$00);
-  for i := Low(ConvertTable)+1 to High(ConvertTable) do
-    ConvertTable[Ord(AllChars[i-Low(ConvertTable)])] := i;
-  end;
-
-procedure ConvertBuf(var Buf; Len: word;
-     const ConvertTable: TConvertTable);
-  {$IFDEF  NOASM}
-  var
-    i: integer;
-    p: array[0..0] of Byte absolute Buf;
-  begin
-  for i := 0 to Len-1 do
-    p[i] := ConvertTable[p[i]];
-  end;
-  {$ELSE  !NOASM}
-  assembler;
-  {&Frame-} {$USES EDI, EBX}
-asm
-         MOV     ECX,Len
-         JCXZ    @@2
-         LEA     EDI,Buf
-         LEA     EBX,ConvertTable
- @@1:
-         MOV     AL,[EDI]
-         XLAT
-         STOSB
-         LOOP    @@1
- @@2:
- end;
-{$ENDIF !NOASM}
-
-procedure CharsConvertBuf(var Buf; Len: word; const AllChars: String);
-  var
-    ConvertTable: TConvertTable;
-  begin
-  CharsToTable(ConvertTable, AllChars);
-  ConvertBuf(Buf, Len, ConvertTable);
-  end;
-
-procedure CharsConvertBufBack(var Buf; Len: word; const AllChars: String);
-  var
-    ConvertTable: TConvertTable;
-  begin
-  CharsToBackTable(ConvertTable, AllChars);
-  ConvertBuf(Buf, Len, ConvertTable);
+  SetLength(OutStr, Length(InStr));
+  for i := 1 to Length(InStr) do
+    OutStr[i] := XLat[InStr[i]];
   end;
 
 function Ascii_Ansi(const S: LongString): LongString;
   begin
-  Result := S;
-  CharsConvertBuf(Result[1], Length(Result), AnsiAllChars);
+  XLatLongStr(S, Result, KeyMapDescr[kmAnsi].XlatCP^[FromAscii]);
   end;
 
 function Ansi_Ascii(const S: LongString): LongString;
   begin
-  Result := S;
-  CharsConvertBufBack(Result[1], Length(Result), AnsiAllChars);
+  XLatLongStr(S, Result, KeyMapDescr[kmAnsi].XlatCP^[ToAscii]);
   end;
 
-procedure Ascii_Ansi_Buf(var Buf; L: word);
+function LayoutConv(const S: LongString): LongString;
   begin
-  CharsConvertBuf(Buf, L, AnsiAllChars);
+  XLatLongStr(S, Result, LayoutConvXlat);
   end;
 
-procedure Ansi_Ascii_Buf(var Buf; L: word);
+procedure AcceptToAscii(var XLatCP: TXLatCP);
+  var
+    C: Char;
   begin
-  CharsConvertBufBack(Buf, L, AnsiAllChars);
+{ Таблица ToAscii бывает не обратимой однозначно. Например,
+под WinNT построение перевода через юникод приводит к
+перекодировкам в "похожие", символы вроде копипайта в 'C'.
+Но "правильные" коды всегда меньше "похожих", поэтому обращение
+таблицы надо делать не от #00 к #$FF, а наоборот. }
+  FillChar(XLatCP[FromAscii], SizeOf(TXLat), '?');
+  for C := High(TXLat) downto Low(TXLat) do
+    begin
+    XLatCP[ToUpAscii][C] := Upcase(XLatCP[ToAscii][C]);
+    XLatCP[FromAscii][XLatCP[ToAscii][C]] := C;
+    end;
   end;
 
-function Ascii_Koi8r(const S: LongString): LongString;
+function ReadXlt(FN: string; var N: Integer): PCodeConv;
+  var
+    S: TDOSStream;
+    I, J: Integer;
   begin
-  Result := S;
-  CharsConvertBuf(Result[1], Length(Result), Koi8rAllChars);
+  Result := nil;
+  N := 0;
+  if FN <> '' then
+    begin
+    if Pos('\', FN) = 0 then
+      FN := SourceDir+'XLT\' + FN;
+    S.Init(FN, stOpenRead);
+    N := S.GetSize;
+    if  N >= 2 then
+      begin
+      GetMem(Result, N);
+      S.Read(Result^, N);
+      end;
+    S.Done;
+    end;
   end;
 
-function koi8r_ascii(const S: LongString): LongString;
+function BuildLayoutConvXlat(FN: string): Boolean;
+  var
+    Conv, Conv0: PCodeConv;
+    I, J: Integer;
   begin
-  Result := S;
-  CharsConvertBufBack(Result[1], Length(Result), Koi8rAllChars);
+  Result := False;
+  NullXlat(LayoutConvXlat);
+  Conv0 := ReadXlt(FN, J);
+  if Conv0 <> nil then
+    begin
+    Conv := Conv0;
+    for I := 1 to J div 2 do
+      begin
+      if not (Conv^.A in [#$0D, #$0A]) then
+        begin
+        LayoutConvXlat[Conv^.A] := Conv^.B;
+        LayoutConvXlat[Conv^.B] := Conv^.A;
+        end;
+      inc(Conv);
+      end;
+    FreeMem(Conv0);
+    Result := True;
+    end;
   end;
 
-procedure Ascii_Koi8r_Buf(var Buf; L: word);
+procedure XLatStr(var S: String; const XLat: TXLat);
+  var
+    i: Longint;
   begin
-  CharsConvertBuf(Buf, L, Koi8rAllChars);
+  for i := 1 to Length(S) do
+    S[i] := XLat[S[i]];
   end;
 
-procedure Koi8r_Ascii_Buf(var Buf; L: word);
+procedure InitUpcase;
+  var
+    C, L, U: Char;
   begin
-  CharsConvertBufBack(Buf, L, Koi8rAllChars);
-  end;
+  QueryUpcaseTable;
+  NullXLAT(LowCaseArray);
+{см. комментарий к AcceptToAscii}
+  for C := High(TXlat) downto Low(TXlat) do
+    if UpCaseArray[C] <> C then
+      LowCaseArray[UpCaseArray[C]] := C;
+  for C := High(TXlat) downto Low(TXlat) do
+    begin
+    L := LowCaseArray[C];
+    U := UpCaseArray[C];
+    ToggleCaseArray[L] := U;
+    ToggleCaseArray[U] := L;
+    end;
+  end { InitUpcase };
 
-function RusEngConv(const S: LongString): LongString;
+function BuildCodeTable(const S: string; var XlatCP: TXLatCP): Boolean;
+  var
+    CP: Integer;
+    Err: Integer;
+    I, J: Integer;
+    Conv, Conv0: PCodeConv;
+    C: Char;
   begin
-  Result := S;
-  CharsConvertBuf(Result[1], Length(Result), RusEngAllChars);
+  Result := False;
+  Val(S, CP, Err);
+  if Err = 0 then
+    Result := QueryToAscii(CP, XlatCP[ToAscii])
+  else
+    begin { должно быть имя xlt-файла}
+    Conv0 := ReadXlt(S, J);
+    Conv := Conv0;
+    if J >= 2 then
+      begin
+      Result := True;
+      NullXLAT(XlatCP[ToAscii]);
+      for I := 1 to J div 2 do
+        begin
+        if not (Conv^.A in [#$0D, #$0A]) then
+          XlatCP[ToAscii][Conv^.A] := Conv^.B;
+        Inc(Conv);
+        end;
+      end;
+    if Conv0 <> nil then
+      FreeMem(Conv0);
+    end;
+  if Result then
+    AcceptToAscii(XlatCP);
   end;
 
-function GetToAsciiRecodeTable(K: TKeyMap; var Buf): Boolean;
+procedure FreeCodetables;
+  var
+    km: TKeyMap;
+    i: Integer;
   begin
-  GetToAsciiRecodeTable := False;
-  case K of
-    kmAnsi:
-      CharsToBackTable(TConvertTable(Buf), AnsiAllChars);
-    kmKoi8r:
-      CharsToBackTable(TConvertTable(Buf), Koi8rAllChars);
-    else {case}
-      exit;
-  end {case};
-  GetToAsciiRecodeTable := True;
+  for km := Succ(kmAnsi) to MaxKeyMap do
+    FreeMem(KeyMapDescr[km].XlatCP);
+  MaxKeyMap := kmAscii;
+  for km := Low(km) to kmAscii do
+    RollKeyMap[km] := kmAnsi;
+  for i := Low(TXLatCP) to High(TXLatCP) do
+    WinXlatCP[i] := NullXlatTable;
   end;
 
+function BuildWinCodeTable(S: string): Boolean;
+  var
+    km: TKeyMap;
+  begin
+  Result := BuildCodeTable(S, WinXlatCP);
+  if Result then
+    begin
+    AcceptToAscii(WinXlatCP);
+    MaxKeyMap := kmAnsi;
+    for km := Low(km) to kmAscii do
+      RollKeyMap[km] := kmAnsi;
+    end;
+  end;
+
+function InitCodeTables(CodeTables: string): Boolean;
+  var
+    l1, l2: Integer;
+    CP: Word;
+    Err: Integer;
+    I, J: Integer;
+    S: String;
+    km: TKeyMap;
+    GoodTable: Boolean;
+    C: Char;
+    b: Boolean;
+  begin
+  Result := False;
+  CodeTables := CodeTables + ' '; // Для Pos(' ');
+  while CodeTables <> '' do
+    begin
+    l1 := Pos(':', CodeTables);
+    if l1 = 0 then
+      Break;
+    l2 := Pos(' ', CodeTables);
+    if l2 = 0 then
+      Break;
+    Inc(MaxKeyMap);
+    GoodTable := False;
+    with KeyMapDescr[MaxKeyMap] do
+      begin
+      GetMem(XlatCP, SizeOf(TXlatCP));
+      Tag := DelSpaces(Copy(CodeTables, 1, l1-1));
+      end;
+    S := DelSpaces(Copy(CodeTables, l1+1, l2-l1));
+    System.Delete(CodeTables, 1, l2);
+    GoodTable := BuildCodeTable(S, KeyMapDescr[MaxKeyMap].XlatCP^);
+    with KeyMapDescr[MaxKeyMap] do
+      if not GoodTable then
+        begin
+        FreeMem(XlatCP);
+        Dec(MaxKeyMap);
+        Exit;
+        end
+      else
+        begin
+        RollKeyMap[Pred(MaxKeyMap)] := MaxKeyMap;
+        RollKeyMap[MaxKeyMap] := kmAscii;
+        end;
+    end;
+  DelSpace(CodeTables);
+  Result := CodeTables = '';
+  end;
+
+{JO}
+procedure OemToCharSt(var OemS: String);
+  begin
+  XLatBuf(OemS[1], Length(OemS), WinXlatCP[FromAscii]);
+  end;
+
+procedure CharToOemSt(var CharS: String);
+  begin
+  XLatBuf(CharS[1], Length(CharS), WinXlatCP[ToAscii]);
+  end;
+
+function OemToCharStr(const OemS: String): String;
+  var
+    I: Byte;
+  begin
+  SetLength(Result, Length(OemS));
+  for I := 1 to Length(OemS) do
+    Result[I] := WinXlatCP[FromAscii][OemS[I]];
+  end;
+
+function CharToOemStr(const CharS: String): String;
+  var
+    I: Byte;
+  begin
+  SetLength(Result, Length(CharS));
+  for I := 1 to Length(CharS) do
+    Result[I] := WinXlatCP[ToAscii][CharS[I]];
+  end;
+{/JO}
+
+begin
+NullXLAT(NullXlatTable);
+NullXlatTable1 := NullXlatTable;
+FreeCodetables; {Это безопасно, так как MaxKeyMap сейчас нулевой }
+GetSysCountryInfo; InitUpcase;
 end.

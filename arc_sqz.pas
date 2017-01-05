@@ -50,7 +50,7 @@ unit arc_SQZ; {SQZ}
 interface
 
 uses
-  Archiver, advance, advance1, Defines, Objects2, Streams, Dos
+  Archiver, Advance, Advance1, Defines, Objects2, Streams, Dos
   ;
 
 type
@@ -89,8 +89,8 @@ constructor TSQZArchive.Init;
   Sign := Sign+#0;
   FreeStr := SourceDir+DNARC;
   TObject.Init;
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'SQZ.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'SQZ.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'SQZ'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'SQZ'));
   Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'e'));
   ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, 'x'));
   Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'a'));
@@ -163,12 +163,12 @@ procedure TSQZArchive.GetFile;
   if  (ArcFile^.Status <> stOK) then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   if  (P.Size = 0) then
     begin
     FileInfo.Last := 1;
-    exit;
+    Exit;
     end;
   { if P.Size < $19 then} {changed by piwamoto}
   if P.Size < 18 then
@@ -189,7 +189,7 @@ procedure TSQZArchive.GetFile;
   if Length(FileInfo.FName) > 79 then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   ArcFile^.Seek(ArcFile^.GetPos+P.PackedSize);
   end { TSQZArchive.GetFile };

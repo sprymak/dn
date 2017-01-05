@@ -66,12 +66,12 @@ type
     constructor Init(R: TRect);
     procedure Draw; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-    procedure SetState(AState: word; Enable: Boolean); virtual;
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
     procedure Update; virtual;
     procedure GetDir;
     procedure GetData(var S); virtual;
     procedure SetData(var S); virtual;
-    function DataSize: word; virtual;
+    function DataSize: Word; virtual;
     procedure SetDirShape;
     procedure QueryCursorVisible; {AK155}
     end;
@@ -103,8 +103,8 @@ const
 
 implementation
 uses
-  Dos, Commands, DNApp, Dialogs, advance, advance1, advance2,
-  advance3, Startup, RStrings, xTime, Messages
+  Dos, Commands, DNApp, Dialogs, Advance, Advance1, Advance2,
+  Advance3, Startup, RStrings, xTime, Messages
   , Microed, Histries, FViewer, FlPanelX
   {$IFDEF SS}, Idlers {$ENDIF}
   , VpSysLow
@@ -175,11 +175,11 @@ procedure TCommandLine.GetDir;
           D^.GetData(MM);
           Dispose(D, Done);
           end;
-        UpShortStr(MM.S);
+        UpStr(MM.S);
         if ValidDrive(MM.S[1]) then
           begin
           SetCurDrive(MM.S[1]);
-          break;
+          Break;
           end;
       until False;
       Abort := True;
@@ -229,9 +229,9 @@ procedure TCommandLine.Update;
     P: TPoint;
     A1, A2: SmallWord;
     //     BB: Boolean;
-    CursorStartScanLine, CursorEndScanLine: integer; //ak155
+    CursorStartScanLine, CursorEndScanLine: Integer; //ak155
     CursorVisible: Boolean; //ak155
-    CursorMaxY, CursorMinY: integer;
+    CursorMaxY, CursorMinY: Integer;
   const
     OldOverwrite: LongInt = 2;
   begin
@@ -244,7 +244,7 @@ procedure TCommandLine.Update;
     ResetCursor;
   PrevCmdLineCursorVisible := CursorMustBeVisible;
   if not CursorMustBeVisible then
-    exit;
+    Exit;
 
   { А теперь делаем, чтобы курсор действиельно имел нужный вид }
   SysGetCurPos(A1, A2);
@@ -258,7 +258,7 @@ procedure TCommandLine.Update;
         Desktop^.Current^.GetState(sfModal))) or
     MenuActive
   then
-    exit;
+    Exit;
   P.X := CurX+Min(Length(Dir), 50)-DeltaX;
   P.Y := 0;
   MakeGlobal(P, P);
@@ -300,11 +300,11 @@ procedure TCommandLine.Draw;
       C: Char;
       A: Byte;
       end;
-    C1, C2, C3: word;
+    C1, C2, C3: Word;
     S: ^Str50;
   begin
   if CmdDisabled then
-    exit;
+    Exit;
   New(S);
   S^:= {$IFDEF RecodeWhenDraw}CharToOemStr {$ENDIF}(Cut(Copy(Dir, 1,
            Length(Dir)-1), 49)+Dir[Length(Dir)]);
@@ -362,7 +362,7 @@ procedure TCommandLine.HandleEvent;
   var
     R: TRect;
     P: TPoint;
-    i, l, c, ls: integer;
+    i, l, c, ls: Integer;
     s1: String;
     S: String;
     Changed: Boolean;
@@ -371,12 +371,12 @@ procedure TCommandLine.HandleEvent;
   begin { TCommandLine.HandleEvent }
   inherited HandleEvent(Event);
   if Event.What = evNothing then
-    exit;
+    Exit;
   QueryCursorVisible;
   S := Str;
   Changed := False;
   if not CursorMustBeVisible then
-    exit;
+    Exit;
 
   case Event.What of
     evMouseDown, evMouseAuto:
@@ -523,7 +523,7 @@ EndLFN:
           if InterfaceData.Options and ouiHideCmdline = 0 then
             begin
             if DelSpaces(Str) = '' then
-              exit;
+              Exit;
             {AK155: Шатания, которые здесь были (Up-Down), приводили
 у тому, что после выполнения команды по Ctrl-E вызывалась из
 истории не эта команда, а предыдущая. В чем смысл,
@@ -677,7 +677,7 @@ EndLFN:
                 if  (Event.KeyCode = kbUp)
                      and (ShiftState and kbCtrlShift <> 0)
                 then
-                  exit;
+                  Exit;
                 if StrModified then
                   begin
                   AddCommand(Str);
@@ -696,7 +696,7 @@ EndLFN:
                 if  (Event.KeyCode = kbDown)
                      and (ShiftState and kbCtrlShift <> 0)
                 then
-                  exit;
+                  Exit;
                 if StrModified then
                   begin
                   AddCommand(Str);

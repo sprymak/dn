@@ -53,8 +53,8 @@ interface
 
 uses
   Lfn, Collect, Drivers, Defines, Objects2, Streams, Views, EdWin,
-   Drives, advance, advance1,
-  advance2, advance3, U_KeyMap, Microed
+   Drives, Advance, Advance1,
+  Advance2, Advance3, U_KeyMap, Microed
   {, Crt}
   {$IFDEF DBView}, DBView {$ENDIF} {$IFDEF SpreadSheet}, Calc {$ENDIF}
   ;
@@ -67,19 +67,20 @@ type
     fSize: TPoint;
     fDeskSize: TPoint;
     fViewMode: AInt;
+    fKeyMap: TKeyMap;
+    fToAscii: TXLat; // нужно только при fKeyMap = kmXlat
+    fCodeTag: Str8;
     case Byte of
       0: (fPos: LongInt;
         fBufPos: AWord;
-        fXlatFile: String[8];
         fFilter: Byte;
         fHexEdit: Boolean;
         fWrap: Byte; {DataCompBoy}
         fXDelta: AInt;
         fHexPos: AInt;
         fCur: TPoint;
-        fUseXLat: Boolean;
-        fKeyMap: TKeyMap;
-        fMarks: TPosArray);
+        fMarks: TPosArray;
+        );
       {$IFDEF DBView}
       1: (fdDelta: TDBPoint;
         fdPos: TDBPoint;
@@ -143,7 +144,7 @@ type
     procedure FreeItem(P: Pointer); virtual;
     end;
 
-procedure AddToDirectoryHistory(S: String; DriveType: integer);
+procedure AddToDirectoryHistory(S: String; DriveType: Integer);
 procedure SaveCommands(var S: TStream);
 procedure LoadCommands(var S: TStream);
 procedure CmdHistory;
@@ -157,7 +158,7 @@ procedure StoreEditInfo(P: Pointer);
 procedure StoreViewInfo(P: Pointer);
 procedure StoreExtViewer(const FileName: String);
 procedure AddCommand(const LastCommand: String);
-function GetCommand(Idx: integer): String;
+function GetCommand(Idx: Integer): String;
 procedure LoadHistories;
 procedure SaveHistories;
 procedure ClearHistories;
@@ -186,7 +187,7 @@ uses
 procedure FreeLastUnmarked(C: PCollection);
 
   var
-    I: integer;
+    I: Integer;
 
   function IsThat(P: PEditRecord): Boolean;
     begin
@@ -196,7 +197,7 @@ procedure FreeLastUnmarked(C: PCollection);
 
   begin
   if  (C = nil) or (C^.Count < 1) then
-    exit;
+    Exit;
   I := C^.Count;
   if C^.LastThat(@IsThat) <> nil then
     C^.AtFree(I);
@@ -205,7 +206,7 @@ procedure FreeLastUnmarked(C: PCollection);
 function TEditHistoryCol.IndexOf;
   var
     S, S1: String;
-    I: integer;
+    I: Integer;
   begin
   IndexOf := -1;
   S := CnvString(PEditRecord(P)^.FName);
@@ -220,7 +221,7 @@ function TEditHistoryCol.IndexOf;
       {-$VOL}
       begin
       IndexOf := I;
-      exit
+      Exit
       end;
     end;
   end;
@@ -285,11 +286,11 @@ procedure StoreViewInfo(P: Pointer);
     SSView: PCalcWindow absolute P;
     {$ENDIF}
     R: PViewRecord;
-    I: integer;
+    I: Integer;
   label Q;
   begin
   if  (InterfaceData.Options and ouiTrackViewers = 0) or (P = nil) then
-    exit;
+    Exit;
   if ViewHistory = nil then
     ViewHistory := New(PViewHistoryCol, Init(30, 30));
   New(R);
@@ -325,16 +326,14 @@ fBufPos: AWord оно может не помещаться. Но, с другой стороны,
       fBufPos := 0;
       {/AK155 25-03-2003}
 
-      fXlatFile := CnvString(XLatFile);
       fFilter := Filter;
       fHexEdit := HexEdit;
       fWrap := Wrap;
       fXDelta := XDelta;
       fHexPos := HexPos;
       fCur := Cur;
-      fUseXLat := UseXLat;
-      fKeyMap := KeyMap;
       fMarks := MarkPos;
+      XCoder.ToHistory(fKeyMap, fToAscii, fCodeTag);
       end
       {$IFDEF DBView} {-DataCompBoy-}
   else if TypeOf((PObject(P)^)) = TypeOf(TDBWindow) then
@@ -351,9 +350,7 @@ fBufPos: AWord оно может не помещаться. Но, с другой стороны,
         begin
         fdDelta := Delta;
         fdPos := Pos;
-        fKeyMap := KeyMap; {John_SW 14-03-2003}
-        fUseXLat := UseXLat;
-        fXlatFile := CnvString(XLatFile);
+        XCoder.ToHistory(fKeyMap, fToAscii, fCodeTag);
         end;
       end
       {$ENDIF}
@@ -409,11 +406,11 @@ Q:
 procedure StoreExtViewer(const FileName: String);
   var
     R: PViewRecord;
-    I: integer;
+    I: Integer;
   begin
   if  (InterfaceData.Options and ouiTrackViewers = 0) or (FileName = '')
   then
-    exit;
+    Exit;
   if ViewHistory = nil then
     ViewHistory := New(PViewHistoryCol, Init(30, 30));
   New(R);
@@ -441,7 +438,7 @@ procedure StoreExtViewer(const FileName: String);
 procedure StoreEditInfo(P: Pointer);
   var
     E: PEditWindow absolute P;
-    I: integer;
+    I: Integer;
     R: PEditRecord;
     PP: PEditRecord;
 
@@ -449,7 +446,7 @@ procedure StoreEditInfo(P: Pointer);
   if  (InterfaceData.Options and ouiTrackEditors = 0) or
       (PFileEditor(E^.Intern)^.EditName = '')
   then
-    exit;
+    Exit;
   if EditHistory = nil then
     EditHistory := New(PEditHistoryCol, Init(30, 30));
   New(R);
@@ -503,7 +500,7 @@ procedure StoreEditInfo(P: Pointer);
 
 procedure AddCommand(const LastCommand: String);
   var
-    I: integer;
+    I: Integer;
     P: PString;
   label 1;
   begin
@@ -551,7 +548,7 @@ end;
 }
 procedure SaveCommands(var S: TStream);
   var
-    I, J: integer;
+    I, J: Integer;
     S1, S2: String;
     M: PCollection;
   begin
@@ -565,7 +562,7 @@ Message(CommandLine, evCommand, cmExecCommandLine, nil);
     for I := 1 to 40 do
       begin
       if CmdStrings^.Count <= 0 then
-        break;
+        Break;
       M^.AtInsert(0, CmdStrings^.At(CmdStrings^.Count-1));
       CmdStrings^.AtDelete(CmdStrings^.Count-1);
       end;
@@ -589,7 +586,7 @@ Message(CommandLine, evCommand, cmExecCommandLine, nil);
 
 procedure LoadCommands(var S: TStream);
   var
-    I: integer;
+    I: Integer;
   begin
   CmdStrings := PCollection(S.Get);
   DirHistory := PCollection(S.Get);
@@ -609,13 +606,13 @@ procedure LoadCommands(var S: TStream);
   {/AK155}
   end;
 
-function GetCommand(Idx: integer): String;
+function GetCommand(Idx: Integer): String;
   begin
   GetCommand := '';
   if  (CmdStrings = nil) or (CmdStrings^.Count <= Idx)
          or (CmdStrings^.At(Idx) = nil)
   then
-    exit;
+    Exit;
   GetCommand := Copy(PString(CmdStrings^.At(Idx))^, 2, MaxStringLength);
   end;
 
@@ -626,7 +623,7 @@ type
     Dlg: TDlgIdx; {AK155}
     function ItemStr(I: LongInt): PString;
     function IsSelected(I: LongInt): Boolean; virtual;
-    function GetText(Item: LongInt; MaxLen: integer): String; virtual;
+    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
     procedure SelectItem(Item: LongInt); virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     destructor Done; virtual;
@@ -676,17 +673,17 @@ procedure TTHistList.HandleEvent;
   var
     P: Pointer;
 
-  procedure ScanMarked(D: integer);
+  procedure ScanMarked(D: Integer);
     var
       P: PString;
-      I: integer;
+      I: Integer;
     begin
     ClearEvent(Event);
     I := Focused;
     repeat
       Inc(I, D);
       if  (I < 0) or (I >= List^.Count) or (ItemStr(I)^[1] <> ' ') then
-        break;
+        Break;
     until False;
     if  (I >= 0) and (I < List^.Count) then
       begin
@@ -695,7 +692,7 @@ procedure TTHistList.HandleEvent;
       end;
     end;
 
-  procedure SwapItems(i: integer);
+  procedure SwapItems(i: Integer);
     var
       P: Pointer;
     begin
@@ -715,7 +712,7 @@ procedure TTHistList.HandleEvent;
         begin
         EndModal(cmYes);
         ClearEvent(Event);
-        exit;
+        Exit;
         end;
       kbDel:
         goto 1;
@@ -736,7 +733,7 @@ procedure TTHistList.HandleEvent;
         begin
         ClearEvent(Event);
         if Focused >= List^.Count then
-          exit;
+          Exit;
         FreeStr := fDelLeft(fDelRight(Copy(CnvString(List^.At(Focused)),
                  2, 255))); {-$VIV}
         {DataCompBoy}
@@ -744,7 +741,7 @@ procedure TTHistList.HandleEvent;
              GetString(dlFindCellString), FreeStr, 255, hsEditHistory)
            <> cmOK
         then
-          exit;
+          Exit;
         Insert(Copy(CnvString(List^.At(Focused)), 1, 1), FreeStr, 1);
         List^.AtReplace(Focused, NewStr(FreeStr));
         DrawView;
@@ -757,20 +754,20 @@ procedure TTHistList.HandleEvent;
             begin
             MessageBox(GetString(dlHistDelCurDir), nil, mfOKButton);
             {John_SW}
-            exit;
+            Exit;
             {AK155: 0 - это текущий каталог,
                   его удалять бесполезно: он опять вставится, но при этом
                   собьет нумерацию элементов }
             end;
           if Focused >= List^.Count then
-            exit;
+            Exit;
           if Copy(CnvString(ItemStr(Focused)), 1, 1) = '+' then
             begin
             if HistoryErrorBeep then
               begin
               SysBeepEx {PlaySound}(500, 110);
               end;
-            exit;
+            Exit;
             end;
           if CommandHistory and (Focused <= CurString)
                and (CurString > 0)
@@ -790,9 +787,9 @@ destructor TTHistList.Done;
   inherited Done;
   end;
 
-procedure AddToDirectoryHistory(S: String; DriveType: integer);
+procedure AddToDirectoryHistory(S: String; DriveType: Integer);
   var
-    I: integer;
+    I: Integer;
     P: PString;
 
   function IsThat(P: PString): Boolean;
@@ -808,21 +805,21 @@ procedure AddToDirectoryHistory(S: String; DriveType: integer);
 
   begin
   if InterfaceData.Options and ouiTrackDirs = 0 then
-    exit;
+    Exit;
   if  (S = '') or ((S[2] <> ':') and ((S[1] <> '\') or (S[2] <> '\')))
   then
-    exit;
+    Exit;
   {Cat: добавил проверку на сетевые пути}
   {$IFDEF OS_DOS}
   S := lfGetLongFileName(S);
   {$ENDIF}
   if DirHistory = nil then
     DirHistory := New(PLineCollection, Init(40, 40, False));
-  if  (DriveType <> integer(dtList)) and
-      (DriveType <> integer(dtFind)) and
-      (DriveType <> integer(dtArcFind)) and
-      (DriveType <> integer(dtArvid)) and
-      (DriveType <> integer(dtArc))
+  if  (DriveType <> Integer(dtList)) and
+      (DriveType <> Integer(dtFind)) and
+      (DriveType <> Integer(dtArcFind)) and
+      (DriveType <> Integer(dtArvid)) and
+      (DriveType <> Integer(dtArc))
   then
     begin
     if S[Length(S)] <> '\' then
@@ -832,8 +829,8 @@ procedure AddToDirectoryHistory(S: String; DriveType: integer);
     begin
     if S[Length(S)] in ['\', '/'] then
       SetLength(S, Length(S)-1);
-    if  (DriveType = integer(dtArvid)) or
-        (DriveType = integer(dtArc))
+    if  (DriveType = Integer(dtArvid)) or
+        (DriveType = Integer(dtArc))
     then
       AddStr(S, '\');
     end;
@@ -880,12 +877,12 @@ procedure EditHistoryMenu;
   var
     D: PDialog;
     P: PTHistList;
-    I: integer;
+    I: Integer;
   begin
   if InterfaceData.Options and ouiTrackEditors = 0 then
     begin
     Msg(dlSetEditHistory, nil, mfError+mfOKButton);
-    exit;
+    Exit;
     end;
   ClearHistories;
   LoadHistories; {AK155}
@@ -901,11 +898,11 @@ procedure EditHistoryMenu;
     I := -1;
   Dispose(D, Done);
   if EditHistory^.Count = 0 then
-    exit; {Proverka, esli udalyali, zarazy:}
+    Exit; {Proverka, esli udalyali, zarazy:}
   if  (I >= 0) then
     begin
     if  (PViewRecord(EditHistory^.At(I))^.FName = nil) then
-      exit;
+      Exit;
     {A eto tak, na vsyakiy sluchay proverka, esli eto ne DPMI :}
     PDNApplication(Application)^.EditFile(
       SystemData.Options and ossEditor <> 0,
@@ -920,12 +917,12 @@ procedure ViewHistoryMenu;
   var
     D: PDialog;
     P: PTHistList;
-    I: integer;
+    I: Integer;
   begin
   if InterfaceData.Options and ouiTrackViewers = 0 then
     begin
     Msg(dlSetViewHistory, nil, mfError+mfOKButton);
-    exit;
+    Exit;
     end;
   ClearHistories;
   LoadHistories; {AK155}
@@ -941,11 +938,11 @@ procedure ViewHistoryMenu;
     I := -1;
   Dispose(D, Done);
   if ViewHistory^.Count = 0 then
-    exit; {Proverim, esli udalyali, pa**y}
+    Exit; {Proverim, esli udalyali, pa**y}
   if I >= 0 then
     begin
     if  (PViewRecord(ViewHistory^.At(I))^.FName = nil) then
-      exit; {Ku :}
+      Exit; {Ku :}
     PDNApplication(Application)^.ViewFile(False, True, {AK155}
       Copy(PViewRecord(ViewHistory^.At(I))^.FName^, 2, MaxStringLength));
     end;
@@ -957,10 +954,10 @@ function DirHistoryMenu: String;
     D: PDialog;
     P: PView;
     R: TRect;
-    I: integer;
+    I: Integer;
     DT: record
       PC: PCollection;
-      I: integer;
+      I: Integer;
       end;
   begin
   ClearHistories;
@@ -970,7 +967,7 @@ function DirHistoryMenu: String;
   if InterfaceData.Options and ouiTrackDirs = 0 then
     begin
     Msg(dlSetDirHistory, nil, mfError+mfOKButton);
-    exit;
+    Exit;
     end;
 
   if DirHistory = nil then
@@ -998,10 +995,10 @@ procedure CmdHistory;
     D: PDialog;
     P: PView;
     R: TRect;
-    I: integer;
+    I: Integer;
     DT: record
       PC: PCollection;
-      I: integer;
+      I: Integer;
       end;
   begin
   ClearHistories;
@@ -1023,7 +1020,7 @@ procedure CmdHistory;
   Dispose(D, Done);
 
   if I = cmCancel then
-    exit;
+    Exit;
   Message(CommandLine, evKeyDown, kbDown, nil);
 
   CurString := DT.I;
@@ -1057,7 +1054,7 @@ procedure LoadHistories;
         HistorySize := A+256;
         InitHistory;
         end;
-      HistoryUsed := A+word(HistoryBlock);
+      HistoryUsed := A+Word(HistoryBlock);
       S.Read(HistoryBlock^, A);
       LoadCommands(S);
       end
@@ -1079,7 +1076,7 @@ procedure SaveHistories;
     begin
     FreeStr := HistoryFileSign;
     S.Write(FreeStr[1], Length(HistoryFileSign));
-    A := HistoryUsed-word(HistoryBlock);
+    A := HistoryUsed-Word(HistoryBlock);
     S.Write(A, SizeOf(A));
     S.Write(HistoryBlock^, A);
     SaveCommands(S);
@@ -1090,13 +1087,13 @@ procedure SaveHistories;
 
 procedure ClearHistories;
   var
-    I, J, K: integer;
+    I, J, K: Integer;
     B: PChar;
 
   procedure ClearStrCollection(C: PCollection);
     begin
     if C = nil then
-      exit;
+      Exit;
     C^.Pack;
     i := 0;
     while i < C^.Count do
@@ -1112,7 +1109,7 @@ procedure ClearHistories;
   procedure ClearCollection(C: PCollection);
     begin
     if C = nil then
-      exit;
+      Exit;
     C^.Pack;
     i := 0;
     while i < C^.Count do
@@ -1129,14 +1126,14 @@ procedure ClearHistories;
     A: AWord;
   begin { ClearHistories }
   if HistoryBlock = nil then
-    exit;
+    Exit;
   B := PChar(HistoryBlock);
   I := 1;
-  A := HistoryUsed-word(HistoryBlock);
+  A := HistoryUsed-Word(HistoryBlock);
   while I < A do
     begin
     if B[I+1] = #0 then
-      break;
+      Break;
     Move(B[I+2], FreeStr, Byte(B[I+2])+1);
     J := I+Byte(B[I+2])+3;
     if FreeStr[Length(FreeStr)] <> ' ' then

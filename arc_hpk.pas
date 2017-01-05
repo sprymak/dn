@@ -50,7 +50,7 @@ unit arc_HPK; {HPK}
 interface
 
 uses
-  Archiver, advance, advance1, Defines, Objects2, Streams, Dos, xTime,
+  Archiver, Advance, Advance1, Defines, Objects2, Streams, Dos, xTime,
   Collect
   ;
 
@@ -93,9 +93,8 @@ constructor THPKArchive.Init;
   Sign := Sign+#0;
   FreeStr := SourceDir+DNARC;
   TObject.Init;
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'HPACK.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,
-       'HPACK.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'HPACK'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'HPACK'));
   Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'X'));
   ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, 'X'));
   Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'A -DA -A'));
@@ -176,7 +175,7 @@ procedure THPKArchive.GetFile;
     FileInfo.Last := 1;
     Dispose(HPKCol, Done);
     HPKCol := nil;
-    exit;
+    Exit;
     end;
   FileInfo.USize := PHPKRec(HPKCol^.At(0))^.USize;
   FileInfo.PSize := PHPKRec(HPKCol^.At(0))^.PSize;

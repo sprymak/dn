@@ -50,9 +50,9 @@ unit ArvidTdr;
 interface
 
 uses
-  Arvid, Objects2, Streams, advance1, Messages, DNApp, Commands, Collect,
-  Views, Drivers, Startup, U_KeyMap, advance, Lfn, Files, Dos, Tree,
-  FilesCol, advance2, Drives, FlPanel, Memory
+  Arvid, Objects2, Streams, Advance1, Messages, DNApp, Commands, Collect,
+  Views, Drivers, Startup, U_KeyMap, Advance, Lfn, Files, Dos, Tree,
+  FilesCol, Advance2, Drives, FlPanel, Memory
   ;
 
 procedure TdrSeekDirectory(AvtDr: PArvidDrive);
@@ -72,7 +72,7 @@ uses
 
 function TdrMakeFileName(S: String): String;
   var
-    I: integer;
+    I: Integer;
   begin
   S[9] := '.';
   I := 8;
@@ -91,7 +91,7 @@ function TdrMakeFileName(S: String): String;
 procedure TdrSeekDirectory;
   var
     I, J: LongInt;
-    Lv: integer;
+    Lv: Integer;
     DD: TTdrDirCell;
     SS: String[12];
     S: String;
@@ -116,7 +116,7 @@ procedure TdrSeekDirectory;
         SS := SS+S[1]; {AddStr(SS, S[1]);}
         Delete(S, 1, 1); {DelFC(S);}
         if Length(SS) = 12 then
-          break;
+          Break;
         end;
       Delete(S, 1, 1); {DelFC(S);}
       SS := Norm12(SS);
@@ -128,7 +128,7 @@ procedure TdrSeekDirectory;
       until (UpStrg(Copy(DD.Name, 1, 11)) = SS) and (DD.Level = Lv)
          or (DD.Level < Lv);
       if  (DD.Level < Lv) or (DD.Level = 0) then
-        break;
+        Break;
       Insert('.', SS, 9);
       if  (CurDir[Length(CurDir)] <> '\') and
           (CurDir <> '')
@@ -184,7 +184,7 @@ procedure TdrGetDirectory(AvtDr: PArvidDrive; var ALocation: LongInt;
              FileMask))
       then
         begin
-        {$IFNDEF OS2}
+        {$IFDEF DualName}
         F := NewFileRec(TdrMakeFileName(S), S, FF.Size, FF.Time, 0, 0,
              FF.Attr, @CurDir);
         {$ELSE}
@@ -256,7 +256,7 @@ procedure TdrEditDescription;
   procedure ExpandStream;
     var
       I, J: LongInt;
-      L: word;
+      L: Word;
       B: array[1..512] of Byte;
     begin
     with AvtDr^ do
@@ -325,7 +325,7 @@ procedure TdrCalcTotal;
   procedure CountDirectory(DD, Num: LongInt);
     var
       FF: TTdrFileCell;
-      I: integer;
+      I: Integer;
     begin
     with AvtDr^ do
       begin
@@ -355,7 +355,7 @@ procedure TdrCalcTotal;
 
 function TdrInit;
   var
-    J: word;
+    J: Word;
   begin
   with AvtDr^ do
     begin
@@ -366,7 +366,7 @@ function TdrInit;
     if  (Stream^.Status <> stOK) or
         (_Cardinal(D.PosTableOfs) > Stream^.GetSize)
     then
-      exit; {piwamoto: reject invalid TDRs}
+      Exit; {piwamoto: reject invalid TDRs}
     TapeFmt := D.TapeFmt;
     TapeTotalTime := D.TapeLen;
     PosTableOfs := D.PosTableOfs;

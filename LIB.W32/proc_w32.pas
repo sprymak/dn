@@ -28,7 +28,7 @@ type
 
   PProcessCollection = ^TProcessCollection;
   TProcessCollection = object(TSortedCollection)
-    function Compare(P1, P2: Pointer): integer; virtual;
+    function Compare(P1, P2: Pointer): Integer; virtual;
     end;
 
 function GetProcessList: PProcessCollection;
@@ -39,7 +39,7 @@ implementation
 
 uses
   VpSysLow, Windows,
-  DnIni, advance1, advance2
+  DnIni, Advance1, Advance2
   ;
 
 function TProcessItem.GetString: String;
@@ -68,7 +68,7 @@ function TProcessItem.GetString: String;
   GetString := Hex8(Pid)+'  '+Result;
   end { TProcessItem.GetString: };
 
-function TProcessCollection.Compare(P1, P2: Pointer): integer;
+function TProcessCollection.Compare(P1, P2: Pointer): Integer;
   begin
   Compare := PProcessItem(P1)^.Pid-PProcessItem(P2)^.Pid;
   end;
@@ -103,7 +103,7 @@ procedure FillWin95ProcessCollection(Collection: PProcessCollection);
   begin { FillWin95ProcessCollection }
   hKernel := GetModuleHandle('kernel32.dll');
   if hKernel = 0 then
-    exit;
+    Exit;
   @CreateToolhelp32Snapshot := GetProcAddress(hKernel,
        'CreateToolhelp32Snapshot');
   @Process32First := GetProcAddress(hKernel, 'Process32First');
@@ -111,15 +111,15 @@ procedure FillWin95ProcessCollection(Collection: PProcessCollection);
   if  (@CreateToolhelp32Snapshot = nil) or (@Process32First = nil)
        or (@Process32Next = nil)
   then
-    exit;
+    Exit;
 
   hSnapshot := CreateToolhelp32Snapshot(2 {TH32CS_SNAPPROCESS}, 0);
   if hSnapshot = invalid_Handle_Value then
-    exit;
+    Exit;
 
   Entry.dwSize := SizeOf(Entry);
   if not Process32First(hSnapshot, @Entry) then
-    exit;
+    Exit;
 
   {JO: нам совсем не нужно, чтобы kernel32.dll попадал в список процессов, }
   {    а посему repeat ... until здесь использовать не надо                }
@@ -133,7 +133,7 @@ procedure FillWin95ProcessCollection(Collection: PProcessCollection);
         P^.Name := '';
         for I := 0 to 254 do
           if szExeFile[I] = #0 then
-            break
+            Break
           else
             P^.Name := P^.Name+szExeFile[I];
         end
@@ -214,8 +214,8 @@ procedure FillWinNTProcessCollection(Collection: PProcessCollection);
       end;
   var
     hNTDll: Handle;
-    NtQuerySystemInformation: function (Nmb: integer; Ptr: Pointer;
-       Size1, Size2: integer): LongInt stdcall;
+    NtQuerySystemInformation: function (Nmb: Integer; Ptr: Pointer;
+       Size1, Size2: Integer): LongInt stdcall;
     Buf: array[1..1024*512] of Byte;
     PInfo: PProcessInfo;
     P: PProcessItem;
@@ -234,7 +234,7 @@ procedure FillWinNTProcessCollection(Collection: PProcessCollection);
          -1, @P^.Name[1], 255, nil, nil);
       for I := 1 to 255 do
         if P^.Name[I] = #0 then
-          break;
+          Break;
       P^.Name[0] := Char(I);
       P^.Pid := PInfo^.dwProcessID;
       if not (FilteredList and (Pos('#'+UpStrg(GetName(P^.Name))+'#',
@@ -244,7 +244,7 @@ procedure FillWinNTProcessCollection(Collection: PProcessCollection);
       else
         Dispose(P, Done);
       if PInfo^.dwOffset = 0 then
-        break;
+        Break;
       PInfo := PProcessInfo(PChar(PInfo)+PInfo^.dwOffset);
     until False;
     end;

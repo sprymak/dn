@@ -46,39 +46,39 @@
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
-unit advance3; {Misc stuff}
+unit Advance3; {Misc stuff}
 
 interface
 
 uses
-  advance, DnIni, Dos, xTime, Objects2
+  Advance, DnIni, Dos, xTime, Objects2
   ;
 
 function Get100s: LongInt;
 
 function GetSTime: LongInt;
 
-function XRandom(N: integer): integer; { Rnd -N..N }
+function XRandom(N: Integer): Integer; { Rnd -N..N }
 procedure DosWrite(S: String);
 {DataCompBoy Function  KeyPressed: Boolean;}
-function FindParam(const S: String): integer;
+function FindParam(const S: String): Integer;
 {$IFDEF OS_DOS}
 function Chk4Dos: Boolean;
 procedure AppendCheck;
 procedure DisableAppend;
 {$ENDIF}
 function GetEnv(S: String): String;
-function GetCrc(StartCrc: LongInt; var Buf; BufSize: word): LongInt;
+function GetCrc(StartCrc: LongInt; var Buf; BufSize: Word): LongInt;
 
 {$IFDEF OS_DOS}
 var
   AppendInstalled: Boolean;
-  AppendState: word;
+  AppendState: Word;
   {$ENDIF}
 
 implementation
 uses
-  advance1, advance2, advance6, Commands {Cat}
+  Advance1, Advance2, Advance6, Commands {Cat}
   ;
 
 {$IFDEF OS_DOS}
@@ -119,7 +119,7 @@ procedure DisableAppend;
 
 function Get100s: LongInt;
   var
-    DD, MM, YY, HH, Mn, Sc, Sc100: word;
+    DD, MM, YY, HH, Mn, Sc, Sc100: Word;
   begin
   GetDate(YY, MM, DD, Sc100);
   GetTime(HH, Mn, Sc, Sc100);
@@ -129,7 +129,7 @@ function Get100s: LongInt;
 
 function GetSTime: LongInt;
   var
-    H, M, S, SS: word;
+    H, M, S, SS: Word;
   begin
   GetTime(H, M, S, SS);
   GetSTime := SS+LongInt(S)*100+LongInt(M)*6000+LongInt(H)*360000;
@@ -157,16 +157,16 @@ asm
 end;
 }
 
-function FindParam(const S: String): integer;
+function FindParam(const S: String): Integer;
   var
-    I: integer;
+    I: Integer;
   begin
   FindParam := 0;
   for I := 1 to ParamCount do
     if S = Copy(UpStrg(ParamStr(I)), 1, Length(S)) then
       begin
       FindParam := I;
-      exit
+      Exit
       end;
   if S[1] = '/' then
     FindParam := FindParam('-'+Copy(S, 2, MaxStringLength));
@@ -212,11 +212,11 @@ function UpdateCrc32(CurByte: Byte;
       ( (CurCrc shr 8) and $00FFFFFF);
   end;
 
-function GetCrc(StartCrc: LongInt; var Buf; BufSize: word): LongInt;
+function GetCrc(StartCrc: LongInt; var Buf; BufSize: Word): LongInt;
   type
     AA = array[1..$F000] of Byte;
   var
-    CNT: word;
+    CNT: Word;
     CRC: LongInt;
   begin
   if Crc_Table_Empty then
@@ -224,7 +224,7 @@ function GetCrc(StartCrc: LongInt; var Buf; BufSize: word): LongInt;
   CRC := StartCrc;
   GetCrc := StartCrc;
   if BufSize = 0 then
-    exit;
+    Exit;
   for CNT := 1 to BufSize do
     CRC := UpdateCrc32(AA(Buf)[CNT], CRC);
   GetCrc := CRC;

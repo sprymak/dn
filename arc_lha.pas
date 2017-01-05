@@ -50,7 +50,7 @@ unit arc_LHA; {LHA}
 interface
 
 uses
-  Archiver, advance, advance1, Defines, Objects2, Streams, Dos, xTime
+  Archiver, Advance, Advance1, Defines, Objects2, Streams, Dos, xTime
   ;
 
 type
@@ -90,8 +90,8 @@ constructor TLHAArchive.Init;
   FreeStr := SourceDir+DNARC;
   TObject.Init;
   {$IFNDEF OS2}
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'LHA.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'LHA.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'LHA'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'LHA'));
   Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'e -a'));
   ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, 'x -a'));
   Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'a -a'));
@@ -126,8 +126,8 @@ constructor TLHAArchive.Init;
          '@'));
   ExtrListChar := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtrListChar, ''));
   {$ELSE}
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'LH32.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'LH32.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'LH32'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'LH32'));
   Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'e -a'));
   ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, 'x -a'));
   Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'a -a -e'));
@@ -203,7 +203,7 @@ procedure TLHAArchive.GetFile;
   if  (P.Size = 0) then
     begin
     FileInfo.Last := 1;
-    exit;
+    Exit;
     end;
   ArcFile^.Read(P.Sum, P.Size-SizeOf(P.Size));
   if  (ArcFile^.Status <> stOK) or (P.MethodID[1] <> '-')
@@ -211,7 +211,7 @@ procedure TLHAArchive.GetFile;
   then
     begin
     FileInfo.Last := 2;
-    exit;
+    Exit;
     end;
   FP := ArcFile^.GetPos+2;
   if P.Level = 2 then

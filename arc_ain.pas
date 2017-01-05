@@ -50,12 +50,14 @@ unit arc_AIN; {AIN}
 interface
 
 uses
-  Archiver, arc_UC2
+  Archiver
   ;
 
 type
   PAINArchive = ^TAINArchive;
-  TAINArchive = object(TUC2Archive)
+  TAINArchive = object(TARJArchive)
+    ListFileName: String;
+    ListFile: System.Text;
     constructor Init;
     procedure GetFile; virtual;
     function GetID: Byte; virtual;
@@ -65,7 +67,7 @@ type
 implementation
 
 uses
-  Objects2, advance2, advance, DNApp, DnExec, Commands, advance1, Messages,
+  Objects2, Advance2, Advance, DNApp, DnExec, Commands, Advance1, Messages,
   Dos
   ;
 
@@ -81,8 +83,8 @@ constructor TAINArchive.Init;
   Sign := Sign+#0;
   FreeStr := SourceDir+DNARC;
   TObject.Init;
-  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'AIN.EXE'));
-  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'AIN.EXE'));
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'AIN'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'AIN'));
   Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'e'));
   ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, 'x'));
   Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'a'));
@@ -179,28 +181,28 @@ procedure TAINArchive.GetFile;
       +' > '+ListFileName
       {$ENDIF}
       ;
-    if Length(s) < 100 then
+    if Length(s) < 126 then
       AnsiExec(GetEnv('COMSPEC'), s)
     else
       MessageBox(^C+GetString(dlCmdLineTooLong), nil, mfOKButton+mfError);
     System.Assign(ListFile, ListFileName);
     System.Reset(ListFile);
     if IOResult <> 0 then
-      exit;
+      Exit;
     { Пропуск шапки и чтение первой строки файлов }
     repeat
       if Eof(ListFile) then
-        exit;
+        Exit;
       Readln(ListFile, s);
       if IOResult <> 0 then
-        exit;
+        Exit;
     until (Pos('File name', s) <> 0) or (Pos('Имя файла', s) <> 0);
     repeat
       if Eof(ListFile) then
-        exit;
+        Exit;
       Readln(ListFile, s);
       if IOResult <> 0 then
-        exit;
+        Exit;
     until s <> '';
     end
   else
@@ -212,7 +214,7 @@ procedure TAINArchive.GetFile;
     EraseFile(ListFileName);
     TextRec(ListFile).Handle := 0;
     FileInfo.Last := 1;
-    exit;
+    Exit;
     end;
   FileInfo.Last := 0;
 

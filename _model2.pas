@@ -37,7 +37,7 @@ type
     EventMask: AWord;
     UpTmr: TEventTimer;
     UpdTicks: LongInt;
-    OldSizeX: integer;
+    OldSizeX: Integer;
     isValid, MSelect, SelectFlag, Loaded, ChangeLocked: Boolean;
     InfoView, DirView, DriveLine: PView;
     Delta, OldDelta, OldPos, DeltaX: LongInt;
@@ -52,11 +52,11 @@ type
     WasActive, PosChanged, CommandEnabling,
     ViewEnabled: Boolean;
     TotalInfo, FreeSpace: TSize;
-    PanelFlags: word;
-    LastDriveFlags: word;
+    PanelFlags: Word;
+    LastDriveFlags: Word;
     Drive: PDrive;
     ForceReading: Boolean;
-    DriveState: word;
+    DriveState: Word;
     LastCurPos: TPoint;
     end;
 

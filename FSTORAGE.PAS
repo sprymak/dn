@@ -52,7 +52,7 @@ interface
 
 uses
   Lfn, Files,
-  Objects2, Streams, advance, advance1, advance2, advance3, Dos, FilesCol
+  Objects2, Streams, Advance, Advance1, Advance2, Advance3, Dos, FilesCol
   ;
 
 type
@@ -61,7 +61,7 @@ type
 
   TStored = record
     Id: TStoredID;
-    len: word; {DataCompBoy}
+    len: Word; {DataCompBoy}
     { 8((( }
     end;
 
@@ -115,8 +115,8 @@ type
     procedure InitStream(X, E, M: LongInt);
     procedure Truncate(N: LongInt);
     procedure WipeCur;
-    procedure vWrite(var Buf; Count: word);
-    procedure vRead(var Buf; Count: word);
+    procedure vWrite(var Buf; Count: Word);
+    procedure vRead(var Buf; Count: Word);
     procedure vSeek(Pos: LongInt);
     procedure vTruncate;
     procedure FixError;
@@ -171,7 +171,7 @@ procedure TDirStorage.FixError;
     OldStream: PStream;
     SavePos, Count: LongInt;
     Buffer: array[0..BufSize-1] of Byte;
-    N: word;
+    N: Word;
   begin
   OldStream := Stream;
   OldStream^.Status := stOK;
@@ -251,10 +251,10 @@ procedure TDirStorage.AddFile;
     SF: TStoredFile;
     TS: TStored absolute SF;
     B: array[0..542] of Byte;
-    L: word;
+    L: Word;
   begin
   if Stream = nil then
-    exit;
+    Exit;
   Stream^.Status := stOK;
   vSeek(Max(0, (vSize)-TStoredFixLength));
   L := 0;
@@ -307,7 +307,7 @@ procedure TDirStorage.AddFile;
 procedure TDirStorage.ResetPointer;
   begin
   if Stream = nil then
-    exit;
+    Exit;
   CurPos := 0;
   FilePtr := -1;
   CurPos := -1;
@@ -332,7 +332,7 @@ function TDirStorage.GetNextFile;
   Last := True;
   CurPos := -1;
   if Stream = nil then
-    exit;
+    Exit;
   while Stream^.Status = stOK do
     begin
     FilePtr := vSavePos;
@@ -346,7 +346,7 @@ function TDirStorage.GetNextFile;
         LastDir := Dr
         end;
       siEnd:
-        break;
+        Break;
       siFile, siFileDir:
         begin
         CurPos := vSavePos-SF.T.len;
@@ -357,7 +357,7 @@ function TDirStorage.GetNextFile;
           LastDir := Dr;
           GetNextFile := True;
           if CurFile.Name <> '' then
-            break;
+            Break;
           end;
         end;
     end {case};
@@ -370,7 +370,7 @@ procedure TDirStorage.UpdateRecord;
     s: TStored;
   begin
   if Stream = nil then
-    exit;
+    Exit;
   if  (CurPos > 0) and (CurFile.Name <> '') then
     begin
     Stream^.Status := stOK;
@@ -397,7 +397,7 @@ constructor TDirStorage.Load;
   repeat
     Stream^.CopyFrom(S, L);
     if Stream^.Status = stOK then
-      break
+      Break
     else
       begin
       Dispose(Stream, Done);
@@ -447,7 +447,7 @@ procedure TDirStorage.DosReread;
       siDirectory:
         Dr := SF.Name;
       siEnd:
-        break;
+        Break;
       siFile, siFileDir:
         begin
         Abort := False;
@@ -517,7 +517,7 @@ procedure TDirStorage.Truncate(N: LongInt);
       vSeek(L+ST.len);
     case ST.Id of
       siEnd:
-        break;
+        Break;
       siFile, siFileDir:
         begin
         Dec(N);
@@ -537,7 +537,7 @@ procedure TDirStorage.Truncate(N: LongInt);
           Dirs := ND;
           Files := NF;
           Items := NI;
-          break;
+          Break;
           end
         end;
     end {case};
@@ -571,7 +571,7 @@ procedure TDirStorage.vWrite;
       begin
       vSize := Max(vSize, vSavePos+Count);
       Inc(vSavePos, Count);
-      break;
+      Break;
       end
     else
       FixError;

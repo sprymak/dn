@@ -82,7 +82,7 @@ const
 
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {; Variable name           ; Type       ; Default value      ;          Comments ;}
-  {`.________________________;____________;____________________;___________________'}
+  {'.________________________;____________;____________________;___________________'}
   {} {Interface}
   {}CutDriveInfo: Boolean = True;
   {}WinManagerSelectNext: Boolean = True;
@@ -107,7 +107,7 @@ const
   {}EscForOutputWindow: Boolean = False; {JO}
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
-  {`.________________________;____________;____________________;___________________'}
+  {'.________________________;____________;____________________;___________________'}
   {} {Clock}
   {}ShowSeconds: Boolean = True;
   {}BlinkSeparator: Boolean = True; {JO}
@@ -117,25 +117,25 @@ const
   {}RightAlignClock: Boolean = False; {FY 13-03-2000}
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
-  {`.________________________;____________;____________________;___________________'}
+  {'.________________________;____________;____________________;___________________'}
   {} {SmartPad}
   {}SPInsertDate: Boolean = True;
   {}SPLineChar: Byte = 196; {X-Man}
   {SYR}
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
-  {`.________________________;____________;____________________;___________________'}
+  {'.________________________;____________;____________________;___________________'}
   {} {Game}
   {}EnableGame: Boolean = True;
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
-  {`.________________________;____________;____________________;___________________'}
+  {'.________________________;____________;____________________;___________________'}
   {} {Clipboard}
   {}cbSize: LongInt = 4096; {-$VOL}
   {}cbAutoSave: Boolean = False; {-$VOL}
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
-  {`.________________________;____________;____________________;___________________'}
+  {'.________________________;____________;____________________;___________________'}
   {} {Kernel}
   //CanUseLFN                : Boolean    = True;
   {}AutoSave: Boolean = True;
@@ -156,24 +156,22 @@ const
   {$ENDIF}
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
-  {`.________________________;____________;____________________;___________________'}
+  {'.________________________;____________;____________________;___________________'}
   {} {Editor}
   {}UnlimitUnindent: Boolean = False;
-  {}Koi8rKeyMap: Boolean = True;
   {}DrawRShift: Boolean = True;
   {}AutoScopeDetect: Boolean = True;
   {}ShowBookmarks: Boolean = True;
   {}FastBookmark: Boolean = True;
   {}DefCodePageView: String[9] = 'Dos';
   {}DefCodePage: String[9] = 'Dos';
-  {}CapitalCodePageName: Boolean = False;
   {}FastSearchDeep: LongInt = 0;
   {}WinManagerPosToEdit: Boolean = True;
   {}AutoBracketPairs: String = '()[]{}<>';
   {}F6_DuplicatesLine: Boolean = False; {JO}
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
-  {`.________________________;____________;____________________;___________________'}
+  {'.________________________;____________;____________________;___________________'}
   {} {FilePanels}
   {}ShowFileMask: Boolean = True;
   {}ShowLongName: Boolean = True;
@@ -192,12 +190,12 @@ const
   {$ENDIF}
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
-  {`.________________________;____________;____________________;___________________'}
+  {'.________________________;____________;____________________;___________________'}
   {} {NetInfo}
   {}NoLevelsInfo: Boolean = False;
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
-  {`.________________________;____________;____________________;___________________'}
+  {'.________________________;____________;____________________;___________________'}
   {} {TaskList}
   {}KillAllowed: Boolean = False; {JO}
   {}ShowExePaths: Boolean = False; {JO}
@@ -216,14 +214,14 @@ const
   {$ENDIF}
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
-  {`.________________________;____________;____________________;___________________'}
+  {'.________________________;____________;____________________;___________________'}
   {} {Language}
   {}ActiveLanguage: String[9] = '';
   {}HelpLanguageOverride: String[9] = '';
   {}ShowLanguageMenu: Boolean = False;
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
-  {`.________________________;____________;____________________;___________________'}
+  {'.________________________;____________;____________________;___________________'}
   {} {RegExp}
   {}RegExpStr0: String = ''; {PZ}
   {}RegExpStr1: String = ''; {PZ}
@@ -237,7 +235,7 @@ const
   {}RegExpStr9: String = ''; {PZ}
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~;~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {;      Variable name      ;   Type  ; Default value  ;          Comments ;}
-  {`.________________________;_________;________________;___________________'}
+  {'.________________________;_________;________________;___________________'}
   {} {QuickDirs}
   {}QDirs1: String = ''; {Quick Dirs - 1}
   {}QDirs2: String = ''; {Quick Dirs - 2}
@@ -250,19 +248,17 @@ const
   {}QDirs9: String = ''; {Quick Dirs - 9}
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~;~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {;      Variable name      ;   Type  ; Default value  ;          Comments ;}
-  {`.________________________;_________;________________;___________________'}
+  {'.________________________;_________;________________;___________________'}
 
   {} {SetupStorage}
   {}SystemDataOpt: LongInt = 75; {SystemData.Options}
   {}InterfaceDataOpt: LongInt = 8201; {InterfaceData.Options}
-  {}DriveInfoType: LongInt = 0; {InterfaceData.DrvInfType}
   {}FMSetupOpt: LongInt = 11358; {FMSetup.Options}
   {}EditorDefaultsOpt: LongInt = 8194; {EditorDefaults.EdOpt}
   {}EditorDefaultsOpt2: LongInt = 3; {EditorDefaults.EdOpt2}
   {}ViewerOpt: LongInt = 16; {EditorDefaults.ViOpt}
   {}StartupDataLoad: LongInt = 2; {StartupData.Load}
   {}StartupDataUnload: LongInt = 0; {StartupData.Unload}
-  {}StartupDataSlice2: LongInt = 1; {StartupData.Slice2}
   {}ConfirmsOpt: LongInt =
    cfSingleErase+cfMultiErase+cfEraseReadonly+cfEraseSubDir
   +cfMouseConfirm+cfExitConfirm+cfChaneLngWarning; {Confirms}
@@ -272,7 +268,7 @@ const
   {последний видеорежим в оконной сессии}
   {,'~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`~~~~~~~~~~~~`,}
   {;                   This is end of parameters definitions                       ;}
-  {`.______________________________________________________________________________'}
+  {'.______________________________________________________________________________'}
 
   { ----------------------------- NO INI VARIABLES BEYOND HERE }
   { DO NOT CHANGE THIS LINE }iniparamblock_END: TBlockMarker = ();
@@ -290,8 +286,9 @@ procedure ClearIniErrors;
 
 implementation
 uses
-  Dos, Lfn, profile, advance, advance1, Collect, Messages, DNApp,
+  Dos, Lfn, profile, Advance, Advance1, Collect, Messages, DNApp,
   {$IFDEF WIN32}VpSysLow, {$ENDIF}
+  U_KeyMap, Country_,
   Strings
   ;
 
@@ -301,7 +298,7 @@ type
   TSInt16 = SmallInt;
   TSInt32 = LongInt;
   TUInt8 = Byte;
-  TUInt16 = word;
+  TUInt16 = Word;
 
   TIniItemKind = (
     ikBool,
@@ -313,7 +310,7 @@ type
     );
 
   TDoProc = procedure (Group, Parameter: PChar; Kind: TIniItemKind;
-     Size: word; PVar: Pointer);
+     Size: Word; PVar: Pointer);
 
 const
   {Group names}
@@ -382,12 +379,12 @@ procedure ShowIniErrors;
       sg: String[10];
       sp: String[21];
       id: TStrIdx;
-      flg: word;
+      flg: Word;
       q: Pointer;
       par: TParams;
     begin
     if P = nil then
-      exit;
+      Exit;
     sg := StrPas(I^.Group);
     sp := StrPas(I^.Parameter);
     flg := mfOKButton;
@@ -531,8 +528,6 @@ procedure Proceed(RegisterVar: TDoProc);
   {Editor}
   RegisterVar(CSEditor, 'UnlimitUnindent', ikBool,
      SizeOf(UnlimitUnindent), @UnlimitUnindent);
-  RegisterVar(CSEditor, 'Koi8rKeyMap', ikBool, SizeOf(Koi8rKeyMap),
-     @Koi8rKeyMap);
   RegisterVar(CSEditor, 'DrawRShift', ikBool, SizeOf(DrawRShift),
      @DrawRShift);
   RegisterVar(CSEditor, 'AutoScopeDetect', ikBool,
@@ -545,8 +540,6 @@ procedure Proceed(RegisterVar: TDoProc);
    SizeOf(DefCodePageView), @DefCodePageView);
   RegisterVar(CSEditor, 'DefCodePage', ikStr, SizeOf(DefCodePage),
      @DefCodePage);
-  RegisterVar(CSEditor, 'CapitalCodePageName', ikBool,
-       SizeOf(CapitalCodePageName), @CapitalCodePageName);
   RegisterVar(CSEditor, 'FastSearchDeep', ikSInt,
      SizeOf(FastSearchDeep), @FastSearchDeep);
   RegisterVar(CSEditor, 'WinManagerPosToEdit', ikBool,
@@ -641,8 +634,6 @@ procedure Proceed(RegisterVar: TDoProc);
        SizeOf(SystemDataOpt), @SystemDataOpt);
   RegisterVar(CSSetupStorage, 'InterfaceDataOpt', ikSInt,
        SizeOf(InterfaceDataOpt), @InterfaceDataOpt);
-  RegisterVar(CSSetupStorage, 'DriveInfoType', ikSInt,
-       SizeOf(DriveInfoType), @DriveInfoType);
   RegisterVar(CSSetupStorage, 'FMSetupOpt', ikSInt, SizeOf(FMSetupOpt),
      @FMSetupOpt);
   RegisterVar(CSSetupStorage, 'EditorDefaultsOpt', ikSInt,
@@ -655,8 +646,6 @@ procedure Proceed(RegisterVar: TDoProc);
        SizeOf(StartupDataLoad), @StartupDataLoad);
   RegisterVar(CSSetupStorage, 'StartupDataUnload', ikSInt,
        SizeOf(StartupDataUnload), @StartupDataUnload);
-  RegisterVar(CSSetupStorage, 'StartupDataSlice2', ikSInt,
-       SizeOf(StartupDataSlice2), @StartupDataSlice2);
   RegisterVar(CSSetupStorage, 'ConfirmsOpt', ikSInt,
      SizeOf(ConfirmsOpt), @ConfirmsOpt);
   RegisterVar(CSSetupStorage, 'NonVIOScreenMode', ikSInt,
@@ -665,11 +654,11 @@ procedure Proceed(RegisterVar: TDoProc);
        SizeOf(VIOScreenMode), @VIOScreenMode);
   end { Proceed };
 
-function IniVarToStr(Kind: TIniItemKind; Size: word; PVar: Pointer)
+function IniVarToStr(Kind: TIniItemKind; Size: Word; PVar: Pointer)
   : String;
   var
     b: Boolean;
-    i: integer;
+    i: Integer;
   begin
   Result := '';
 
@@ -685,7 +674,7 @@ function IniVarToStr(Kind: TIniItemKind; Size: word; PVar: Pointer)
         4:
           b := Longbool(PVar^);
         else {case}
-          exit;
+          Exit;
       end {case};
       if b then
         Result := '1'
@@ -737,10 +726,10 @@ function IniVarToStr(Kind: TIniItemKind; Size: word; PVar: Pointer)
   end {case};
   end { IniVarToStr };
 
-function IniStrToVar(Text: String; Kind: TIniItemKind; Size: word;
+function IniStrToVar(Text: String; Kind: TIniItemKind; Size: Word;
      PVar: Pointer): Boolean;
   var
-    i: integer;
+    i: Integer;
     buffer: array[0..3] of Byte;
     b: Boolean absolute buffer;
     i32: TSInt32 absolute buffer;
@@ -764,7 +753,7 @@ function IniStrToVar(Text: String; Kind: TIniItemKind; Size: word;
       then
         b := False
       else
-        exit;
+        Exit;
       IniStrToVar := True;
       case Size of
         1:
@@ -839,7 +828,7 @@ function IniStrToVar(Text: String; Kind: TIniItemKind; Size: word;
     ikChar:
       begin
       if Text = '' then
-        exit;
+        Exit;
       i := Size;
       if Length(Text) < Size then
         begin
@@ -855,7 +844,7 @@ function IniStrToVar(Text: String; Kind: TIniItemKind; Size: word;
   end { IniStrToVar };
 
 procedure Loader(Group, Parameter: PChar; Kind: TIniItemKind;
-     Size: word; PVar: Pointer);
+     Size: Word; PVar: Pointer);
   var
     s: String;
     b: Byte;
@@ -881,14 +870,14 @@ procedure Loader(Group, Parameter: PChar; Kind: TIniItemKind;
 const
   SaveVar: Pointer = nil;
 
-procedure Saver(Group, Parameter: PChar; Kind: TIniItemKind; Size: word;
+procedure Saver(Group, Parameter: PChar; Kind: TIniItemKind; Size: Word;
      PVar: Pointer);
   var
     s: String;
     b: array[0..255] of Char;
   begin
   if  (SaveVar <> nil) and (SaveVar <> PVar) then
-    exit;
+    Exit;
   s := IniVarToStr(Kind, Size, PVar)+#0;
   { This code is provided only to not cut longer string if only a part }
   { was read in Loader procedure.                                      }
@@ -906,7 +895,7 @@ procedure Saver(Group, Parameter: PChar; Kind: TIniItemKind; Size: word;
       @FreeStr[1]
       );
     if StrLComp(@b, @s[1], Length(s)) = 0 then
-      exit;
+      Exit;
     end;
   StrPCopy(b, s);
   WritePrivateProfileString(
@@ -944,7 +933,7 @@ function ProbeINI(var INItime, INIsize, INIcrc: LongInt): Boolean;
     {F: TDosStream;}
     {B: PByteArray;}
     Pos: LongInt;
-    S: word;
+    S: Word;
   begin
   INItime := 0;
   INIsize := 0;

@@ -32,7 +32,7 @@ type
 
   PProcessCollection = ^TProcessCollection;
   TProcessCollection = object(TSortedCollection)
-    function Compare(P1, P2: Pointer): integer; virtual;
+    function Compare(P1, P2: Pointer): Integer; virtual;
     end;
 
 function GetProcessList: PProcessCollection;
@@ -44,7 +44,7 @@ implementation
 
 uses
   Os2Def, Os2Base,
-  Dn2PmApi, DnIni, advance1, advance2
+  Dn2PmApi, DnIni, Advance1, Advance2
   ;
 
 function GetCurPid: LongInt;
@@ -58,7 +58,7 @@ function GetCurPid: LongInt;
 
 function TProcessItem.GetString: String;
 
-  function Hex4(A: word): Str4;
+  function Hex4(A: Word): Str4;
     const
       Hex: array[0..15] of Char =
         ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B',
@@ -119,7 +119,7 @@ function TProcessItem.GetString: String;
     Result := ' '+Result;
   end { TProcessItem.GetString: };
 
-function TProcessCollection.Compare(P1, P2: Pointer): integer;
+function TProcessCollection.Compare(P1, P2: Pointer): Integer;
   begin
   Compare := PProcessItem(P1)^.Pid-PProcessItem(P2)^.Pid;
   end;
@@ -180,11 +180,11 @@ function GetProcessList: PProcessCollection;
   var
     LibHandle: hModule;
     Dos32QuerySysState: function (func, arg1, Pid, _res_: ULong;
-       Buf: Pointer; BufSz: ULong): apiret cdecl;
+       Buf: Pointer; BufSz: ULong): ApiRet cdecl;
     ModuleInfo: PChar;
     Process: PProcessInfo;
     P: PProcessItem;
-    I, J: word;
+    I, J: Word;
   begin { GetProcessList: }
   Result := New(PProcessCollection, Init(32, 16));
   if Result <> nil then
@@ -219,7 +219,7 @@ function GetProcessList: PProcessCollection;
                 if P^.Name[I] = #0 then
                   begin
                   SetLength(P^.Name, I-1);
-                  break;
+                  Break;
                   end;
               P^.Pid := Process^.Pid;
               P^.SessID := Process^.SessID;
@@ -247,7 +247,7 @@ function GetProcessList: PProcessCollection;
   I := 1;
   while FilteredList and (I < Result^.Count) do
     begin
-    for J := I-1 DownTo 0 do
+    for J := I-1 downto 0 do
       if PProcessItem(Result^.At(J))^.SessID =
         PProcessItem(Result^.At(I))^.SessID
       then

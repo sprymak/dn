@@ -68,7 +68,7 @@ type
     procedure Draw; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     function GetPalette: PPalette; virtual;
-    procedure SetState(AState: word; Enable: Boolean); virtual;
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
     end;
   {$ENDIF}
 
@@ -79,15 +79,15 @@ type
     Keys: PWordArray;
     constructor Init;
     constructor Load(var S: TStream);
-    procedure PutKey(KeyCode: word);
+    procedure PutKey(KeyCode: Word);
     procedure Store(var S: TStream);
     procedure Play;
     destructor Done; virtual;
     end;
 
 const
-  LastHour: word = $FF;
-  LastMin: word = 0;
+  LastHour: Word = $FF;
+  LastMin: Word = 0;
 
 const
   KeyMacroses: PCollection = nil;
@@ -114,7 +114,7 @@ type
     constructor Init(var Bounds: TRect);
     procedure Draw; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-    function FormatTimeStr(H, M, SS: word): String; virtual;
+    function FormatTimeStr(H, M, SS: Word): String; virtual;
     procedure Update; virtual;
     end;
 
@@ -124,7 +124,7 @@ procedure PrintFiles(Files: PCollection; Own: PView);
 
 implementation
 uses
-  Memory, Tree, Messages, DNApp, advance, advance1, advance2, advance3,
+  Memory, Tree, Messages, DNApp, Advance, Advance1, Advance2, Advance3,
   {$IFDEF OS2}Dn2PmApi, {$ENDIF} {AK155}
   {SysUtils,}
   FilesCol, RStrings, Startup, DnIni
@@ -135,7 +135,7 @@ constructor TKeyMacros.Init;
   inherited Init;
   Limit := 10;
   Count := 0;
-  Keys := MemAlloc(Limit*SizeOf(word));
+  Keys := MemAlloc(Limit*SizeOf(Word));
   if Keys = nil then
     Fail;
   end;
@@ -143,23 +143,23 @@ constructor TKeyMacros.Init;
 destructor TKeyMacros.Done;
   begin
   if Keys <> nil then
-    FreeMem(Keys, Limit*SizeOf(word));
+    FreeMem(Keys, Limit*SizeOf(Word));
   inherited Done;
   end;
 
 constructor TKeyMacros.Load;
   begin
-  S.Read(Limit, SizeOf(AWord)*2);
-  Keys := MemAlloc(SizeOf(AWord)*Limit);
+  S.Read(Limit, SizeOf(Limit)*2);
+  Keys := MemAlloc(SizeOf(Word)*Limit);
   if Keys = nil then
     Fail;
-  S.Read(Keys^, SizeOf(AWord)*Count);
+  S.Read(Keys^, SizeOf(Word)*Count);
   end;
 
 procedure TKeyMacros.Store;
   begin
   S.Write(Limit, SizeOf(Limit)*2);
-  S.Write(Keys^, SizeOf(AWord)*Count);
+  S.Write(Keys^, SizeOf(Word)*Count);
   end;
 
 procedure TKeyMacros.PutKey;
@@ -169,10 +169,10 @@ procedure TKeyMacros.PutKey;
   if Count >= Limit then
     begin
     Inc(Limit, 10);
-    P := MemAlloc(Limit*SizeOf(word));
+    P := MemAlloc(Limit*SizeOf(Word));
     if P = nil then
-      exit;
-    Move(Keys^, P^, Count*SizeOf(word));
+      Exit;
+    Move(Keys^, P^, Count*SizeOf(Word));
     Keys := P;
     end;
   Keys^[Count] := KeyCode;
@@ -181,7 +181,7 @@ procedure TKeyMacros.PutKey;
 
 procedure TKeyMacros.Play;
   var
-    I: integer;
+    I: Integer;
   begin
   for I := 0 to Count-1 do
     Message(Application, evKeyDown, Keys^[I], nil);
@@ -217,7 +217,7 @@ procedure THeapView.Update;
 
 {-------- ClockView Object --------}
 
-function LeadingZero(w: word): String;
+function LeadingZero(w: Word): String;
   var
     s: String[20];
   begin
@@ -227,7 +227,7 @@ function LeadingZero(w: word): String;
 
 constructor TClockView.Init(var Bounds: TRect);
   var
-    s, hund: word;
+    s, hund: Word;
   begin
   TView.Init(Bounds);
   FillChar(LastTime, SizeOf(LastTime), #$FF);
@@ -242,10 +242,10 @@ constructor TClockView.Init(var Bounds: TRect);
   LastSemi := hund < 50;
   RegisterToBackground(@Self);
   if ShowSeconds then
-    UpdTicks := 18
+    UpdTicks := 1000
   else
-    UpdTicks := 9;
-  NewTimerSecs(Utimer, 1200+Random(1200));
+    UpdTicks := 500;
+  NewTimer(Utimer, 1200000+Random(1200000));
   end;
 
 procedure TClockView.Draw;
@@ -267,7 +267,7 @@ procedure TClockView.Draw;
     if Length(TimeStr) <> Size.X then
       begin
       GrowTo(Length(TimeStr), 1);
-      exit
+      Exit
       end;
     MoveStr(B, TimeStr, C);
     end;
@@ -287,7 +287,7 @@ procedure TClockView.HandleEvent;
     if Event.Double then
       begin
       InsertCalendar;
-      exit
+      Exit
       end;
     {$ENDIF}
     OldXCoord := -1; {-SSK}
@@ -297,8 +297,8 @@ procedure TClockView.HandleEvent;
 
 procedure TClockView.Update;
   var
-    h, m, s, hund: word;
-    d, mn, y: word;
+    h, m, s, hund: Word;
+    d, mn, y: Word;
     SS: String[40];
     Event: TEvent;
     P: PView;
@@ -361,7 +361,7 @@ procedure TClockView.Update;
             OldXCoord+Length(TimeStr), Origin.y+Size.y);
         TView.Locate(R);
         end;
-      UpdTicks := 6;
+      UpdTicks := 330;
       end
     else
       begin
@@ -374,9 +374,9 @@ procedure TClockView.Update;
           TView.Locate(R);
           end; {-SSK}
       if ShowSeconds then
-        UpdTicks := 18
+        UpdTicks := 1000
       else
-        UpdTicks := 9;
+        UpdTicks := 500;
       with LastTime do
         begin
         Inc(LastMin);
@@ -468,7 +468,7 @@ function TTrashCan.GetPalette: PPalette;
 procedure TTrashCan.Draw;
   var
     B: TDrawBuffer;
-    C: word;
+    C: Word;
   begin
   if State and sfDragging <> 0 then
     C := 3
@@ -491,7 +491,7 @@ procedure TTrashCan.HandleEvent(var Event: TEvent);
     SaveConfirm: Boolean;
     Extent: TRect;
     Msg: String;
-    Cfms: word;
+    Cfms: Word;
 
   begin
   inherited HandleEvent(Event);
@@ -523,7 +523,7 @@ procedure TTrashCan.HandleEvent(var Event: TEvent);
       end;
   end { TTrashCan.HandleEvent };
 
-procedure TTrashCan.SetState(AState: word; Enable: Boolean);
+procedure TTrashCan.SetState(AState: Word; Enable: Boolean);
   begin
   inherited SetState(AState, Enable);
   if AState and sfSelected <> 0 then
@@ -538,11 +538,11 @@ procedure TTrashCan.SetState(AState: word; Enable: Boolean);
 procedure PrintFiles;
   var
     PF: PFileRec;
-    I, J: integer;
+    I, J: Integer;
     S: String;
   begin
   if Files = nil then
-    exit;
+    Exit;
   J := 0;
   for I := 0 to Files^.Count-1 do
     begin
@@ -551,7 +551,7 @@ procedure PrintFiles;
       Inc(J);
     end;
   if J = 0 then
-    exit;
+    Exit;
   if Files^.Count = 1 then
     begin
     {$IFNDEF OS2}
@@ -566,7 +566,7 @@ procedure PrintFiles;
   if MessageBox(GetString(dlPM_Print)+S+'?', nil, mfYesNoConfirm)
      <> cmYes
   then
-    exit;
+    Exit;
   for I := 0 to Files^.Count-1 do
     begin
     PF := Files^.At(I);

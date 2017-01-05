@@ -100,7 +100,7 @@ const
   {$IFDEF UserSaver}+1 {$ENDIF}
   {$ENDIF}
   {$IFDEF SS}+2 {$ENDIF}
-  +7
+  +6
   ;
   RegArray: array[1..NumRElms] of TStreamRec = (
     {$IFNDEF RCP}
@@ -531,9 +531,9 @@ const
       Load: @FlPanel.TTopView.Load;
       Store: @FlPanel.TTopView.Store)
     , (ObjType: otSeparator;
-      VmtLink: (TypeOf(FlPanel.TSeparator));
-      Load: @FlPanel.TSeparator.Load;
-      Store: @FlPanel.TSeparator.Store)
+      VmtLink: (TypeOf(DblWnd.TSeparator));
+      Load: @DblWnd.TSeparator.Load;
+      Store: @DblWnd.TSeparator.Store)
     , (ObjType: otSpecScroll;
       VmtLink: (TypeOf(FlPanel.TSpecScroll));
       Load: @FlPanel.TSpecScroll.Load;
@@ -733,10 +733,6 @@ const
       Load: @Setups.TSaversListBox.Load;
       Store: @Setups.TSaversListBox.Store)
     {$ENDIF SS}
-    , (ObjType: otUpperTable;
-      VmtLink: (TypeOf(Setups.TUpperTable));
-      Load: @Setups.TUpperTable.Load;
-      Store: @Setups.TUpperTable.Store)
     {$IFNDEF RCP}
     { Startup }
     , (ObjType: otTextCollection;
@@ -874,7 +870,7 @@ const
 
 procedure RegisterAll;
   var
-    I: integer;
+    I: Integer;
   begin
   for I := 1 to NumRElms do
     RegisterType(RegArray[I]);

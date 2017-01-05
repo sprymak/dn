@@ -229,7 +229,7 @@ const
 
 const
   MaxBytes = 128*1024*1024;
-  MaxWords = MaxBytes div SizeOf(word);
+  MaxWords = MaxBytes div SizeOf(Word);
   MaxPtrs = MaxBytes div SizeOf(Pointer);
 
 type
@@ -313,10 +313,13 @@ type
   TByteArray = packed array[0..0] of Byte;
 
   PWordArray = ^TWordArray;
-  TWordArray = packed array[0..0] of AWord;
+  TWordArray = packed array[0..0] of Word;
+
+  PAWordArray = ^TAWordArray;
+  TAWordArray = packed array[0..0] of AWord;
 
   PIntegerArray = ^TIntegerArray;
-  TIntegerArray = packed array[0..0] of integer;
+  TIntegerArray = packed array[0..0] of Integer;
 
   PPointerArray = ^TPointerArray;
   TPointerArray = packed array[0..0] of Pointer;
@@ -346,7 +349,7 @@ type
 
   PStreamRec = ^TStreamRec;
   TStreamRec = packed record
-    ObjType: word;
+    ObjType: Word;
     VmtLink: Pointer;
     Load: Pointer;
     Store: Pointer;
@@ -378,8 +381,8 @@ type
 
   PEvent = ^TEvent;
   TEvent = packed record
-    What: word;
-    case word of
+    What: Word;
+    case Word of
       evNothing:
         ();
       evMouse:
@@ -390,9 +393,9 @@ type
         );
       evKeyDown:
         (
-        case integer of
+        case Integer of
           0:
-            (KeyCode: word);
+            (KeyCode: Word);
           1:
             (
             CharCode: Char;
@@ -402,16 +405,16 @@ type
         );
       evMessage:
         (
-        Command: word;
-        case word of
+        Command: Word;
+        case Word of
           0:
             (InfoPtr: Pointer);
           1:
             (InfoLong: LongInt);
           2:
-            (InfoWord: word);
+            (InfoWord: Word);
           3:
-            (InfoInt: integer);
+            (InfoInt: Integer);
           4:
             (InfoByte: Byte);
           5:
@@ -430,11 +433,11 @@ type
   TMenuItem = packed record
     Next: PMenuItem;
     Name: PString;
-    Command: word;
+    Command: Word;
     Disabled: Boolean;
-    KeyCode: word;
-    HelpCtx: word;
-    case integer of
+    KeyCode: Word;
+    HelpCtx: Word;
+    case Integer of
       0: (Param: PString);
       1: (SubMenu: PMenu);
     end;
@@ -448,14 +451,14 @@ type
   TStatusItem = packed record
     Next: PStatusItem;
     Text: PString;
-    KeyCode: word;
-    Command: word;
+    KeyCode: Word;
+    Command: Word;
     end;
 
   PStatusDef = ^TStatusDef;
   TStatusDef = packed record
     Next: PStatusDef;
-    Min, Max: word;
+    Min, Max: Word;
     Items: PStatusItem;
     end;
 
@@ -463,21 +466,21 @@ type
   THandleCommandProc = procedure (Command, ObjType: SmallWord;
      const PluginName: ShortString; DNFuncs, DNMethods: Pointer;
      var _Finalization: Pointer);
-  TFormatsCountProc = function : word;
-  TArchiveSignProc = function (Id: word): Str4;
-  TCreateArchiveObjectProc = function (Id: word): Pointer;
+  TFormatsCountProc = function : Word;
+  TArchiveSignProc = function (Id: Word): Str4;
+  TCreateArchiveObjectProc = function (Id: Word): Pointer;
   TDetectCreateArchiveObjectProc = function : Pointer;
   {&Cdecl-}
 
   PEventCatcherInfo = ^TEventCatcherInfo;
   TEventCatcherInfo = packed record
-    FirstCatchedCommand: word;
-    LastCatchedCommand: word;
-    FirstObjType: word;
-    LastObjType: word;
+    FirstCatchedCommand: Word;
+    LastCatchedCommand: Word;
+    FirstObjType: Word;
+    LastObjType: Word;
     PluginPath: String[8];
     Reserved: packed array[0..2] of Byte;
-    LibHandle: integer;
+    LibHandle: Integer;
     Entry: THandleCommandProc;
     end;
 
@@ -489,7 +492,7 @@ type
     FirstTag: Byte;
     PluginPath: String[8];
     Reserved: SmallWord;
-    LibHandle: integer;
+    LibHandle: Integer;
     FormatsCount: TFormatsCountProc;
     ArchiveSign: TArchiveSignProc;
     CreateArchiveObject: TCreateArchiveObjectProc;
@@ -535,7 +538,7 @@ type
     //JO: Внимание! размер FindBuf должен быть согласован с размером аналогичной
     //    переменной в VpSysLo2.TOSSearchRecNew
     FindBuf: array[0..2*1024-1] of Byte;
-    FindCount: integer;
+    FindCount: Integer;
     FindPtr: Pointer;
     {$ENDIF}
     {$IFDEF WIN32}
@@ -577,9 +580,9 @@ type
     HiliteColumn: Boolean;
     JustifyOnWrap: Boolean;
     AutoWrap: Boolean;
-    LeftMargin: word;
-    RightMargin: word;
-    Paragraph: word;
+    LeftMargin: Word;
+    RightMargin: Word;
+    Paragraph: Word;
     ForcedCRLF: TCRLF;
     SmartTab: Boolean;
     end;
@@ -592,13 +595,13 @@ type
 
   PHighliteParams = ^THighliteParams;
   THighliteParams = packed record
-    GenFlags: word;
-    HexFlags: word;
-    DecFlags: word;
-    OctFlagsQ: word;
-    OctFlagsO: word;
-    BinFlags: word;
-    StrFlags: word;
+    GenFlags: Word;
+    HexFlags: Word;
+    DecFlags: Word;
+    OctFlagsQ: Word;
+    OctFlagsO: Word;
+    BinFlags: Word;
+    StrFlags: Word;
     RulesBuffer: packed array[1..$800] of Char;
     end;
 
@@ -624,11 +627,11 @@ type
     Owner: PString;
     OwnerDisposible: Boolean;
     DIZ: PDiz;
-    Yr: word;
-    YrCreat: word;
-    YrLAcc: word;
+    Yr: Word;
+    YrCreat: Word;
+    YrLAcc: Word;
     TType: Byte;
-    Attr: word;
+    Attr: Word;
     Second: Byte;
     SecondCreat: Byte;
     SecondLAcc: Byte;
@@ -642,11 +645,11 @@ type
   TMakeListRec = packed record
     FileName: String;
     Header: String;
-    HeaderMode: word;
+    HeaderMode: Word;
     Action: String;
     Footer: String;
-    FooterMode: word;
-    Options: word;
+    FooterMode: Word;
+    Options: Word;
     end;
 
   PUserParams = ^TUserParams;
@@ -657,8 +660,8 @@ type
 
   TQuickSearchData = packed record
     Mask: String;
-    NumExt: word;
-    ExtD: word;
+    NumExt: Word;
+    ExtD: Word;
     end;
 
   TDiskInfoRec = packed record
@@ -715,16 +718,16 @@ type
 
   PMenuStringsRet = ^TMenuStringsRet;
   TMenuStringsRet = packed record
-    Reserved0: integer;
+    Reserved0: Integer;
     Count: Byte;
     Cacheable: Boolean;
     Reserved1: SmallWord;
     Strings1: PPCharArray;
     Strings2: PPCharArray;
     Keys: PIntegerArray;
-    Reserved2: integer;
-    Reserved3: integer;
-    Reserved4: integer;
+    Reserved2: Integer;
+    Reserved3: Integer;
+    Reserved4: Integer;
     end;
 
 implementation

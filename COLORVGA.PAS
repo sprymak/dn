@@ -59,7 +59,7 @@ implementation
 
 uses
   Defines, Drivers, Views, Dialogs, Commands, Dos, DNApp, Startup,
-  advance, advance1, advance2, advance3, Collect, Messages, VideoMan
+  Advance, Advance1, Advance2, Advance3, Collect, Messages, VideoMan
   ;
 
 const
@@ -69,7 +69,7 @@ type
 
   PRegLabel = ^TRegLabel;
   TRegLabel = object(TLabel)
-    Value: word;
+    Value: Word;
     procedure Draw; virtual;
     end;
 
@@ -182,7 +182,7 @@ constructor TColorVGADialog.Init;
   var
     R: TRect;
     Control, Labl, Histry: PView;
-    i: integer;
+    i: Integer;
     S: String;
   begin
 
@@ -304,11 +304,11 @@ procedure TColorVGADialog.HandleEvent;
       if Event.InfoPtr = TS[I] then
         begin
         L := TS[I];
-        break;
+        Break;
         end;
 
     if L = nil then
-      exit;
+      Exit;
     UpdateRGB := True;
     TL[I]^.Value := TS[I]^.Value;
     TL[I]^.DrawView;
@@ -332,7 +332,7 @@ procedure TColorVGADialog.HandleEvent;
 
   procedure UpdateColor;
     var
-      i: integer;
+      i: Integer;
       gc: array[1..3] of Byte;
 
     begin
@@ -396,7 +396,7 @@ procedure TColorVGADialog.HandleEvent;
           inherited HandleEvent(Event);
           UpdateColor;
           LastTTFocus := TT^.Focused;
-          exit;
+          Exit;
           end
     end {case};
 
@@ -409,7 +409,7 @@ procedure VGAColorRegister;
   var
     DataRec: record
       List: PStringCollection;
-      Selection: word;
+      Selection: Word;
       end;
 
     {  oldPalette: VGA_pal;         }
