@@ -169,6 +169,13 @@ uses
 const
   LowMemSize = $4000; {Local setting}
 
+procedure CheckSlashDot(var S: String);{piwamoto}
+begin
+  if ((S[Length(S)] <> '.') and (S[Length(S)-1] <> '\')) then
+    {directory name '.' bugfix by piwamoto}
+    While (PosChar(S[Length(S)], '.\') > 0) do SetLength(S, Length(S)-1);
+end;
+
 function MaxAvail: LongInt;
   begin
   MaxAvail := MemAdjust(System.MaxAvail);
@@ -537,13 +544,6 @@ function TArcDrive.ReadArchive;
     if FileInfo.Last = 0 then
       begin
       Replace('/', '\', FileInfo.FName);
-      {piwamoto: it willn't work due to bugs in FName processing in flpanelx
-      if (FileInfo.FName[1] = '.') and (FileInfo.FName[2] = '\') then
-        begin
-(*         System.Delete(FileInfo.FName,1,2); *)
-         Files^.AddFile('\.\..', '\.\..', 0, 0, FileInfo.Date, 0);
-        end;
-}
       if FileInfo.FName[1] <> '\' then
         FileInfo.FName := '\'+FileInfo.FName;
       if FileInfo.Attr and Directory <> 0 then
@@ -604,9 +604,12 @@ procedure TArcDrive.lChDir;
   begin
   if ADir = #0 then
     Exit;
-  while (PosChar(CurDir[Length(CurDir)], '.\') > 0) do
-    SetLength(CurDir, Length(CurDir)-1);
-  if IsDummyDir(ADir) then
+  CheckSlashDot(CurDir);
+{  if IsDummyDir(ADir) then}
+{piwamoto: we check for '..' only}
+{'.' is a valid directory name in archive}
+{.tar.gz have a lots of './path/filename'}
+  if ADir = '..' then
     begin
     if CurDir <> '' then
       while (CurDir <> '')
@@ -627,12 +630,9 @@ procedure TArcDrive.lChDir;
     end
   else
     CurDir := ADir;
-  while (PosChar(CurDir[Length(CurDir)], '.\') > 0) do
-    SetLength(CurDir, Length(CurDir)-1);
-  if CurDir = '' then
-    CurDir := '\';
-  if CurDir[1] <> '\' then
-    CurDir := '\'+CurDir;
+  if CurDir[Length(CurDir)] = '\' then SetLength(CurDir, Length(CurDir)-1);
+  if CurDir[1]<>'\' then CurDir:='\'+CurDir;
+  CheckSlashDot(CurDir);
   AddToDirectoryHistory(ArcName+':'+CurDir, Integer(DriveType));
   end { TArcDrive.lChDir };
 {-DataCompBoy-}
@@ -644,8 +644,7 @@ function TArcDrive.GetDir;
     Nm: String;
     Xt: String;
   begin
-  while (PosChar(CurDir[Length(CurDir)], '.\') > 0) do
-    SetLength(CurDir, Length(CurDir)-1);
+  CheckSlashDot(CurDir);
   if  (Length(CurDir) > 0) and (not (CurDir[1] in ['\', '/'])) then
     CurDir := '\'+CurDir;
   if  (Prev <> nil) and (Prev^.DriveType = dtDisk) then
@@ -672,7 +671,6 @@ function TArcDrive.GetDirectory;
     MAvail: LongInt;
   begin
   ReadArchive; {AK155 26-11-2002}
-  {While (PosChar(CurDir[Length(CurDir)], '.\') > 0) do SetLength(CurDir, Length(CurDir)-1);}
   AFiles := New(PFilesCollection, Init($10, $10));
   {FD := New(PFilesCollection, Init($40, $10));}
   PFilesCollection(AFiles)^.Owner := Owner;
@@ -681,8 +679,7 @@ function TArcDrive.GetDirectory;
   PFilesCollection(AFiles)^.LFNActive := True; {JO}
   {$ENDIF}
   GetDirectory := AFiles;
-  while (PosChar(CurDir[Length(CurDir)], '.\') > 0) do
-    SetLength(CurDir, Length(CurDir)-1);
+  CheckSlashDot(CurDir);
   FD := New(PFilesCollection, Init($40, $10));
   FreeSpace := '';
   TTL := 0;

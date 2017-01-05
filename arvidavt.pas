@@ -1410,10 +1410,9 @@ procedure AvtGetDirectory(AvtDr: PArvidDrive; var ALocation: LongInt;
         F := NewFileRec(Str, {$IFDEF DualName}Str, {$ENDIF}Cell.ChildOrSize,
              Cell.Time, 0, 0, TAttr, @CurDir);
       New(F^.DIZ);
-      F^.DIZ^.Owner := nil;
-      F^.DIZ^.isDisposable := True;
+      F^.DIZ^.Container := nil;
       F^.DIZ^.Line := ALocation;
-      F^.DIZ^.DIZ := NewStr(CharToOemStr(AvtCellDesc(Cell, Stream^)));
+      F^.DIZ^.DIZText := CharToOemStr(AvtCellDesc(Cell, Stream^));
       if not IsDir then
         begin
         Inc(TotFiles);
@@ -1518,8 +1517,8 @@ procedure AvtCopyFilesInto(AvtDr: PArvidDrive; AFiles: PCollection;
         S4 := MakeNormName(S2, PF^.FlName[True]);
 
         Desc := '';
-        if  (PF^.DIZ <> nil) and (PF^.DIZ^.DIZ <> nil) then
-          Desc := PF^.DIZ^.DIZ^;
+        if  (PF^.DIZ <> nil) and (PF^.DIZ^.DIZText <> '') then
+          Desc := PF^.DIZ^.DIZText;
         if  (PF^.Attr and Directory) = 0 then
           AvtNewFile(AvtDr, S3, Desc, False, {Cat:warn}Round(PF^.Size),
              PackedDate(PF), 0, PF^.Attr)
@@ -1637,8 +1636,8 @@ procedure AvtCopyFilesInto(AvtDr: PArvidDrive; AFiles: PCollection;
         S1 := MakeNormName('\'+CurDir, PF^.FlName[True]);
         S2 := MakeNormName(From, PF^.FlName[True]);
         Desc := '';
-        if  (PF^.DIZ <> nil) and (PF^.DIZ^.DIZ <> nil) then
-          Desc := PF^.DIZ^.DIZ^;
+        if  (PF^.DIZ <> nil) and (PF^.DIZ^.DIZText <> '') then
+          Desc := PF^.DIZ^.DIZText;
         if  (PF^.Attr and Directory) = 0 then
           AvtNewFile(AvtDr, S1, Desc, False, {Cat:warn}Round(PF^.Size),
              PackedDate(PF), 0, PF^.Attr)

@@ -847,7 +847,7 @@ procedure TDBViewer.HandleEvent;
           S := DelSpaces(S);
         {String to find is empty-searching empty field}
 
-        XLatStr(S, XCoder.XLatCP[Ord(SearchData.OPT and 1 = 0)]);
+        XLatStr(S, XCoder.XLatCP[SearchData.OPT and 1]);
         if  (System.Pos(SS, S) > 0) or (SS = S) then
           begin
           Delta.Y := CurRow;

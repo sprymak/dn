@@ -277,7 +277,7 @@ function SetDosError(ErrCode: Integer): Integer;
   end;
 
 {AK155}
-{$IFNDEF OS2}
+{$IFDEF DualName}
 function NotShortName(const S: String): Boolean;
   var
     i, l: Integer;

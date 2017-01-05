@@ -224,15 +224,24 @@ procedure CM_AdvancedFilter;
       Dlg := PDialog(LoadResource(dlgAdvancedFilter));
       with Dlg^ do
         begin
-        R.Assign(Size.X-4, 2, Size.X-3, Size.Y-4);
+        R.Assign(Size.X-4, 2, Size.X-3, Size.Y-6);
         Control := New(PScrollBar, Init(R));
         Insert(Control);
 
-        R.Assign(3, 2, Size.X-4, Size.Y-4);
+        R.Assign(3, 2, Size.X-4, Size.Y-6);
         Control := New(PSelectList, Init(R, 3, PScrollBar(Control)));
         PL := PListBox(Control);
         PListBox(PL)^.NewLisT(PC);
         Insert(Control);
+
+        R.Assign(3, Size.Y-5, Size.X-5, Size.Y-4);
+        Control := New(PInputLine, Init(R, 255));
+        IL := PInputLine(Control);
+        Insert(Control);
+        R.Assign(Size.X-5, Size.Y-5, Size.X-2, Size.Y-4);
+        Insert(New(PHistory, Init(R, IL, hsFileMask)));
+
+        PL^.Select;
         end;
       MakeDialog := Dlg;
       end;
@@ -297,27 +306,33 @@ procedure CM_AdvancedFilter;
       D := MakeDialog;
       D^.Options := D^.Options or ofCentered;
       PL^.FocusItem(FItem);
+      IL^.Data := FileMask;
       I := Desktop^.ExecView(D);
 
       if I <> cmCancel then
         begin
-        FItem := PL^.Focused;
-        FreeStr := '';
-        PC^.ForEach(@DoMake);
-        if FreeStr = '' then
+        if IL^.Data = FileMask then
           begin
-          FreeStr := CnvString(PC^.At(FItem));
-          if I = cmNo then
-            Insert('-', FreeStr, 1);
+          FItem := PL^.Focused;
+          FreeStr := '';
+          PC^.ForEach(@DoMake);
+          if FreeStr = '' then
+            begin
+            FreeStr := CnvString(PC^.At(FItem));
+            if I = cmNo then
+              Insert('-', FreeStr, 1);
+            end
+          else
+            Delete(FreeStr, 1, 1); {DelFC(FreeStr);}
+          if  (I = cmNo) and (FreeStr <> '-*.*') and
+              (FreeStr <> '-*')
+          then
+            Insert('*.*;', FreeStr, 1);
+          DelLeft(FreeStr);
+          GetMaskSelection := FreeStr;
           end
         else
-          Delete(FreeStr, 1, 1); {DelFC(FreeStr);}
-        if  (I = cmNo) and (FreeStr <> '-*.*') and
-            (FreeStr <> '-*')
-        then
-          Insert('*.*;', FreeStr, 1);
-        DelLeft(FreeStr);
-        GetMaskSelection := FreeStr;
+          GetMaskSelection := #20+IL^.Data;
         end;
       Dispose(D, Done);
       end;
@@ -354,6 +369,9 @@ procedure CM_AdvancedFilter;
     S := GetMaskSelection;
     if  (P^.Drive^.NoMemory) or (S = '') then
       Break;
+    if S[1] = #20 then
+      FileMask := Copy(S, 2, 255)
+    else
     if  (S = '- *.*') or (S = x_x) then
       FileMask := S
     else
@@ -1220,7 +1238,7 @@ procedure CM_SetShowParms;
     end {case};
     P^.DeltaX := 0;
     if  ( (DriveType = dtDisk) or (DriveType = dtArvid))
-      and ((Flags xor Old) and (psShowDescript+psShowLongDesc) <> 0)
+      and ((Flags xor Old) and psShowDescript <> 0)
     then
       P^.RereadDir;
     {$IFDEF DualName}
@@ -1555,6 +1573,46 @@ procedure CM_Dropped;
   SkipCopyDialog := False;
   end { CM_Dropped };
 
+procedure DoRenameSingle(PF: PFileRec; const S, S2: String; DlgRes: Word);
+{` Собственно переименование; общее для Alt-F6 и Shift-Alt-F6. `}
+  var
+    SSS: String;
+    DosE: Word;
+    F: TUseLfn;
+  label
+    NameErr;
+  begin
+  if PosChar('\', S) <> 0 then
+    begin
+    DosE := 123; // ERROR_INVALID_NAME
+    goto NameErr;
+    end;
+  ClrIO;
+  SSS := PF^.Owner^;
+  if SSS[Length(SSS)] <> '\' then
+    SSS := SSS + '\';
+  lChangeFileName(SSS+S2, SSS+S);
+  DosE := IOResult;
+  if DosE <> 0 then
+    begin
+NameErr:
+    MessFileNotRename(S2, S, DosE);
+    exit;
+    end;
+  ExportDiz(@PF^.FlName, S, PF^.DIZ, SSS);
+{!RLN}  CopyShortString(S, PF^.FlName[True]);
+   { Это на случай если стоим как раз на этом имени.
+   Чтобы при перечитывании каталога курсор ушёл на новое имя,
+   а не остался на старой позиции }
+
+{AK155 25-01-2004
+  if not DnIni.AutoRefreshPanels then}
+{Поскольку автообновление отключено, надо перечитать. Кроме того,
+даже если бы оно было, перечитывание с задержкой здорово раздражает}
+  GlobalMessage(evCommand, cmRereadDir, PF^.Owner);
+  ClrIO;
+  end;
+
 {-DataCompBoy-}
 procedure CM_RenameSingleL;
   var
@@ -1645,7 +1703,7 @@ procedure CM_RenameSingleL;
     CommandLine^.Update;
     end;
 
-    NotifySuspend; {AK155 25-01-2004 Если не отключить автообновление
+  NotifySuspend; {AK155 25-01-2004 Если не отключить автообновление
       на время редактирования, то при изменеии состава файлов панель
       перерисовывается очень странно, так как строка ввода имеет
       уже зафиксированную позицию }
@@ -1671,56 +1729,24 @@ procedure CM_RenameSingleL;
   if DlgRes <> cmCancel then
     begin
     HistoryAdd(hsRenameFil, S); { Flash 09-06-2003, AK155 21-08-2003 }
-    lGetDir(0, SSS);
-    lChDir(PF^.Owner^);
-    ClrIO;
-    lChangeFileName(S2, S);
-    DosE := IOResult;
-    if DosE <> 0 then
-      MessFileNotRename(S2, S, DosE)
-
-    else
-      begin
-      {AK155 Так делать нельзя и не нужно  CopyShortString(S, PF^.FlName[uLfn]);}
-      {AK155 А таки нужно. Глючит, например, при переименовании в ветви каталога.}
-      CopyShortString(S, PF^.FlName[uLfn]);
-      {$IFDEF DualName}
-      if DescrByShortNames then
-        Sn := LowStrg(GetName(lfGetShortFileName(S)))
-      else {$ENDIF}
-        Sn := S;
-
-      S2 := GetPossibleDizOwner(1);
-      if S2 <> '' then
-        begin
-        S2 := GetDizOwner(PF^.Owner^, S2, False);
-        if  (PF^.DIZ <> nil) then
-          begin
-          ReplaceDiz(S2, Nm, @Sn, PF^.DIZ^.DIZ);
-          DeleteDiz(S2, Nm);
-          end;
-        end;
-      end;
-    lChDir(SSS);
-    P^.Owner^.Delete(PIF);
     Dispose(PIF, Done);
-{AK155 25-01-2004
-    if not DnIni.AutoRefreshPanels then}
-{Поскольку автообновление отключено, надо перечитать. Кроме того,
-даже если бы оно было, перечитывание с задержкой здорово раздражает}
-    GlobalMessage(evCommand, cmRereadDir, PF^.Owner);
-    NotifyResume; {AK155 25-01-2004}
-    ClrIO;
+    DoRenameSingle(PF, S, S2, DlgRes);
+(* AK155
     if DlgRes <> cmOK then
-      begin
+      begin {! Так не бывает. Диалог завершается либо по OK, либо по Cancel.
+      Какие-то cmNo и cmYes есть при define UPLOWSTRSINDLG, но на кой они
+      нужны - непонятно, когда есть Ctrl-], Ctrl-[. Надо их выкинуть.
+      }
       Event^.What := evKeyDown;
       Event^.KeyCode := DlgRes;
       Event^.InfoPtr := nil;
       P^.PutEvent(Event^);
       end;
+*)
     end
   else
     PIF^.Free;
+  NotifyResume; {AK155 25-01-2004}
   end { CM_RenameSingleL };
 {-DataCompBoy-}
 
@@ -1781,44 +1807,7 @@ procedure CM_RenameSingleDialog;
     DlgRes := cmCancel;
   if DlgRes <> cmCancel then
     begin
-    lGetDir(0, SSS);
-    lChDir(PF^.Owner^);
-    ClrIO;
-    lChangeFileName(S2, S);
-    DosE := IOResult;
-    if DosE <> 0 then
-      MessFileNotRename(S2, S, DosE)
-
-    else
-      begin
-      CopyShortString(S, PF^.FlName[uLfn]);
-      {$IFDEF DualName}
-      if DescrByShortNames then
-        Sn := LowStrg(GetName(lfGetShortFileName(S)))
-      else {$ENDIF}
-        Sn := S;
-      S2 := GetPossibleDizOwner(1);
-      if S2 <> '' then
-        begin
-        S2 := GetDizOwner(PF^.Owner^, S2, False);
-        if  (PF^.DIZ <> nil) then
-          begin
-          ReplaceDiz(S2, Nm, @Sn, PF^.DIZ^.DIZ);
-          DeleteDiz(S2, Nm);
-          end;
-        end;
-      end;
-    lChDir(SSS);
-    if not DnIni.AutoRefreshPanels then
-      GlobalMessage(evCommand, cmRereadDir, PF^.Owner);
-    ClrIO;
-    if DlgRes <> cmOK then
-      begin
-      Event^.What := evKeyDown;
-      Event^.KeyCode := DlgRes;
-      Event^.InfoPtr := nil;
-      P^.PutEvent(Event^);
-      end;
+    DoRenameSingle(PF, S, S2, DlgRes);
     end;
   end { CM_RenameSingleDialog };
 {-DataCompBoy-}
@@ -2133,9 +2122,13 @@ procedure CM_ChangeCase(AFP: Pointer);
     else
       begin
       CopyShortString(GetName(S), PF^.FlName[True]);
+        { В данном случае копировать можно, так как длина заведомо та же}
+      ExportDiz(nil, PF^.FlName[True], PF^.DIZ, PF^.Owner^);
+(*!
       {JO: при изменении регистра файла имеет хоть какой-то смысл менять регистр }
       {    его имени в файле описаний только если описания даются по длинным     }
       {    именам, так как для коротких имён регистр не меняется                 }
+
       {$IFDEF DualName}
       if not DescrByShortNames then
       {$ENDIF}
@@ -2144,10 +2137,11 @@ procedure CM_ChangeCase(AFP: Pointer);
         S := GetPossibleDizOwner(1);
         if S <> '' then
           begin
-          S := GetDizOwner(PF^.Owner^, S, False);
-          ReplaceDiz(S, NM, @Sn, nil);
+          S := GetDizPath(PF^.Owner^, S);
+          ExportDiz(nil, PF, '');
           end;
         end;
+*)
       Message(P, evCommand, cmCopyUnselect, PF);
       end;
     end { DoChangeCase };

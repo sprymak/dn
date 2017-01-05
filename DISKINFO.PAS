@@ -385,67 +385,6 @@ procedure TDiskInfo.HandleEvent;
   var
     S: String; {DataCompBoy}
 
-    {-DataCompBoy-}
-  procedure ReadInfoBBS;
-    var
-      F: PTextReader;
-      I: Integer;
-      Nm: String;
-      DZ: String;
-    begin
-    if  (Info.DirInfo = nil) then
-      Info.DirInfo := New(PStringCollection, Init(20, 10, False))
-    else
-      Info.DirInfo^.FreeAll;
-    Info.InfoFile := ifDescription;
-    I := -1;
-    F := nil;
-    DZ := FMSetup.DIZ;
-    while (I <> 0) and (F = nil) do
-      begin
-      I := Pos(';', DZ);
-      if I = 0 then
-        FreeStr := DZ
-      else
-        begin
-        FreeStr := Copy(DZ, 1, I-1);
-        Delete(DZ, 1, I);
-        end;
-      F := New(PTextReader, Init(GetPath(S)+FreeStr));
-      end;
-    if F = nil then
-      Exit;
-    {$IFNDEF OS2}
-    Nm := GetName(lfGetShortFileName(S));
-    {$ELSE}
-    Nm := GetName(S);
-    {$ENDIF}
-    while (IOResult = 0) and not F^.Eof do
-      begin
-      FreeStr := F^.GetStr;
-      if  (FreeStr[1] <> ' ') then
-        begin
-        I := PosChar(' ', FreeStr);
-        if I = 0 then
-          Continue;
-        if UpStrg(Copy(FreeStr, 1, I-1)) = UpStrg(Nm) then
-          begin
-          Delete(FreeStr, 1, I);
-          repeat
-            DelLeft(FreeStr);
-            Info.DirInfo^.AtInsert(Info.DirInfo^.Count, NewStr(FreeStr));
-            FreeStr := F^.GetStr;
-          until F^.Eof or (Info.DirInfo^.Count >= 100) or (FreeStr = '')
-           or (FreeStr[1] <> ' ');
-          Break;
-          end;
-        end;
-      end;
-    ClrIO;
-    Dispose(F, Done);
-    F := nil;
-    end { ReadInfoBBS };
-  {-DataCompBoy-}
 
   begin { TDiskInfo.HandleEvent }
   inherited HandleEvent(Event);
@@ -528,13 +467,6 @@ procedure TDiskInfo.HandleEvent;
       cmLocalReread:
         begin
         ReadData(True);
-        DrawView;
-        ClearEvent(Event);
-        end;
-      cmLoadViewFile:
-        begin
-        S := PString(Event.InfoPtr)^; {DataCompBoy}
-        ReadInfoBBS;
         DrawView;
         ClearEvent(Event);
         end;
@@ -844,51 +776,44 @@ procedure ReadDiskInfo;
     end;
 
   B.InfoFile := ifDirInfo;
-  if  (ShowFlags and psShowLongDesc) <> 0 then
+  B.DirInfo := New(PStringCollection, Init($10, $10, False));
+  F := New(PTextReader, Init(MakeNormName(S, sDirinfo)));
+  if F = nil then
     begin
-    B.DirInfo := nil;
-    end
-  else
+    B.InfoFile := ifFileID;
+    F := New(PTextReader, Init(MakeNormName(S, sFileID)));
+    end;
+  if F = nil then
     begin
-    B.DirInfo := New(PStringCollection, Init($10, $10, False));
-    F := New(PTextReader, Init(MakeNormName(S, sDirinfo)));
-    if F = nil then
+    B.InfoFile := ifReadMe;
+    F := New(PTextReader, Init(MakeNormName(S, sReadMe)));
+    end;
+  if F = nil then
+    begin
+    B.InfoFile := ifReadTxt;
+    F := New(PTextReader, Init(MakeNormName(S, sReadTxt)));
+    end;
+  if F = nil then
+    begin
+    B.InfoFile := ifReadMeTxt;
+    F := New(PTextReader, Init(MakeNormName(S, sReadMeTxt)));
+    end;
+  if F = nil then
+    B.InfoFile := ifFileID; {JO}
+  B.Limit.X := 0;
+  B.Limit.Y := 0;
+  if F <> nil then
+    begin
+    while not F^.Eof and (B.DirInfo^.Count < 100) do
       begin
-      B.InfoFile := ifFileID;
-      F := New(PTextReader, Init(MakeNormName(S, sFileID)));
+      S := F^.GetStr;
+      if Length(S) > B.Limit.X then
+        B.Limit.X := Length(S);
+      B.DirInfo^.AtInsert(B.DirInfo^.Count, NewStr(S));
+      Inc(B.Limit.Y);
       end;
-    if F = nil then
-      begin
-      B.InfoFile := ifReadMe;
-      F := New(PTextReader, Init(MakeNormName(S, sReadMe)));
-      end;
-    if F = nil then
-      begin
-      B.InfoFile := ifReadTxt;
-      F := New(PTextReader, Init(MakeNormName(S, sReadTxt)));
-      end;
-    if F = nil then
-      begin
-      B.InfoFile := ifReadMeTxt;
-      F := New(PTextReader, Init(MakeNormName(S, sReadMeTxt)));
-      end;
-    if F = nil then
-      B.InfoFile := ifFileID; {JO}
-    B.Limit.X := 0;
-    B.Limit.Y := 0;
-    if F <> nil then
-      begin
-      while not F^.Eof and (B.DirInfo^.Count < 100) do
-        begin
-        S := F^.GetStr;
-        if Length(S) > B.Limit.X then
-          B.Limit.X := Length(S);
-        B.DirInfo^.AtInsert(B.DirInfo^.Count, NewStr(S));
-        Inc(B.Limit.Y);
-        end;
-      Dispose(F, Done);
-      F := nil;
-      end;
+    Dispose(F, Done);
+    F := nil;
     end;
   VolumeLabel := {$IFDEF WIN32}CharToOemStr {$ENDIF}
         (GetVolumeLabel(GetCurDrive)); {JO, Cat}

@@ -218,6 +218,10 @@ procedure CompressString(var S: LongString);
 function PosLastDot(StrToMake: String): Byte;
 function IsDummyDir(const DirName: String): Boolean;
 procedure CopyShortString(const s1, s2: ShortString);
+  {` Копирует строку в соответствии с её длиной, независимо от того,
+  как описана строка-получатель. Используется для копирования длинного
+  имени в TFileRec, которое синтаксически имеет длину 12, а
+  фактически продолжается в поле Dummy`}
 {/AK155}
 
 implementation

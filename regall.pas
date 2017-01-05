@@ -85,7 +85,7 @@ uses
 
 const
   NumRElms =
-  {$IFDEF RCP}31 {$ELSE}120
+  {$IFDEF RCP}32 {$ELSE}122
   {$IFDEF MODEM}+7 {$IFDEF LINK}+2 {$ENDIF} {$ENDIF}
   {$IFDEF SpreadSheet}+5 {$ENDIF}
   {$IFDEF Game}+3 {$ENDIF}
@@ -395,6 +395,10 @@ const
       VmtLink: (TypeOf(Dialogs.THexLine));
       Load: @Dialogs.THexLine.Load;
       Store: @Dialogs.THexLine.Store)
+    , (ObjType: otLongInputLine;
+      VmtLink: (TypeOf(Dialogs.TLongInputLine));
+      Load: @Dialogs.TLongInputLine.Load;
+      Store: @Dialogs.TLongInputLine.Store)
     , (ObjType: otButton;
       VmtLink: (TypeOf(Dialogs.TButton));
       Load: @Dialogs.TButton.Load;
@@ -560,10 +564,14 @@ const
       VmtLink: (TypeOf(FViewer.TViewScroll));
       Load: @FViewer.TViewScroll.Load;
       Store: @FViewer.TViewScroll.Store)
-    , (ObjType: otHFileViewer;
-      VmtLink: (TypeOf(FViewer.THFileViewer));
-      Load: @FViewer.THFileViewer.Load;
-      Store: @FViewer.THFileViewer.Store)
+    , (ObjType: otQFileViewer;
+      VmtLink: (TypeOf(FViewer.TQFileViewer));
+      Load: @FViewer.TQFileViewer.Load;
+      Store: @FViewer.TQFileViewer.Store)
+    , (ObjType: otDFileViewer;
+      VmtLink: (TypeOf(FViewer.TDFileViewer));
+      Load: @FViewer.TDFileViewer.Load;
+      Store: @FViewer.TDFileViewer.Store)
     , (ObjType: otViewInfo;
       VmtLink: (TypeOf(FViewer.TViewInfo));
       Load: @FViewer.TViewInfo.Load;

@@ -1022,7 +1022,7 @@ procedure TArvidDrive.EditDescription;
   begin { TArvidDrive.EditDescription }
   if  (PF^.DIZ = nil) then
     Exit;
-  S := CnvString(PF^.DIZ^.DIZ);
+  S := PF^.DIZ^.DIZText;
   if BigInputBox(GetString(dlEditDesc), GetString(dl_D_escription), S,
        255, hsEditDesc) <> cmOK
   then

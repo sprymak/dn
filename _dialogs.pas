@@ -28,17 +28,16 @@ type
 
   PInputline = ^TInputLine;
   TInputLine = object(TView)
-    Data: PString;
-    MaxLen: AInt;
-    CurPos: AInt;
-    FirstPos: AInt;
-    SelStart: AInt;
-    SelEnd: AInt;
+    Data: AnsiString;
+    MaxLen: LongInt;
+    CurPos: LongInt;
+    FirstPos: LongInt;
+    SelStart: LongInt;
+    SelEnd: LongInt;
     Validator: Pointer {PValidator};
-    CtrlK: Boolean;
     LC, RC: Char;
     C: array [1..4] of Byte;
-    constructor Init(var Bounds: TRect; AMaxLen: AInt);
+    constructor Init(var Bounds: TRect; AMaxLen: LongInt);
     constructor Load(var S: TStream);
     {destructor Done; virtual;}
     {function DataSize: Word; virtual;}
@@ -285,7 +284,7 @@ constructor TDialog.Load(var S: TStream);
   _TDialog^.Load(_Model1.TStream(S), nil, @Self);
   end;
 
-constructor TInputLine.Init(var Bounds: TRect; AMaxLen: AInt);
+constructor TInputLine.Init(var Bounds: TRect; AMaxLen: LongInt);
   begin
   _TInputLine^.Init(Bounds, AMaxLen, nil, @Self);
   end;

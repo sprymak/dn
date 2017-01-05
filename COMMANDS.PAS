@@ -985,7 +985,6 @@ const
   psShowLATime = $0080;
   psShowDir = $0100;
   psShowDescript = $0100;
-  psShowLongDesc = $0200;
 
   { Terminal emulation }
   emTTY = 0;
@@ -1723,6 +1722,7 @@ const
   cmDiskInfo = 207;
   cmSwitchOther = 208;
   cmNetInfo = 209; {-$VIV}
+  cmDizView = 210;
 
   { Phonebook Commands }
 
@@ -3057,7 +3057,11 @@ type
     dlSwitchButton,
     {/JO}
     dlSpacesInPassword, { Flash >>> }
-    dlPressF1 {JO}
+    dlPressF1, {JO}
+    dlLayoutErr,
+    dlWinErr,
+    dlCodetablesErr,
+    dlCoutrySetupErr
     );
 
   TDlgIdx = (
@@ -3160,7 +3164,8 @@ type
     dlgNextSection,
     dlgNameCase,
     dlgChScreenMode, {JO}
-    dlgSetExportCsvFormat {KV}
+    dlgSetExportCsvFormat, {KV}
+    dlgSkipBadFile
     );
 
 implementation

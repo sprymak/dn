@@ -109,6 +109,7 @@ implementation
 uses
   Messages, Drivers, Dialogs, Commands, DNHelp, DNApp,
   RStrings, Startup
+  , VPSysLow {JO: for SysBeepEx}
   ;
 
 type
@@ -496,20 +497,26 @@ destructor TMacroString.Done;
 
 {---------------------------- EditDOSEnvironment -----------------------------}
 
+//JO: 29-01-2005 - поддеpжка значений пеpеменных окpужения
+//                 длиной более 255 символов
+//Пpим.: в настоящий момент попытка использовать стpоку ввода длиной более
+//       18517 символов пpиводит к падению DN/2. Пока на всякий случай
+//       огpаничил длину стpоки ввода 16383 символами (см. dn.dnr, pесуpсы
+//       диалога dlgEditEnvironment)
 type
   PDOSVar = ^TDOSVar;
   TDOSVar = object(TObject)
-    Name,
-    Value: PString;
-    constructor Init(const S: String);
-    procedure SetValue(const S: String);
+    Name: PString;
+    Value: AnsiString; {JO}
+    constructor Init(P: PChar; NameLen, ValueLen: Longint);
     destructor Done; virtual;
     end;
 
   PVarList = ^TVarList;
   TVarList = object(TListBox)
-    Line: PInputline;
+    Line: PLongInputLine;
     PrevFocused: Integer;
+    SText: PView;
     procedure FocusItem(Item: LongInt); virtual;
     function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
@@ -517,36 +524,24 @@ type
 
   { TDOSVar }
 
-constructor TDOSVar.Init;
-  var
-    I: Integer;
+constructor TDOSVar.Init(P: PChar; NameLen, ValueLen: Longint);
+   {P - определение одной переменной окружения вида 'LANG=ru_RU',
+    #0 в конце не гарантируется.
+    Hапример, для 'LANG=ru_RU' будет NameLen=4, ValueLen=5 }
   begin
-  inherited Init;
-  I := PosChar('=', S);
-  if I = 0 then
-    I := Length(S)+1;
-  { if I = 1 then I := PosChar('=', Copy(S, 2, 255)) + 1;} {JO}
-  Name := NewStr(UpStrg(DelSpaces(Copy(S, 1, I-1))));
-  Value := NewStr(Copy(S, I+1, MaxStringLength));
-  end;
+  Inherited Init;
+  { Тут несподручно вызывать NewStr, поэтоу дин. строку формируем сами }
+  GetMem(Name, NameLen+1);
+  SetLength(Name^, NameLen);
+  Move((P)^, Name^[1], NameLen);
 
-procedure TDOSVar.SetValue;
-  begin
-  if  (S = '') and (Value = nil) then
-    Exit;
-  if  (Value = nil) or (Length(Value^) <> Length(S)) then
-    begin
-    DisposeStr(Value);
-    Value := NewStr(S);
-    end
-  else
-    Value^:= S;
+  SetLength(Value, ValueLen);
+  StrLCopy(@Value[1], P+NameLen+1, ValueLen)
   end;
 
 destructor TDOSVar.Done;
   begin
   DisposeStr(Name);
-  DisposeStr(Value);
   inherited Done;
   end;
 
@@ -556,8 +551,6 @@ procedure TVarList.FocusItem;
   var
     P: PDOSVar;
   begin
-  if Line <> nil then
-    Line^.GetData(FreeStr);
   if  (PrevFocused >= 0) and
       (List <> nil) and (Focused < List^.Count)
   then
@@ -565,20 +558,16 @@ procedure TVarList.FocusItem;
   else
     P := nil;
   if P <> nil then
-    P^.SetValue(FreeStr);
+    Line^.GetData(P^.Value);
   PrevFocused := Focused;
   inherited FocusItem(Item);
   if  (List <> nil) and (Focused < List^.Count) then
     P := List^.At(Focused)
   else
     P := nil;
-  if  (P <> nil) and (P^.Value <> nil) then
-    FreeStr := P^.Value^
-  else
-    FreeStr := '';
-  if  (Line <> nil) then
+  if  P <> nil then
     begin
-    Line^.SetData(FreeStr);
+    Line^.SetData(P^.Value);
     Line^.DrawView;
     end;
   end { TVarList.FocusItem };
@@ -624,7 +613,9 @@ procedure TVarList.HandleEvent;
     then
       Exit;
     PrevFocused := -1;
-    List^.AtInsert(Focused, New(PDOSVar, Init(S)));
+    UpStr(S);
+    List^.AtInsert(Focused,
+      New(PDOSVar, Init(@s[1], Length(S), 0)));
     SetRange(List^.Count);
     FocusItem(Focused);
     DrawView;
@@ -660,10 +651,8 @@ procedure TVarList.HandleEvent;
       case Event.Command of
         cmOK:
           begin
-          if Line <> nil then
-            Line^.GetData(FreeStr);
           if P <> nil then
-            P^.SetValue(FreeStr);
+            Line^.GetData(P^.Value);
           end;
         cmAddVariable:
           AppendVar;
@@ -690,17 +679,17 @@ procedure EditDOSEnvironment;
     P: PView;
     R: TRect;
     PC: PCollection;
-    I: Integer;
+    I: LongInt;
 
   procedure MakeDialog;
     var
       R: TRect;
       Control, Labl, Histry: PView;
       PL: PVarList;
-      PI: PInputline;
-    function IsInputLine(P: PView): Boolean;
+      PI: PLongInputLine;
+    function IsLongInputLine(P: PView): Boolean;
       begin
-      IsInputLine := TypeOf(P^) = TypeOf(TInputLine)
+      IsLongInputLine := TypeOf(P^) = TypeOf(TLongInputLine)
       end;
     function IsButton(P: PView): Boolean;
       begin
@@ -723,7 +712,13 @@ procedure EditDOSEnvironment;
     PL := New(PVarList, Init(R, 1, PScrollBar(Control)));
     D^.Insert(PL);
 
-    PI := PInputline(D^.FirstThat(@IsInputLine));
+    PI := PLongInputLine(D^.FirstThat(@IsLongInputLine));
+    if PI = nil then
+      begin
+      D^.Free;
+      D := nil;
+      exit;
+      end;
 
     R.Assign(2, 2, 43, 3);
     Labl := New(PLabel, Init(R, GetString(dlEnvVarLabel), PL));
@@ -737,7 +732,7 @@ procedure EditDOSEnvironment;
 
   procedure DoPut(P: PDOSVar);
     var
-      J: Integer;
+      J: LongInt;
 
     procedure Put(C: Char);
       begin
@@ -746,32 +741,38 @@ procedure EditDOSEnvironment;
       end;
 
     begin
-    if  (P^.Name <> nil) and (P^.Value <> nil) then
+    if  (P^.Name <> nil) then
       begin
       for J := 1 to Length(P^.Name^) do
         Put(P^.Name^[J]);
       Put('=');
-      for J := 1 to Length(P^.Value^) do
-        Put(P^.Value^[J]);
+      for J := 1 to Length(P^.Value) do
+        Put(P^.Value[J]);
       Put(#0);
       end;
     end;
 
+  var
+    n1, n2: Longint;
   begin { EditDOSEnvironment }
   New(PC, Init(10, 10));
 
   I := 0;
   while Env^[I] <> 0 do
     begin
-    FreeStr := '';
+    n1 := I; n2 := I;
     while Env^[I] <> 0 do
       begin
-      AddStr(FreeStr, Char(Env^[I]));
+      if Char(Env^[I]) = '=' then
+        n2 := I;
       Inc(I)
       end;
-    if FreeStr[1] <> '=' then
-      {JO}
-      PC^.Insert(New(PDOSVar, Init(FreeStr)));
+// JO: имя пеpеменной окpужения не может быть длиннее 255 символов,
+//     по кpайней меpе мне такие извpаты неизвестны. Так что если
+//     что-то такое стpанное встpетится (что пpактически маловеpоятно),
+//     то pазумнее будет такую пеpеменную окpужения пpосто пpоигноpиpовать
+    if (n1 <> n2) and (n2 - n1 < 255) then
+      PC^.Insert(New(PDOSVar, Init(PChar(Env) + n1, n2-n1, I-n2-1)));
     Inc(I);
     end;
 
@@ -789,7 +790,7 @@ procedure EditDOSEnvironment;
     Env^[I+5] := 0;
     end;
 
-  Dispose(D, Done);
+  D^.Free;
   Dispose(PC, Done);
   end { EditDOSEnvironment };
 

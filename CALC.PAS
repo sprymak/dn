@@ -580,7 +580,7 @@ procedure TCalcInput.HandleEvent;
           if CurPos = 0 then
             Transfer;
         kbRight:
-          if CurPos > Length(CnvString(Data))-1 then
+          if CurPos > Length(Data)-1 then
             Transfer;
         kbTab:
           if not EndEdit then

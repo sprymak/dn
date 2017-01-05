@@ -358,6 +358,7 @@ const
   idDialog = 'DIALOG ';
   idLabel = 'LABEL ';
   idInputLine = 'INPUTLINE ';
+  idLongInputLine = 'LONGINPUTLINE ';
   idHexLine = 'HEXLINE '; {DataCompBoy}
   idButton = 'BUTTON ';
   idCheckBoxes = 'CHECKBOXES ';
@@ -894,6 +895,28 @@ procedure ProcessDLGs;
         end;
       end;
 
+    procedure MakeLongInputLine;
+      var
+        P: PHistory;
+      begin
+      R.Assign(GetID(Token(S, i)), GetID(Token(S, i)), GetID(Token(S,
+         i)), GetID(Token(S, i)));
+      R.B.Y := R.A.Y+1;
+      PV := New(PLongInputline, Init(R, GetID(Token(S, i))));
+      D^.Insert(PV);
+      j := GetID(Token(S, i));
+      if j > 0 then
+        begin
+        R.A.X := R.B.X;
+        R.B.X := R.A.X+3;
+//JO: поскольку TInputline и TLongInputline отличаются только методами
+//    GetData и SetData, не вызывающимися в методах THistory,
+//    то такая подмена возможна
+        New(P, Init(R, PInputline(PV), j));
+        D^.Insert(P);
+        end;
+      end;
+
     {-DataCompBoy-}
     procedure MakeHexLine;
       begin
@@ -1135,6 +1158,8 @@ procedure ProcessDLGs;
         begin
         if IsThis(idInputLine) then
           MakeInputLine
+        else if IsThis(idLongInputLine) then
+          MakeLongInputLine
         else if IsThis(idHexLine) then
           MakeHexLine
         else if IsThis(idHelpCtx) then

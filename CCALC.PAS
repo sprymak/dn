@@ -376,7 +376,7 @@ procedure TCalcLine.SetValues;
         SetLength(S, Length(S)-1);
       SetData(S);
       SelStart := 0;
-      SelEnd := Length(Data^);
+      SelEnd := Length(Data);
       CurPos := SelEnd;
       DrawView;
       ResultSelected := True;

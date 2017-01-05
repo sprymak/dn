@@ -373,10 +373,10 @@ procedure TFileInputLine.HandleEvent(var Event: TEvent);
     begin
     Dir := PSearchRec(Event.InfoPtr)^.Name+'\';
     if PSearchRec(Event.InfoPtr)^.Attr and Directory <> 0 then
-      Data^:= Dir+
+      Data := Dir+
         PFileDialog(Owner)^.WildCard^
     else
-      Data^:= PSearchRec(Event.InfoPtr)^.Name;
+      Data := PSearchRec(Event.InfoPtr)^.Name;
     DrawView;
     end;
   end;
@@ -746,7 +746,7 @@ function TDirectoryList.GetText(Item: LongInt; MaxLen: Integer): String;
 {-DataCompBoy-}
 procedure TDirectoryList.ReadDirectory(AWildCard: String);
   const
-    FindAttr = ReadOnly+Archive+SysFile;
+    FindAttr = Directory+ReadOnly+Archive+SysFile;
   var
     S: lSearchRec;
     P: PSearchRec;
@@ -777,7 +777,7 @@ procedure TDirectoryList.ReadDirectory(AWildCard: String);
       end;
 
   Tmp := Dir+x_x;
-  lFindFirst(Tmp, Directory+Byte(SystemData.Options and ossShowHidden <>
+  lFindFirst(Tmp, FindAttr+Byte(SystemData.Options and ossShowHidden <>
        0)*Hidden, S);
   {AK155 Тут надо учитывать, что под WinNT каталога '.'
      может не быть вообще, и что FindNextFile приводит к падению,
@@ -953,7 +953,7 @@ constructor TFileDialog.Init;
 
   R.Assign(3, 3, 31, 4);
   FileName := New(PFileInputLine, Init(R, MaxPathLen));
-  FileName^.Data^:= WildCard^;
+  FileName^.Data := WildCard^;
   Insert(FileName);
   R.Assign(2, 2, 3+CStrLen(InputName), 3);
   Control := New(PLabel, Init(R, InputName, FileName));
@@ -1194,7 +1194,7 @@ procedure TFileDialog.GetFileName(var S: String);
   {/AK155}
 
   begin { TFileDialog.GetFileName }
-  S := FileName^.Data^;
+  S := FileName^.Data;
   ClrIO;
   if RelativePath(S) then
     S := lFExpand(Directory^+S)

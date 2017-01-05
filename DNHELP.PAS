@@ -279,6 +279,7 @@ const
   hcWinMan = 21004;
   hcYesNoCancelDialog = 48002;
   hcYesNoDialog = 48001;
+  hcSkipBadFile = 49009;
   hc_ = 65535;
 
 //30.12.2004 Last 48103

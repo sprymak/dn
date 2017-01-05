@@ -625,7 +625,6 @@ type
     Size: TSize;
     PSize: TSize;
     Owner: PString;
-    OwnerDisposible: Boolean;
     DIZ: PDiz;
     Yr: Word;
     YrCreat: Word;

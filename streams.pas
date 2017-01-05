@@ -139,10 +139,14 @@ type
   PMemoryStream = ^TMemoryStream;
   TMemoryStream = object(TStream)
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
-    BlkCount: LongInt; { Number of segments }
-    BlkSize: Word; { Memory block size }
-    MemSize: LongInt; { Memory alloc size }
-    BlkList: PPointerArray; { Memory block list }
+    BlkCount: LongInt;
+     {` Number of segments `}
+    BlkSize: Word;
+     {` Memory block size `}
+    MemSize: LongInt;
+     {` Memory alloc size `}
+    BlkList: PPointerArray;
+     {` Memory block list `}
     constructor Init(ALimit: LongInt; ABlockSize: Word);
     destructor Done; virtual;
     procedure Read(var Buf; Count: SW_Word); virtual;

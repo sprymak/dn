@@ -192,8 +192,7 @@ procedure TdrGetDirectory(AvtDr: PArvidDrive; var ALocation: LongInt;
              FF.Attr, @CurDir);
         {$ENDIF}
         New(F^.DIZ);
-        F^.DIZ^.Owner := nil;
-        F^.DIZ^.isDisposable := True;
+        F^.DIZ^.Container := nil;
         F^.DIZ^.Line := SeekPos;
         if FF.Description <> 0 then
           begin
@@ -203,10 +202,10 @@ procedure TdrGetDirectory(AvtDr: PArvidDrive; var ALocation: LongInt;
           Stream^.Read(FreeStr, 2);
           Stream^.Read(FreeStr[1], Length(FreeStr));
           Stream^.Seek(j);
-          F^.DIZ^.DIZ := NewStr(FreeStr);
+          F^.DIZ^.DIZText := FreeStr;
           end
         else
-          F^.DIZ^.DIZ := nil;
+          F^.DIZ^.DIZText := '';
 
         if FF.Attr and Directory = 0 then
           begin
@@ -284,7 +283,7 @@ procedure TdrEditDescription;
   with AvtDr^ do
     begin
     Stream^.Read(FF, SizeOf(FF));
-    if Length(S) <= Length(CnvString(PF^.DIZ^.DIZ)) then
+    if Length(S) <= Length(PF^.DIZ^.DIZText) then
       begin
       if S = '' then
         begin

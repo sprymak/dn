@@ -161,18 +161,24 @@ const
 type
   {-DataCompBoy-}
   PDesc = ^TDesc;
+    {`2 Элемент TDIZCol }
   TDesc = record
     Name: String;
-    DIZ: PString;
+    DIZText: LongString;
     Line: LongInt;
     end;
+    {`}
   {-DataCompBoy-}
 
   PDIZCol = ^TDIZCol;
+    {`2 Коллекция описаний из файла описаний. Используется для
+    быстрого поиска описаний по имени при входе в каталог.
+    Имена запоминаются в коллекции на верхнем регистре. }
   TDIZCol = object(TSortedCollection)
     procedure FreeItem(P: Pointer); virtual;
     function Compare(P1, P2: Pointer): Integer; virtual;
     end;
+    {`}
 
 function ESC_Pressed: Boolean;
   var
@@ -188,18 +194,20 @@ procedure TDIZCol.FreeItem;
   begin
   if P <> nil then
     begin
-    DisposeStr(PDesc(P)^.DIZ);
+    PDesc(P)^.DIZText := ''; // освободить строку
     Dispose(PDesc(P));
     end;
   end;
 {-DataCompBoy-}
 
 function TDIZCol.Compare;
-  {  используется фактически только в TDIZCol.Search}
-  begin {  унаследованном от TSortedCollection.Search}
-  if LowStrg(PDesc(P1)^.Name) < LowStrg(PDesc(P2)^.Name) then
+  var
+    Name2: String;
+  begin
+  Name2 := UpStrg(PDesc(P2)^.Name);
+  if PDesc(P1)^.Name < Name2 then
     Compare := -1
-  else if LowStrg(PDesc(P1)^.Name) = LowStrg(PDesc(P2)^.Name) then
+  else if PDesc(P1)^.Name = Name2 then
     Compare := 0
   else
     Compare := 1;
@@ -722,10 +730,11 @@ if  (Flags and psShowDescript <> 0) and ((DriveType = dtDisk) or
       (DriveType = dtArvid))
 then
   begin
+  S := ' ';
   if P^.DIZ <> nil then
-    S := Copy(AddSpace(CnvString(P^.DIZ^.DIZ), 255), 1, MaxViewWidth-X-1)
-  else
-    S := AddSpace(' ', MaxViewWidth-X-1);
+    S := Copy(P^.DIZ^.DIZText, 1, MaxViewWidth-X-1);
+      {Первую строку не выделяем}
+  S := AddSpace(S, MaxViewWidth-X-1);
   MoveStr(TAWordArray(B)[X], S, C);
   end;
 Longer250_1:
@@ -1003,246 +1012,58 @@ procedure TDrive.UseFile;
   Message(Application, evCommand, Command, @S);
   end;
 {-DataCompBoy-}
-(*
-        {-DataCompBoy-}
-procedure ReadFileList(
-     const CurDir: String;
-     const FName: String;
-     var Descriptions: PDIZCol);
 
-var T: PTextReader;
-    S: String;
-    LS: Byte;
-    S1: String;
-    I: CondInt;
-    CurLine: LongInt;
-    PD: PDesc;
-    zz: Boolean;
-    J: Byte;
-begin
-  ClrIO;
-  T := New(PTextReader, Init(MakeNormName(CurDir, FName)));
-  if (T = nil) or Abort then Exit;
-  CurLine := 0;
-  While not T^.EOF and (IOResult = 0) do
-    begin
-      Inc(CurLine);
-      S := T^.GetStr;
-      LS := Length(S);
-     {DelLeft(S);} {зачем Ритлабсы считали описаниями то, что начиналось с пробела - непонятно}
-      S1 := '';
-      if (S <> '') and not (S[1] in [' ',#9]) then
-       begin
-         zz := False;
-         J := 1;
-         repeat
-           if S[J] = '"' then zz := not zz {JO: поддержка описаний для имён с пробелами}
-             else S1 := S1 + S[J];
-           Inc(J);
-          {DelFC(S)}
-         until not ((J <= LS) and ((not(S[J] in [' ',#9])) or zz));
-         S := Copy(S, J, Length(S)-J+1);
-         DelLeft(S);
-         New(PD);
-{$IFNDEF OS2}
-         PD^.Name := LowStrg(Norm12(S1));
-         PD^.Name[9] := ' ';
-       {$IFDEF OS_DOS}
-         PD^.LFN := AddLFN(lfGetLongFileName(MakeNormName(CurDir, S1)));
-       {$ELSE}
-         PD^.LFN := S1;
-       {$ENDIF}
-{$ELSE}
-         PD^.Name := S1;
-{$ENDIF}
-         PD^.DIZ := NewStr(S);
-         PD^.Line := CurLine;
-         if not Descriptions^.Search(PD, I) then
-            Descriptions^.AtInsert(I, PD)
-         else
-            Descriptions^.FreeItem(PD);
-       end;
-    end;
-  Dispose(T,Done);
-end;
-        {-DataCompBoy-}
-*)
+{ Подготовка сортированной коллекции описаний, откуда описания будет
+удобно находить при считывании каталога. Используется ReadFileList}
+var
+  Descriptions: PDIZCol;
+  PD: PDesc;
+  IgnoreDiz: Boolean;
 
-{AK155: JO внес коррекции в части добавления длинных имен,
-а потом я почти полностью переписал эту процедуру.
-Теперь имена воспринимаются только с первой позиции,
-имена в кавычках допускаются. 01 авг 2001}
-
-procedure ReadFileList(
-    const CurDir: String;
-    const FName: String;
-    var Descriptions: PDIZCol);
-
+function DizNameProc(const N: string; TextStart: Integer): Boolean;
+  { Для ReadFileList. Занесение элемента коллекции и первой строки }
   var
-    T: PTextReader;
-    S: String;
-    CurLine: LongInt;
-
-    { прочитать непустую строку (хвостовые пробелы отбрасываются)}
-  function ReadNextS: Boolean;
+    I: Integer;
+  begin
+  IgnoreDiz := Descriptions^.Search(@N, I);
+    // Повторное описание игнорируем
+  if not IgnoreDiz then
     begin
-    ReadNextS := False;
-    repeat
-      if T^.Eof then
-        Exit;
-      S := T^.GetStr;
-      if IOResult <> 0 then
-        Exit;
-      Inc(CurLine);
-      DelRight(S);
-    until S <> '';
-    ReadNextS := True;
-    end;
-
-  var
-    LS: Byte;
-    S1: String;
-    I: CondInt;
-    PD: PDesc;
-    j: LongInt;
-    NameEnd: LongInt;
-  label
-    ReadNextLine, EndDescr, EndFile;
-
-  begin { ReadFileList }
-  ClrIO;
-  T := New(PTextReader, Init(MakeNormName(CurDir, FName)));
-  if  (T = nil) or Abort then
-    Exit;
-  PD := nil;
-  CurLine := 0;
-  if not ReadNextS then
-    begin
-    Dispose(T, Done);
-    Exit;
-    end;
-  while True do
-    begin
-    { Обработка нового описания. S уже прочитана.}
-    if  (S[1] in [' ', #9, '>']) then
-      goto ReadNextLine;
-    { игнорируем остаток
-         предыдущего многострочного описания }
-
-    LS := Length(S);
-    if S[1] = '"' then
-      {имя в кавычках - ищем вторую кавычку }
-      begin
-      NameEnd := 0;
-      for j := 2 to LS do
-        if S[j] = '"' then
-          begin
-          NameEnd := j;
-          Break;
-          end;
-      if NameEnd <= 2 then
-        goto ReadNextLine;
-      if NameEnd = LS then
-        goto ReadNextLine; { пустое описание никого не интересует }
-      S1 := Copy(S, 2, NameEnd-2);
-      end
-    else
-      {имя не в кавычках - ищем пробел или Tab. При этом
-        благодаря DelRight после него что-то должно быть }
-      begin
-      NameEnd := Pos(' ', S);
-      j := Pos(#9, S);
-      if  (j <> 0) and (j < NameEnd) then
-        NameEnd := j // заведомо не 0
-      else
-        begin
-        if NameEnd = 0 then
-          NameEnd := j; // может быть и 0
-        if NameEnd = 0 then
-          goto ReadNextLine; { пустое описание никого не интересует }
-        end;
-      S1 := Copy(S, 1, NameEnd-1);
-      end;
-    if PD = nil then
-      New(PD);
-    PD^.Name := S1;
-    PD^.Line := CurLine;
-    if Descriptions^.Search(PD, I) then
-      goto ReadNextLine;
-    System.Delete(S, 1, NameEnd);
-    DelLeft(S);
-    S1 := S;
-
-    {
-AK155: Дочитываем многострочное описание (сколько влазит в S1).
-Признаком дополнительной строки является побел или Tab в начале,
-а такэже '>' в начале (files. bbs вформате AllFix).
-  Это нормально работает для просмотра описаний, но приводит
-к глюкам при попытке редактирования многострочного описания.
-Впрочем, при редактировании многострочных описаний глюки
-будут в любом случае, так как фактически редактируется только
-первая строка. Чтобы избавиться от глюков, надо серьезно переделывать
-и формат TDesc, и его отображение, и его редактирование. Можно
-ввести коллекцию строк, а не одну строку, и попытаться заюзать
-редактор. Или вообще не заниматься самодеятельностью, а просто
-вызывать стандартный редактор для файла описаний, установив курсор
-на нужную строку (предварительно создав эту строку, если ее не было)
-}
-    while True do
-      begin
-      if not ReadNextS then
-        Break;
-      if not (S[1] in [' ', #9, '>']) then
-        Break;
-      j := 2;
-      while (j <= Length(S)) and (S[j] = ' ') do
-        Inc(j);
-      LS := Length(S1);
-      if LS >= 253 then
-        Break;
-
-      S1 := S1+#20' '+Copy(S, j, 253-LS);
-      end;
-    {JO: пока сделал так: "дочитанные" куски отделяются от основной части (и друг }
-    {    от друга) символом #20, который ищется при редактировании и копировании}
-    {    описаний и вся "дочитанная" часть описания после него (и он сам) отбрасывается }
-
-    { конец дочитывания многострочного описания }
-
-    PD^.DIZ := NewStr(S1);
+    New(PD);
+    PD^.Name := N;
+    PD^.DizText := Copy(LastDizLine, TextStart, 255);
     Descriptions^.AtInsert(I, PD);
-    PD := nil;
-    goto EndDescr;
-
-ReadNextLine:
-    if not ReadNextS then
-      goto EndFile;
-EndDescr:
     end;
+  end;
 
-EndFile:
-  if PD <> nil then
-    Dispose(PD);
-  Dispose(T, Done);
-  end { ReadFileList };
+procedure DizLineProc;
+  { Для ReadFileList. Добавление очередной строки прямо в элемент
+    коллекции}
+  const
+    CrLf: array[0..1] of char = #13#10;
+  begin
+  if not IgnoreDiz then
+    PD^.DizText := PD^.DizText + CrLf + LastDizLine;
+  end;
 
-{-DataCompBoy-}
+function DizEndProc: Boolean;
+  { Для ReadFileList. Ничего делать не надо}
+  begin
+  Result := False;
+  end;
+
 procedure PrepareDIZ(
+  { Чтение контейнера описаний и создание коллекции описаний }
     const CurDir: String;
-    var DizOwner: String;
-    var Descriptions: PDIZCol);
-  var
-    S: String;
-    FName: String;
+    var Container: String);
   begin
   ClrIO;
-  S := GetDizOwner(CurDir, '', True);
-  if S <> '' then
+  Container := GetDizPath(CurDir, '');
+  if Container <> '' then
     begin
-    FName := GetName(S);
+    OpenFileList(Container);
     Descriptions := New(PDIZCol, Init($10, $10));
-    ReadFileList(CurDir, FName, Descriptions);
-    DizOwner := MakeNormName(CurDir, FName);
+    ReadFileList(DizNameProc, DizLineProc, DizEndProc);
     end;
   ClrIO;
   end;
@@ -1250,9 +1071,8 @@ procedure PrepareDIZ(
 
 {-DataCompBoy-}
 procedure TossDescriptions(
-    PDizOwner: Pointer;
-    Files: PFilesCollection;
-    Descriptions: PDIZCol);
+    PDizContainer: Pointer;
+    Files: PFilesCollection);
   var
     I, J: CondInt;
     P: PFileRec;
@@ -1271,11 +1091,12 @@ procedure TossDescriptions(
         begin
         PD := PDesc(Descriptions^.At(J));
         New(P^.DIZ);
-        P^.DIZ^.DIZ := PD^.DIZ;
-        P^.DIZ^.Owner := PDizOwner;
+        P^.DIZ^.DIZText := PD^.DIZText;
+        P^.DIZ^.Container := PDizContainer;
         P^.DIZ^.Line := PD^.Line;
-        P^.DIZ^.isDisposable := True;
-        PD^.DIZ := nil;
+//        PD^.DIZText := '';
+  {AnsiString память не тратят при копировании, поэтому можно не спешить
+  с освобождением и подождать до освобождения элемента коллекции }
         Break;
         end
       end;
@@ -1434,7 +1255,6 @@ function TDrive.GetDirectory;
     AllFiles, ShowD: Boolean;
     FreeSpc: TSize;
     TFiles: Word;
-    Descriptions: PDIZCol;
 
   begin
   ClrIO;
@@ -1449,7 +1269,7 @@ function TDrive.GetDirectory;
   if ShowD or (FMSetup.Options and fmoAlwaysCopyDesc <> 0) or
       (SortMode = psmDIZ) or (PanelFlags and fmiDescriptionInBottom <> 0)
   then
-    PrepareDIZ(CurDir, DizOwner, Descriptions);
+    PrepareDIZ(CurDir, DizOwner);
   NoMem := False;
 
   Files := GetFilesColl(TotalInfo, TFiles, PanelFlags, @CurDir,
@@ -1463,7 +1283,7 @@ function TDrive.GetDirectory;
 
   if Descriptions <> nil then
     begin
-    TossDescriptions(@DizOwner, Files, Descriptions);
+    TossDescriptions(@DizOwner, Files);
     Dispose(Descriptions, Done);
     if Files^.SortMode = psmDIZ then
       Files^.Sort; {JO}

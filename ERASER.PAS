@@ -386,6 +386,8 @@ TryDel:
     {$ENDIF}
     Ask: Integer;
     iLfn: TUseLFN;
+    SkipAll: Boolean;
+    D: PDialog;
   label LLL, DeleteDirDIZ;
 
   begin { EraseFiles }
@@ -394,6 +396,7 @@ TryDel:
   LongWorkBegin;
   NotifySuspend; {Cat}
   DeleteAllFiles := False;
+  SkipAll := False;
   Abort := False;
   ClrIO;
   CtrlBreakHit := False; {JO}
@@ -469,23 +472,24 @@ LLL:
             then
               begin
               InfoWrite(1, GetString(dlDeletingDIZ));
-              for iLfn := Low(TUseLFN) to High(TUseLFN) do
-                DeleteDiz(CalcDPath(PF^.DIZ, PF^.Owner), PF^.FlName[iLfn]);
+              DeleteDiz(PF);
               end;
             end
           else
-            begin
-            if Ask in [2, 3, 110] then
-              MessageBox(GetString(dlErasingNoFile)+S {+ '; RC = %d'},
-                 nil {@Ask}, mfError+mfOKButton)
-            else
-              begin
-              Ask := SysErrorFunc(Ask, GetDrive);
-              if  (Ask = 1) then
-                goto LLL;
-              end;
-            end
-            ;
+            if not SkipAll then begin
+              D := PDialog(LoadResource(dlgSkipBadFile));
+              D^.Options := D^.Options or ofCentered;
+              R.A.X := 1; R.A.Y := 2; R.B.X := 53; R.B.Y := 3;
+              D^.Insert(New(PStaticText, Init(R,GetString(dlErasingNoFile))));
+              inc(R.A.Y); inc(R.B.Y);
+              S := FormatLongName(S,50,0,flnUseCutChar,nfmNull,nil);
+              D^.Insert(New(PStaticText, Init(R,^C+S)));
+              Case Desktop^.ExecView(D) Of
+               cmOK:     Goto LLL {Dec(I)};
+               cmYes:    SkipAll := True;
+               cmCancel: Break;
+              End;
+            end;
           end;
         end
       else
@@ -509,8 +513,7 @@ LLL:
          if DeleteDirectory(S, 0) then
           begin
 DeleteDirDIZ:
-          for iLfn := Low(TUseLFN) to High(TUseLFN) do
-            DeleteDiz(CalcDPath(PF^.DIZ, PF^.Owner), PF^.FlName[iLfn]);
+          DeleteDiz(PF);
           end;
         end
     else

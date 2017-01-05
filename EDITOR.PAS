@@ -1659,7 +1659,7 @@ function TXFileEditor.HandleCommand;
   begin { TXFileEditor.HandleCommand }
   LastX := Delta.X;
   LastY := Delta.Y;
-  HandleCommand := True;
+  HandleCommand := False;
   case Event.Command of
     cmWindowsCopy:
       CopyWinBlock;
@@ -1690,16 +1690,19 @@ function TXFileEditor.HandleCommand;
       begin
       if ValidBlock then
         SortBlock(True);
+      HandleCommand := True;
       end;
     cmSortBlock:
       begin
       if ValidBlock then
         SortBlock(False);
+      HandleCommand := True;
       end;
     cmCalcBlock:
       begin
       if ValidBlock then
         CalcBlock;
+      HandleCommand := True;
       end;
     cmInsertDate, cmInsertTime:
       InsertDateTime(Event.Command = cmInsertTime);
@@ -1718,10 +1721,12 @@ function TXFileEditor.HandleCommand;
     cmUndo:
       begin
       MakeUndo;
+      HandleCommand := True;
       end;
     cmRedo:
       begin
       MakeRedo;
+      HandleCommand := True;
       end; {-$VOL}
     cmIndentBlock:
       begin
@@ -1796,11 +1801,8 @@ function TXFileEditor.HandleCommand;
       begin
       FlushWorkString;
       KeyMap := RollKeyMap[KeyMap];
-//      WorkString := GetLine(Delta.Y);
-      DrawView;
+      HandleCommand := True;
       end;
-    else
-      HandleCommand := False;
   end {case};
   end { TXFileEditor.HandleCommand };
 

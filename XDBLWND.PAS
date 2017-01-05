@@ -213,6 +213,7 @@ procedure TXDoubleWindow.HandleEvent;
         cmChangeRight,
         cmDirTree,
         cmQuickView,
+        cmDizView,
         cmSwapPanels,
         cmSwitchOther:
           begin

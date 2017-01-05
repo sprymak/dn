@@ -141,7 +141,11 @@ type
     JustSaved, {piwamoto}
     BlockVisible, SpecChar, MouseMark, UnMark,
     LineMarking, OptimalFill, RulerVisible, EnableMarking,
-    TabReplace, SearchActive: Boolean;
+    TabReplace,
+    Replace,
+     {` Текущая операция поиска/замены - замена. Действительна только
+       во время поиска/замены`}
+    SearchActive: Boolean;
     PrevSearchDir: byte;
       {`Эта переменная принимается во внимание
       только при SearchOnDisplay `}
@@ -195,6 +199,8 @@ type
     function LimitY: LongInt;
     procedure StoreUndoInfo(What: Word; Where: TPoint; var Info);
     function HandleCommand(var Event: TEvent): Boolean; virtual;
+      {` Результат - необходимость перерисовки. Реально эта функция
+      есть только в TXFileEditor, и больше там ничего нет. `}
     procedure WorkModify;
      {` Отметить, что WorkString изменена `}
     procedure ChangeLine;
@@ -237,13 +243,25 @@ const
 
 type
   TSearchData = record
+   {` Данные диалога поиска/замены}
     Options: Word;
+      {` Bit0 - регистрозависимо, bit1 - целые слова,
+        bit2 - "во всех кодировках" для поиска и "запрос подтверждения"
+        для замены. `}
     Dir: Word;
+      {` Bit0=1 - поиск назад`}
     Scope: Word;
+      {` Bit0=1 - отмеченный тест`}
     Origin: Word;
-    Line, What: String[250];
+      {` Bit0=1 - с начала текста`}
+    Line,
+      {` Что искать`}
+    What: String[250]; {AK155 Ну и обозначение! }
+      {` На что заменить.
+      Признаком поиска, а не замены является What = #0`}
     end;
-
+  {`}
+  
   {Cat: параметры поиска (TSearchData.Options)}
   {необходимо согласовывать с константой SwapBits в модуле Editor}
 const
@@ -1731,10 +1749,20 @@ function TFileEditor.Search;
         Pos.Y := D.Y-Size.Y div 2
       else if (D.Y < Pos.Y) then
         Pos.Y := Max(0, D.Y-5);
-      if  (D.X-Pos.X > Size.X-10) then
-        Pos.X := D.X-Size.X div 2
-      else if (D.X < Pos.X) then
-        Pos.X := Max(0, D.X-5);
+{modified by Persistor, Dec 2004}
+      j := length(getline(d.y));
+      if (j<=size.x) or (d.x<=size.x div 2) then
+        pos.x:=0
+      else if (j+3-d.x<size.x div 2) and (d.x-pos.x<size.x div 2) then
+             pos.x:=j-size.x+3
+           else begin
+                  j:=Size.X div 4;
+                  if (D.X-Pos.X>Size.X-10) then
+                    Pos.X:=D.X-3*j
+                  else if (D.X<Pos.X) then
+                         Pos.X:=D.X-j;
+                end;
+{modified by Persistor, Dec 2004}
       if  (SearchData.What = #0) or Prompt
       then
         _DrawViews;
@@ -2748,6 +2776,7 @@ L1:
       StoreUndoInfo(udSubDel, T, WorkString);
       ModifyLine(Delta.Y, '', True);
       SetLength(WorkString, 0);
+      ScrollTo(0, Delta.Y);
       end
     else
       begin
@@ -2760,7 +2789,6 @@ L1:
       if MarkPos[L].Y >= Delta.Y then
         Dec(MarkPos[L].Y);
     SetLimits;
-    ScrollTo(0, Delta.Y);
     DrawView;
     ChangeLine;
     end { DeleteLine };

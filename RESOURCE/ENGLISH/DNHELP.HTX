@@ -199,7 +199,7 @@ echo area.
   A      {Manual Dial     :ManualDial}
   B      {Sort Method     :SortBy}           {ASCII Table          :AsciiChart}
   C      {Select Drive    :SelectDriveExtended}           {Compare Directories  :CompareDirs}
-  D      {Disk Menu       :DiskMenu}
+  D      {Disk Menu       :DiskMenu}           {Descriptions view:_}
   E      {Attributes      :FileAttr}
   F      {File Menu       :FileMenu}
   G      {Dir Size        :_}
@@ -2208,7 +2208,66 @@ operation, automatically the printing is suspended.
 .title Confirmations
 
 .topic CountrySetup=16564
-.title Country Setup
+.title Country support
+This panel is designed for settings specific to country and language.
+
+The group of settings in upper part of the dialog usually does not
+require manual correction. These values are requested from operating
+system when DN is started for the first time.  However one can change
+them if necessary.
+To request this array of values from system again one can press the
+button {System:_}. The uppercase table setup that existed in previous
+versions of DN is eliminated now. This table is requested from operating
+system and cannot be modified.
+
+In lower part of the dialog there are three input lines: "Keyboard",
+"WIN:" and "Additional codetables".
+
+Line {Keyboard:_} defines the name of conversion file for symbols
+entered in wrong keyboard layout and is used when pressing Alt-F12
+in editor and input lines. This is usual conversion file (XLT)
+which is located in XLT directory by default. Setting up a full path
+to a file is allowed.
+For Russian layout (441) such file is supplied with DN (ru441.xlt).
+If you use other layout, for example, 443 ("typewriter"), then you can
+easily build the corresponding conversion file.
+
+Line {WIN:_} defines conversion from Windows code table
+to DOS code table.
+In DN for DOS in this line should be the name of .xlt file.
+In versions for OS/2 and Windows there can be either the name
+of .xlt file or the number of code page (1251 for Russian language).
+In DN for Windows there is usually '0' here. In this case the code table
+for conversion from ANSI to OEM will be used; this table is requested
+from operating system.
+It is strongly recommended to leave this setting as is, because this
+table is used when working with filenames, therefore it is important
+to make sure that this table corresponds to the operating system.
+
+File win866r.xlt is supplied with DN, which defines reverse conversion
+from CP 1251 to CP 866. This means that unconvertible symbols,
+i.e. missing in target code page, are converted not to "?" as usual,
+but to symbols which cannot be converted back. Besides such substitutions
+are one-for-one, therefore conversion of any text is lossless.
+Perhaps using this or similar table is the only case when setting
+something different from zero in line WIN makes sense.
+
+Line {Additional codetables:_} allows to define extra code tables,
+one can switch between them by pressing F8 key in editor and viewer.
+Example of setting up a code table:
+KOI:koi8r.xlt. Here we define a code table which will appear in window
+frame as "KOI" and assigned to conversion file koi8r.xlt
+(conversion from KOI8-R to CP 866).
+In versions for OS/2 and Windows one can define here a code page number
+instead of conversion file name. In this line several code tables
+can be listed using the space symbol as separator.
+
+All modifications made in this dialog are applied after pressing
+"{OK:_}" button if no errors will be revealed.
+If "Cancel" button is pressed then the previous values for all parameters
+will be used, even if "System" button was pressed before,
+or if "OK" button was pressed but dialog was not closed due to revealed
+errors.
 
 .topic ReenterPassword=16565
 .title Reenter Password
@@ -3475,3 +3534,5 @@ command in command line:
 
  zip -f <archive name>.
 
+.topic SkipBadFile=49009   {John_SW}
+.title Could not open the file

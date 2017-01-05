@@ -600,6 +600,7 @@ MENU dlgMainMenu
     MenuItem 'N~e~t info', 'Ctrl-N', kbCtrlN, cmNetInfo, hcManagerCommands,
 ;$ENDIF
     MenuItem '~Q~uick view', 'Ctrl-Q', kbCtrlQ, cmQuickView, hcManagerCommands,
+    MenuItem '~D~escription View', 'Ctrl-D', kbCtrlD, cmDizView, hcManagerCommands,
     MenuLine
     MenuItem '~S~wap panels', 'Ctrl-U', kbCtrlU, cmSwapPanels, hcManagerCommands,
     MenuItem 'Show/hide ~l~eft panel', 'Ctrl-F1', kbCtrlF1, cmHideLeft, hcManagerCommands,
@@ -2533,7 +2534,6 @@ DIALOG dlgDiskParms, 39, 17, 'Columns Setup'
       ITEM 'Last acc. date
       ITEM 'Last acc. time
       ITEM 'D~e~scription'
-      ITEM '~L~ong descriptions'
     END
     Label 3, 2, 'Show', ofPostProcess, ofPreProcess
     InputLine 32, 3, 37, 4, 3, 0
@@ -3020,9 +3020,8 @@ END
 
 DIALOG dlgEditEnvironment, 57, 20, 'OS Environment Variables Editor'
   HELPCTX hcEnvEditor
-  StaticText 3, 15, 55, 16, 'Warning: the length of environment variable value'
-  StaticText 3, 16, 55, 17, '         is currently limited by 255 symbols'
-  InputLine 9, 17, 55, 18, 255, 0
+; StaticText 3, 15, 55, 17, ^C'Warning: the length of environment variable value'^M^C'is currently limited by 255 symbols'
+  LongInputLine 9, 17, 55, 18, 16383, 0
   Label 2, 17, 'Val~u~e', ofPostProcess, ofPreProcess
   Button 45, 3,55, 5, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
   Button 45, 5,55, 7, '~R~ename', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
@@ -3122,11 +3121,11 @@ DIALOG dlgAppendQuery, 60, 13, 'Select'
     Button 46, 10, 56, 12, 'Cancel', cmCancel, bfNormal, ofPostProcess
 END
 
-DIALOG dlgAdvancedFilter, 36, 15, 'Filter'
+DIALOG dlgAdvancedFilter, 36, 17, 'Filter'
     HELPCTX hcAdvancedFilter
-    Button  2, 12, 12, 14, '~S~how', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 12, 12, 22, 14, '~H~ide', cmNo, bfNormal, ofPostProcess, ofPreProcess
-    Button 22, 12, 33, 14, 'Close', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+    Button  2, 14, 12, 16, '~S~how', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 12, 14, 22, 16, '~H~ide', cmNo, bfNormal, ofPostProcess, ofPreProcess
+    Button 22, 14, 33, 16, 'Close', cmCancel, bfNormal, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgViewerFind, 50, 15, 'Find'
@@ -3616,7 +3615,7 @@ END
 ;DataCompBoy
 
 ;DataCompBoy
-DIALOG dlgSetupColumnsDisk, 70, 22, 'Columns setup - Drive'
+DIALOG dlgSetupColumnsDisk, 70, 21, 'Columns setup - Drive'
 
     StaticText 2, 2, 17, 3, 'Long name'
     StaticText 2, 3, 17, 4, 'Size'
@@ -3627,7 +3626,6 @@ DIALOG dlgSetupColumnsDisk, 70, 22, 'Columns setup - Drive'
     StaticText 2, 8, 17, 9, 'Last acc. date'
     StaticText 2, 9, 17,10, 'Last acc. time'
     StaticText 2,10, 17,11, 'Description'
-    StaticText 2,11, 17,12, 'Full descript.'
     StaticText 2,12, 17,13, 'For name'
     StaticText 2,13, 17,14, 'For extention'
 
@@ -4543,3 +4541,12 @@ DIALOG dlgDBFGoto, 41, 9, 'Go to row/column'
     Button 29, 6, 39, 8, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
 END
 ;{--- finish -------- Eugeny Zvyagintzev ---- 31-07-2002 ----}
+
+DIALOG dlgSkipBadFile, 54, 8, 'No Access'
+    HELPCTX hcSkipBadFile
+    StaticText 2, 2, 52, 3, ^C'Could not open the file:'
+    Button  1, 5, 14, 7, '~R~etry', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 14, 5, 28, 7, '~S~kip', cmNo, ofPostProcess, ofPreProcess
+    Button 28, 5, 42, 7, 'Skip ~A~ll', cmYes, ofPostProcess, ofPreProcess
+    Button 42, 5, 52, 7, '~C~ancel', cmCancel, ofPostProcess, ofPreProcess
+END

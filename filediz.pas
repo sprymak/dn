@@ -55,23 +55,61 @@ uses
   FilesCol, Startup, Advance1, Advance2, Advance, Defines, Objects2,
    Lfn, Dos,
   Messages, DNApp, Commands, Drives, Advance3
+{$IFDEF DualName}
+  , dnini
+{$ENDIF}
   ;
 
+type
+  TDizNameProc = function (const N: string; TextStart: Integer): Boolean;
+  TDizLineProc = procedure;
+  TDizEndProc = function: Boolean;
+var
+  LastDizLine: string;
+
 function GetPossibleDizOwner(N: Integer): String;
-function GetDizOwner(const Path, LastOwner: String; Add: Boolean): String;
+function GetDizPath(const Path: String; PreferedName: String): String;
 function CalcDPath(P: PDiz; Owen: PString): String;
-procedure ReplaceDiz(const DPath, Name: String;
-    ANewName: PString; ANewDescription: PString);
-{When (ANewName= nil) and (ANewDesc= nil) - erasing a string}
-{When (ANewName= nil) and (ANewDesc<>nil) - change a description}
-{When (ANewName<>nil) and (ANewDesc= nil) - change a name}
-{When (ANewName<>nil) and (ANewDesc<>nil) - change a name & desc}
-procedure DeleteDiz(const DPath, Name: String); {DataCompBoy}
-function GetDiz(const DPath: String; var Line: LongInt;
-     const Name: String): String; {DataCompBoy}
+
+procedure ExportDiz(
+{` Внесение нового описания вместо старого, если оно было.
+  Из прежнего контейнера удаляются описания к именами FR^.FlName
+  и к OldName:, если оно задано.}
+  const OldName: PFlName;
+{` Имя, которое было раньше; используется при переименовании `}
+  const NewLongName: string;
+{` Данные о новом файле. Короткое имя может быть недостоверным.
+  Путь (Owner) используется только если не задан TargetPath.
+  Файл с таким длинным именем должен существовать (уже или ещё).
+  FR^.DIZ содержит то, что, собственно, нужно занести.
+`}
+  var NewDiz: PDiz;
+  TargetPath: string
+{` Каталог, где находятся файл и контейнер описаний; если '', то
+  используется FR^.Owner `}
+);
+{`}
+
+procedure DeleteDiz(FR: PFileRec);
+procedure GetDiz(FR: PFileRec);
+ {` Обеспечить наличие DIZ, если это возможно `}
 procedure SetDescription(PF: PFileRec; DizOwner: String);
+function DizFirstLine(DIZ: PDiz): String;
+  {` Вернуть первую строку текста описания.
+   Если DIZ=nil - результат пустой `}
+
+function OpenFileList(const AConatainerPath: string): Boolean;
+procedure ReadFileList(ProcessDizName: TDizNameProc;
+    ProcessDizLine: TDizLineProc; ProcessDizEnd: TDizEndProc);
 
 implementation
+var
+  NewContainerFile: Text;
+  IgnoreDiz: Boolean;
+  LName: TUseLFN;
+  OldConatainerPath: string;
+  OldConatainerFile: Text;
+  NewContainerNotEmpty: Boolean;
 
 function GetPossibleDizOwner(N: Integer): String;
   var
@@ -98,82 +136,33 @@ function GetPossibleDizOwner(N: Integer): String;
     end;
   end { GetPossibleDizOwner };
 
-{-DataCompBoy: Descriptions remain with short names!!!-}
-{-DataCompBoy-}
-function GetDizOwner;
+function GetDizPath(const Path: String; PreferedName: String): String;
   var
-    SR: lSearchRec;
     I: Integer;
-    lAdd: Boolean;
-    DEr: Boolean;
-
-  procedure Prepare;
-    var
-      F: lFile;
-      C: Char;
-      I, J: Word;
+  begin { GetDizPath }
+  I := 0;
+  if PreferedName = '' then
     begin
-    if lAdd then
-      Exit;
-    lAssignFile(F, MakeNormName(Path, SR.FullName));
-    ClrIO;
-    FileMode := $42;
-    lResetFile(F, 1);
-    if IOResult <> 0 then
-      Exit;
-    System.Seek(F.F, FileSize(F.F)-1);
-    BlockRead(F.F, C, 1, J);
-    if  (IOResult = 0) and (C <> #13) and (C <> #10) then
-      begin
-      C := #13;
-      BlockWrite(F.F, C, 1, J);
-      C := #10;
-      BlockWrite(F.F, C, 1, J);
-      end;
-    ClrIO;
-    Close(F.F);
-    ClrIO;
-    end { Prepare };
-
-  begin { GetDizOwner }
-  lAdd := Add;
-  SR.SR.Name := LastOwner;
-  SR.FullName := LastOwner;
-  Add := False;
-  I := 1;
-  if LastOwner = '' then
-    GetDizOwner := ''
-  else
-    begin
-    GetDizOwner := MakeNormName(Path, LastOwner);
-    lFindFirst(MakeNormName(Path, LastOwner),
-       Archive+ReadOnly+Hidden+SysFile, SR);
-    DEr := (DosError <> 0);
-    lFindClose(SR);
-    if not DEr then
-      begin
-      Prepare;
-      Exit;
-      end;
+    PreferedName := GetPossibleDizOwner(1);
     I := 1;
     end;
+  Result := PreferedName;
+  PreferedName := '';
   repeat
-    SR.FullName := GetPossibleDizOwner(I);
-    Inc(I);
-    if SR.FullName = '' then
-      Exit;
-    lFindFirst(MakeNormName(Path, SR.FullName),
-       Archive+ReadOnly+Hidden+SysFile, SR);
-    DEr := (DosError <> 0);
-    lFindClose(SR);
-    if not DEr then
+    if Result = '' then
       begin
-      Prepare;
-      GetDizOwner := MakeNormName(Path, SR.FullName);
-      Exit
+      Result := PreferedName; // файл придётся создавать
+      Exit;
       end;
+    Result := MakeNormName(Path, Result);
+    if PreferedName = '' then
+      PreferedName := Result; // теперь это полный путь
+    if ExistFile(Result) then
+      Exit; // контейнер найден
+    Inc(I);
+    Result := GetPossibleDizOwner(I);
   until False;
-  end { GetDizOwner };
+  end { GetDizPath };
 {-DataCompBoy-}
 
 {-DataCompBoy-}
@@ -214,232 +203,391 @@ procedure ReplaceT(P: PTextReader; var F: lText; Del: Boolean);
 {-DataCompBoy-}
 procedure SetDescription(PF: PFileRec; DizOwner: String);
   var
-    DIZ: String;
+    NewDIZ: LongString;
     K: Byte;
+    S: string;
   begin
   if  (PF = nil) then
     Exit;
   if DizOwner = '' then
     begin
-    DIZ := GetPossibleDizOwner(1);
-    if DIZ = '' then
+    S := GetPossibleDizOwner(1);
+    if S = '' then
       begin
       MessageBox(GetString(dlNoPossibleName), nil, mfError);
       Exit;
       end;
-    DizOwner := DIZ;
-    end
-  else
-    DizOwner := GetName(DizOwner);
-  DizOwner := GetDizOwner(PF^.Owner^, DizOwner, False);
-  if  (PF^.DIZ = nil) or (PF^.DIZ^.DIZ = nil) then
-    DIZ := ''
-  else
-    DIZ := PF^.DIZ^.DIZ^;
-  K := PosChar(#20, DIZ);
-  {JO: проверяем на наличие "дочитанных" кусков в описании}
-  if K > 0 then
-    SetLength(DIZ, K-1);
-  if BigInputBox(GetString(dlEditDesc), GetString(dl_D_escription), DIZ,
+    DizOwner := MakeNormName(PF^.Owner^, S);
+    end;
+  if  (PF^.DIZ <> nil) then
+    NewDIZ := PF^.DIZ^.DIZText;
+  K := PosChar(#13, NewDIZ);
+  {JO: проверяем на наличие дополнительных строк.
+   Если есть - редактируем только первую строку.}
+  if K = 0 then
+    K := 255;
+  S := Copy(NewDiz, 1, K-1);
+  if BigInputBox(GetString(dlEditDesc), GetString(dl_D_escription), S,
        255, hsEditDesc) <> cmOK
   then
     Exit;
-  DelLeft(DIZ);
-  {$IFDEF DualName}
-  if DnIni.DescrByShortNames then
-    ReplaceDiz(DizOwner, PF^.FlName[False], nil, @DIZ)
-  else
-    {$ENDIF}
-    ReplaceDiz(DizOwner, PF^.FlName[True], nil, @DIZ);
+  DelLeft(S);
+  Delete(NewDiz, 1, K-1);
+  Insert(S, NewDiz, 1);
+  if PF^.DIZ = nil then
+    begin
+    New(PF^.DIZ);
+    PF^.DIZ^.Container := nil;
+    end;
+  PF^.DIZ^.DizText := NewDiz;
+  ExportDiz(nil, PF^.FlName[True], PF^.DIZ, PF^.Owner^);
   { if IOResult <> 0 then CantWrite(DIZOwner); }
   if not DnIni.AutoRefreshPanels then
     RereadDirectory(PF^.Owner^);
   end { SetDescription };
 {-DataCompBoy-}
 
-{-DataCompBoy-}
-procedure ReplaceDiz(const DPath, Name: String;
-    ANewName: PString; ANewDescription: PString);
-  {When (ANewName= nil) and (ANewDesc= nil) - erasing a string}
-  {When (ANewName= nil) and (ANewDesc<>nil) - change a description}
-  {When (ANewName<>nil) and (ANewDesc= nil) - change a name}
-  {When (ANewName<>nil) and (ANewDesc<>nil) - change a name & desc}
+  { прочитать непустую строку (хвостовые пробелы отбрасываются)}
+function ReadNextS: Boolean;
   var
-    F1: PTextReader;
-    F2: lText;
-    I, j: Integer;
-    zz: Boolean;
-    S, NewName: String;
-    WasFilesInDIZ: Boolean;
-    FNd: Boolean;
-    K: Byte;
+    l: Integer;
   begin
-  if ANewName = nil then
-    NewName := SquashesName(Name)
-  else
-    NewName := SquashesName(ANewName^);
-  if  (ANewDescription <> nil) then
-    begin
-    K := PosChar(#20, ANewDescription^);
-    if K > 0 then
-      SetLength(ANewDescription^, K-1);
-    end;
-  F1 := New(PTextReader, Init(DPath));
-  if F1 = nil then
-    begin
-    if  (ANewDescription <> nil) and
-        (ANewDescription^ <> '')
-    then
-      begin
-      ClrIO;
-      lAssignText(F2, DPath);
-      lRewriteText(F2);
-      if Abort then
-        begin
-        Close(F2.T);
-        Exit;
-        end;
-      if IOResult <> 0 then
-        { begin CantWrite(DPath); }Exit; { end; }
-      Writeln(F2.T, NewName+' '+ANewDescription^);
-      Close(F2.T);
-      end;
-    Exit;
-    end;
-  lAssignText(F2, GetPath(DPath)+'$DN'+ItoS(DNNumber)+'$.DIZ');
-  lRewriteText(F2);
-  if IOResult <> 0 then
-    begin
-    Dispose(F1, Done);
-    Exit;
-    end;
-  FNd := False;
-  WasFilesInDIZ := False;
+  Result := False;
+  LastDizLine := '';
   repeat
-    S := F1^.GetStr;
-    if S = '' then
-      Continue;
-    if not (S[1] in [' ', #9]) then
-      begin
-      zz := False;
-      for I := 1 to Length(S) do
-        if  (S[I] in [' ', #9]) and not zz
-        then
-          Break
-        else if S[I] = '"' then
-          zz := not zz;
-      if S[I] in [' ', #9] then
-        Dec(I);
-      j := I+1;
-      while (S[j] in [' ', #9]) do
-        Inc(j);
-
-      if UpStrg(Copy(S, 1, I)) = UpStrg(NewName) then
-        {JO: было UpStrg(Name), что приводило к потере}
-        begin {    описаний у исходного файла при копировании}
-        FNd := True; {    файла в собственный каталог с другим именем}
-
-        if  ( (ANewDescription = nil) or (ANewDescription^ = '')) and
-            (ANewName = nil) and
-            (FMSetup.Options and fmoPreserveDesc = 0)
-        then
-          begin {delete multiline description}
-          {piwamoto}
-          repeat
-            S := F1^.GetStr;
-          until (S[1] <> ' ') or F1^.Eof or (IOResult <> 0);
-          if not F1^.Eof then
-            begin
-            WasFilesInDIZ := True;
-            Writeln(F2.T, S);
-            end;
-          Continue;
-          end;
-
-        Delete(S, 1, j-1);
-
-        if ANewDescription <> nil
-        then
-          S := NewName+' '+ANewDescription^
-        else
-          S := NewName+' '+S;
-
-        end;
-      end;
-    WasFilesInDIZ := True;
-    Writeln(F2.T, S);
-  until F1^.Eof or (IOResult <> 0);
-  if not FNd then
-    begin
-    if ANewDescription <> nil
-    then
-      Writeln(F2.T, NewName+' '+ANewDescription^);
-    WasFilesInDIZ := True;
-    end;
-  ReplaceT(F1, F2, (not WasFilesInDIZ) and (FMSetup.Options and
-       fmoKillContainer <> 0));
-  end { ReplaceDiz };
-{-DataCompBoy-}
-
-procedure DeleteDiz(const DPath, Name: String);
-  begin
-  ReplaceDiz(DPath, Name, nil, nil);
+    if Eof(OldConatainerFile) then
+      Exit;
+    Readln(OldConatainerFile, LastDizLine);
+    if IOResult <> 0 then
+      Exit;
+    l := Length(LastDizLine);
+    while (l <> 0) and (LastDizLine[l] = ' ') do
+      Dec(l);
+  until l <> 0;
+  if l <> Length(LastDizLine) then
+    SetLength(LastDizLine, l);
+  Result := True;
   end;
 
-function GetDiz(const DPath: String; var Line: LongInt;
-     const Name: String): String; {DataCompBoy}
-  var
-    F1: PTextReader;
-    S: String;
-    zz: Boolean;
-    i, j: Integer;
+function OpenFileList(const AConatainerPath: string): Boolean;
   begin
-  GetDiz := '';
-  Line := 0;
-  F1 := New(PTextReader, Init(DPath));
-  if F1 = nil then
-    Exit;
-  repeat
-    S := F1^.GetStr;
-    Inc(Line);
-    if S = '' then
-      Continue;
-    if not (S[1] in [' ', #9]) then
-      begin
-      zz := False;
-      for i := 1 to Length(S) do
-        if  (S[i] in [' ', #9]) and not zz
-        then
-          Break
-        else if S[i] = '"' then
-          zz := not zz;
-      if S[i] in [' ', #9] then
-        Dec(i);
-      j := i+1;
-      while (S[j] in [' ', #9]) do
-        Inc(j);
+  OldConatainerPath := AConatainerPath;
+  Assign(OldConatainerFile, OldConatainerPath);
+  Reset(OldConatainerFile);
+  if (IOResult = 0) and ReadNextS then
+    begin
+//      Descriptions := New(PDIZCol, Init($10, $10));
+    Result := True;
+    end
+  else
+    begin
+    System.Close(OldConatainerFile);
+    ClrIO;
+    Result := False;
+    end;
+  end;
 
-      if  (UpStrg(Copy(S, 1, i)) = SquashesName(UpStrg(Name)))
-      then
+procedure ReadFileList(ProcessDizName: TDizNameProc;
+    ProcessDizLine: TDizLineProc; ProcessDizEnd: TDizEndProc);
+  var
+    LS: Byte;
+    N: String;
+    I: CondInt;
+    j: LongInt;
+    NameEnd: LongInt;
+  label
+    ReadNextLine, EndDescr, EndFile;
+
+  begin
+  while True do
+    begin
+    { Обработка нового описания. LastDizLine уже прочитана.}
+    if  (LastDizLine[1] in [' ', #9, '>']) then
+      goto ReadNextLine;
+    { игнорируем остаток
+         предыдущего многострочного описания }
+
+    LS := Length(LastDizLine);
+    if LastDizLine[1] = '"' then
+      {имя в кавычках - ищем вторую кавычку }
+      begin
+      NameEnd := 0;
+      for j := 2 to LS do
+        if LastDizLine[j] = '"' then
+          begin
+          NameEnd := j;
+          Inc(j);
+          Break;
+          end;
+      if NameEnd <= 2 then
+        goto ReadNextLine;
+      if NameEnd = LS then
+        goto ReadNextLine; { пустое описание никого не интересует }
+      N := Copy(LastDizLine, 2, NameEnd-2);
+      end
+    else
+      {имя не в кавычках - ищем пробел или Tab. При этом
+        благодаря DelRight после него что-то должно быть }
+      begin
+      NameEnd := Pos(' ', LastDizLine);
+      j := Pos(#9, LastDizLine);
+      if  (j <> 0) and (j < NameEnd) then
+        NameEnd := j // заведомо не 0
+      else
         begin
-        Delete(S, 1, j-1);
-        while S[1] in [' ', #9] do
-          Delete(S, 1, 1); {DelFC(S);}
-        GetDiz := S;
-        Break;
+        if NameEnd = 0 then
+          NameEnd := j; // может быть и 0
+        if NameEnd = 0 then
+          goto ReadNextLine; { пустое описание никого не интересует }
+        j := NameEnd;
         end;
+      N := Copy(LastDizLine, 1, NameEnd-1);
       end;
-  until F1^.Eof or (IOResult <> 0);
-  Dispose(F1, Done);
+    UpStr(N);
+    while (J <= Length(LastDizLine)) and (LastDizLine[J] = ' ') do
+      inc(J);
+    ProcessDizName(N, J); {LastDizLine доступна}
+
+    {AK155: Дочитываем многострочное описание.
+Признаком дополнительной строки является побел или Tab в начале,
+а также '>' в начале (files.bbs в формате AllFix).}
+    while True do
+      begin
+      if not ReadNextS then
+        Break;
+      if not (LastDizLine[1] in [' ', #9, '>']) then
+        Break;
+      ProcessDizLine;
+      end;
+
+    if ProcessDizEnd then
+      goto EndFile;
+    goto EndDescr;
+
+ReadNextLine:
+    if not ReadNextS then
+      goto EndFile;
+EndDescr:
+    if LastDizLine = '' then
+      goto EndFile;
+    end;
+EndFile:
+  Close(OldConatainerFile);
+  end { ReadFileList };
+
+var
+  GetDizFound: Boolean;
+  PGetDizName1, PGetDizName2: PFlName;
+  GetDizText: LongString;
+
+function GetDizNameProc(const N: string; TextStart: Integer): Boolean;
+  { Для ReadFileList. Сравнение имени и приём первой строки }
+  var
+    I: Integer;
+    F: TUseLFN;
+  begin
+  for F := High(TUseLFN) downto Low(TUseLFN) do
+    begin
+    if (PGetDizName1^[F] = N) then
+      begin
+      GetDizFound := True;
+      GetDizText := Copy(LastDizLine, TextStart, 255);
+      end;
+    end;
+  end;
+
+procedure GetDizLineProc;
+  { Для ReadFileList. Добавление очередной строки прямо в элемент
+    коллекции}
+  const
+    CrLf: array[0..1] of char = #13#10;
+  begin
+  if GetDizFound then
+    GetDizText := GetDizText + CrLf + LastDizLine;
+  end;
+
+function GetDizEndProc: Boolean;
+  { Для ReadFileList. Формирование признака завершения }
+  begin
+  Result := GetDizFound;
+  end;
+
+procedure GetDiz(FR: PFileRec);
+  var
+    F: TUseLFN;
+    Container: String;
+    GetDizFull1: array[1..SizeOf(ShortString)+SizeOf(TShortName)] of Char;
+    GetDizName1: TFlName absolute GetDizFull1;
+     { разместить Dummy после TFlName, как в TFileRec, в данном случае
+     нельзя, так как SmartLink попросту выбросит эту переменную, к которой
+     нет обращений. А в таком варианте (с absolute) память резервируется.}
+  begin
+  if FR^.DIZ <> nil then
+    Exit;
+  Container := GetDizPath(FR^.Owner^, '');
+  if Container = '' then
+    exit;
+  if not OpenFileList(Container) then
+    Exit;
+  for F := High(TUseLFN) downto Low(TUseLFN) do
+    CopyShortString(UpStrg(FR^.FlName[F]), GetDizName1[F]);
+  PGetDizName1 := @GetDizName1;
+  ReadFileList(GetDizNameProc, GetDizLineProc, GetDizEndProc);
+  GetDizFound := False;
+  if GetDizText <> '' then
+    begin
+    New(FR^.DIZ);
+    FR^.DIZ^.Container := NewStr(Container);
+    FR^.DIZ^.DIZText := GetDizText;
+    GetDizText := '';
+    end;
   end { GetDiz };
-{-DataCompBoy-}
+
+{ Обновление описания файла в конейнере }
+
+procedure SaveDizLineProc;
+  { Для ReadFileList }
+  begin
+  if not IgnoreDiz then
+    begin
+    Writeln(NewContainerFile, LastDizLine);
+    NewContainerNotEmpty := True;
+    end;
+  end;
+
+function SaveDizNameProc(const N: string; TextStart: Integer): Boolean;
+  { Для ReadFileList. Сравнение имени; для данного имени пропуск описания,
+    для прочих - вывод первой строки }
+  var
+    I: Integer;
+    F: TUseLFN;
+  begin
+  for F := Low(TUseLFN) to High(TUseLFN) do
+    begin
+    if (PGetDizName1^[F] = N) or
+       ((PGetDizName2 <> nil) and (PGetDizName2^[F] = N))
+    then
+      begin
+      if not GetDizFound then
+        LName := F;
+      GetDizFound := True;
+      IgnoreDiz := True;
+      end;
+    end;
+  SaveDizLineProc;
+  end;
+
+function SaveDizEndProc: Boolean;
+  { Для ReadFileList. Продолжать копирование }
+  begin
+  Result := False;
+  IgnoreDiz := False;
+  end;
+
+procedure ExportDiz(
+  const OldName: PFlName;
+  const NewLongName: string;
+  var NewDiz: PDiz;
+  TargetPath: String
+  );
+{ Если в прежнем контейнере описание нашлось, то в новом оно
+будет под таким же (длинным или коротким) именем }
+  var
+    F: TUseLFN;
+    ContainerFullName: String;
+    OldContainerAttr: Word;
+    GetDizFull1: array[1..SizeOf(ShortString)+SizeOf(TShortName)] of Char;
+    GetDizName1: TFlName absolute GetDizFull1;
+
+  begin
+  if NewDiz = nil then
+    Exit;
+  PGetDizName1 := @GetDizName1;
+  PGetDizName2 := OldName;
+  if PGetDizName2 <> nil then
+    for F := Low(TUseLFN) to High(TUseLFN) do
+      UpStr(PGetDizName2^[F]);
+  if TargetPath[Length(TargetPath)] <> '\' then
+    TargetPath := TargetPath + '\';
+  ContainerFullName := '';
+  if NewDiz^.Container <> nil then
+    ContainerFullName := GetName(NewDiz^.Container^);
+  { сейчас ContainerFullName - только имя (или пусто) }
+  ContainerFullName := GetDizPath(TargetPath, ContainerFullName);
+  { А теперь - полный путь }
+  Assign(NewContainerFile, TargetPath+'$DN'+ItoS(DNNumber)+'$.DIZ');
+  Rewrite(NewContainerFile);
+  if IOResult <> 0 then
+    begin
+    Exit; //! как-то не очень... Ошибку бы сообщить. И далее аналогично.
+    end;
+  LName := True; // по умолчанию - по длинным именам
+  CopyShortString(UpStrg(NewLongName), GetDizName1[True]);
+{$IFDEF DualName}
+  if DescrByShortNames then
+    begin
+    LName := False;
+    GetDizName1[False] :=
+      GetName(lfGetShortFileName(TargetPath + NewLongName));
+    end;
+    UpStr(GetDizName1[False]);
+{$ENDIF}
+  NewContainerNotEmpty := False;
+  if OpenFileList(ContainerFullName) then
+    begin
+    GetFAttr(OldConatainerFile, OldContainerAttr);
+    ReadFileList(SaveDizNameProc, SaveDizLineProc, SaveDizEndProc);
+    EraseFile(ContainerFullName);
+    end
+  else
+    OldContainerAttr := Hidden + Archive;
+  if NewDiz^.DizText <> '' then
+    begin
+    { Длинное имя восстановить, какое есть,
+     короткое имя - на нижний регистр }
+    CopyShortString(NewLongName, GetDizName1[True]);
+    {$IFDEF DualName}
+    LowStr(GetDizName1[False]);
+    {$ENDIF}
+    Writeln(NewContainerFile, SquashesName(GetDizName1[LName]) + ' ',
+      NewDiz^.DizText);
+    NewContainerNotEmpty := True;
+    end;
+  Close(NewContainerFile);
+  ClrIO;
+  if NewContainerNotEmpty or (FMSetup.Options and fmoKillContainer = 0)
+  then
+    begin
+    Rename(NewContainerFile, ContainerFullName);
+    SetFAttr(NewContainerFile, OldContainerAttr);
+    end
+  else
+    Erase(NewContainerFile);
+  ClrIO;
+  end { ExportDiz };
+
+procedure DeleteDiz(FR: PFileRec);
+  begin
+  if (FR <> nil) {Бывает для подкаталога при F6 на каталоге}
+    and (FR^.DIZ <> nil)
+    and (FR^.DIZ^.DizText <> '')
+  then
+    begin
+    FR^.DIZ^.DizText := '';
+    ExportDiz(@FR^.FlName[True], '', FR^.DIZ, FR^.Owner^);
+    end;
+  end;
+
 function CalcDPath(P: PDiz; Owen: PString): String;
   var
     I: Integer;
     DPath: String;
     SR: lSearchRec;
   begin
-  if  (P = nil) or (P^.Owner = nil) then
+  if  (P = nil) or (P^.Container = nil) then
+    {! Интересно, а может ли быть P^.Container=nil?
+     Такое бывает в arvidavt и arvidtdr, но они, мне кажется,
+     не могут обратиться к CalcDPath, так что это условие лишнее }
     begin
     for I := 1 to 128 do
       begin
@@ -447,17 +595,28 @@ function CalcDPath(P: PDiz; Owen: PString): String;
       if DPath = '' then
         Exit;
       DPath := MakeNormName(CnvString(Owen), DPath);
-      lFindFirst(DPath, Archive+ReadOnly+Hidden, SR);
-      lFindClose(SR);
-      if DosError = 0 then
+      if ExistFile(DPath) then
         Break;
       end;
     end
   else
-    DPath := P^.Owner^;
+    DPath := P^.Container^;
   CalcDPath := DPath;
   {lFindClose(SR);}
   end { CalcDPath };
 {-DataCompBoy-}
+
+function DizFirstLine(DIZ: PDiz): String;
+  var
+    l: Integer;
+  begin
+  Result := '';
+  if Diz = nil then
+    exit;
+  Result := DIZ^.DIZText;
+  l := PosChar(#13, Result);
+  if l <> 0 then
+    SetLength(Result, l-1);
+  end;
 
 end.

@@ -1256,7 +1256,6 @@ DIALOG dlgDiskParms, 41, 17, 'Установки колонок'
       ITEM 'Дата ocт.доступу'
       ITEM 'Час ocт.доступу'
       ITEM '~О~пис'
-      ITEM '~П~овний опис'
     END
     Label 3, 2, 'Показувати', ofPostProcess, ofPreProcess
     InputLine 32, 3, 37, 4, 3, 0
@@ -2526,6 +2525,7 @@ MENU dlgMainMenu
     MenuItem 'Iн~ф~ормацiя про мережу', 'Ctrl-N', kbCtrlN, cmNetInfo, hcManagerCommands,
 ;$ENDIF
     MenuItem 'Шв~и~дкий перегляд', 'Ctrl-Q', kbCtrlQ, cmQuickView, hcManagerCommands,
+    MenuItem 'Описи', 'Ctrl-D', kbCtrlD, cmDizView, hcManagerCommands,
     MenuLine
     MenuItem 'Помiняти панелi ~м~iсцями', 'Ctrl-U', kbCtrlU, cmSwapPanels, hcManagerCommands,
     MenuItem 'Показати/сховати ~Л~iву панель', 'Ctrl-F1', kbCtrlF1, cmHideLeft, hcManagerCommands,
@@ -2779,9 +2779,8 @@ END
 
 DIALOG dlgEditEnvironment, 57, 20, 'Редактор змiнних оточення ОС'
   HELPCTX hcEnvEditor
-  StaticText 3, 15, 55, 16, 'Попередження: довжина значення змiнної оточення'
-  StaticText 3, 16, 55, 17, '    на цей момент обмежена 255 символами'
-  InputLine 12, 17, 55, 18, 255, 0
+; StaticText 3, 15, 55, 17, ^C'Попередження: довжина значення змiнної оточення'^M^C'на цей момент обмежена 255 символами'
+  LongInputLine 12, 17, 55, 18, 16383, 0
   Label 2, 17, '~З~начення', ofPostProcess, ofPreProcess
   Button 43, 3,55, 5, O~К~, cmOK, bfDefault, ofPostProcess, ofPreProcess
   Button 43, 5,55, 7, '~Н~азвати', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
@@ -2935,11 +2934,11 @@ DIALOG dlgAppendQuery, 60, 13, 'Вибiр'
     Button 46, 10, 58, 12, 'Вiдмiна', cmCancel, bfNormal, ofPostProcess
 END
 
-DIALOG dlgAdvancedFilter, 36, 15, 'Фiльтр'
+DIALOG dlgAdvancedFilter, 36, 17, 'Фiльтр'
     HELPCTX hcAdvancedFilter
-    Button  2, 12, 14, 14, '~Д~одати', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 14, 12, 23, 14, '~К~рiм', cmNo, bfNormal, ofPostProcess, ofPreProcess
-    Button 23, 12, 34, 14, 'Закрити', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+    Button  2, 14, 14, 16, '~Д~одати', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 14, 14, 23, 16, '~К~рiм', cmNo, bfNormal, ofPostProcess, ofPreProcess
+    Button 23, 14, 34, 16, 'Закрити', cmCancel, bfNormal, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgViewerFind, 50, 15, 'Пошук'
@@ -3429,7 +3428,7 @@ END
 ;DataCompBoy
 
 ;DataCompBoy
-DIALOG dlgSetupColumnsDisk, 70, 22, 'Установки колонок - Диск'
+DIALOG dlgSetupColumnsDisk, 70, 21, 'Установки колонок - Диск'
 
     StaticText 2, 2, 17, 3, 'Довге iм''я'
     StaticText 2, 3, 17, 4, 'Розмip'
@@ -3440,7 +3439,6 @@ DIALOG dlgSetupColumnsDisk, 70, 22, 'Установки колонок - Диск'
     StaticText 2, 8, 18, 9, 'Дата ocт.доступу'
     StaticText 2, 9, 17,10, 'Час ocт.доступу'
     StaticText 2,10, 17,11, 'Опис'
-    StaticText 2,11, 17,12, 'Повний опис'
     StaticText 2,12, 17,13, 'Пiд iм''я'
     StaticText 2,13, 17,14, 'Пiд pозшиpення'
 
@@ -4356,3 +4354,12 @@ DIALOG dlgDBFGoto, 41, 9, 'Перейти до рядка/поля'
     Button 29, 6, 39, 8, 'Допомо~г~а', cmHelp, ofPostProcess, ofPreProcess
 END
 ;{--- finish -------- Eugeny Zvyagintzev ---- 31-07-2002 ----}
+
+DIALOG dlgSkipBadFile, 54, 8, 'Нема доступу'
+    HELPCTX hcSkipBadFile
+    StaticText 2, 2, 52, 3, ^C'Неможливо вiдкрити файл:'
+    Button  1, 5, 11, 7, 'Пов~т~ор', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 11, 5, 25, 7, '~П~ропустити', cmNo, ofPostProcess, ofPreProcess
+    Button 25, 5, 43, 7, 'Пропустити ~В~сi', cmYes, ofPostProcess, ofPreProcess
+    Button 43, 5, 53, 7, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
+END

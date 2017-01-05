@@ -58,7 +58,7 @@ uses
   Advance,
   Advance1, Advance2, Advance3, highlite, U_KeyMap, Microed, xTime,
   Collect, Macro, Advance6
-  , XCode
+  , FilesCol, XCode
   ;
 
 const
@@ -150,17 +150,33 @@ type
     procedure SeekEof;
     procedure SeekBof;
     function BreakOnStreamReadError: Boolean;
+    procedure ChangeFile(FR: PFileRec); virtual;
   private
     procedure AdjustBuf;
     end;
 
   PHFileViewer = ^THFileViewer;
+    {`2 Просмотр, который вставляется не в окно, а в панель менеджера`}
   THFileViewer = object(TFileViewer)
     procedure ChangeBounds(var Bounds: TRect); virtual;
     function GetPalette: PPalette; virtual;
     end;
 
+  PQFileViewer = ^TQFileViewer;
+    {`2 Quick View`}
+  TQFileViewer = object(THFileViewer)
+    procedure ChangeFile(FR: PFileRec); virtual;
+    end;
+
+  PDFileViewer = ^TDFileViewer;
+    {`2 Description View`}
+  TDFileViewer = object(THFileViewer)
+    procedure HandleEvent(var Event: TEvent); virtual;
+    procedure ChangeFile(FR: PFileRec); virtual;
+    end;
+
   PNFileViewer = ^TNFileViewer;
+    {`IMHO просмотр memo в dbf`}
   TNFileViewer = object(TFileViewer)
     function GetPalette: PPalette; virtual;
     end;
@@ -237,8 +253,9 @@ uses
   {$IFDEF DisAsm}Decoder, {$ENDIF} {piwamoto}
   {$IFDEF RegExp}RegExp, {$ENDIF} {Cat}
   ErrMess, {AK155}
-  DiskInfo,
+  DiskInfo, Files,
   Gauge, DNStdDlg, Histries, Drives, DNUtil, DnIni
+  , FileDiz
   ;
 
 function MaxAvail: LongInt;
@@ -935,6 +952,70 @@ procedure TViewScroll.Draw;
   B1[0] := 30+LongInt(C2*256);
   B1[Size.Y-1] := 31+LongInt(C2*256);
   WriteBuf(0, 0, 1, Size.Y, B);
+  end;
+
+{ TQFileViewer }
+
+procedure TQFileViewer.ChangeFile(FR: PFileRec);
+  var
+    S: String;
+  begin
+  S := MakeNormName(FR^.Owner^, FR^.FlName[uLfn]);
+  if UpStrg(lFExpand(S)) <> UpStrg(lFExpand(FileName)) then
+    begin
+    ReadFile(S, S, True);
+    DrawView;
+    end;
+  end;
+
+{ TDFileViewer }
+
+procedure TDFileViewer.ChangeFile(FR: PFileRec);
+  var
+    S: LongString;
+    i, j: Longint;
+    L: Longint;
+  const
+    CrLf: array[1..2] of Char = #13#10;
+  begin
+  S := MakeNormName(FR^.Owner^, FR^.FlName[uLfn]);
+  if UpStrg(lFExpand(S)) <> UpStrg(lFExpand(FileName)) then
+    begin
+    if Fl = nil then
+      begin
+      Fl := New(PMemoryStream, Init(1, 1024));
+      Wrap := wmWords;
+      end;
+    with Fl^ do
+      begin
+      Seek(0);
+      Truncate;
+      end;
+    GetDiz(FR);
+    if (FR^.Diz <> nil) and (FR^.Diz^.DizText <> '') then
+      begin
+      S := FR^.Diz^.DizText;
+      Fl^.Write(S[1], Length(S));
+      end;
+    ReadFile('', '', False);
+//    MakeLines;
+    DrawView;
+    end;
+  end;
+
+procedure TDFileViewer.HandleEvent(var Event: TEvent);
+  begin
+  if (Event.What = evCommand) and (Event.Command = cmFileEdit) then
+    begin
+   {! AK155 10.01.05 Команда перехода в редактор в панели просмотра
+    описаний - штука, наверно, осмысленная. Надо бы таки
+    действительно вызвать редактор в этом же окне, подсунув ему
+    этот же MemoryStream. Но сейчас нет времени это делать,
+    поэтому пока Alt-E будет просто игнорироваться. }
+    ClearEvent(Event);
+    end
+  else
+    inherited HandleEvent(Event);
   end;
 
 { THFileViewer }
@@ -1733,6 +1814,10 @@ function TFileViewer.ReadFile;
     end;
   end { TFileViewer.ReadFile };
 
+procedure TFileViewer.ChangeFile(FR: PFileRec);
+  begin
+  end;
+
 procedure TFileViewer.SetState;
   begin
   inherited SetState(AState, Enable);
@@ -2307,6 +2392,7 @@ procedure TFileViewer.HandleEvent;
 
   var
     ScrollerPos: LongInt;
+
   begin { TFileViewer.HandleEvent }
 
   try
@@ -2505,18 +2591,10 @@ DoSave:
             else
               PString(Event.InfoPtr)^:= GetString(dlViewFile);
           cmLoadViewFile:
-            if QuickView and
-                (UpStrg(lFExpand(PString(Event.InfoPtr)^))
-                <>
-                UpStrg(lFExpand(FileName))
-                )
-            then
-              begin
-              ReadFile(PString(Event.InfoPtr)^,
-                PString(Event.InfoPtr)^, True);
-              DrawView;
-              CE;
-              end;
+            begin
+            ChangeFile(Event.InfoPtr);
+            CE;
+            end;
           cmClose, cmQuit, cmKillUsed:
             if WriteModify then
               CE;

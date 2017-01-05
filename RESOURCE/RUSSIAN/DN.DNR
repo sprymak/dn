@@ -254,6 +254,7 @@ END
 
 DIALOG dlgCountrySetup, 54, 20, 'Информация о стране'
     HELPCTX hcCountrySetup
+    Button 25, 6, 36, 8, '~С~истема', cmYes
     RadioButtons 2, 3, 22, 6
       ITEM '~М~есяц-день-Год'
       ITEM '~Д~ень-Месяц-Год'
@@ -294,7 +295,6 @@ DIALOG dlgCountrySetup, 54, 20, 'Информация о стране'
     InputLine 2, 15, 50, 16, 255, 0
     History 50, 15, hsCodeTables
     Label 1, 14, 'До~б~авочные кодировки'
-    Button 25, 6, 36, 8, '~С~истема', cmYes
     Button 7, 17, 17, 19, 'O~K~', cmOK, bfDefault
     Button 22, 17, 32, 19, 'Отмена', cmCancel
     Button 37, 17, 47, 19, 'Помо~щ~ь', cmHelp
@@ -1257,7 +1257,6 @@ DIALOG dlgDiskParms, 41, 17, 'Установки колонок'
       ITEM 'Дата пoc.доступа'
       ITEM 'Время пoc.дост.'
       ITEM '~О~писание'
-      ITEM '~П~олное описание'
     END
     Label 3, 2, 'Показывать', ofPostProcess, ofPreProcess
     InputLine 32, 3, 37, 4, 3, 0
@@ -2527,6 +2526,7 @@ MENU dlgMainMenu
     MenuItem 'Ин~ф~ормация о сети', 'Ctrl-N', kbCtrlN, cmNetInfo, hcManagerCommands,
 ;$ENDIF
     MenuItem 'Б~ы~стрый просмотр', 'Ctrl-Q', kbCtrlQ, cmQuickView, hcManagerCommands,
+    MenuItem 'Описания', 'Ctrl-D', kbCtrlD, cmDizView, hcManagerCommands,
     MenuLine
     MenuItem 'Поменять панели ~м~естами', 'Ctrl-U', kbCtrlU, cmSwapPanels, hcManagerCommands,
     MenuItem 'Показать/скрыть ~Л~евую панель', 'Ctrl-F1', kbCtrlF1, cmHideLeft, hcManagerCommands,
@@ -2779,9 +2779,8 @@ END
 
 DIALOG dlgEditEnvironment, 57, 20, 'Редактор переменных окружения ОС'
   HELPCTX hcEnvEditor
-  StaticText 3, 15, 55, 16, 'Предупреждение: длина значения переменной окружения'
-  StaticText 3, 16, 55, 17, '    в настоящий момент ограничена 255 символами'
-  InputLine 12, 17, 55, 18, 255, 0
+; StaticText 3, 15, 55, 17, ^C'Предупреждение: длина значения переменной окружения'^M^C'в настоящий момент ограничена 255 символами'
+  LongInputLine 12, 17, 55, 18, 16383, 0
   Label 2, 17, '~З~начение', ofPostProcess, ofPreProcess
   Button 43, 3,55, 5, O~К~, cmOK, bfDefault, ofPostProcess, ofPreProcess
   Button 43, 5,55, 7, '~Н~азвать', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
@@ -2937,11 +2936,11 @@ DIALOG dlgAppendQuery, 60, 13, 'Выбор'
     Button 46, 10, 56, 12, 'Отмена', cmCancel, bfNormal, ofPostProcess
 END
 
-DIALOG dlgAdvancedFilter, 36, 15, 'Фильтр'
+DIALOG dlgAdvancedFilter, 36, 17, 'Фильтр'
     HELPCTX hcAdvancedFilter
-    Button  2, 12, 14, 14, '~Д~обавить', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 14, 12, 23, 14, '~К~роме', cmNo, bfNormal, ofPostProcess, ofPreProcess
-    Button 23, 12, 34, 14, 'Закрыть', cmCancel, bfNormal, ofPostProcess, ofPreProcess
+    Button  2, 14, 14, 16, '~Д~обавить', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 14, 14, 23, 16, '~К~роме', cmNo, bfNormal, ofPostProcess, ofPreProcess
+    Button 23, 14, 34, 16, 'Закрыть', cmCancel, bfNormal, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgViewerFind, 50, 15, 'Поиск'
@@ -3432,7 +3431,7 @@ END
 ;DataCompBoy
 
 ;DataCompBoy
-DIALOG dlgSetupColumnsDisk, 70, 22, 'Установки колонок - Диск'
+DIALOG dlgSetupColumnsDisk, 70, 21, 'Установки колонок - Диск'
 
     StaticText 2, 2, 17, 3, 'Длинное имя'
     StaticText 2, 3, 17, 4, 'Размеp'
@@ -3443,7 +3442,6 @@ DIALOG dlgSetupColumnsDisk, 70, 22, 'Установки колонок - Диск'
     StaticText 2, 8, 18, 9, 'Дата пoc.доступа'
     StaticText 2, 9, 17,10, 'Время пoc.дост.'
     StaticText 2,10, 17,11, 'Описание'
-    StaticText 2,11, 17,12, 'Полное описание'
     StaticText 2,12, 17,13, 'Под имя'
     StaticText 2,13, 17,14, 'Под pасшиpение'
 
@@ -4359,3 +4357,12 @@ DIALOG dlgDBFGoto, 41, 9, 'Переход к строке/столбцу'
     Button 29, 6, 39, 8, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
 END
 ;{--- finish -------- Eugeny Zvyagintzev ---- 31-07-2002 ----}
+
+DIALOG dlgSkipBadFile, 54, 8, 'Нет доступа'
+    HELPCTX hcSkipBadFile
+    StaticText 2, 2, 52, 3, ^C'Невозможно открыть файл:'
+    Button  1, 5, 11, 7, 'Пов~т~ор', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 11, 5, 25, 7, '~П~ропустить', cmNo, ofPostProcess, ofPreProcess
+    Button 25, 5, 43, 7, 'Пропустить ~В~се', cmYes, ofPostProcess, ofPreProcess
+    Button 43, 5, 53, 7, '~О~тмена', cmCancel, ofPostProcess, ofPreProcess
+END

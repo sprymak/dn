@@ -309,7 +309,7 @@ type
     ReplaceDiz: procedure (const DPath, Name: String; ANewName: PString;
        ANewDescription: PString);
     DeleteDiz: procedure (const DPath, Name: String);
-    GetDiz: function (const DPath: String; var Line: LongInt;
+    GetDiz: function (const DPath: String;
        const Name: String): String;
     SetDescription: procedure (PF: PFileRec; DizOwner: String);
 
@@ -677,7 +677,7 @@ type
   PTInputLine = ^TTInputLine;
   TTInputLine = packed record
     VMT: PInputLineVMT;
-    Init: function (var Bounds: TRect; AMaxLen: AInt; VMT, Obj: Pointer)
+    Init: function (var Bounds: TRect; AMaxLen: LongInt; VMT, Obj: Pointer)
     : Pointer;
     Load: function (var S: TStream; VMT, Obj: Pointer): Pointer;
     SelectAll: procedure (Enable: Boolean; Obj: Pointer);

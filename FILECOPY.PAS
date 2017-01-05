@@ -315,8 +315,8 @@ var
 type
   pLine = ^TLine;
   TLine = object(TObject)
-    Owner: Pointer;
-    OldName: Pointer;
+    Owner: PFileRec;
+    OldName: PString;
     NewName: PString;
     Size: TSize;
     Pos: LongInt;
@@ -503,6 +503,7 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
     WriteStream: lFile;
     ReadPos: TSize;
     CopyCancel: Boolean;
+    SkipAllBad: Boolean;
     B: Pointer;
     BSize: Word;
     TRead, TWrite,
@@ -575,52 +576,6 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
   var
     Wrote: TSize;
     FreeDisk: TSize;
-
-    {$IFNDEF OS2}
-  procedure ImportDIZ(Name: Str12; NewName: String; P: PDiz;
-       Owen: PString);
-    {$ELSE}
-  procedure ImportDIZ(Name, NewName: String; P: PDiz; Owen: PString);
-    {$ENDIF}
-    var
-      DizPath: String;
-      S: String;
-      I: Integer;
-      NewDescription: PString;
-    begin
-    DizPath := CalcDPath(P, Owen);
-    S := DizPath;
-    I := Length(S);
-    while (I > 0) and (S[I] <> '\') do
-      Dec(I);
-    if I > 0 then
-      Delete(S, 1, I);
-    NewDescription := nil;
-    if  (P <> nil) then
-      NewDescription := P^.DIZ;
-    {$IFNDEF OS2}
-    if DescrByShortNames then
-      NewName := LowStrg(GetName(lfGetShortFileName(NewName)))
-    else
-      {$ENDIF}
-      NewName := LowStrg(GetName(NewName)); {JO, AK155}
-    {AK155: JO тут наставил условных трансляций, чтобы под виндой работа
-с DIZ шла безусловно по коротким именам. Это неправильно. Я переделал
-на работу безусловно по длинным именам. Это столь же неправильно, но
-программа получается намного проще. А по-хорошему надо бы работать с
-обоими именами (если они есть). Это в to do list}
-
-    ReplaceDiz(GetDizOwner(CopyDir, S, False), Name,
-      @NewName, NewDescription);
-    if  (CopyOptions and cpoMove <> 0) and
-        (FMSetup.Options and fmoPreserveDesc = 0)
-    then
-      {$IFNDEF OS2}
-      DeleteDiz(DizPath, MakeFileName(Name));
-      {$ELSE}
-      DeleteDiz(DizPath, Name); {???}
-    {$ENDIF}
-    end { ImportDIZ };
 
   procedure RemoveFromTemp(P: PFileRec);
     var
@@ -893,7 +848,7 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
 
     var
       NFBigger: Boolean; {John_SW}
-
+      WorkS: String;
     begin { MaxWrite }
     SkipRequested := False;
     I := -1;
@@ -917,11 +872,14 @@ procedure FilesCopy(Files: PCollection; Owner: PView;
             SetLength(SSS, Length(SSS)-1);
           ClrIO;
           if CopyOptions and cpoMove <> 0 then
+            begin
+            DeleteDiz(P^.Owner);
             lRmDir(SSS);
+            end;
           if  (P^.Owner <> nil) then
             begin
             if IOResult = 0 then
-              PFileRec(P^.Owner)^.Attr := PFileRec(P^.Owner)^.Attr or
+              P^.Owner^.Attr := P^.Owner^.Attr or
                  $8000;
             if  (Owner <> nil) then
               Message(Owner, evCommand, cmCopyUnselect, P^.Owner);
@@ -1394,17 +1352,15 @@ lbStartWrite:
           end {case};
           if  (P^.Owner <> nil) then
             begin
-            PFileRec(P^.Owner)^.Attr := PFileRec(P^.Owner)^.Attr or $8000;
+            P^.Owner^.Attr := P^.Owner^.Attr or $8000;
             if  (Owner <> nil) then
               Message(Owner, evCommand, cmCopyUnselect, P^.Owner);
-            if  (PFileRec(P^.Owner)^.DIZ <> nil) and
+            if  (P^.Owner^.DIZ <> nil) and
                 (CopyOptions and cpoDesc <> 0)
             then
               begin
               Info^.Write(6, GetString(dlExportingDIZ));
-              ImportDIZ(PFileRec(P^.Owner)^.FlName[CondLfn],
-                P^.NewName^,
-                PFileRec(P^.Owner)^.DIZ, PFileRec(P^.Owner)^.Owner);
+              ExportDiz(nil, GetName(P^.NewName^), P^.Owner^.DIZ, CopyDir);
               end;
             end;
           {JO EAs - files}
@@ -1420,8 +1376,11 @@ lbStartWrite:
           if CopyOptions and cpoFromTemp <> 0 then
             RemoveFromTemp(P^.Owner);
           if CopyOptions and cpoMove <> 0 then
+            {Есть подозрение, что сюда попасть невозможно.
+            Во всяком случае, по F6 на файле не попадаем. }
             begin
             Info^.Write(6, GetString(dlDeletingSource));
+            DeleteDiz(P^.Owner);
             EraseFile(CnvString(P^.OldName));
             end;
           end;
@@ -1474,6 +1433,9 @@ lbStartWrite:
       PS: array[1..2] of Pointer;
       DEr: Boolean;
       Drive: Byte;
+      D: PDialog; {John_SW}{process locked files}
+      R: TRect;   {John_SW}
+      S: String;  {John_SW}
 
     procedure RenameFile;
       var
@@ -1542,17 +1504,22 @@ lbStartWrite:
         then
           begin
           Info^.Write(6, GetString(dlExportingDIZ));
-          ImportDIZ(Own^.FlName[CondLfn],
-            {$IFDEF OS2}GetName {$ENDIF}(NName),
-            Own^.DIZ, Own^.Owner);
+          ExportDiz(@Own^.FlName, GetName(NName), Own^.DIZ, CopyDir);
+          if  (CopyOptions and cpoMove <> 0) and
+              (FMSetup.Options and fmoPreserveDesc = 0)
+          then
+            DeleteDiz(Own);
           end;
         {сюда никаких копирований EA вставлять не надо}
 
         {$IFDEF DualName}
         Own^.FlName[False] := GetName(lfGetShortFileName(NName));
         {$ENDIF}
-        CopyShortString(GetName(NName), Own^.FlName[True]);
+{!RLN}        CopyShortString(GetName(NName), Own^.FlName[True]);
         //         ReplaceLongName(Own, {$IFDEF OS2}GetName{$ENDIF}(NName));
+   { Это на случай если стоим как раз на этом имени.
+   Чтобы при перечитывании каталога курсор ушёл на новое имя,
+   а не остался на старой позиции }
         if  (Owner <> nil) then
           Message(Owner, evCommand, cmCopyUnselect, Own);
         ToWrite := ToWrite+ln;
@@ -1665,9 +1632,20 @@ lbStartWrite:
       if CopyCancel then
         Exit;
       ForceDispatch;
-      MessFileNotOpen(FName, RC);
-      CopyCancel := True;
-      Exit;
+{--- start -------- Eugeny Zvyagintzev and Max Piwamoto 04-02-2005 ----}
+      If SkipAllBad Then Exit;
+      D := PDialog(LoadResource(dlgSkipBadFile));
+      D^.Options := D^.Options or ofCentered;
+      S:=Cut(FName,52);
+      R.A.X:=1; R.A.Y:=3; R.B.X:=53; R.B.Y:=4;
+      D^.Insert(New(PStaticText, Init(R,^C+S)));
+      Case Desktop^.ExecView(D) Of
+       cmOK: Goto 1;
+       cmYes: begin SkipAllBad := True; Exit; end;
+       cmNo: Exit;
+       cmCancel: begin CopyCancel := True; Exit; end;
+      End;
+{--- finish ------- Eugeny Zvyagintzev and Max Piwamoto 04-02-2005 ----}
       end;
     Rd := 0;
     EOF := eoStart or eoCheck*Byte(CopyMode >= cpmAppend);
@@ -1940,7 +1918,12 @@ FileRead:
     procedure DoCopyDirectory(P: PDirName);
       begin
       if P^.CopyIt then
-        CopyDirectory(P^.DOld, P^.DNew, P^.Own);
+        CopyDirectory(P^.DOld, P^.DNew, P^.Own)
+      else
+{!RLN}        CopyShortString(GetName(P^.DOld), P^.Own^.FlName[True]);
+   { Это на случай если стоим как раз на этом каталоге. Чтобы
+   при перечитывании каталога курсор ушёл на новое имя,
+   а не остался на старой позиции }
       end;
 
     begin
@@ -1978,14 +1961,18 @@ FileRead:
       I: Integer;
       S: String;
       FrPos: Integer;
+      KillDescrOf: PFlName;
       {$IFDEF OS2}
       LogName, NewDir, NewPrName, NewExt: String;
       I_LN: Byte;
       {$ENDIF}
 
-    procedure CopyI(Dest, Source: String;
-        Name: String;
-        o: PFileRec; CopyIt: Boolean;
+    procedure CopyI(Dest{Целевой каталог},
+        Source{ полное старое имя }: String;
+        Name: String;  {Новое имя}
+        o: PFileRec; {тут, вроде, то же самое, что и в Source,
+          но бывает o=nil}
+        CopyIt: Boolean;
         Attr: Byte);
       label 1, 2;
       var
@@ -1997,7 +1984,6 @@ FileRead:
         I_LN: Byte;
         {$ENDIF}
       begin
-
       Info^.Write(5, GetString(dlFCCheckingDirs));
 
       if  (not CopyPrn) and (Dest <> '') and (Dest[Length(Dest)] <> '\')
@@ -2025,7 +2011,7 @@ FileRead:
       if  (o <> nil) and (CopyOptions and cpoMove <> 0)
            and (GetPath(SSS) = S)
       then
-        begin
+        begin { Переименование каталога }
         CopyIt := False;
         o^.Attr := o^.Attr or $C000;
         Info^.Write(5, '');
@@ -2067,19 +2053,40 @@ FileRead:
         Info^.Write(6, '');
         Info^.Write(5, GetString(dlFCCheckingDirs));
 
+(*
+{! Так копировать LFN нельзя! Длины могут отличаться. Надо ли вообще
+ копировать новое длинное имя - надо разобраться. Похоже, что не надо.
+ Это ведь запись исходного каталога, а не приёмного. А короткое имя
+ вообще надо не копировать, а запрашивать, оно ведь может оказаться
+ совсем другим. Так что пока что прибиваю пересылку имён. Вроде,
+ ни на что не повлияло.
+   Проанализировал подробнее. Это переименование нафиг не нужно.
+ Данная файловая запись используется тут только для того, чтобы передать
+ её в cmCopyUnselect, а там она служит только для сравнения имён. Кстати,
+ абсурд редкий. Просматривается вся коллекция на предмет совпадения имени
+ с переданной записью. И, поскольку эта запись является одним из элементов
+ коллекции, то совпадение происходит при сравнении её с самой сабой. Так
+ что старое имя точно годится, а вот новое, наверно, может и к глюкам
+ приводить, если это новое имя совпадает с уже имевшимся. Притом всё это
+ нужно только для красивой перерисвоки панеленй и подвала по мере
+ копирования. А потом всё равно панель перечитывается.}
         {$IFDEF DualName}
         o^.FlName[False] := GetName
                 (lfGetShortFileName(MakeNormName(GetPath(Source), Name)));
         {$ENDIF}
         CopyShortString(MakeNormName(GetPath(Source), Name),
            o^.FlName[True]);
+*)
         if Owner <> nil then
           Message(Owner, evCommand, cmCopyUnselect, o);
         o^.Attr := o^.Attr or VolumeID;
+        KillDescrOf := @o^.FlName;
+          { При переименовании каталога описание со старым именем
+           надо прибивать }
         goto 1;
         end
       else
-        begin
+        begin { Копирование каталога }
         ClrIO;
         if not CopyPrn then
           begin
@@ -2087,6 +2094,9 @@ FileRead:
           if not Abort then
             JJ := SetFileAttr(q, Attr and not Directory)
           end;
+        KillDescrOf := nil;
+          { При копировании каталога описание со старым именем
+            прибивать не надо }
         end;
       if Abort then
         begin
@@ -2290,27 +2300,32 @@ TryGetInfo:
         else
 2:
           {$ENDIF}
-          CopyI(CopyDir, MakeNormName(P^.Owner^, P^.FlName[True]),
+        CopyI(CopyDir, MakeNormName(P^.Owner^, P^.FlName[True]),
             MkName(P^.FlName[True]), P, True, P^.Attr and $3FFF);
 
         if not (Abort or CopyCancel)
           and (P^.DIZ <> nil)
           and (CopyOptions and cpoDesc <> 0)
         then
-
+          begin
           {$IFDEF OS2}
           {JO - для импорта описаний при переименовании каталога в .LONGNAME исходного каталога}
           if  (CopyOptions and cpoEAToName = 0) or (LogName = '') then
             {$ENDIF}
-
-            {каталоги!!!}ImportDIZ(LowStrg(P^.FlName[CondLfn]),
-                 MkName(P^.FlName[CondLfn]), P^.DIZ, P^.Owner)
-
+            begin
+            ExportDiz(KillDescrOf, MkName(P^.FlName[True]), P^.DIZ, CopyDir);
+//            {каталоги!!!}ImportDIZ(LowStrg(P^.FlName[CondLfn]),
+//                 MkName(P^.FlName[CondLfn]), P^.DIZ, P^.Owner)
+            end
             {$IFDEF OS2}
           else
-            ImportDIZ(LowStrg(P^.FlName[True]), LowStrg(LogName), P^.DIZ,
-               P^.Owner);
+            begin
+            ExportDiz(KillDescrOf, LogName, P^.DIZ, CopyDir);
+//            ImportDIZ(LowStrg(P^.FlName[True]), LowStrg(LogName), P^.DIZ,
+//               P^.Owner);
+            end
         {$ENDIF}
+          end;
         ;
         end
       else
@@ -2410,34 +2425,12 @@ TryGetInfo:
 
   procedure DoReset(P: PFileRec);
     var
-      s, s2: String;
+      s: String;
       i: Integer;
-      Line: LongInt;
     begin
-    P^.Attr := P^.Attr and $3FFF;
     CD_Drives := CD_Drives+[UpCase(P^.Owner^[1])];
     if  (CopyOptions and cpoDesc) <> 0 then
-      begin
-      if P^.DIZ = nil then
-        begin
-        s2 := '';
-        i := 1;
-        repeat
-          s := GetPossibleDizOwner(i);
-          Inc(i);
-          if s <> '' then
-            s2 := GetDiz(s, Line, P^.FlName[CondLfn]);
-        until (s = '') or (s2 <> '');
-        if s2 <> '' then
-          begin
-          New(P^.DIZ);
-          P^.DIZ^.Owner := NewStr(s);
-          P^.DIZ^.DIZ := NewStr(s2);
-          P^.DIZ^.Line := Line;
-          P^.DIZ^.isDisposable := True;
-          end;
-        end;
-      end;
+      GetDiz(P);
     end { DoReset };
 
   label 1;
@@ -2494,6 +2487,7 @@ qqqq:
   GrdClick := True;
   FreeDisk := -1;
   CopyCancel := False;
+  SkipAllBad := False;
   ReD := [];
   CD_Drives := [];
   ToRead := 0;
@@ -2599,7 +2593,21 @@ qqqq:
   SSS := Copy(lFExpand(CopyDir), 1, InhR);
   if  (InhR <> 0) and RR then
     RereadDirectory(SSS);
-  Message(Owner, evCommand, cmRecountDirs, nil);
+  if Owner <> nil then
+    begin
+    { Nil бывает, например, в случае разархивирования по F4 из панели
+    архива. Наверно, просто поставить такое условие - неправильно, а надо
+    бы таки добраться до подвала и перерисовать его, но я не сумел
+    добраться. 17.01.2005}
+    Message(Owner, evCommand, cmRecountDirs, nil);
+{AK155 10.01.2005 После того, как перерисовка панелей при групповых
+операциях стала делаться по таймеру, возникла проблема отрисовки
+результатов того, что произошло после последнего тика таймера.
+На панели эта проблема не отражается, так как cmRecountDirs приводит
+к перерисовке панели, но только панели. А в подвале информация о
+выделенных файлах остаётся необновлённой. Поэтому обновляем её явно.}
+    PFilePanelRoot(Owner)^.InfoView^.DrawView;
+    end;
   {$IFDEF OS_DOS}
   if Flush then
     begin

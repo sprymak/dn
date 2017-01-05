@@ -1868,6 +1868,7 @@ procedure CopyToTempDrive;
       DT: DateTime;
       I, J: CondInt;
       l: Pointer;
+      NewP: PFileRec;
     begin
     UpdateWriteView(Info);
     if TempFiles^.Search(P, J) then
@@ -1888,7 +1889,25 @@ procedure CopyToTempDrive;
         l := NewStr(P^.Owner^);
       TempDirs^.Insert(l);
       end;
-    TempFiles^.AtInsert(J, NewFileRec(P^.FlName[True],
+    New(NewP);
+    NewP^ := P^;
+    with NewP^ do
+      begin
+      Owner := l; {удаляться будет вместе с TempDirs }
+      Selected := False;
+      UsageCount := 1;
+      if Diz <> nil then
+        begin { Пересоздаём собственную копию }
+        New(Diz);
+        Diz^.DizText := P^.Diz^.DizText;
+        Diz^.Container := nil;
+          {! Это очень сомнительная штука,
+          которая выстрелит, если будет возможно редактирование
+          описания с TEMP:. Впрочем, возможно, CalcDPath вытянет}
+        end;
+      end;
+    TempFiles^.AtInsert(J, NewP);
+(*    TempFiles^.AtInsert(J, NewFileRec(P^.FlName[True],
         {$IFDEF DualName}P^.FlName[False], {$ENDIF}
         P^.Size,
         PackedDate(P),
@@ -1898,6 +1917,7 @@ procedure CopyToTempDrive;
         l
         )
       );
+*)
     end { AddRec };
 
   begin { CopyToTempDrive }
@@ -1983,7 +2003,6 @@ constructor TTempDrive.Init;
            else Dirs^.Insert(S);}
   NewUpFile;
   UpFile^.Owner := S; {DataCompBoy}
-  UpFile^.OwnerDisposible := True;
   end { TTempDrive.Init };
 
 constructor TTempDrive.Load(var S: TStream);
@@ -2026,7 +2045,6 @@ constructor TTempDrive.Load(var S: TStream);
   ListFile := nil;
   NewUpFile;
   UpFile^.Owner := S.ReadStr;
-  UpFile^.OwnerDisposible := True;
   end { TTempDrive.Load };
 
 procedure TTempDrive.Store;

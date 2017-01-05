@@ -138,14 +138,11 @@ procedure SaversSetup;
 function MakeSaversDialog: PDialog;
 {$ENDIF}
 
- {! AK155 28-12-2004 Собщения об ошибках перекодлировочных настроек.
- Наглухо забитые тексты - это временно.
- Надо будет сделать текст на языке интерфейса.}
 const
-  CodeErrMessage: array[1..3] of string[36] =
-    ('CountryInfo.KbdToggleLayout error',
-     'CountryInfo.WinCodeTable error',
-     'CountryInfo.CodeTables error');
+  CodeErrMessage: array[1..3] of TStrIdx =
+ {`AK155 12.01.2004 Собщения об ошибках перекодировочных настроек.}
+   (dlLayoutErr, dlWinErr, dlCodetablesErr);
+   {`}
 
 implementation
 uses
@@ -393,7 +390,7 @@ TryDialog:
   Err := ApplyCodetables;
   if Err <> 0 then
     begin
-    MessageBox(CodeErrMessage[Err], nil, mfError+mfYesButton);
+    MessageBox(^C+GetString(CodeErrMessage[Err]), nil, mfError+mfYesButton);
     goto TryDialog;
     end;
   GlobalMessage(evCommand, cmReboundPanel, nil);

@@ -339,9 +339,7 @@ procedure DoStartup;
       Virgin := True;
       I := ApplyCodetables;
       if I <> 0 then
-        begin
-        writeln(CodeErrMessage[I] + '. Call please Country Setup dialog later');
-        end;
+        writeln(GetString(dlCoutrySetupErr));
       Exit;
       end;
     while S.GetPos < S.GetSize do
@@ -632,9 +630,7 @@ procedure DoStartup;
           S.Read(CountryInfo, SizeOf(CountryInfo));
           I := ApplyCodetables;
           if I <> 0 then
-            begin
-            writeln(CodeErrMessage[I] + '. Call please Country Setup dialog later');
-            end;
+            writeln(GetString(dlCoutrySetupErr));
           end;
         cfgConfirms:
           begin

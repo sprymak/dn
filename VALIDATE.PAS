@@ -87,13 +87,13 @@ type
     constructor Init;
     constructor Load(var S: TStream);
     procedure Error; virtual;
-    function IsValidInput(var S: String;
+    function IsValidInput(var S: AnsiString;
         SuppressFill: Boolean): Boolean; virtual;
-    function isValid(const S: String): Boolean; virtual;
+    function isValid(const S: AnsiString): Boolean; virtual;
     procedure Store(var S: TStream);
-    function Transfer(var S: String; Buffer: Pointer;
+    function Transfer(var S: AnsiString; Buffer: Pointer;
         Flag: TVTransfer): Word; virtual;
-    function Valid(const S: String): Boolean;
+    function Valid(const S: AnsiString): Boolean;
     end;
 
   { TPXPictureValidator result type }
@@ -109,8 +109,8 @@ type
     constructor Init(AValidChars: TCharSet);
     constructor Load(var S: TStream);
     procedure Error; virtual;
-    function isValid(const S: String): Boolean; virtual;
-    function IsValidInput(var S: String;
+    function isValid(const S: AnsiString): Boolean; virtual;
+    function IsValidInput(var S: AnsiString;
         SuppressFill: Boolean): Boolean; virtual;
     procedure Store(var S: TStream);
     end;
@@ -123,9 +123,9 @@ type
     constructor Init(AMin, AMax: LongInt);
     constructor Load(var S: TStream);
     procedure Error; virtual;
-    function isValid(const S: String): Boolean; virtual;
+    function isValid(const S: AnsiString): Boolean; virtual;
     procedure Store(var S: TStream);
-    function Transfer(var S: String; Buffer: Pointer;
+    function Transfer(var S: AnsiString; Buffer: Pointer;
         Flag: TVTransfer): Word; virtual;
     end;
 
@@ -155,13 +155,13 @@ procedure TValidator.Error;
   begin
   end;
 
-function TValidator.IsValidInput(var S: String; SuppressFill: Boolean):
+function TValidator.IsValidInput(var S: AnsiString; SuppressFill: Boolean):
   Boolean;
   begin
   IsValidInput := True;
   end;
 
-function TValidator.isValid(const S: String): Boolean;
+function TValidator.isValid(const S: AnsiString): Boolean;
   begin
   isValid := True;
   end;
@@ -171,13 +171,13 @@ procedure TValidator.Store(var S: TStream);
   S.Write(Options, SizeOf(Options));
   end;
 
-function TValidator.Transfer(var S: String; Buffer: Pointer;
+function TValidator.Transfer(var S: AnsiString; Buffer: Pointer;
     Flag: TVTransfer): Word;
   begin
   Transfer := 0;
   end;
 
-function TValidator.Valid(const S: String): Boolean;
+function TValidator.Valid(const S: AnsiString): Boolean;
   begin
   Valid := False;
   if not isValid(S) then
@@ -192,7 +192,7 @@ function TValidator.Valid(const S: String): Boolean;
 
 { TPXPictureValidator }
 
-constructor TPXPictureValidator.Init(const APic: string;
+constructor TPXPictureValidator.Init(const APic: AnsiString;
   AutoFill: Boolean);
 var
   S: String;
@@ -710,7 +710,7 @@ constructor TFilterValidator.Load(var S: TStream);
   S.Read(ValidChars, SizeOf(TCharSet));
   end;
 
-function TFilterValidator.isValid(const S: String): Boolean;
+function TFilterValidator.isValid(const S: AnsiString): Boolean;
   var
     I: Integer;
   begin
@@ -720,15 +720,19 @@ function TFilterValidator.isValid(const S: String): Boolean;
   isValid := I > Length(S);
   end;
 
-function TFilterValidator.IsValidInput(var S: String;
+function TFilterValidator.IsValidInput(var S: AnsiString;
      SuppressFill: Boolean): Boolean;
   var
     I: Integer;
   begin
-  I := 1;
-  while S[I] in ValidChars do
-    Inc(I);
-  IsValidInput := I > Length(S);
+  Result := True;
+  for I := 1 to Length(S) do
+    if not (S[I] in ValidChars) then
+      begin
+      Result := False;
+      Break;
+      end;
+{AK155 Что-то я не понял, почеу SuppressFill никак не используется }
   end;
 
 procedure TFilterValidator.Store(var S: TStream);
@@ -769,7 +773,7 @@ procedure TRangeValidator.Error;
     mfError+mfOKButton);
   end;
 
-function TRangeValidator.isValid(const S: String): Boolean;
+function TRangeValidator.isValid(const S: AnsiString): Boolean;
   var
     Value: LongInt;
     Code: Integer;
@@ -789,7 +793,7 @@ procedure TRangeValidator.Store(var S: TStream);
   S.Write(Min, SizeOf(Max)+SizeOf(Min));
   end;
 
-function TRangeValidator.Transfer(var S: String; Buffer: Pointer;
+function TRangeValidator.Transfer(var S: AnsiString; Buffer: Pointer;
     Flag: TVTransfer): Word;
   var
     Value: LongInt;

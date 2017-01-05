@@ -9,11 +9,11 @@ uses
 type
 
   PXCoder = ^TXCoder;
-  {` Работа с перекодировками в просмотре, dbf и т.п.}
+  {`2 Работа с перекодировками в просмотре, dbf и т.п.}
   TXCoder = object(TObject)
     XLatCP: TXLatCP;
     KeyMap: TKeyMap;
-      {`KeyMap=kmXlat для кодировки, загруженной из xlt-файла`}
+      {` KeyMap=kmXlat для кодировки, загруженной из xlt-файла`}
     MaxCodeTagLen: Byte;
       {` Максимальная длина CodeTag. Не более 8.`}
     CodeTag: Str8;

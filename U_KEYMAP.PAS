@@ -117,7 +117,11 @@ var
   ToggleCaseArray: TXlat;
     {` Переворот регистра в ASCII, типа "cAPS lOCK" <-> "Caps Lock"`}
   LayoutConvXlat: TXLat;
-    {` Исправление раскладки `}
+    {` Исправление раскладки
+  Для случая двух раскладок клавиатуры (например, 866 и 850)
+  перекодирует каждый символ в такой, какой был бы введен с той
+  же клавиши в другой раскладке.
+  Определяется xlt-файлом, заданным ini-переменной KbdToggleLayout `}
 
  {Следующие три таблицы используются вместо XlatCP для "перекодировки"
   Ascii-Ascii (см. первые элементы KeyMapDescr). Поэтому они должны
@@ -154,12 +158,6 @@ procedure NullXLAT(var X: TXlat);
 procedure AcceptToAscii(var XLatCP: TXLatCP);
   {` В XLatCP на основе готовой таблицы [ToAscii] заполнить остальные `}
 
-function LayoutConv(const S: LongString): LongString;
-  {` Для случая двух раскладок клавиатуры (например, 866 и 850)
-  перекодирует каждый символ в такой, какой был бы введен с той
-  же клавиши в другой раскладке.
-  Определяется xlt-файлом, заданным ini-переменной KbdToggleLayout `}
-
 function ReadXlt(FN: string; var N: Integer): PCodeConv;
 
 function BuildCodeTable(const S: string; var XlatCP: TXLatCP): Boolean;
@@ -168,7 +166,14 @@ function BuildCodeTable(const S: string; var XlatCP: TXLatCP): Boolean;
   xlt-файла. Если имя файла не содержит пути (распознаётся по '\'),
   то файл ищется в стандартном XLT-каталоге. Результат - успех. `}
 
-function BuildLayoutConvXlat(FN: string): Boolean;
+function BuildLayoutConvXlat(const FN: string): Boolean;
+  {` Строится LayoutConvXlat для кодировки FN. FN может представлять собой
+  либо число (тогда это номер кодовой страницы), либо имя
+  xlt-файла. Если имя файла не содержит пути (распознаётся по '\'),
+  то файл ищется в стандартном XLT-каталоге.
+  Если FN='', то LayoutConvXlat - тождественная перекодировка.
+  Результат - успех.
+  `}
 
 procedure XLatStr(var S: String; const XLat: TXLat);
 
@@ -327,11 +332,6 @@ function Ansi_Ascii(const S: LongString): LongString;
   XLatLongStr(S, Result, KeyMapDescr[kmAnsi].XlatCP^[ToAscii]);
   end;
 
-function LayoutConv(const S: LongString): LongString;
-  begin
-  XLatLongStr(S, Result, LayoutConvXlat);
-  end;
-
 procedure AcceptToAscii(var XLatCP: TXLatCP);
   var
     C: Char;
@@ -371,13 +371,15 @@ function ReadXlt(FN: string; var N: Integer): PCodeConv;
     end;
   end;
 
-function BuildLayoutConvXlat(FN: string): Boolean;
+function BuildLayoutConvXlat(const FN: string): Boolean;
   var
     Conv, Conv0: PCodeConv;
     I, J: Integer;
   begin
-  Result := False;
+  Result := True;
   NullXlat(LayoutConvXlat);
+  if FN = '' then
+    Exit;
   Conv0 := ReadXlt(FN, J);
   if Conv0 <> nil then
     begin
@@ -392,8 +394,9 @@ function BuildLayoutConvXlat(FN: string): Boolean;
       inc(Conv);
       end;
     FreeMem(Conv0);
-    Result := True;
-    end;
+    end
+  else
+    Result := False;
   end;
 
 procedure XLatStr(var S: String; const XLat: TXLat);

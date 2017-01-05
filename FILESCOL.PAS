@@ -60,13 +60,21 @@ uses
 type
   PDiz = ^TDIZ;
   TDIZ = record
-    Owner: PString;
-    DIZ: PString;
+    {` Описание файла для использования в TFileRec }
+    Container: PString;
+      {` Полный путь файла описаний. Освобождать его не надо.
+       В Арвиде не используется. `}
+    DIZText: LongString;
+      {` Описание без имени файла. Строки разделяются CrLf`}
     Line: LongInt;
-    isDisposable: Boolean;
+      {` У ритлабов это был номер строки в файле описаний, где
+       начинается это описание, но это нигде не использовалось.
+       Используется это поле только в Арвиде, но совершенно
+       в другом смысле.`}
     end;
-
+    {`}
   TShortName = String[12];
+  PFlName = ^TFlName;
   TFlName = array[TUseLFN] of TShortName;
   {Использовано тут и в TDirRec}
   TDate4 = record
@@ -79,7 +87,6 @@ type
     Size: TSize;
     PSize: TSize;
     Owner: PString;
-    OwnerDisposible: Boolean;
     DIZ: PDiz;
     Yr: Word;
     YrCreat: Word;
@@ -101,7 +108,10 @@ type
       Нормально динамическое резервирование должно делаться через
       CreateFileRec или NewFileRec, где памяти резервируется ровно
       столько, сколько нужно. Из-за этого фокуса поле FlName
-      обязательно должно быть в самом конце этой структуры. AK155 }
+      обязательно должно быть в самом конце этой структуры.
+      Копировать длинное имя надо не при помощи ':=', а при помощи
+      CopyShortString. AK155 }
+      {<filescol.001>}
     end;
 var
   pr: TFileRec;
@@ -162,6 +172,9 @@ function SelectDrive(X, Y: Integer; Default: Char; IncludeTemp: Boolean)
   : String;
 function CopyFileRec(FR: PFileRec): PFileRec; {DataCompBoy}
 function CreateFileRec(Name: String): PFileRec;
+  {` Name - это имя с полным путём. На основании пути создаётся
+   newstr и записывается в Owner. Вызывающая программа сама должна
+   освободить owner перед уничтожением этой файловой записи. `}
 {$IFDEF DualName}
 function NewFileRec(const LFN, Name: String; Size: TSize;
      Date, CreationDate, LastAccDate: LongInt; Attr: Word;
@@ -175,9 +188,9 @@ procedure DelFileRec(var FR: PFileRec); {DataCompBoy}
 function LoadFileRec(var s: TStream): PFileRec; {DataCompBoy}
 procedure StoreFileRec(var s: TStream; fr: PFileRec); {DataCompBoy}
 function LoadFileRecOwn(var s: TStream; Dirs: PCollection): PFileRec;
-{DataCompBoy}
-procedure StoreFileRecOwn(var s: TStream; fr: PFileRec; Dirs: PCollection)
-  ; {DataCompBoy}
+  {` Прочитать запись, затем индекс в Dirs и заполнить Owner`}
+procedure StoreFileRecOwn(var s: TStream; fr: PFileRec; Dirs: PCollection);
+  {` Записать запись и затем индекс owner в Dirs`}
 function PackedDate(P: PFileRec): LongInt; {DataCompBoy}
 function PackedCreationDate(P: PFileRec): LongInt; {JO}
 function PackedLastAccDate(P: PFileRec): LongInt; {JO}
@@ -246,7 +259,6 @@ function CreateFileRec(Name: String): PFileRec;
     fr^.Size := lsr.FullSize;
     fr^.PSize := lsr.FullSize;
     fr^.Owner := NewStr(path);
-    fr^.OwnerDisposible := True;
     fr^.DIZ := nil;
 
     UnpackTime(lsr.SR.Time, D);
@@ -301,7 +313,6 @@ function CreateFileRec(Name: String): PFileRec;
   else
     begin
     fr^.Owner := NewStr(path);
-    fr^.OwnerDisposible := True;
     {$IFDEF DualName}
     fr^.FlName[False] := GetURZ(GetName(lfGetShortFileName(Name)));
     {$ENDIF}
@@ -331,13 +342,11 @@ procedure DelFileRec(var FR: PFileRec);
     Dec(FR^.UsageCount);
     if FR^.UsageCount = 0 then
       begin
-      if  (FR^.DIZ <> nil) and FR^.DIZ^.isDisposable then
+      if FR^.DIZ <> nil then
         begin
-        DisposeStr(FR^.DIZ^.DIZ);
+        FR^.DIZ^.DIZText := ''; // освободить строку
         Dispose(FR^.DIZ);
         end;
-      if FR^.OwnerDisposible then
-        DisposeStr(FR^.Owner);
       {  FreeMem(FR, TFileRecFixedSize+length(FR^.FlName[true]));}
       FreeMem(FR, SizeOf(TFileRec));
       FR := nil;
@@ -374,9 +383,6 @@ function LoadFileRec(var s: TStream): PFileRec;
     s.Read(FDate, SizeOf(FDate));
     s.Read(FDateCreat, SizeOf(FDateCreat));
     s.Read(FDateLAcc, SizeOf(FDateLAcc));
-    s.Read(OwnerDisposible, SizeOf(OwnerDisposible));
-    if OwnerDisposible then
-      Owner := s.ReadStr;
     {$IFDEF DualName}
     s.Read(FlName[False], SizeOf(FlName[False]));
     {$ENDIF}
@@ -408,9 +414,6 @@ procedure StoreFileRec(var s: TStream; fr: PFileRec);
     s.Write(FDate, SizeOf(FDate));
     s.Write(FDateCreat, SizeOf(FDateCreat));
     s.Write(FDateLAcc, SizeOf(FDateLAcc));
-    s.Write(OwnerDisposible, SizeOf(OwnerDisposible));
-    if OwnerDisposible then
-      s.WriteStr(Owner);
     {$IFDEF DualName}
     s.Write(FlName[False], SizeOf(FlName[False]));
     {$ENDIF}
@@ -420,19 +423,15 @@ procedure StoreFileRec(var s: TStream; fr: PFileRec);
 {-DataCompBoy-}
 
 function LoadFileRecOwn(var s: TStream; Dirs: PCollection): PFileRec;
-  {DataCompBoy}
   var
-    FR: PFileRec;
     w: LongInt;
   begin
-  FR := LoadFileRec(s);
-  if FR <> nil then
-    if not FR^.OwnerDisposible then
-      begin
-      s.Read(w, SizeOf(w));
-      FR^.Owner := Dirs^.At(w);
-      end;
-  LoadFileRecOwn := FR;
+  Result := LoadFileRec(s);
+  if Result <> nil then
+    begin
+    s.Read(w, SizeOf(w));
+    Result^.Owner := Dirs^.At(w);
+    end;
   end;
 
 procedure StoreFileRecOwn(var s: TStream; fr: PFileRec; Dirs: PCollection)
@@ -441,11 +440,8 @@ procedure StoreFileRecOwn(var s: TStream; fr: PFileRec; Dirs: PCollection)
     w: LongInt;
   begin
   StoreFileRec(s, fr);
-  if not fr^.OwnerDisposible then
-    begin
-    w := Dirs^.IndexOf(fr^.Owner);
-    s.Write(w, SizeOf(w));
-    end;
+  w := Dirs^.IndexOf(fr^.Owner);
+  s.Write(w, SizeOf(w));
   end;
 
 {-DataCompBoy-}
@@ -921,12 +917,18 @@ Lab1:
 
         {DIZ}psmDIZ:
           begin
-          if  (P1^.DIZ <> nil) and (P1^.DIZ^.DIZ <> nil) then
-            ST1 := UpLowStrg(CnvString(P1^.DIZ^.DIZ))
+          if  (P1^.DIZ <> nil) then
+            begin
+            ST1 := P1^.DIZ^.DIZText;
+            UpLowStr(ST1);
+            end
           else
             ST1 := '';
-          if  (P2^.DIZ <> nil) and (P2^.DIZ^.DIZ <> nil) then
-            ST2 := UpLowStrg(CnvString(DIZ^.DIZ))
+          if  (P2^.DIZ <> nil) then
+            begin
+            ST2 := P2^.DIZ^.DIZText;
+            UpLowStr(ST2);
+            end
           else
             ST2 := '';
           if  (ST1 <> '') and (ST2 = '') then
@@ -1617,7 +1619,6 @@ function NewFileRec;
   T.DIZ := nil;
   T.TType := GetFileType(T.FlName[True], T.Attr);
   T.Owner := AOwner;
-  T.OwnerDisposible := False;
   T.UsageCount := 1;
   {  l := TFileRecFixedSize+length(T.FlName[true]);}
   l := SizeOf(TFileRec);

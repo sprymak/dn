@@ -79,18 +79,23 @@ procedure SetCurDrive(C: Char);
 function GetExt(const s: String): String;
 function Norm12(const s: String): Str12;
 {-DataCompBoy-}
-function DelSquashes(s: String): String; {removes quotes}
+function DelSquashes(s: String): String;
+  {` removes quotes `}
 {$IFNDEF OS2}
-function GetURZ(const s: String): Str12; {cuts name to 8.3}
+function GetURZ(const s: String): Str12;
+  {` cuts name to 8.3 `}
 {$ENDIF}
-function GetfURZ(const s: String): String; {cuts name and path to 8.3}
+function GetfURZ(const s: String): String;
+  {` cuts name and path to 8.3 `}
 function IsSeparatingChars(const s: String): Boolean;
-{JO: проверяет на наличие }
-{ пробелов и символов '+' ';' ',' '[' ']' '&' '^'}
-function SquashesName(const s: String): String; {quotes name if needed}
-function InMask(Name, Mask: String): Boolean; {does Name match Mask? }
+{` JO: проверяет на наличие  пробелов и
+  символов '+' ';' ',' '[' ']' '&' '^' `}
+function SquashesName(const s: String): String;
+  {` quotes name if needed `}
+function InMask(Name, Mask: String): Boolean;
+  {` does Name match Mask? `}
 function InFilter(Name, Filter: String): Boolean;
-{does Name match Filter? }
+  {` does Name match Filter? `}
 function InDirFilter(Name, Filter: String): Boolean; {JO}
 {FUNCTION  InExtMask(Name, Mask: string):Boolean;}
 {does Ext match Mask? }

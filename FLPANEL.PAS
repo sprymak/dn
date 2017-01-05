@@ -1451,10 +1451,10 @@ procedure TInfoView.Draw;
       end;
     if DescriptionInBottom then
       begin
-      if  (PF <> nil) and (PF^.DIZ <> nil) and (PF^.DIZ^.DIZ <> nil)
+      if  (PF <> nil) and (PF^.DIZ <> nil) and (PF^.DIZ^.DIZText <> '')
       then
         begin
-        S2 := PF^.DIZ^.DIZ^;
+        S2 := PF^.DIZ^.DIZText; {Первую строку не выделяем}
         if Panel^.Drive^.Flags and psShowDescript <> 0 then
           begin
           { выводим в подвале то, что не поместилось в панели }
@@ -1477,9 +1477,12 @@ procedure TInfoView.Draw;
           begin
           I := 0; { свободное место с описанием не центрируем }
           for J := 1 to Length(S2) do
-            if S2[J] = #20 then
+            if S2[J] = #13 then
+              begin
+              System.Delete(S2, J, 1);
               S2[J] := ' ';
-          { #20 - это разделитель строк многострочного описания }
+              end;
+          { #13#10 - это разделитель строк многострочного описания }
           end;
         end;
       end;
@@ -2041,10 +2044,7 @@ GotoKb:
               InfoView^.DrawView;
             CED;
             PosChanged := False;
-            if  (RepeatDelay <> 0) and (QuickViewEnabled or
-                  (Drive^.Flags and psShowLongDesc <> 0) and
-                  (Drive^.DriveType < dtArc))
-            then
+            if  (RepeatDelay <> 0) and QuickViewEnabled then
               NeedLocated := GetSTime;
             end;
       end {case};

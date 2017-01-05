@@ -147,8 +147,9 @@ const
   dtInfo = 2;
   dtTree = 3;
   dtQView = 4;
+  dtDizView = 5;
   {$IFDEF NETINFO}
-  dtNetInfo = 5; {-$VIV}
+  dtNetInfo = 6; {-$VIV}
   {$ENDIF}
 
 implementation
@@ -351,7 +352,7 @@ constructor TDoubleWindow.Load;
   {/Cat}
 
   case NonFilePanelType of
-    dtQView:
+    dtQView, dtDizView:
       with Panel[not NonFilePanel].FilePanel^ do
         begin
         QuickViewEnabled := True;
@@ -394,54 +395,87 @@ procedure TDoubleWindow.Store;
   end { TDoubleWindow.Store };
 
 
+const
+  VScrollRect: TRect = (A:(X:1;Y:1);B:(X:2;Y:5));
+    {Существенно, что B.X-A.X = 1, то есть вертикальный.
+    Остальное не важно.}
+
+{ Создание вертикального скроллбара для панели просмотра }
+function MakeVScroll: PViewScroll;
+  begin
+  Result := New(PViewScroll, Init(VScrollRect));
+  Result^.Options := Result^.Options or ofPostProcess;
+  end;
+
+{ Контроль свежесозданной нефайловой панели P; при ошибках будет P=nil }
+function ValidVP(var P: PView; S: PView {скроллбар}): Boolean;
+  begin
+  Result := False;
+  if (S = nil) or (P = nil) or not P^.Valid(0) then
+    begin
+    S.Free;
+    P.Free;
+    P := nil;
+    Exit;
+    end;
+  Result := True;
+  end;
+
+procedure InsertView(var P: PView; S: PView; Manager: PDoubleWindow);
+  begin
+  if ValidVP(P, S) then
+    with Manager do
+      begin
+      Insert(P);
+      Insert(S);
+      P^.Hide;
+      end;
+  end;
+
 { Построители нефайловых панелей }
 
 function InsertQView(R1: TRect; Manager: PDoubleWindow): PView;
   var
-    R2: TRect;
     S: PViewScroll;
-    P: PView;
-    QView: PFileViewer;
   begin
-  R2.Assign(1, 1, 2, 5);
-  S := New(PViewScroll, Init(R2));
-  S^.Options := S^.Options or ofPostProcess;
-  Result := New(PHFileViewer, Init(R1, nil, '', '', S, True,
+  S := MakeVScroll;
+  Result := New(PQFileViewer, Init(R1, nil, '', '', S, True,
            (EditorDefaults.ViOpt and 1) <> 0));
-  if not Result^.Valid(0) then
-    begin
-    Dispose(S, Done);
-    Dispose(Result, Done);
-    Exit
-    end;
-  with Manager do
-    begin
-    Insert(Result);
-    Insert(S);
-    Result^.Hide;
-    end;
+  InsertView(Result, S, Manager);
   end { InsertQView };
+
+function InsertDizView(R1: TRect; Manager: PDoubleWindow): PView;
+  var
+    S: PViewScroll;
+  begin
+  S := MakeVScroll;
+  Result := New(PDFileViewer, Init(R1, nil, '', '', S, True,
+    (EditorDefaults.ViOpt and 1) <> 0));
+  InsertView(Result, S, Manager);
+  end { InsertDizView };
 
 function InsertTree(R1: TRect; Manager: PDoubleWindow): PView;
   var
-    R2: TRect;
     S: PMyScrollBar;
     P: PView;
   begin
-  R2 := R1;
-  R2.A.X := R2.B.X;
-  Inc(R2.B.X);
-  S := New(PMyScrollBar, Init(R2));
+  S := New(PMyScrollBar, Init(VScrollRect));
   S^.Options := S^.Options or ofPostProcess;
   { Область делим по вертикали между подвалом (2 строки) и деревом}
   Dec(R1.B.Y, 2);
   Result := New(PHTreeView, Init(R1, 0, False, S));
-  if not Result^.Valid(0) then
+  if ValidVP(Result, S) then
     begin
-    Dispose(S, Done);
-    Dispose(Result, Done);
-    Result := nil;
-    Exit
+    R1.A.Y := R1.B.Y;
+    Inc(R1.B.Y, 2);
+    P := New(PTreeInfoView, Init(R1, PHTreeView(Result)));
+    PHTreeView(Result)^.Info := P;
+    with Manager do
+      begin
+      Insert(P);
+      Insert(Result);
+      Insert(S);
+      end;
     end;
   R1.A.Y := R1.B.Y;
   Inc(R1.B.Y, 2);
@@ -456,10 +490,6 @@ function InsertTree(R1: TRect; Manager: PDoubleWindow): PView;
   end { InsertTree };
 
 function InsertInfo(R1: TRect; Manager: PDoubleWindow): PView;
-  var
-    R2: TRect;
-    S: PMyScrollBar;
-    P: PView;
   begin
   Result := New(PDiskInfo, Init(R1));
   Result^.Hide;
@@ -482,7 +512,7 @@ const
     (  InsertInfo
      , InsertTree
      , InsertQView
-     , nil
+     , InsertDizView
      , nil
      , nil
      , nil
@@ -532,7 +562,7 @@ procedure TDoubleWindow.SwitchView(dtType: Byte);
     V^.Show;
     Panel[N].PanelType := dtType;
     Panel[Selected].AnyPanel^.Select;
-    if dtType = dtQView then
+    if dtType in [dtQView, dtDizView] then
       Panel[Selected].FilePanel.QuickViewEnabled := True;
     Redraw;
     end
@@ -863,9 +893,7 @@ procedure TDoubleWindow.HandleCommand;
         cmZoom:
           begin
           { Flash 05-02-2004 >>> }
-          if (not Selected and (Panel[pLeft].PanelType = dtQView)) or
-             (Selected and (Panel[pRight].PanelType = dtQView))
-          then
+          if Panel[Selected].PanelType = dtQView then
             begin
             GetBounds(OldBounds);
             GetBounds(OldPanelBounds);
@@ -953,7 +981,7 @@ procedure TDoubleWindow.HandleCommand;
         cmLoadViewFile:
           if not PanelZoomed then
             begin
-            if  (NonFilePanelType in [dtQView, dtInfo]){ and
+            if  (NonFilePanelType in [dtQView, dtDizView]){ and
               NonFilePanel^.GetState(sfVisible)}
             then
               Panel[NonFilePanel].AnyPanel^.HandleEvent(Event);
@@ -1004,6 +1032,14 @@ procedure TDoubleWindow.HandleCommand;
             {AK155}
             begin
             SwitchView(dtQView);
+            Message(Panel[Selected].AnyPanel, evCommand, cmLViewFile, nil);
+            CE
+            end;
+        cmDizView:
+          if isFilePanel and not PanelZoomed then
+            {AK155}
+            begin
+            SwitchView(dtDizView);
             Message(Panel[Selected].AnyPanel, evCommand, cmLViewFile, nil);
             CE
             end;

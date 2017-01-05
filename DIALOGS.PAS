@@ -177,22 +177,37 @@ type
 
   PInputline = ^TInputLine;
   TInputLine = object(TView)
-    {` Строка ввода с добавочными возможностями`}
+    {` Строка ввода с добавочными возможностями}
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
-    Data: PString;
-    MaxLen: AInt;
-    CurPos: AInt;
-    FirstPos: AInt;
-    SelStart: AInt;
-    SelEnd: AInt;
+    Data: AnsiString;
+      {` Внимание! Это поле в DN/2 - AnsiString, а не PString, как в
+      классическом Turbo Vision. Однако все процедуры обмена данными
+      (Load-Store, GetData-SetData), как и раньше, работают с ShortString.
+        Если действительно нужно обмениваться длинными строками, то нужно
+      либо прямо обращаться к полю Data, либо использовать дочерний объект
+      TLongInputLine.
+        Соответственно, при работе с обычными строками прямо к полю Data
+      лучше не обращаться, а если обращаться, то только в таком контексте,
+      в котором компилятор понимает, что это AnsiString и выполнит
+      необходимые преоборазования. И уж точно нельзя "из-за угла" делать
+      чего-то вроде DisposeStr(PString(@Data)) `}
+    MaxLen: LongInt;
+      {` Максимальная длина строки. В связи с AnsiString может быть
+       и больше, чем 255. В этом случае не допускается использовать
+       обычные функции передачи данных (Load-Store, GetData-SetData),
+       но можно использовать GetData-SetData дочернего TLongInputLine. `}
+    CurPos: LongInt;
+    FirstPos: LongInt;
+    SelStart: LongInt;
+    SelEnd: LongInt;
     Validator: PValidator;
-    CtrlK: Boolean;
-    LC, RC: Char; {` Крайние символы, когда они не символы обрезки.
+    LC, RC: Char;
+      {`2 Крайние символы строки ввода, когда они не символы обрезки.
        Инициализируются пробелами, потом могут быть заданы извне.`}
-    C: array [1..Length(CInputLine)] of Byte; {` Цвета палитры. Могут
-      быть заранее заданы извне, а если это не сделано - при первом
-      Draw будут занесены стандартные.`}
-    constructor Init(var Bounds: TRect; AMaxLen: AInt);
+    C: array [1..Length(CInputLine)] of Byte;
+      {` Цвета палитры. Могут быть заранее заданы извне, а если это
+        не сделано - при первом Draw будут занесены стандартные.`}
+    constructor Init(var Bounds: TRect; AMaxLen: LongInt);
     constructor Load(var S: TStream);
     destructor Done; virtual;
     function DataSize: Word; virtual;
@@ -208,6 +223,16 @@ type
     function Valid(Command: Word): Boolean; virtual;
     function CanScroll(Delta: Integer): Boolean;
     end;
+    {`}
+
+  PLongInputline = ^TLongInputLine;
+  {`2 Аналог TInputLine, но GetData и SetData работают с AnsiString.
+    Внимание! Load и Store, как и раньше, работают с 1-байтной длиной! }
+  TLongInputLine = object(TInputLine)
+    procedure GetData(var Rec); virtual;
+    procedure SetData(var Rec); virtual;
+    end;
+    {`}
 
   PHexLine = ^THexLine;
   THexLine = object(TView)
@@ -514,7 +539,7 @@ implementation
 
 uses
   ASCIITab, HistList, Advance, Advance1, Advance2, Advance3, Commands,
-  Startup, xTime, FlPanelX, DNApp
+  Startup, xTime, FlPanelX, DNApp, Objects2
   {, Crt}, VpSysLow
   ;
 
@@ -524,8 +549,6 @@ const
 
   cmGrabDefault = 61;
   cmReleaseDefault = 62;
-  cmPutInClipboard = 11027;
-  cmGetFromClipboard = 11028;
 
   { Utility functions }
 
@@ -637,7 +660,7 @@ function Max(A, B: Integer): Integer;
 
 { TInputLine }
 
-constructor TInputLine.Init(var Bounds: TRect; AMaxLen: AInt);
+constructor TInputLine.Init(var Bounds: TRect; AMaxLen: LongInt);
   begin
   TView.Init(Bounds);
   LC := ' ';
@@ -650,21 +673,21 @@ constructor TInputLine.Init(var Bounds: TRect; AMaxLen: AInt);
     Options := Options or (ofSelectable+ofFirstClick+ofVersion20)
   else
     Options := Options or (ofFirstClick+ofVersion20) and not ofSelectable;
-  GetMem(Data, AMaxLen+1);
-  Data^:= '';
   MaxLen := AMaxLen;
-  CtrlK := False;
   end;
 
 {AK155 А интересно, в какой ситуации могут работать
 Load - Store для InputLine? Для ресурсов? }
+{JO: ну, например для окна калькулятора}
 constructor TInputLine.Load(var S: TStream);
+  var
+    WorkS: string;
   begin
   TView.Load(S);
   {Cat:warn AnsiString}
   S.Read(MaxLen, SizeOf(AInt)*5);
-  GetMem(Data, MaxLen+1);
-  S.ReadStrV(Data^);
+  S.ReadStrV(WorkS);
+  Data := WorkS;
   {S.Read(Data^[0], 1); S.Read(Data^[1], Length(Data^));}
   if Options and ofVersion >= ofVersion20 then
     Validator := PValidator(S.Get);
@@ -675,40 +698,28 @@ constructor TInputLine.Load(var S: TStream);
 
 destructor TInputLine.Done;
   begin
-  FreeMem(Data, MaxLen+1);
-  Data := nil;
   SetValidator(nil);
   TView.Done;
   end;
 
 function TInputLine.CanScroll(Delta: Integer): Boolean;
   begin
-  if Data = nil then
+  if Data = '' then
     CanScroll := False
   else if Delta < 0 then
     CanScroll := FirstPos > 0
   else if Delta > 0 then
-    CanScroll := Length(Data^)-FirstPos+2 > Size.X
+    CanScroll := Length(Data)-FirstPos+2 > Size.X
   else
     CanScroll := False;
   end;
 
 function TInputLine.DataSize: Word;
-  var
-    DSize: Word;
   begin
-  DSize := 0;
-  if Data <> nil then
-    begin
-    if Validator <> nil then
-      DSize := Validator^.Transfer(Data^, nil, vtDataSize);
-    if DSize <> 0 then
-      DataSize := DSize
-    else
-      DataSize := MaxLen+1;
-    end
+  if Validator <> nil then
+    Result := Validator^.Transfer(Data, nil, vtDataSize)
   else
-    DataSize := MaxLen+1; {Cat}
+    Result := MaxLen+1;
   end;
 
 procedure TInputLine.Draw;
@@ -719,8 +730,6 @@ procedure TInputLine.Draw;
     S: String;
     i: Integer;
   begin
-  if Data = nil then
-    Exit;
   if (Owner <> nil) and (C[1] = 0) then
     for i := 1 to 4 do
       C[i] := GetColor(i);
@@ -729,7 +738,7 @@ procedure TInputLine.Draw;
   else
     Color := C[2];
   MoveChar(B, ' ', Color, Size.X);
-  S := Copy(Data^, FirstPos+1, Size.X-2);
+  S := Copy(Data, FirstPos+1, Size.X-2);
   MoveStr(B[1], S, Color);
   if Options and ofSecurity <> 0 then
     MoveChar(B[1], #254, Color, Length(S));
@@ -769,15 +778,10 @@ procedure TInputLine.Draw;
 
 procedure TInputLine.GetData(var Rec);
   begin
-  if Data = nil then
-    FillChar(Rec, DataSize, #0)
-  else if (Validator = nil) or
-      (Validator^.Transfer(Data^, @Rec, vtGetData) = 0)
+  if (Data = '') or (Validator = nil) or
+      (Validator^.Transfer(Data, @Rec, vtGetData) = 0)
   then
-    begin
-    FillChar(Rec, DataSize, #0);
-    Move(Data^, Rec, Length(Data^)+1);
-    end;
+    String(Rec) := Copy(Data, 1, MaxLen);
   end;
 
 function TInputLine.GetPalette: PPalette;
@@ -791,14 +795,15 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
   const
     PadKeys = [$47, $4B, $4D, $4F, $73, $74];
   var
-    Delta, Anchor, I: Integer;
+    Delta: Integer;
+    Anchor, I: LongInt;
     OldScanCode: Byte;
     ExtendBlock: Boolean;
-    OldData: String;
+    OldData: AnsiString;
     OldCurPos, OldFirstPos,
-    OldSelStart, OldSelEnd: Integer;
-    S: String;
-    pS: PString;
+    OldSelStart, OldSelEnd: LongInt;
+    S: AnsiString;
+    pS: PString; {используется только для QuickDirs, котоpые ShortString}
     R: TRect;
 
   function MouseDelta: Integer;
@@ -825,8 +830,8 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
     Pos := Mouse.X+FirstPos-1;
     if Pos < 0 then
       Pos := 0;
-    if Pos > Length(Data^) then
-      Pos := Length(Data^);
+    if Pos > Length(Data) then
+      Pos := Length(Data);
     MousePos := Pos;
     end;
 
@@ -834,7 +839,7 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
     begin
     if SelStart <> SelEnd then
       begin
-      Delete(Data^, SelStart+1, SelEnd-SelStart);
+      Delete(Data, SelStart+1, SelEnd-SelStart);
       CurPos := SelStart;
       end;
     Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
@@ -858,7 +863,7 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
     begin
     if Validator <> nil then
       begin
-      OldData := Data^;
+      OldData := Data;
       OldCurPos := CurPos;
       OldFirstPos := FirstPos;
       OldSelStart := SelStart;
@@ -870,7 +875,7 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
     begin
     if Validator <> nil then
       begin
-      Data^:= OldData;
+      Data:= OldData;
       CurPos := OldCurPos;
       FirstPos := OldFirstPos;
       SelStart := OldSelStart;
@@ -882,22 +887,22 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
   function CheckValid(NoAutoFill: Boolean): Boolean;
     var
       OldLen: Integer;
-      NewData: String;
+      NewData: AnsiString;
     begin
     if Validator <> nil then
       begin
       CheckValid := False;
-      OldLen := Length(Data^);
-      NewData := Data^;
+      OldLen := Length(Data);
+      NewData := Data;
       if not Validator^.IsValidInput(NewData, NoAutoFill) then
         RestoreState
       else
         begin
         if Length(NewData) > MaxLen then
           SetLength(NewData, MaxLen);
-        Data^:= NewData;
-        if  (CurPos >= OldLen) and (Length(Data^) > OldLen) then
-          CurPos := Length(Data^);
+        Data:= NewData;
+        if  (CurPos >= OldLen) and (Length(Data) > OldLen) then
+          CurPos := Length(Data);
         CheckValid := True;
         end;
       end
@@ -910,60 +915,71 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
     if  (State and sfCursorIns <> 0) xor
         (InterfaceData.Options and ouiBlockInsertCursor <> 0)
     then
-      Delete(Data^, CurPos+1, 1)
+      Delete(Data, CurPos+1, 1)
     else
       DeleteSelect;
     if CheckValid(True) then
       begin
-      if Length(Data^) < MaxLen then
+      if Length(Data) < MaxLen then
         begin
         if FirstPos > CurPos then
           FirstPos := CurPos;
         Inc(CurPos);
-        Insert(c, Data^, CurPos);
+        Insert(c, Data, CurPos);
         end;
       CheckValid(False);
       end;
     Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
     end;
 
-  procedure ASCIITable;
-    var
-      P: PWindow;
-      W: Word;
-      E: TEvent;
-      R: TRect;
-      CR: PView;
-    function GetCH: Boolean;
-      begin
-      W := Desktop^.ExecView(P);
-      P^.GetData(CharASCII);
-      if W in [cmOK, cmYes] then
-        begin
-        InsChar(CharASCII);
-        DrawView;
-        end;
-      GetCH := W = cmYes;
-      end;
+  procedure SetExtendBlock;
+  { Сохранить текущее выделение и подготовить его расширение }
     begin
-    P := New(PASCIIChart, Init(R));
-    P^.MoveTo(boundsASCII.X, boundsASCII.Y);
-    P^.SetData(CharASCII);
-    CR := Desktop^.Current;
-    {  Desktop^.Lock;}
-    while GetCH do
-      ;
-    {  Desktop^.UnLock;}
-    boundsASCII := P^.Origin;
-    Dispose(P, Done);
-    if CR <> nil then
-      CR^.Select;
-    end { ASCIITable };
+    if CurPos = SelEnd then
+      Anchor := SelStart
+    else
+      Anchor := SelEnd;
+    ExtendBlock := True;
+    end;
+
+  procedure Encode(XLat: TXlat);
+  { Перекодировка строки (нажат Shift), выделения или слова }
+    var
+      LBound, RBound: Longint;
+        { индексы первого символа участка и первого символа за участком }
+    begin
+    if Data = '' then
+      Exit;
+    if ShiftState and (kbLeftShift+kbRightShift) <> 0
+    then
+      begin
+      LBound := 1;
+      RBound := Length(Data)+1;
+      end
+    else if SelEnd > SelStart then
+      begin
+      LBound := SelStart+1;
+      RBound := SelEnd+1;
+      SetExtendBlock;
+      end
+    else
+      begin
+      LBound := CurPos+1;
+      if (Data[LBound] in BreakChars) then
+        Exit;
+      RBound := LBound;
+      while (LBound > 1) and (not (Data[LBound-1] in BreakChars)) do
+        Dec(LBound);
+      repeat
+        inc(RBound)
+      until (RBound > Length(Data)) or (Data[RBound] in BreakChars);
+      end;
+    SetLength(Data, Length(Data));
+    XLatBuf(Data[LBound], RBound-LBound, XLat)
+    end;
 
   begin { TInputLine.HandleEvent }
   TView.HandleEvent(Event);
-  if Data = nil then
-    Exit;
   if State and sfSelected <> 0 then
     begin
     case Event.What of
@@ -1008,284 +1024,212 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
         then
           begin
           Event.CharCode := #0;
-          if CurPos = SelEnd then
-            Anchor := SelStart
-          else
-            Anchor := SelEnd;
-          ExtendBlock := True;
+          SetExtendBlock;
           end
         else
           ExtendBlock := False;
-        if CtrlK then
-          begin
-          case Event.KeyCode of
-            kbCtrlSqBracketL:
+        case Event.KeyCode of
+          kbAltF12:
+            Encode(LayoutConvXlat);
+          kbAltCtrlSqBracketL,
+          kbCtrlShiftSqBracketL,
+          kbCtrlSqBracketL:
+            Encode(UpCaseArray);
+          kbAltCtrlSqBracketR,
+          kbCtrlShiftSqBracketR,
+          kbCtrlSqBracketR:
+            Encode(LowCaseArray);
+          kbCtrlShiftSlash,
+          kbCtrlShiftBSlash:
+            CapLongStr(Data, 1, Length(Data));
+          kbCtrlSlash,
+          kbCtrlBSlash:
+            begin
+            if SelEnd > SelStart then
               begin
-              if SelStart < SelEnd then
-                for I := SelStart+1 to SelEnd do
-                  Data^[I] := UpCase(Data^[I]);
-              if CurPos = SelEnd then
-                Anchor := SelStart
-              else
-                Anchor := SelEnd;
-              ExtendBlock := True
-              end;
-            kbCtrlSqBracketR:
+              CapLongStr(Data, SelStart+1, SelEnd);
+              SetExtendBlock;
+              end
+            else if (Data <> '') and not (Data[CurPos+1] in BreakChars)
+            then
               begin
-              if SelStart < SelEnd then
-                for I := SelStart+1 to SelEnd do
-                  Data^[I] := LowCase(Data^[I]);
-              if CurPos = SelEnd then
-                Anchor := SelStart
-              else
-                Anchor := SelEnd;
-              ExtendBlock := True
-              end;
-            kbCtrlSlash,
-            kbCtrlBSlash:
-              begin
-              S := CapStrg(Copy(Data^, SelStart+1, SelEnd-SelStart));
-              Delete(Data^, SelStart+1, SelEnd-SelStart);
-              Insert(S, Data^, SelStart+1);
-              if CurPos = SelEnd then
-                Anchor := SelStart
-              else
-                Anchor := SelEnd;
-              ExtendBlock := True
-              end;
-          end {case};
-          CtrlK := False;
-          end
-        else
-          case Event.KeyCode of
-            kbCtrlK:
-              CtrlK := True;
-            kbAltF12:
-              begin
-              OldData := LayoutConv(Copy(Data^, SelStart+1,
-                     SelEnd-SelStart));
-              Data^:= Copy(Data^, 1, SelStart)
-                  +OldData+Copy(Data^, SelEnd+1, MaxStringLength);
-              if CurPos = SelEnd then
-                Anchor := SelStart
-              else
-                Anchor := SelEnd;
-              ExtendBlock := True
-              end;
-            kbAltCtrlSqBracketL,
-            kbCtrlShiftSqBracketL,
-            kbCtrlSqBracketL:
-              if ShiftState and (kbLeftShift+kbRightShift) <> 0
-              then
-                UpStr(Data^)
-              else
+              SetLength(Data, Length(Data));
+              I := CurPos+1;
+              while (not (Data[I-1] in BreakChars)) and (I > 1) do
                 begin
-                I := CurPos;
-                while (not (Data^[I] in BreakChars)) and (I > 1) do
-                  Dec(I);
-                repeat
-                  Data^[I] := UpCase(Data^[I]);
-                  Inc(I);
-                until (Data^[I] in BreakChars) or (I > Length(Data^));
+                Data[I] := LowCase(Data[I]);
+                Dec(I);
                 end;
-            kbAltCtrlSqBracketR,
-            kbCtrlShiftSqBracketR,
-            kbCtrlSqBracketR:
-              if ShiftState and (kbLeftShift+kbRightShift) <> 0
-              then
-                LowStr(Data^)
-              else
+              Data[I] := UpCase(Data[I]);
+              I := CurPos+2;
+              while (I <= Length(Data)) and not (Data[I] in BreakChars) do
                 begin
-                I := CurPos;
-                while (not (Data^[I] in BreakChars)) and (I > 1) do
-                  Dec(I);
-                repeat
-                  Data^[I] := LowCase(Data^[I]);
-                  Inc(I);
-                until (Data^[I] in BreakChars) or (I > Length(Data^));
-                end;
-            kbCtrlShiftSlash,
-            kbCtrlShiftBSlash,
-            kbCtrlSlash,
-            kbCtrlBSlash:
-              if ShiftState and (kbLeftShift+kbRightShift) <> 0
-              then
-                CapStr(Data^)
-              else
-                begin
-                I := CurPos;
-                while (not (Data^[I] in BreakChars)) and (I > 1) do
-                  Dec(I);
-                if  (Data^[I] in BreakChars) then
-                  Inc(I);
-                Data^[I] := UpCase(Data^[I]);
+                Data[I] := LowCase(Data[I]);
                 Inc(I);
-                repeat
-                  Data^[I] := LowCase(Data^[I]);
-                  Inc(I);
-                until (Data^[I] in BreakChars) or (I > Length(Data^));
                 end;
-            kbCtrlBack:
-              if CurPos > 0 then
-                begin
-                if  (Data^[CurPos] in BreakChars) then
-                  repeat
-                    Delete(Data^, CurPos, 1);
-                    Dec(CurPos)
-                  until (CurPos = 0) or not (Data^[CurPos] in BreakChars)
-                else
-                  repeat
-                    Delete(Data^, CurPos, 1);
-                    Dec(CurPos)
-                  until (CurPos = 0) or (Data^[CurPos] in BreakChars)
-                end;
-            kbCtrlIns:
-              if Options and ofSecurity = 0 then
-                begin
-                S := Copy(Data^, SelStart+1, SelEnd-SelStart);
-                if S <> '' then
-                  Message(Application, evCommand, cmPutInClipboard, @S);
-                ClearEvent(Event);
-                Exit;
-                end;
-            kbCtrlLeft:
+              end;
+            end;
+          kbCtrlBack:
+            if CurPos > 0 then
               begin
-              if CurPos > 0 then
+              if  (Data[CurPos] in BreakChars) then
                 repeat
+                  Delete(Data, CurPos, 1);
                   Dec(CurPos)
-                until (CurPos = 0) or not (Data^[CurPos+1] in BreakChars);
-              while (CurPos > 0) and not (Data^[CurPos] in BreakChars)
-              do
-                Dec(CurPos)
-              end;
-            kbCtrlRight:
-              begin
-              if CurPos < Length(Data^) then
-                repeat
-                  Inc(CurPos)
-                until (CurPos >= Length(Data^))
-                   or (Data^[CurPos+1] in BreakChars);
-              if CurPos < Length(Data^) then
-                repeat
-                  Inc(CurPos)
-                until (CurPos >= Length(Data^))
-                   or not (Data^[CurPos+1] in BreakChars);
-              end;
-            kbShiftDel:
-              begin
-              S := Copy(Data^, SelStart+1, SelEnd-SelStart);
-              if S <> '' then
-                Message(Application, evCommand, cmPutInClipboard, @S);
-              DeleteSelect;
-              SelEnd := SelStart;
-              DrawView;
-              ClearEvent(Event);
-              Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
-              Exit;
-              end;
-            kbShiftIns:
-              begin
-              ClearEvent(Event);
-              S := '';
-              DeleteSelect;
-              Message(Application, evCommand, cmGetFromClipboard, @S);
-              if S = '' then
-                Exit;
-              SelStart := CurPos;
-              SelEnd := CurPos+Length(S);
-              OldData := Data^;
-              Insert(S, OldData, CurPos+1);
-              Data^:= Copy(OldData, 1, MaxLen);
-              DrawView;
-              Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
-              Exit;
-              end;
-            kbAlt1, kbAlt2, kbAlt3, kbAlt4, kbAlt5, kbAlt6, kbAlt7,
-             kbAlt8, kbAlt9:
-              begin
-              ClearEvent(Event);
-              S := '';
-              DeleteSelect;
-              pS := DirsToChange[Event.ScanCode-Hi(kbAlt1)];
-              if  (pS = nil) or (Length(pS^) = 0) then
-                Exit
+                until (CurPos = 0) or not (Data[CurPos] in BreakChars)
               else
-                S := pS^;
-              if S = '' then
-                Exit;
-              SelStart := CurPos;
-              SelEnd := CurPos+Length(S);
-              OldData := Data^;
-              Insert(S, OldData, CurPos+1);
-              Data^:= Copy(OldData, 1, MaxLen);
-              DrawView;
+                repeat
+                  Delete(Data, CurPos, 1);
+                  Dec(CurPos)
+                until (CurPos = 0) or (Data[CurPos] in BreakChars)
+              end;
+          kbCtrlIns:
+            if Options and ofSecurity = 0 then
+              begin
+              S := Copy(Data, SelStart+1, SelEnd-SelStart);
+              if S <> '' then
+                Message(Application, evCommand, cmPutInClipboardLong, @S);
+              ClearEvent(Event);
               Exit;
               end;
-            kbLeft, kbShiftLeft:
-              if CurPos > 0 then
-                Dec(CurPos);
-            kbRight, kbShiftRight:
-              if CurPos < Length(Data^) then
-                Inc(CurPos);
-            kbHome, kbShiftHome:
-              CurPos := 0;
-            kbEnd, kbShiftEnd:
-              CurPos := Length(Data^);
-            //JO: Для двух нижележащих клавиш (BackSpace и Del) зачем-то ещё со вpемён
-            //    Ритлабовской веpсии в конце вставлено CheckValid. Зачем это надо
-            //    - непонятно, т.к. это пpовеpка на пpевышение длины стpоки ввода и
-            //    наличие в ней недопустимых символов. В pезультате удаления символа ни
-            //    то, ни дpугое появиться не может. А вот невозможность удалить
-            //    недопустимые символы, вставленные из буфеpа - возникает.
-            kbBack:
-              if CurPos > 0 then
-                begin
-                Delete(Data^, CurPos, 1);
-                Dec(CurPos);
-                if FirstPos > 0 then
-                  Dec(FirstPos);
-                {CheckValid(True);}
-                end;
-            kbDel:
+          kbCtrlLeft:
+            begin
+            if CurPos > 0 then
+              repeat
+                Dec(CurPos)
+              until (CurPos = 0) or not (Data[CurPos+1] in BreakChars);
+            while (CurPos > 0) and not (Data[CurPos] in BreakChars)
+            do
+              Dec(CurPos)
+            end;
+          kbCtrlRight:
+            begin
+            if CurPos < Length(Data) then
+              repeat
+                Inc(CurPos)
+              until (CurPos >= Length(Data))
+                 or (Data[CurPos+1] in BreakChars);
+            if CurPos < Length(Data) then
+              repeat
+                Inc(CurPos)
+              until (CurPos >= Length(Data))
+                 or not (Data[CurPos+1] in BreakChars);
+            end;
+          kbShiftDel:
+            begin
+            S := Copy(Data, SelStart+1, SelEnd-SelStart);
+            if S <> '' then
+              Message(Application, evCommand, cmPutInClipboardLong, @S);
+            DeleteSelect;
+            SelEnd := SelStart;
+            DrawView;
+            ClearEvent(Event);
+            Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
+            Exit;
+            end;
+          kbShiftIns:
+            begin
+            ClearEvent(Event);
+            S := '';
+            DeleteSelect;
+            Message(Application, evCommand, cmGetFromClipboardLong, @S);
+            if S = '' then
+              Exit;
+            SelStart := CurPos;
+            SelEnd := CurPos+Length(S);
+            Insert(S, Data, CurPos+1);
+            Data:= Copy(Data, 1, MaxLen);
+            DrawView;
+            Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
+            Exit;
+            end;
+          kbAlt1, kbAlt2, kbAlt3, kbAlt4, kbAlt5, kbAlt6, kbAlt7,
+           kbAlt8, kbAlt9:
+            begin
+            ClearEvent(Event);
+            S := '';
+            DeleteSelect;
+            pS := DirsToChange[Event.ScanCode-Hi(kbAlt1)];
+            if  (pS = nil) or (Length(pS^) = 0) then
+              Exit
+            else
+              S := pS^;
+            if S = '' then
+              Exit;
+            SelStart := CurPos;
+            SelEnd := CurPos+Length(S);
+            OldData := Data;
+            Insert(S, OldData, CurPos+1);
+            Data:= Copy(OldData, 1, MaxLen);
+            if SelEnd > MaxLen then
+              SelEnd := MaxLen;
+            DrawView;
+            Exit;
+            end;
+          kbLeft, kbShiftLeft:
+            if CurPos > 0 then
+              Dec(CurPos);
+          kbRight, kbShiftRight:
+            if CurPos < Length(Data) then
+              Inc(CurPos);
+          kbHome, kbShiftHome:
+            CurPos := 0;
+          kbEnd, kbShiftEnd:
+            CurPos := Length(Data);
+          //JO: Для двух нижележащих клавиш (BackSpace и Del) зачем-то ещё со вpемён
+          //    Ритлабовской веpсии в конце вставлено CheckValid. Зачем это надо
+          //    - непонятно, т.к. это пpовеpка на пpевышение длины стpоки ввода и
+          //    наличие в ней недопустимых символов. В pезультате удаления символа ни
+          //    то, ни дpугое появиться не может. А вот невозможность удалить
+          //    недопустимые символы, вставленные из буфеpа - возникает.
+          kbBack:
+            if CurPos > 0 then
               begin
-              if SelStart = SelEnd then
-                if CurPos < Length(Data^) then
-                  begin
-                  SelStart := CurPos;
-                  SelEnd := CurPos+1;
-                  end;
-              DeleteSelect;
+              Delete(Data, CurPos, 1);
+              Dec(CurPos);
+              if FirstPos > 0 then
+                Dec(FirstPos);
               {CheckValid(True);}
               end;
-            kbIns:
-              SetState(sfCursorIns, State and sfCursorIns = 0);
-            else {case}
-              case Event.CharCode of
-                ' '..#254:
-                  InsChar(Event.CharCode);
-                ^P, ^B:
-                  begin
-                  ASCIITable;
-                  ClearEvent(Event);
-                  end;
-                ^Y:
-                  begin
-                  Data^:= '';
-                  CurPos := 0;
-                  end;
-                else {case}
-                  Exit;
-              end
-
-          end {case};
-        if not CtrlK then
-          if ExtendBlock then
-            AdjustSelectBlock
-          else
+          kbDel:
             begin
-            SelStart := CurPos;
-            SelEnd := CurPos;
+            if SelStart = SelEnd then
+              if CurPos < Length(Data) then
+                begin
+                SelStart := CurPos;
+                SelEnd := CurPos+1;
+                end;
+            DeleteSelect;
+            {CheckValid(True);}
             end;
+          kbIns:
+            SetState(sfCursorIns, State and sfCursorIns = 0);
+          else {case}
+            case Event.CharCode of
+              ' '..#254:
+                InsChar(Event.CharCode);
+              ^P, ^B:
+                begin
+                ASCIITable;
+                ClearEvent(Event);
+                end;
+              ^Y:
+                begin
+                Data:= '';
+                CurPos := 0;
+                end;
+              else {case}
+                Exit;
+            end
+
+        end {case};
+        if ExtendBlock then
+          AdjustSelectBlock
+        else
+          begin
+          SelStart := CurPos;
+          SelEnd := CurPos;
+          end;
         if FirstPos > CurPos then
           FirstPos := CurPos;
         I := CurPos-Size.X+2;
@@ -1301,13 +1245,13 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
 
 procedure TInputLine.SelectAll(Enable: Boolean);
   begin
-  if Data = nil then
+  if Data = '' then
     Exit;
   CurPos := 0;
   FirstPos := 0;
   SelStart := 0;
   if Enable then
-    SelEnd := Length(Data^)
+    SelEnd := Length(Data)
   else
     SelEnd := 0;
   DrawView;
@@ -1315,12 +1259,12 @@ procedure TInputLine.SelectAll(Enable: Boolean);
 
 procedure TInputLine.SetData(var Rec);
   begin
-  if Data = nil then
-    Exit;
+//!  if Data = '' then
+//!    Exit;
   if  (Validator = nil) or
-      (Validator^.Transfer(Data^, @Rec, vtSetData) = 0)
+      (Validator^.Transfer(Data, @Rec, vtSetData) = 0)
   then
-    Move(Rec, Data^ {[0]}, DataSize);
+    Data := String(Rec);
   Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
   SelectAll(True);
   end;
@@ -1328,7 +1272,7 @@ procedure TInputLine.SetData(var Rec);
 procedure TInputLine.SetState(AState: Word; Enable: Boolean);
   begin
   TView.SetState(AState, Enable);
-  if Data = nil then
+  if Data = '' then
     Exit;
   if  (AState = sfSelected) or ((AState = sfActive) and
         (State and sfSelected <> 0))
@@ -1344,11 +1288,14 @@ procedure TInputLine.SetValidator(AValid: PValidator);
   end;
 
 procedure TInputLine.Store(var S: TStream);
+  var
+    WorkS: String;
   begin
   TView.Store(S);
   {Cat:warn AnsiString}
   S.Write(MaxLen, SizeOf(AInt)*5);
-  S.WriteStr(Data);
+  WorkS := Data;
+  S.WriteStr(@WorkS);
   S.Put(Validator);
   end;
 
@@ -1359,11 +1306,31 @@ function TInputLine.Valid(Command: Word): Boolean;
     if Command = cmValid then
       Valid := Validator^.Status = vsOk
     else if Command <> cmCancel then
-      if not Validator^.Valid(Data^) then
+      if not Validator^.Valid(Data) then
         begin
         Select;
         Valid := False;
         end;
+  end;
+
+{ TLongInputLine }
+
+procedure TLongInputLine.GetData(var Rec);
+  begin
+  if (Data = '') or (Validator = nil) or
+      (Validator^.Transfer(Data, @Rec, vtGetData) = 0)
+  then
+    AnsiString(Rec) := Copy(Data, 1, MaxLen);
+  end;
+
+procedure TLongInputLine.SetData(var Rec);
+  begin
+  if  (Validator = nil) or
+      (Validator^.Transfer(Data, @Rec, vtSetData) = 0)
+  then
+    Data := AnsiString(Rec);
+  Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
+  SelectAll(True);
   end;
 
 { TButton }
@@ -2815,6 +2782,7 @@ procedure THistory.HandleEvent(var Event: TEvent);
     R, P: TRect;
     C: Word;
     Rslt: String;
+    S: String;
   begin
   TView.HandleEvent(Event);
   if  (Event.What = evMouseDown) or
@@ -2828,7 +2796,8 @@ procedure THistory.HandleEvent(var Event: TEvent);
       ClearEvent(Event);
       Exit;
       end;
-    RecordHistory(Link^.Data^);
+    S := Link^.Data;
+    RecordHistory(S);
     Link^.GetBounds(R);
     Dec(R.A.X);
     Inc(R.B.X);
@@ -2846,7 +2815,11 @@ procedure THistory.HandleEvent(var Event: TEvent);
         Rslt := HistoryWindow^.GetSelection;
         if Length(Rslt) > Link^.MaxLen then
           SetLength(Rslt, Link^.MaxLen);
-        Link^.SetData(Rslt);
+//JO: для совместимости с TLongInputLine не используем TInputLine.GetData и
+//    TInputLine.SetData - см. мой комментаpий к пpоцедуpе MakeLongInputLine
+//    в rcp.pas
+       {Link^.SetData(Rslt);}
+        Link^.Data := Rslt;
         Link^.SelectAll(True);
         Link^.DrawView;
         end;
@@ -2858,7 +2831,10 @@ procedure THistory.HandleEvent(var Event: TEvent);
     if  ( (Event.Command = cmReleasedFocus) and (Event.InfoPtr = Link))
       or (Event.Command = cmRecordHistory)
     then
-      RecordHistory(Link^.Data^);
+      begin
+      S := Link^.Data;
+      RecordHistory(S);
+      end;
   end { THistory.HandleEvent };
 
 function THistory.InitHistoryWindow(var Bounds: TRect): PHistoryWindow;
@@ -2959,12 +2935,12 @@ procedure THexLine.HandleEvent;
             if Sec
             then
               begin
-              Delete(InputLine^.Data^, CurX+1, 1);
+              Delete(InputLine^.Data, CurX+1, 1);
               Sec := False;
               end
             else
               begin
-              Delete(InputLine^.Data^, CurX, 1);
+              Delete(InputLine^.Data, CurX, 1);
               Dec(CurX);
               Sec := False;
               end;
@@ -2972,9 +2948,9 @@ procedure THexLine.HandleEvent;
           end;
         kbDel:
           begin
-          if CurX < Length(InputLine^.Data^) then
+          if CurX < Length(InputLine^.Data) then
             begin
-            Delete(InputLine^.Data^, CurX+1, 1);
+            Delete(InputLine^.Data, CurX+1, 1);
             Sec := False;
             end;
           CED
@@ -2993,7 +2969,7 @@ procedure THexLine.HandleEvent;
           end;
         kbRight:
           begin
-          if Sec and (CurX < Length(InputLine^.Data^)) then
+          if Sec and (CurX < Length(InputLine^.Data)) then
             begin
             Inc(CurX);
             Sec := False
@@ -3015,7 +2991,7 @@ procedure THexLine.HandleEvent;
                 CE;
                 Exit
                 end;
-              S := InputLine^.Data^;
+              S := InputLine^.Data;
               if CurX+1 > Length(S) then
                 S := S+#0;
               if Sec then
@@ -3026,7 +3002,7 @@ procedure THexLine.HandleEvent;
                 S[CurX+1] := Char((Byte(S[CurX+1]) and $F) or
                            (Pos(UpCase(Event.CharCode),
                         '0123456789ABCDEF')-1) shl 4);
-              InputLine^.Data^:= Copy(S, 1, InputLine^.MaxLen);
+              InputLine^.Data:= Copy(S, 1, InputLine^.MaxLen);
               InputLine^.DrawView;
               if Sec then
                 begin
@@ -3051,8 +3027,8 @@ procedure THexLine.Draw;
     S: String;
     C: Word;
   begin
-  if CurX > Length(InputLine^.Data^) then
-    CurX := Length(InputLine^.Data^);
+  if CurX > Length(InputLine^.Data) then
+    CurX := Length(InputLine^.Data);
   if CurX < 0 then
     CurX := 0;
   if CurX <> InputLine^.CurPos then
@@ -3061,8 +3037,8 @@ procedure THexLine.Draw;
       CurX := InputLine^.CurPos;
       Sec := False
       end;
-  if DeltaX >= Length(InputLine^.Data^) then
-    DeltaX := Integer(Length(InputLine^.Data^))-1;
+  if DeltaX >= Length(InputLine^.Data) then
+    DeltaX := Integer(Length(InputLine^.Data))-1;
   if DeltaX < 0 then
     DeltaX := 0;
   if CurX < DeltaX then
@@ -3078,7 +3054,7 @@ procedure THexLine.Draw;
       end;
   C := InputLine^.GetColor(1);
   MoveChar(B, ' ', C, Size.X);
-  S := Copy(InputLine^.Data^, DeltaX+1, MaxStringLength);
+  S := Copy(InputLine^.Data, DeltaX+1, MaxStringLength);
   S := Copy(DumpStr(S[1], 0, 16, 0), 11, Length(S)*3);
   SetCursor(1+3*(CurX-DeltaX)+Byte(Sec), 0);
   ShowCursor;

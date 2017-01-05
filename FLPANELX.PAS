@@ -104,6 +104,8 @@ type
     procedure RereadDir;
     procedure SetDirName; virtual;
     procedure SendLocated;
+     {` Уведомление другой (нефайловой) панели об удержании
+      курсора на файле. Используется для QView и DizView`}
     procedure IncDrawDisabled;
     procedure DecDrawDisabled;
     procedure ChkNoMem;
@@ -424,12 +426,10 @@ procedure TFilePanelRoot.SendLocated;
   R := ScrollBar^.Value;
   if R >= Files^.Count then
     Exit;
-  if not QuickViewEnabled and (Drive^.Flags and psShowLongDesc = 0) then
+  if not QuickViewEnabled or (Drive^.DriveType >= dtArc) then
     Exit;
   CurFileRec := PFileRec(Files^.At(R));
-  S := MakeNormName(CurFileRec^.Owner^, CurFileRec^.FlName[uLfn]);
-  if QuickViewEnabled or (Drive^.DriveType < dtArc) then
-    Message(Owner, evCommand, cmLoadViewFile, @S)
+  Message(Owner, evCommand, cmLoadViewFile, CurFileRec)
   end;
 
 {-DataCompBoy-}
@@ -764,12 +764,9 @@ procedure TFilePanelRoot.CommandHandle;
     var
       A: LongInt;
     begin
-    while Name[Length(Name)] = '.' do
-      SetLength(Name, Length(Name)-1);
-    UpStr(Name);
     A := 0;
     while (A < Files^.Count) and
-        (UpStrg(PFileRec(Files^.At(A))^.FlName[True]) <> Name)
+        (PFileRec(Files^.At(A))^.FlName[True] <> Name)
     do
       Inc(A);
     if A >= Files^.Count then
@@ -908,6 +905,7 @@ WrongArc:
       Name := '..'
     else
       Name := Nm+Xt;
+    if Name = '.' then Name := '';{directory name '.' bugfix by piwamoto}
     GotoSingle(Name);
     end { GotoFile };
 
@@ -1576,7 +1574,7 @@ WrongArc:
 
   procedure _DoCtrl;
     var
-      S: String;
+      DriveLetter: Char;
     begin
     if  ( (ShiftState and 3 <> 0) or (CmdLine.Str = ''))
       and (FMSetup.Show and fmsDriveLine <> 0)
@@ -1607,6 +1605,7 @@ WrongArc:
           DirectoryName[1] := '*';
         {/Cat}
         end;
+      DriveLetter := DirectoryName[1];
       DirectoryName[2] := ':';
       repeat
         if Event.What = evKeyDown then
@@ -1644,17 +1643,15 @@ WrongArc:
           end;
         GetEvent(Event);
       until ShiftState and kbCtrlShift = 0;
-      if DirectoryName[1] = '*' then
-        S := cTEMP_
-      else
-        S := DirectoryName[1]+':';
-      DirectoryName := S;
-      Message(@Self, evCommand, cmChangeDrv, @S);
-      Drive^.SizeX := Size.X;
-      DirectoryName := Drive^.GetDir;
-      DriveLine^.DrawView;
-      Abort := False;
-      DriveLine^.DrawView;
+      if DriveLetter <> DirectoryName[1] then
+        begin
+          if DirectoryName[1] = '*' then DirectoryName := cTEMP_;
+          Message(@Self, evCommand, cmChangeDrv, @DirectoryName);
+          Drive^.SizeX := Size.X;
+          DirectoryName := Drive^.GetDir;
+          DriveLine^.DrawView;
+          Abort := False;
+        end;
       CE;
       end;
     end { _DoCtrl };
@@ -1968,8 +1965,8 @@ WrongArc:
       bbb, ccc: Byte;
       l: LongInt;
       FC: PFilesCollection;
-      s, s2: String;
-      line: LongInt;
+      s: String;
+      s2: LongString;
       {$IFNDEF OS2}
       CondLfn: TUseLFN; {JO}
       {$ENDIF}
@@ -2060,42 +2057,12 @@ WrongArc:
         begin
         if  (Drive^.Flags and psShowDescript = 0) and
             (FMSetup.Options and fmoAlwaysCopyDesc = 0)
-             and (PF^.DIZ = nil)
+            and (PF^.DIZ = nil)
         then
           begin
           if  (Drive^.DriveType = dtDisk) then
             begin
-            {$IFDEF DualName}
-            CondLfn := not DescrByShortNames;
-            {$ENDIF}
-            s2 := '';
-            I := 1;
-            PF := Files^.At(CurPos);
-            repeat
-              s := GetPossibleDizOwner(I);
-              Inc(I);
-              if s <> '' then
-                begin
-                {$IFNDEF OS2}
-                {JO: если включена работа с описаниями по коротким именам, }
-                {    то сначала ищем описание по коротким, если не найдём  }
-                {    - по длинным, если не включена - в обратном порядке   }
-                s2 := GetDiz(s, line, PF^.FlName[CondLfn]);
-                if s2 = '' then
-                  s2 := GetDiz(s, line, PF^.FlName[ not CondLfn]);
-                {$ELSE}
-                s2 := GetDiz(s, line, PF^.FlName[True]);
-                {$ENDIF}
-                end;
-            until (s = '') or (s2 <> '');
-            if s2 <> '' then
-              begin
-              New(PF^.DIZ);
-              PF^.DIZ^.Owner := NewStr(s);
-              PF^.DIZ^.DIZ := NewStr(s2);
-              PF^.DIZ^.line := line;
-              PF^.DIZ^.isDisposable := True;
-              end;
+            GetDiz(PF);
             Drive^.EditDescription(PF);
             end;
           end

@@ -92,6 +92,7 @@ uses
   Lfn, {DataCompBoy}
   DNApp, Advance, Advance1, Advance2, Advance3, Startup, Messages, Menus,
   Commands, Microed, WinClp, DNHelp, Dos, Memory, Dialogs, Tree, RStrings
+  , filediz
   ;
 
 type
@@ -461,12 +462,8 @@ function MakeString(S: String; UserParams: PUserParams;
       begin
       if UserParams^.Active = nil then
         ts := '' {KSNK}
-      else if (UserParams^.Active^.DIZ <> nil)
-           and (UserParams^.Active^.DIZ^.DIZ <> nil)
-      then
-        ts := UserParams^.Active^.DIZ^.DIZ^
       else
-        ts := '';
+        ts := DizFirstLine(UserParams^.Active^.DIZ);
       if HandleTildes then
         Replace('~', #0'~', ts);
       Replace('$', #4, ts);
@@ -579,12 +576,8 @@ function MakeString(S: String; UserParams: PUserParams;
       begin
       if UserParams^.Passive = nil then
         ts := '' {KSNK}
-      else if (UserParams^.Passive^.DIZ <> nil)
-           and (UserParams^.Passive^.DIZ^.DIZ <> nil)
-      then
-        ts := UserParams^.Passive^.DIZ^.DIZ^
       else
-        ts := '';
+        ts := DizFirstLine(UserParams^.Passive^.DIZ);
       Replace('$', #4, ts);
       Replace('!', #1, ts);
       Replace('&', #2, ts);

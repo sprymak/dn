@@ -1517,6 +1517,8 @@ db:
   then
     begin
     TempFile := '';
+    DisposeStr(fr^.Owner);
+    DelFileRec(fr);
     Exit;
     end;
 
@@ -1532,6 +1534,7 @@ db:
   if not AltExt and SpecialIntView then
     Exit;
   TextView;
+  DisposeStr(fr^.Owner);
   DelFileRec(fr); {Cat}
   end { TDNApplication.ViewFile };
 {-DataCompBoy-} {AK155}
@@ -1579,6 +1582,8 @@ procedure TDNApplication.EditFile;
     then
       begin
       TempFile := '';
+      DisposeStr(fr^.Owner);
+      DelFileRec(fr);
       Exit;
       end;
     if  (InterfaceData.Options and ouiStoreEditorPosition <> 0) then
@@ -1653,6 +1658,7 @@ procedure TDNApplication.EditFile;
       end;
     end;
 ex:
+  DisposeStr(fr^.Owner);
   DelFileRec(fr);
   end { TDNApplication.EditFile };
 {-DataCompBoy-}
@@ -2133,7 +2139,11 @@ procedure TDNApplication.HandleCommand;
         S := DelSquashes(S);
         if PathExist(S) then
           begin
-          {Cat}
+          S[1] := UpCase(S[1]); {Cat}
+            {AK155 Под NT назначение маленькой буквы проходит буквально,
+              после чего в комстроке тоже индицируется маленькая буква,
+              что смешно, и начинает глючить перемещение по полосе дисков,
+              что уже не смешно. }
           Message(Application, evBroadcast, cmChangeDirectory, @S);
           end;
         SD := '';

@@ -318,7 +318,6 @@ procedure TCommandLine.Draw;
     CurX := 0;
   if CurX > Length(Str) then
     CurX := Length(Str);
-  DeltaX := Max(Length(Str)-(Size.X-Length(S^)-1), 0);
   if DeltaX > CurX then
     DeltaX := CurX;
   if CurX-DeltaX > Size.X-Min(Length(Dir), 50)-1 then
@@ -681,7 +680,7 @@ EndLFN:
                 if StrModified then
                   begin
                   AddCommand(Str);
-                  CurString := CmdStrings^.Count-1;
+                  CurString := CmdStrings^.Count;
                   StrModified := False;
                   end;
                 if CurString > 0 then
@@ -689,6 +688,8 @@ EndLFN:
                 Str := GetCommand(CurString);
                 Changed := True;
                 CurX := Length(Str);
+                if CurX < Size.X-Min(Length(Dir), 50)-1 then
+                  DeltaX := 0; {John_SW}
                 CE2;
                 end;
               kbDown, kbShiftDown, kbCtrlX:
@@ -710,6 +711,8 @@ EndLFN:
                 Changed := True;
                 CurX := Length(Str);
                 CE2;
+                if CurX < Size.X-Min(Length(Dir), 50)-1 then
+                  DeltaX := 0; {John_SW}
                 end;
               kbLeft, kbCtrlS, kbShiftLeft:
                 begin

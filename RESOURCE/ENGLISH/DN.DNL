@@ -1487,3 +1487,9 @@ dlSpacesInPassword = 'The password cannot contain spaces.'
 ;JO+
 dlPressF1 ^M^C'Press F1 for more detailed information'
 ;JO-
+;AK155
+dlLayoutErr 'Error in "Keyboard" field'
+dlWinErr 'Error in "WIN:" field'
+dlCodetablesErr 'Error in "Additional codetables" field'
+dlCoutrySetupErr 'Error in country setups (Options - Configuration - Country support...)'
+;/AK155

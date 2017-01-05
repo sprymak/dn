@@ -144,6 +144,7 @@ const
 
   otDialog = 10;
   otInputLine = 11;
+  otLongInputLine = 33; {JO}
   otButton = 12;
   otCluster = 13;
   otRadioButtons = 14;
@@ -215,7 +216,8 @@ const
   otFileViewer = 3370;
   otFileWindow = 3371;
   otViewScroll = 3372;
-  otHFileViewer = 3373;
+  otQFileViewer = 3373;
+  otDFileViewer = 3374;
   otViewInfo = 3570;
 
   { --- Gauges }

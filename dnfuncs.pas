@@ -301,7 +301,7 @@ type
     ReplaceDiz: procedure (const DPath, Name: String; ANewName: PString;
        ANewDescription: PString);
     DeleteDiz: procedure (const DPath, Name: String);
-    GetDiz: function (const DPath: String; var Line: LongInt;
+    GetDiz: function (const DPath: String;
        const Name: String): String;
     SetDescription: procedure (PF: PFileRec; DizOwner: String);
 
