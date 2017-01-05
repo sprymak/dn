@@ -16,69 +16,70 @@ Copyright (C) 2002 Aleksej Kozlov (Cat)
 interface
 
 uses
-  _Defines, _Model1;
+  _Defines, _Model1
+  ;
 
 type
   PFilePanel = ^TFilePanel;
   TFilePanel = packed record
     VMT: PViewVMT;
-    ObjectIsInited: boolean;
+    ObjectIsInited: Boolean;
     Owner: PGroup;
     Next: PView;
     Origin: TPoint;
     Size: TPoint;
     Cursor: TPoint;
-    GrowMode: byte;
-    DragMode: byte;
+    GrowMode: Byte;
+    DragMode: Byte;
     HelpCtx: AWord;
     State: AWord;
     Options: AWord;
     EventMask: AWord;
     UpTmr: TEventTimer;
-    UpdTicks: longInt;
-    OldSizeX: integer;
-    isValid, MSelect, SelectFlag, Loaded, ChangeLocked: boolean;
+    UpdTicks: LongInt;
+    OldSizeX: Integer;
+    isValid, MSelect, SelectFlag, Loaded, ChangeLocked: Boolean;
     InfoView, DirView, DriveLine: PView;
-    Delta, OldDelta, OldPos, DeltaX: longInt;
+    Delta, OldDelta, OldPos, DeltaX: LongInt;
     Files: PFilesCollection;
-    SortMode: byte;
+    SortMode: Byte;
     DirectoryName, OldDirectory: String;
     FileMask: String;
     SearchParam: TQuickSearchData;
     ScrollBar: PScrollBar;
-    DrawDisableLvl, SelNum, LineLength: longInt;
+    DrawDisableLvl, SelNum, LineLength: LongInt;
     SelectedLen, PackedLen: TSize;
     WasActive, PosChanged, CommandEnabling,
-    ViewEnabled: boolean;
+    ViewEnabled: Boolean;
     TotalInfo, FreeSpace: TSize;
-    PanelFlags: word;
-    LastDriveFlags: word;
+    PanelFlags: Word;
+    LastDriveFlags: Word;
     Drive: PDrive;
-    ForceReading: boolean;
-    DriveState: word;
+    ForceReading: Boolean;
+    DriveState: Word;
     LastCurPos: TPoint;
     end;
 
   PCommandLine = ^TCommandLine;
   TCommandLine = packed record
     VMT: PViewVMT;
-    ObjectIsInited: boolean;
+    ObjectIsInited: Boolean;
     Owner: PGroup;
     Next: PView;
     Origin: TPoint;
     Size: TPoint;
     Cursor: TPoint;
-    GrowMode: byte;
-    DragMode: byte;
+    GrowMode: Byte;
+    DragMode: Byte;
     HelpCtx: AWord;
     State: AWord;
     Options: AWord;
     EventMask: AWord;
     UpTmr: TEventTimer;
-    UpdTicks: longInt;
+    UpdTicks: LongInt;
     Dir: String;
-    DeltaX, CurX: longInt;
-    Overwrite: boolean;
+    DeltaX, CurX: LongInt;
+    Overwrite: Boolean;
     LineType: TLineType;
     end;
 

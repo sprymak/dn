@@ -61,49 +61,50 @@ type
 
   {For calculating timeouts}
   TEventTimer = record
-    StartTics: longInt;
-    ExpireTics: longInt;
+    StartTics: LongInt;
+    ExpireTics: LongInt;
     end;
 
   {For internal date/time manipulations}
-  Date = word;
-  Time = longInt;
+  Date = Word;
+  Time = LongInt;
 
   DateTimeRec =
   record
     D: Date;
-    t: Time;
+    T: Time;
     end;
 
-function xYMTimeStampToPack(YMTime: longInt): longInt;
-function xPackToYMTimeStamp(RawTime: longInt): longInt;
-procedure xIncDateTime(var DT1, DT2: DateTimeRec; Days: integer;
-    Secs: longInt);
+function xYMTimeStampToPack(YMTime: LongInt): LongInt;
+function xPackToYMTimeStamp(RawTime: LongInt): LongInt;
+procedure xIncDateTime(var DT1, DT2: DateTimeRec; Days: Integer;
+     Secs: LongInt);
 
-procedure NewTimerSecs(var ET: TEventTimer; Secs: longInt);
-procedure NewTimer(var ET: TEventTimer; Tics: longInt);
-function TimerExpired(ET: TEventTimer): boolean;
+procedure NewTimerSecs(var ET: TEventTimer; Secs: LongInt);
+procedure NewTimer(var ET: TEventTimer; Tics: LongInt);
+function TimerExpired(ET: TEventTimer): Boolean;
 
-function ElapsedTime(ET: TEventTimer): longInt;
-function ElapsedTimeInSecs(ET: TEventTimer): longInt;
+function ElapsedTime(ET: TEventTimer): LongInt;
+function ElapsedTimeInSecs(ET: TEventTimer): LongInt;
 
-procedure DelayTics(Tics: longInt);
+procedure DelayTics(Tics: LongInt);
 
-procedure GetUNIXDate(Julian: longInt; var Year, Month, Day, Hour,
-    Min, Sec: word);
+procedure GetUNIXDate(Julian: LongInt;
+     var Year, Month, Day, Hour, Min, Sec: Word);
 
 implementation
 uses
-  Dos, VPUtils;
+  Dos, VPUtils
+  ;
 type
   DayType = (Sunday, Monday, Tuesday, Wednesday, Thursday, Friday,
-    Saturday);
+     Saturday);
 
 const
   {Set to 1/1/1970 00:00 GMT}
-  StartDate: DateTimeRec = (D: 25567; t: 0);
-  GmtHourOffset: integer = 0; {Default no GMT adjustments}
-  Threshold2000: integer = 1900;
+  StartDate: DateTimeRec = (D: 25567; T: 0);
+  GmtHourOffset: Integer = 0; {Default no GMT adjustments}
+  Threshold2000: Integer = 1900;
 
   MinYear = 1900;
   MaxYear = 2078;
@@ -118,394 +119,393 @@ const
   TicsFreq = 1675;
   SecsFreq = 92;
 
-function IsLeapYear(Year: integer): boolean;
+function IsLeapYear(Year: Integer): Boolean;
   {-Return True if Year is a leap year}
   begin
-    IsLeapYear := (Year mod 4 = 0) and (Year mod 4000 <> 0) and
-    ((Year mod 100 <> 0) or (Year mod 400 = 0));
+  IsLeapYear := (Year mod 4 = 0) and (Year mod 4000 <> 0) and
+      ( (Year mod 100 <> 0) or (Year mod 400 = 0));
   end;
 
-function DaysInMonth(Month, Year: integer): integer;
+function DaysInMonth(Month, Year: Integer): Integer;
   {-Return the number of days in the specified month of a given year}
   begin
-    if word(Year) < 100 then
-      begin
-        Inc(Year, 1900);
-        if Year < Threshold2000 then
-          Inc(Year, 100);
-      end;
+  if Word(Year) < 100 then
+    begin
+    Inc(Year, 1900);
+    if Year < Threshold2000 then
+      Inc(Year, 100);
+    end;
 
-    case Month of
-      1, 3, 5, 7, 8, 10, 12:
-        DaysInMonth := 31;
-      4, 6, 9, 11:
-        DaysInMonth := 30;
-      2:
-        DaysInMonth := 28+Ord(IsLeapYear(Year));
-      else
-        DaysInMonth := 0;
-    end {case};
-  end { DaysInMonth };
+  case Month of
+    1, 3, 5, 7, 8, 10, 12:
+      DaysInMonth := 31;
+    4, 6, 9, 11:
+      DaysInMonth := 30;
+    2:
+      DaysInMonth := 28+Ord(IsLeapYear(Year));
+    else {case}
+      DaysInMonth := 0;
+  end {case};
+  end;
 
-function ValidDate(Day, Month, Year: integer): boolean;
+function ValidDate(Day, Month, Year: Integer): Boolean;
   {-Verify that day, month, year is a valid date}
   begin
-    if word(Year) < 100 then
-      begin
-        Inc(Year, 1900);
-        if Year < Threshold2000 then
-          Inc(Year, 100);
-      end;
+  if Word(Year) < 100 then
+    begin
+    Inc(Year, 1900);
+    if Year < Threshold2000 then
+      Inc(Year, 100);
+    end;
 
-    if (Day < 1) or (Year < MinYear) or (Year > MaxYear) then
-      ValidDate := False
-    else
-      case Month of
-        1..12:
-          ValidDate := Day <= DaysInMonth(Month, Year);
-        else
-          ValidDate := False;
-      end
+  if  (Day < 1) or (Year < MinYear) or (Year > MaxYear) then
+    ValidDate := False
+  else
+    case Month of
+      1..12:
+        ValidDate := Day <= DaysInMonth(Month, Year);
+      else {case}
+        ValidDate := False;
+    end
   end;
 
-function DMYtoDate(Day, Month, Year: integer): Date;
+function DMYtoDate(Day, Month, Year: Integer): Date;
   {-Convert from day, month, year to a julian date}
   begin
-    if word(Year) < 100 then
-      begin
-        Inc(Year, 1900);
-        if Year < Threshold2000 then
-          Inc(Year, 100);
-      end;
+  if Word(Year) < 100 then
+    begin
+    Inc(Year, 1900);
+    if Year < Threshold2000 then
+      Inc(Year, 100);
+    end;
 
-    if not ValidDate(Day, Month, Year) then
-      DMYtoDate := BadDate
-    else if (Year = MinYear) and (Month < 3) then
-      if Month = 1 then
-        DMYtoDate := pred(Day)
-      else
-        DMYtoDate := Day+30
+  if not ValidDate(Day, Month, Year) then
+    DMYtoDate := BadDate
+  else if (Year = MinYear) and (Month < 3) then
+    if Month = 1 then
+      DMYtoDate := pred(Day)
+    else
+      DMYtoDate := Day+30
+  else
+    begin
+    if Month > 2 then
+      Dec(Month, 3)
     else
       begin
-        if Month > 2 then
-          Dec(Month, 3)
-        else
-          begin
-            Inc(Month, 9);
-            Dec(Year);
-          end;
-        Dec(Year, MinYear);
-        DMYtoDate :=
-        ((longInt(Year)*1461) div 4)+
-        (((153*Month)+2) div 5)+Day+First2Months;
+      Inc(Month, 9);
+      Dec(Year);
       end;
+    Dec(Year, MinYear);
+    DMYtoDate :=
+        ( (LongInt(Year)*1461) div 4)+
+        ( ( (153*Month)+2) div 5)+Day+First2Months;
+    end;
   end { DMYtoDate };
 
-procedure DateToDMY(Julian: Date; var Day, Month, Year: integer);
+procedure DateToDMY(Julian: Date; var Day, Month, Year: Integer);
   {-Convert from a julian date to month, day, year}
   var
-    i: longInt;
+    I: LongInt;
   begin
-    if Julian = BadDate then
+  if Julian = BadDate then
+    begin
+    Day := 0;
+    Month := 0;
+    Year := 0;
+    end
+  else if Julian <= First2Months then
+    begin
+    Year := MinYear;
+    if Julian <= 30 then
       begin
-        Day := 0;
-        Month := 0;
-        Year := 0;
-      end
-    else if Julian <= First2Months then
-      begin
-        Year := MinYear;
-        if Julian <= 30 then
-          begin
-            Month := 1;
-            Day := succ(Julian);
-          end
-        else
-          begin
-            Month := 2;
-            Day := Julian-30;
-          end;
+      Month := 1;
+      Day := Succ(Julian);
       end
     else
       begin
-        i := (4*longInt(Julian-First2Months))-1;
-        Year := i div 1461;
-        i := (5*((i mod 1461) div 4))+2;
-        Month := i div 153;
-        Day := ((i mod 153)+5) div 5;
-        if Month < 10 then
-          Inc(Month, 3)
-        else
-          begin
-            Dec(Month, 9);
-            Inc(Year);
-          end;
-        Inc(Year, MinYear);
+      Month := 2;
+      Day := Julian-30;
       end;
+    end
+  else
+    begin
+    I := (4*LongInt(Julian-First2Months))-1;
+    Year := I div 1461;
+    I := (5*((I mod 1461) div 4))+2;
+    Month := I div 153;
+    Day := ((I mod 153)+5) div 5;
+    if Month < 10 then
+      Inc(Month, 3)
+    else
+      begin
+      Dec(Month, 9);
+      Inc(Year);
+      end;
+    Inc(Year, MinYear);
+    end;
   end { DateToDMY };
 
-procedure DateTimeDiff(DT1, DT2: DateTimeRec; var Days: word; var
-    Secs: longInt);
+procedure DateTimeDiff(DT1, DT2: DateTimeRec; var Days: Word;
+     var Secs: LongInt);
   {-Return the difference in days and seconds between two points in time}
   var
-    dtTemp: DateTimeRec;
+    DTTemp: DateTimeRec;
   begin
-    {swap if DT1 later than DT2}
-    if (DT1.D > DT2.D) or ((DT1.D = DT2.D) and (DT1.t > DT2.t)) then
-        begin
-        dtTemp := DT1;
-        DT1 := DT2;
-        DT2 := dtTemp;
-      end;
+  {swap if DT1 later than DT2}
+  if  (DT1.D > DT2.D) or ((DT1.D = DT2.D) and (DT1.T > DT2.T)) then
+    begin
+    DTTemp := DT1;
+    DT1 := DT2;
+    DT2 := DTTemp;
+    end;
 
-    {the difference in days is easy}
-    Days := DT2.D-DT1.D;
+  {the difference in days is easy}
+  Days := DT2.D-DT1.D;
 
-    {difference in seconds}
-    if DT2.t < DT1.t then
-      begin
-        {subtract one day, add 24 hours}
-        Dec(Days);
-        Inc(DT2.t, SecondsInDay);
-      end;
-    Secs := DT2.t-DT1.t;
+  {difference in seconds}
+  if DT2.T < DT1.T then
+    begin
+    {subtract one day, add 24 hours}
+    Dec(Days);
+    Inc(DT2.T, SecondsInDay);
+    end;
+  Secs := DT2.T-DT1.T;
   end { DateTimeDiff };
 
-procedure TimeToHMS(t: Time; var Hours, Minutes, Seconds: byte);
+procedure TimeToHMS(T: Time; var Hours, Minutes, Seconds: Byte);
   {-Convert a Time variable to Hours, Minutes, Seconds}
   begin
-    if t = BadTime then
-      begin
-        Hours := 0;
-        Minutes := 0;
-        Seconds := 0;
-      end
-    else
-      begin
-        Hours := t div SecondsInHour;
-        Dec(t, longInt(Hours)*SecondsInHour);
-        Minutes := t div SecondsInMinute;
-        Dec(t, longInt(Minutes)*SecondsInMinute);
-        Seconds := t;
-      end;
+  if T = BadTime then
+    begin
+    Hours := 0;
+    Minutes := 0;
+    Seconds := 0;
+    end
+  else
+    begin
+    Hours := T div SecondsInHour;
+    Dec(T, LongInt(Hours)*SecondsInHour);
+    Minutes := T div SecondsInMinute;
+    Dec(T, LongInt(Minutes)*SecondsInMinute);
+    Seconds := T;
+    end;
   end;
 
-function HMStoTime(Hours, Minutes, Seconds: byte): Time;
+function HMStoTime(Hours, Minutes, Seconds: Byte): Time;
   {-Convert Hours, Minutes, Seconds to a Time variable}
   var
-    t: Time;
+    T: Time;
   begin
-    Hours := Hours mod HoursInDay;
-    t := (longInt(Hours)*SecondsInHour)+(longInt(Minutes)*
-      SecondsInMinute)+Seconds;
-    HMStoTime := t mod SecondsInDay;
+  Hours := Hours mod HoursInDay;
+  T := (LongInt(Hours)*SecondsInHour)+(LongInt(Minutes)*SecondsInMinute)
+    +Seconds;
+  HMStoTime := T mod SecondsInDay;
   end;
 
-procedure xIncDateTime(var DT1, DT2: DateTimeRec; Days: integer;
-    Secs: longInt);
+procedure xIncDateTime(var DT1, DT2: DateTimeRec; Days: Integer;
+     Secs: LongInt);
   {-Increment (or decrement) DT1 by the specified number of days and seconds
       and put the result in DT2}
   begin
-    DT2 := DT1;
+  DT2 := DT1;
 
-    {date first}
-    Inc(integer(DT2.D), Days);
+  {date first}
+  Inc(Integer(DT2.D), Days);
 
-    if Secs < 0 then
+  if Secs < 0 then
+    begin
+    {change the sign}
+    Secs := -Secs;
+
+    {adjust the date}
+    Dec(DT2.D, Secs div SecondsInDay);
+    Secs := Secs mod SecondsInDay;
+
+    if Secs > DT2.T then
       begin
-        {change the sign}
-        Secs := -Secs;
-
-        {adjust the date}
-        Dec(DT2.D, Secs div SecondsInDay);
-        Secs := Secs mod SecondsInDay;
-
-        if Secs > DT2.t then
-          begin
-            {subtract a day from DT2.D and add a day's worth of seconds to DT2.T}
-            Dec(DT2.D);
-            Inc(DT2.t, SecondsInDay);
-          end;
-
-        {now subtract the seconds}
-        Dec(DT2.t, Secs);
-      end
-    else
-      begin
-        {increment the seconds}
-        Inc(DT2.t, Secs);
-
-        {adjust date if necessary}
-        Inc(DT2.D, DT2.t div SecondsInDay);
-
-        {force time to 0..SecondsInDay-1 range}
-        DT2.t := DT2.t mod SecondsInDay;
+      {subtract a day from DT2.D and add a day's worth of seconds to DT2.T}
+      Dec(DT2.D);
+      Inc(DT2.T, SecondsInDay);
       end;
+
+    {now subtract the seconds}
+    Dec(DT2.T, Secs);
+    end
+  else
+    begin
+    {increment the seconds}
+    Inc(DT2.T, Secs);
+
+    {adjust date if necessary}
+    Inc(DT2.D, DT2.T div SecondsInDay);
+
+    {force time to 0..SecondsInDay-1 range}
+    DT2.T := DT2.T mod SecondsInDay;
+    end;
   end { xIncDateTime };
 
-function xYMTimeStampToPack(YMTime: longInt): longInt;
+function xYMTimeStampToPack(YMTime: LongInt): LongInt;
   {-Return a file time stamp in packed format from a Ymodem time stamp}
   var
     DT: DateTime;
     DTR: DateTimeRec;
-    Ptime: longInt;
-    H, M, s: byte;
+    Ptime: LongInt;
+    H, M, S: Byte;
   begin
-    {Add the time stamp to StartDate}
-    xIncDateTime(StartDate, DTR, 0, YMTime);
+  {Add the time stamp to StartDate}
+  xIncDateTime(StartDate, DTR, 0, YMTime);
 
-    {Add the GMT hour offset}
-    xIncDateTime(DTR, DTR, 0, SecondsInHour*GmtHourOffset);
+  {Add the GMT hour offset}
+  xIncDateTime(DTR, DTR, 0, SecondsInHour*GmtHourOffset);
 
-    {Convert to DT format}
-    with DT do
-      begin
-        DateToDMY(DTR.D, integer(Day), integer(Month), integer(Year));
-        TimeToHMS(DTR.t, H, M, s);
-        Hour := H;
-        Min := M;
-        Sec := s;
-      end;
+  {Convert to DT format}
+  with DT do
+    begin
+    DateToDMY(DTR.D, Integer(Day), Integer(Month), Integer(Year));
+    TimeToHMS(DTR.T, H, M, S);
+    Hour := H;
+    Min := M;
+    Sec := S;
+    end;
 
-    {Convert to packed format}
-    PackTime(DT, Ptime);
-    xYMTimeStampToPack := Ptime;
+  {Convert to packed format}
+  PackTime(DT, Ptime);
+  xYMTimeStampToPack := Ptime;
   end { xYMTimeStampToPack };
 
-function Secs2Tics(Secs: longInt): longInt;
+function Secs2Tics(Secs: LongInt): LongInt;
   {-Returns tics value for Secs seconds}
   begin
-    Secs2Tics := (Secs*TicsFreq) div SecsFreq;
+  Secs2Tics := (Secs*TicsFreq) div SecsFreq;
   end;
 
-procedure NewTimer(var ET: TEventTimer; Tics: longInt);
+procedure NewTimer(var ET: TEventTimer; Tics: LongInt);
   {-Returns a set EventTimer that will expire in Tics}
   begin
-    {Max acceptable value is 24 hours}
-    if Tics > TicsPerDay then
-      Tics := TicsPerDay;
+  {Max acceptable value is 24 hours}
+  if Tics > TicsPerDay then
+    Tics := TicsPerDay;
 
-    with ET do
-      begin
-        StartTics := GetTimemSec div 55;
-        ExpireTics := StartTics+Tics;
-      end;
+  with ET do
+    begin
+    StartTics := GetTimemSec div 55;
+    ExpireTics := StartTics+Tics;
+    end;
   end;
 
-procedure NewTimerSecs(var ET: TEventTimer; Secs: longInt);
+procedure NewTimerSecs(var ET: TEventTimer; Secs: LongInt);
   {-Returns a set EventTimer}
   begin
-    NewTimer(ET, Secs2Tics(Secs));
+  NewTimer(ET, Secs2Tics(Secs));
   end;
 
-function TimerExpired(ET: TEventTimer): boolean;
+function TimerExpired(ET: TEventTimer): Boolean;
   {-Returns True if ET has expired}
   var
-    CurTics: longInt;
+    CurTics: LongInt;
   begin
-    with ET do
-      begin
-        {Get current tics; assume timer has expired}
-        CurTics := GetTimemSec div 55;
-        TimerExpired := True;
+  with ET do
+    begin
+    {Get current tics; assume timer has expired}
+    CurTics := GetTimemSec div 55;
+    TimerExpired := True;
 
-        {Check normal expiration}
-        if CurTics > ExpireTics then
-          exit;
-        {Check wrapped CurTics}
-        if (CurTics < StartTics) and ((CurTics+TicsPerDay) >
-            ExpireTics)
-        then
-          exit;
+    {Check normal expiration}
+    if CurTics > ExpireTics then
+      Exit;
+    {Check wrapped CurTics}
+    if  (CurTics < StartTics) and ((CurTics+TicsPerDay) > ExpireTics)
+    then
+      Exit;
 
-        {If we get here, timer hasn't expired yet}
-        TimerExpired := False;
-      end;
+    {If we get here, timer hasn't expired yet}
+    TimerExpired := False;
+    end;
   end { TimerExpired };
 
-function ElapsedTime(ET: TEventTimer): longInt;
+function ElapsedTime(ET: TEventTimer): LongInt;
   {-Returns elapsed time, in tics, for this timer}
   var
-    CurTics: longInt;
+    CurTics: LongInt;
   begin
-    with ET do
-      begin
-        CurTics := GetTimemSec div 55;
-        if CurTics >= StartTics then
-          {No midnight wrap yet}
-          ElapsedTime := CurTics-StartTics
-        else
-          {Got a midnight wrap, account for it}
-          ElapsedTime := (TicsPerDay-StartTics)+CurTics;
-      end;
+  with ET do
+    begin
+    CurTics := GetTimemSec div 55;
+    if CurTics >= StartTics then
+      {No midnight wrap yet}
+      ElapsedTime := CurTics-StartTics
+    else
+      {Got a midnight wrap, account for it}
+      ElapsedTime := (TicsPerDay-StartTics)+CurTics;
+    end;
   end;
 
-function Tics2Secs(Tics: longInt): longInt;
+function Tics2Secs(Tics: LongInt): LongInt;
   {-Returns seconds value for Tics tics}
   begin
-    Tics2Secs := ((Tics+9)*SecsFreq) div TicsFreq;
+  Tics2Secs := ((Tics+9)*SecsFreq) div TicsFreq;
   end;
 
-function ElapsedTimeInSecs(ET: TEventTimer): longInt;
+function ElapsedTimeInSecs(ET: TEventTimer): LongInt;
   {-Returns elapsed time, in seconds, for this timer}
   begin
-    ElapsedTimeInSecs := Tics2Secs(ElapsedTime(ET));
+  ElapsedTimeInSecs := Tics2Secs(ElapsedTime(ET));
   end;
 
-procedure DelayTics(Tics: longInt);
+procedure DelayTics(Tics: LongInt);
   {-Delay for Tics tics}
   var
     ET: TEventTimer;
   begin
-    if Tics <= 0 then
-      exit
-    else if Tics > TicsPerDay then
-      Tics := TicsPerDay;
+  if Tics <= 0 then
+    Exit
+  else if Tics > TicsPerDay then
+    Tics := TicsPerDay;
 
-    NewTimer(ET, Tics);
-    repeat
-    until TimerExpired(ET);
+  NewTimer(ET, Tics);
+  repeat
+  until TimerExpired(ET);
   end;
 
 
-function xPackToYMTimeStamp(RawTime: longInt): longInt;
+function xPackToYMTimeStamp(RawTime: LongInt): LongInt;
   {-Return date/time stamp as octal seconds since 1/1/1970 00:00 GMT}
   var
     DT: DateTime;
     DTR: DateTimeRec;
-    DiffDays: word;
-    DiffSecs: longInt;
+    DiffDays: Word;
+    DiffSecs: LongInt;
   begin
-    {Convert to julian date}
-    UnpackTime(RawTime, DT);
-    with DT do
-      begin
-        DTR.D := DMYtoDate(Day, Month, Year);
-        DTR.t := HMStoTime(Hour, Min, Sec);
-      end;
+  {Convert to julian date}
+  UnpackTime(RawTime, DT);
+  with DT do
+    begin
+    DTR.D := DMYtoDate(Day, Month, Year);
+    DTR.T := HMStoTime(Hour, Min, Sec);
+    end;
 
-    {Subtract GMT hour offset}
-    xIncDateTime(DTR, DTR, 0, -(SecondsInHour*GmtHourOffset));
+  {Subtract GMT hour offset}
+  xIncDateTime(DTR, DTR, 0, -(SecondsInHour*GmtHourOffset));
 
-    {Diff between date/time stamp and 1/1/1970 (in seconds)}
-    DateTimeDiff(DTR, StartDate, DiffDays, DiffSecs);
-    xPackToYMTimeStamp := DiffSecs+(DiffDays*SecondsInDay);
+  {Diff between date/time stamp and 1/1/1970 (in seconds)}
+  DateTimeDiff(DTR, StartDate, DiffDays, DiffSecs);
+  xPackToYMTimeStamp := DiffSecs+(DiffDays*SecondsInDay);
   end { xPackToYMTimeStamp };
 
-procedure GetUNIXDate(Julian: longInt; var Year, Month, Day, Hour,
-    Min, Sec: word);
+procedure GetUNIXDate(Julian: LongInt;
+     var Year, Month, Day, Hour, Min, Sec: Word);
   var
-    l: longInt;
+    L: LongInt;
     DT: DateTime;
   begin
-    l := xYMTimeStampToPack(Julian);
-    UnpackTime(l, DT);
-    Year := DT.Year;
-    Month := DT.Month;
-    Day := DT.Day;
-    Hour := DT.Hour;
-    Min := DT.Min;
-    Sec := DT.Sec;
+  L := xYMTimeStampToPack(Julian);
+  UnpackTime(L, DT);
+  Year := DT.Year;
+  Month := DT.Month;
+  Day := DT.Day;
+  Hour := DT.Hour;
+  Min := DT.Min;
+  Sec := DT.Sec;
   end;
 
 end.

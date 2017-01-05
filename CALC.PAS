@@ -54,8 +54,9 @@ unit Calc;
 interface
 
 uses
-  advance, Lfn, Objects, Views, CellsCol, Drivers, Dialogs, Messages,
-  HistList, UniWin, Commands, DNHelp, RStrings, Calculat;
+  Advance, Lfn, Objects, Views, CellsCol, Drivers, Dialogs, Messages,
+  HistList, UniWin, Commands, DNHelp, RStrings, Calculat
+  ;
 
 const
   CellClipboard: PCellCollection = nil;
@@ -73,9 +74,9 @@ type
   PCalcWindow = ^TCalcWindow;
   TCalcWindow = object(TUniWindow)
     CalcView: PCalcView;
-    Constructor Init(Bounds: TRect; AName: String); {DataCompBoy}
-    Constructor Load(var s: TStream);
-    procedure Store(var s: TStream);
+    constructor Init(Bounds: TRect; AName: String); {DataCompBoy}
+    constructor Load(var S: TStream);
+    procedure Store(var S: TStream);
     procedure HandleEvent(var Event: TEvent); virtual;
     destructor Done; virtual;
     end;
@@ -89,76 +90,77 @@ type
     HScroll, VScroll: PScrollBar;
     Delta, Cur, Mark: TPoint;
     Cells: PCellCollection;
-    NumC: byte;
-    Marking, BlockDraw, Modified: boolean;
-    ShowSeparators: boolean;
-    ColWidth: array[byte] of byte;
+    NumC: Byte;
+    Marking, BlockDraw, Modified: Boolean;
+    ShowSeparators: Boolean;
+    ColWidth: array[Byte] of Byte;
     CurrentCalc, SearchPos, ErrorCell: TPoint;
     SName: PString; {DataCompBoy}
-    Constructor Init(Bounds: TRect;
-    AInfo: PCalcInput; ACellInfo: PInfoView;
-    AHScroll, AVScroll: PScrollBar);
+    constructor Init(Bounds: TRect;
+        AInfo: PCalcInput; ACellInfo: PInfoView;
+        AHScroll, AVScroll: PScrollBar);
     destructor Done; virtual;
 
-    Constructor Load(var s: TStream);
-    procedure Store(var s: TStream);
+    constructor Load(var S: TStream);
+    procedure Store(var S: TStream);
 
     procedure Draw; virtual;
-    function Valid(Command: word): boolean; virtual;
-    procedure SetState(AState: word; Enable: boolean); virtual;
+    function Valid(Command: Word): Boolean; virtual;
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-    function GetCellValue(const s: String): boolean;
+    function GetCellValue(const S: String): Boolean;
     {S - имя ячейки; результат - в calculat.Res}
-    function GetFuncValue(s: String): boolean;
+    function GetFuncValue(S: String): Boolean;
     {S - функция SUM или MUL, результат - в calculat.Res}
     procedure CalcError(Index: TStrIdx);
     procedure LoadSheet(FName: String); {DataCompBoy}
     procedure SaveSheet;
     procedure SaveSheetAs;
-    function AskSave: boolean;
+    function AskSave: Boolean;
     procedure Copy;
     procedure Paste;
     procedure Clear;
-    function CalcEval(const s: String; var Value: CReal): boolean;
-    procedure ReCalc(Full: boolean);
+    function CalcEval(const s: String; var Value: CReal): Boolean;
+    procedure ReCalc(Full: Boolean);
     procedure InsertLine;
     procedure InsertCol;
     procedure DeleteLine;
     procedure DeleteCol;
     procedure GotoCell(Cell: String);
     procedure SearchCell;
-    procedure RewriteFormula(var P: PCellrec; LX, LY, DX, DY:
-      integer);
+    procedure RewriteFormula(var P: PCellrec; LX, LY, DX, DY: Integer);
     end;
 
   TCalcInput = object(TInputLine)
     CalcView: PCalcView;
-    Constructor Load(var s: TStream);
-    procedure Store(var s: TStream);
+    constructor Load(var S: TStream);
+    procedure Store(var S: TStream);
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     end;
 
   TInfoView = object(TView)
     InfoStr: String;
-    InfoAttr: byte;
-    procedure SetInfo(s: String; Attr: byte);
+    InfoAttr: Byte;
+    procedure SetInfo(S: String; Attr: Byte);
     procedure Draw; virtual;
     end;
 
-function GetFileName(var FileName: String; Mask, Title, ALabel:
-    String; Buttons: word): word;
+function GetFileName(var FileName: String; Mask, Title, ALabel: String;
+     Buttons: Word): Word;
 
 implementation
 
 uses
   Collect, Strings, ErrMess,
-  Memory, Dos, DNApp, DNStdDlg, advance1, advance2,
-  MicroEd2, Histries;
+  Memory, Dos, DNApp, DNStdDlg, Advance1, Advance2,
+  MicroEd2, Histries
+  ;
 
 type
-  THeaderDBF = record{KV}
+  THeaderDBF = record
+    {KV}
     DBFIdent: Char; { $03 - Нет MEMO; $83 - Есть MEMO }
     { FoxBase+, FoxPro, dBaseIII+, dBaseIV, no memo - 0x03 }
     { FoxBase+, dBaseIII+ with memo - 0x83 }
@@ -166,140 +168,145 @@ type
     { dBaseIV with memo - 0x8B }
     { dBaseIV with SQL Table - 0x8E }
 
-    Yar: byte; { две последние цифры года }
-    Month: byte; { month number }
-    Day: byte; { day number }
-    LastRecord: longInt; { номер последней записи }
+    Yar: Byte; { две последние цифры года }
+    Month: Byte; { month number }
+    Day: Byte; { day number }
+    LastRecord: LongInt; { номер последней записи }
     DataOffset: AWord;
-      { смещение первой записи относительно начала файла}
+    { смещение первой записи относительно начала файла}
     RecSize: AWord; { размер записи с учетом символа удаления }
     Reserv1: AWord;
-    WaitTrans: byte; { dB IV }
-    Reserv2: array[0..12] of byte;
-    Multiindex: byte;
-    Reserv3: array[0..2] of byte;
+    WaitTrans: Byte; { dB IV }
+    Reserv2: array[0..12] of Byte;
+    Multiindex: Byte;
+    Reserv3: array[0..2] of Byte;
     end;
-  TDBFLength = record{ длина поля DBF }{KV}
-    case integer of
+  TDBFLength = record
+    { длина поля DBF } {KV}
+    case Integer of
       0: (FieldLength: AWord);
-      1: (NumericLength: byte; Decimals: byte);
-  end;
-PDBFField = ^TDBFField; {KV}
-TDBFField = record{ dB field descriptor Length = 32 bytes }
-  FieldName: array[0..10] of Char; { имя поля }
-  FieldType: Char; { тип: C=$43, D=$44, L=$4C, $M=$4D, N=$4E }
-  Reserved: array[0..3] of Char; { Расположение поля внутри записи }
-  FLength: TDBFLength; { длина поля }
-  Reserved2: array[0..12] of byte;
-  Tag: byte; { for multiindex, only dB IV }
-  end;
+      1: (NumericLength: Byte; Decimals: Byte);
+    end;
+  PDBFField = ^TDBFField; {KV}
+  TDBFField = record
+    { dB field descriptor Length = 32 bytes }
+    FieldName: array[0..10] of Char; { имя поля }
+    FieldType: Char; { тип: C=$43, D=$44, L=$4C, $M=$4D, N=$4E }
+    Reserved: array[0..3] of Char; { Расположение поля внутри записи }
+    FLength: TDBFLength; { длина поля }
+    Reserved2: array[0..12] of Byte;
+    Tag: Byte; { for multiindex, only dB IV }
+    end;
 
-PDbfFieldCollection = ^TDbfFieldCollection;
-TDbfFieldCollection = object(TCollection) {KV}
-  procedure FreeItem(Item: Pointer); virtual;
-  end;
+  PDbfFieldCollection = ^TDbfFieldCollection;
+  TDbfFieldCollection = object(TCollection)
+    {KV}
+    procedure FreeItem(Item: Pointer); virtual;
+    end;
 
-TDbaseWriter = object(TBufStream) {KV}
-  Header: THeaderDBF;
-  Fields: PDbfFieldCollection;
-  CurRecord: longInt;
-  EofFlag: boolean;
-  Constructor Init(FileName: FNameStr; Mode: word; Size: SW_Word);
-  destructor Done; virtual;
-  procedure AddField(const NameField: String; TypeField: Char;
-  LenField: integer; DecField: integer);
-  procedure AddRecord;
-  procedure CreateFile;
-  procedure DeleteRecord;
-  function FCount: integer;
-  function FieldAsString(FieldIndex: integer): String;
-  function FieldAsInteger(FieldIndex: integer): integer;
-  function FieldAsFloat(FieldIndex: integer): Double;
-  procedure FieldPutString(FieldIndex: integer; FieldValue: String);
-  procedure FieldPutInteger(FieldIndex: integer; FieldValue: integer);
-  procedure FieldPutFloat(FieldIndex: integer; FieldValue: Double);
-  function FieldName(FieldIndex: integer): String;
+  TDbaseWriter = object(TBufStream)
+    {KV}
+    Header: THeaderDBF;
+    Fields: PDbfFieldCollection;
+    CurRecord: LongInt;
+    EofFlag: Boolean;
+    constructor Init(FileName: FNameStr; Mode: Word; Size: SW_Word);
+    destructor Done; virtual;
+    procedure AddField(const NameField: String; TypeField: Char;
+        LenField: Integer; DecField: Integer);
+    procedure AddRecord;
+    procedure CreateFile;
+    procedure DeleteRecord;
+    function FCount: Integer;
+    function FieldAsString(FieldIndex: Integer): String;
+    function FieldAsInteger(FieldIndex: Integer): Integer;
+    function FieldAsFloat(FieldIndex: Integer): Double;
+    procedure FieldPutString(FieldIndex: Integer; FieldValue: String);
+    procedure FieldPutInteger(FieldIndex: Integer; FieldValue: Integer);
+    procedure FieldPutFloat(FieldIndex: Integer; FieldValue: Double);
+    function FieldName(FieldIndex: Integer): String;
     // Warning! FieldIndex from 1
-  function FieldDec(FieldIndex: integer): byte; // FieldIndex >= 1
-  function FieldLen(FieldIndex: integer): AWord;
+    function FieldDec(FieldIndex: Integer): Byte; // FieldIndex >= 1
+    function FieldLen(FieldIndex: Integer): AWord;
     // Warning! FieldIndex from 1
-  function FieldPos(NameField: String): integer; // FieldIndex >= 1
-  function FieldType(FieldIndex: integer): Char;
-  function FieldOffsetInBuffer(FieldIndex: integer): integer;
+    function FieldPos(NameField: String): Integer; // FieldIndex >= 1
+    function FieldType(FieldIndex: Integer): Char;
+    function FieldOffsetInBuffer(FieldIndex: Integer): Integer;
     // FieldIndex >= 1
-  function FieldOffsetInFile(FieldIndex: integer): longInt;
+    function FieldOffsetInFile(FieldIndex: Integer): LongInt;
     // FieldIndex >= 1
-  procedure First;
-  procedure DBGoTo(NewRecord: integer);
-  procedure Next;
-  procedure ReadFile;
-  procedure RecallRecord;
-  procedure WriteEndOfFile;
-  end;
+    procedure First;
+    procedure DBGoTo(NewRecord: Integer);
+    procedure Next;
+    procedure ReadFile;
+    procedure RecallRecord;
+    procedure WriteEndOfFile;
+    end;
 
-TExcelWriter = object(TBufStream) {KV}
-  procedure WriteBOF;
-  procedure WriteEOF;
-  procedure WriteBLANK(const Col, Row: AWord; const XF: AWord);
-  procedure WriteLABEL(const Data: String; const Col, Row: AWord;
-    const XF: AWord);
-  procedure WriteNUMBER(const Data: Double; const Col, Row: AWord;
-    const XF: AWord);
-  procedure WriteBOOL(const Data: boolean; const Col, Row: AWord;
-    const XF: AWord);
-  procedure WriteERROR(const Data: byte; const Col, Row: AWord;
-    const XF: AWord);
-  end;
+  TExcelWriter = object(TBufStream)
+    {KV}
+    procedure WriteBOF;
+    procedure WriteEOF;
+    procedure WriteBLANK(const Col, Row: AWord; const XF: AWord);
+    procedure WriteLABEL(const Data: String; const Col, Row: AWord;
+         const XF: AWord);
+    procedure WriteNUMBER(const Data: Double; const Col, Row: AWord;
+         const XF: AWord);
+    procedure WriteBOOL(const Data: Boolean; const Col, Row: AWord;
+         const XF: AWord);
+    procedure WriteERROR(const Data: Byte; const Col, Row: AWord;
+         const XF: AWord);
+    end;
 
 const
   SearchData: record
-    s: String[240];
-    CellOptions, TxtOptions: word;
+    S: String[240];
+    CellOptions, TxtOptions: Word;
     end =
-  (s: ''; CellOptions: 0; TxtOptions: 0);
+    (S: ''; CellOptions: 0; TxtOptions: 0);
   ReplaceData: record
-    s, s1: String[240];
-    CellOptions, TxtOptions: word;
+    S, S1: String[240];
+    CellOptions, TxtOptions: Word;
     end =
-  (s: ''; s1: ''; CellOptions: 0; TxtOptions: 0);
-  WasReplace: boolean = False;
-  ContSearch: boolean = False;
-  SearchCanceled: boolean = False;
+    (S: ''; S1: ''; CellOptions: 0; TxtOptions: 0);
+  WasReplace: Boolean = False;
+  ContSearch: Boolean = False;
+  SearchCanceled: Boolean = False;
   DefaultColWidth = 11;
   UntitledName = 'Untitled.WKZ';
 
   {-DataCompBoy-}
-function GetFileName(var FileName: String; Mask, Title, ALabel:
-    String; Buttons: word): word;
+function GetFileName(var FileName: String; Mask, Title, ALabel: String;
+     Buttons: Word): Word;
   var
-    s: String;
+    S: String;
     D: PFileDialog;
-    B: boolean;
-    C: word;
+    B: Boolean;
+    C: Word;
   begin
-    s := '';
-    B := False;
-    if Mask = '' then
-      begin
-        Mask := x_x;
-        B := False
-      end;
-    D := PFileDialog(Application^.ValidView(New(PFileDialog,
-    Init(Mask, Title, ALabel, Buttons, 211))));
-    if D = nil then
-      exit;
-    if B then
-      D^.SetData(s);
-    C := Desktop^.ExecView(D);
-    if C <> cmCancel then
-      D^.GetFileName(s);
-    GetFileName := C;
-    Dispose(D, Done);
-    {$IFDEF OS_DOS}
-    FileName := lfGetLongFileName(s);
-    {$ELSE}
-    FileName := s;
-    {$ENDIF}
+  S := '';
+  B := False;
+  if Mask = '' then
+    begin
+    Mask := x_x;
+    B := False
+    end;
+  D := PFileDialog(Application^.ValidView(New(PFileDialog,
+          Init(Mask, Title, ALabel, Buttons, 211))));
+  if D = nil then
+    Exit;
+  if B then
+    D^.SetData(S);
+  C := Desktop^.ExecView(D);
+  if C <> cmCancel then
+    D^.GetFileName(S);
+  GetFileName := C;
+  Dispose(D, Done);
+  {$IFDEF OS_DOS}
+  FileName := lfGetLongFileName(S);
+  {$ELSE}
+  FileName := S;
+  {$ENDIF}
   end { GetFileName };
 {-DataCompBoy-}
 
@@ -307,387 +314,384 @@ function GetFileName(var FileName: String; Mask, Title, ALabel:
 
 procedure TInfoView.SetInfo;
   begin
-    InfoStr := Copy(s, 1, Size.X);
-    InfoAttr := Attr;
-    DrawView;
+  InfoStr := Copy(S, 1, Size.X);
+  InfoAttr := Attr;
+  DrawView;
   end;
 
 procedure TInfoView.Draw;
   var
     B: TDrawBuffer;
   begin
-    MoveChar(B, ' ', InfoAttr, Size.X);
-    MoveStr(B[Size.X-Length(InfoStr)], InfoStr, InfoAttr);
-    WriteLine(0, 0, Size.X, 1, B);
+  MoveChar(B, ' ', InfoAttr, Size.X);
+  MoveStr(B[Size.X-Length(InfoStr)], InfoStr, InfoAttr);
+  WriteLine(0, 0, Size.X, 1, B);
   end;
 
 {-------------------------      TCalcWindow      -------------------------}
 
 {-DataCompBoy-}
-Constructor TCalcWindow.Init;
+constructor TCalcWindow.Init;
   var
     R: TRect;
     P: PView;
     P1: PInfoView;
   begin
-    if (AName = '') or (GetFileAttr(AName+#0) and Directory <> 0)
-    then
-      AName := UntitledName
-    else
-      AName := lFExpand(AName);
-    TWindow.Init(Bounds, Cut(AName, Bounds.B.X-Bounds.A.X-12), 0);
-    Options := Options or ofTileable;
-    Flags := Flags or wfMaxi;
-    if LowMemory then
-      exit;
+  if  (AName = '') or (GetFileAttr(AName+#0) and Directory <> 0) then
+    AName := UntitledName
+  else
+    AName := lFExpand(AName);
+  TWindow.Init(Bounds, Cut(AName, Bounds.B.X-Bounds.A.X-12), 0);
+  Options := Options or ofTileable;
+  Flags := Flags or wfMaxi;
+  if LowMemory then
+    Exit;
 
-    R.A.X := 1;
-    R.A.Y := 5;
-    R.B.X := 7;
-    R.B.Y := Size.Y-1;
-    P := New(PStaticText, Init(R, ''));
-    P^.Options := P^.Options or ofFramed;
-    P^.GrowMode := gfGrowHiY;
-    Insert(P);
+  R.A.X := 1;
+  R.A.Y := 5;
+  R.B.X := 7;
+  R.B.Y := Size.Y-1;
+  P := New(PStaticText, Init(R, ''));
+  P^.Options := P^.Options or ofFramed;
+  P^.GrowMode := gfGrowHiY;
+  Insert(P);
 
-    R.A.X := 8;
-    R.A.Y := 2;
-    R.B.X := Size.X-1;
-    R.B.Y := 4;
-    P := New(PStaticText, Init(R, ''));
-    P^.Options := P^.Options or ofFramed;
-    P^.GrowMode := gfGrowHiX;
-    Insert(P);
+  R.A.X := 8;
+  R.A.Y := 2;
+  R.B.X := Size.X-1;
+  R.B.Y := 4;
+  P := New(PStaticText, Init(R, ''));
+  P^.Options := P^.Options or ofFramed;
+  P^.GrowMode := gfGrowHiX;
+  Insert(P);
 
-    GetExtent(R);
-    R.Grow(-1, -1);
-    R.B.Y := R.A.Y+1;
-    P := PView(LoadResource(dlgWkzMenuBar));
-    P^.Locate(R);
-    P^.GrowMode := gfGrowHiX;
-    Insert(P);
+  GetExtent(R);
+  R.Grow(-1, -1);
+  R.B.Y := R.A.Y+1;
+  P := PView(LoadResource(dlgWkzMenuBar));
+  P^.Locate(R);
+  P^.GrowMode := gfGrowHiX;
+  Insert(P);
 
-    GetExtent(R);
-    R.Grow(-1, -1);
-    Inc(R.A.Y);
-    R.B.Y := R.A.Y+1;
-    Inc(R.A.X, 7);
-    P := New(PCalcInput, Init(R, 240));
-    P^.GrowMode := gfGrowHiX;
-    P^.Options := P^.Options or ofSelectable;
-    Insert(P);
+  GetExtent(R);
+  R.Grow(-1, -1);
+  Inc(R.A.Y);
+  R.B.Y := R.A.Y+1;
+  Inc(R.A.X, 7);
+  P := New(PCalcInput, Init(R, 240));
+  P^.GrowMode := gfGrowHiX;
+  P^.Options := P^.Options or ofSelectable;
+  Insert(P);
 
-    R.Assign(1, 2, 7, 4);
-    P1 := New(PInfoView, Init(R));
-    PInfoView(P1)^.InfoStr := '';
-    PInfoView(P1)^.InfoAttr := GetColor(9);
-    Insert(P1);
+  R.Assign(1, 2, 7, 4);
+  P1 := New(PInfoView, Init(R));
+  PInfoView(P1)^.InfoStr := '';
+  PInfoView(P1)^.InfoAttr := GetColor(9);
+  Insert(P1);
 
-    GetExtent(R);
-    R.Grow(-1, -1);
-    Inc(R.A.Y, 2);
-    CalcView := New(PCalcView, Init(R, PCalcInput(P), P1,
-    MakeScrollBar(sbHorizontal+sbHandleKeyboard),
-    MakeScrollBar(sbVertical+sbHandleKeyboard)));
-    Insert(CalcView);
-    CalcView^.LoadSheet(AName);
+  GetExtent(R);
+  R.Grow(-1, -1);
+  Inc(R.A.Y, 2);
+  CalcView := New(PCalcView, Init(R, PCalcInput(P), P1,
+        MakeScrollBar(sbHorizontal+sbHandleKeyboard),
+        MakeScrollBar(sbVertical+sbHandleKeyboard)));
+  Insert(CalcView);
+  CalcView^.LoadSheet(AName);
   end { TCalcWindow.Init };
 {-DataCompBoy-}
 
-Constructor TCalcWindow.Load;
+constructor TCalcWindow.Load;
   var
     R: TRect;
     P: PView;
     P1: PInfoView;
   begin
-    inherited Load(s);
-    GetSubViewPtr(s, CalcView);
-    if CalcView = nil then{Cat}
-      Fail;
+  inherited Load(S);
+  GetSubViewPtr(S, CalcView);
+  if CalcView = nil then
+    {Cat}
+    Fail;
   end;
 
 procedure TCalcWindow.Store;
   begin
-    inherited Store(s);
-    PutSubViewPtr(s, CalcView);
+  inherited Store(S);
+  PutSubViewPtr(S, CalcView);
   end;
 
 procedure TCalcWindow.HandleEvent;
   begin
-    case Event.What of
-      evCommand:
-        case Event.Command of
-          cmClose, cmQuit:
-            if not CalcView^.AskSave then
-              ClearEvent(Event);
-        end {case};
-      evBroadcast:
-        case Event.Command of
-          cmFindView:
-            if PString(Event.InfoPtr)^ = CnvString(CalcView^.SName)
-            then
-              begin
-                Self.Select;
-                ClearEvent(Event);
-              end;
-        end {case};
-    end {case};
-    inherited HandleEvent(Event);
-  end { TCalcWindow.HandleEvent };
+  case Event.What of
+    evCommand:
+      case Event.Command of
+        cmClose, cmQuit:
+          if not CalcView^.AskSave then
+            ClearEvent(Event);
+      end {case};
+    evBroadcast:
+      case Event.Command of
+        cmFindView:
+          if PString(Event.InfoPtr)^ = CnvString(CalcView^.SName) then
+            begin
+            Self.Select;
+            ClearEvent(Event);
+            end;
+      end {case};
+  end {case};
+  inherited HandleEvent(Event);
+  end;
 
 destructor TCalcWindow.Done;
   begin
-    StoreViewInfo(@Self);
-    inherited Done;
+  StoreViewInfo(@Self);
+  inherited Done;
   end;
 
 {-----------------------------    TCalcInput     ---------------------------}
 
-Constructor TCalcInput.Load;
+constructor TCalcInput.Load;
   begin
-    inherited Load(s);
-    GetPeerViewPtr(s, CalcView);
+  inherited Load(S);
+  GetPeerViewPtr(S, CalcView);
   end;
 
 procedure TCalcInput.Store;
   begin
-    inherited Store(s);
-    PutPeerViewPtr(s, CalcView);
+  inherited Store(S);
+  PutPeerViewPtr(S, CalcView);
   end;
 
 function TCalcInput.GetPalette;
   const
-    s: String[4] = #13#13#14#13;
+    S: String[4] = #13#13#14#13;
   begin
-    GetPalette := @S;
+  GetPalette := @S;
   end;
 
-procedure MakeDefaultOptions(const s: String;
-  var o: AWord; var D: byte; var R: CReal);
+procedure MakeDefaultOptions(const S: String;
+    var o: AWord; var D: Byte; var R: CReal);
   var
-    i: integer;
+    I: Integer;
   begin
-    Val(s, R, i);
-    D := 2; { 2 десятичных знака по умолчанию }
-    if i = 0 then{ число: вправо, как есть }
-      o := coValue or coRight
-    else if (s[1] = '=') and (Length(s) > 1) then
-      { формула: вправо, десятичное, 2 знака }
-      o := coFormula or coDec or coRight
-    else{ текст: влево, как есть }
-      begin
-        o := 0;
-        R := 0;
-      end;
+  Val(S, R, I);
+  D := 2; { 2 десятичных знака по умолчанию }
+  if I = 0 then
+    { число: вправо, как есть }
+    o := coValue or coRight
+  else if (S[1] = '=') and (Length(S) > 1) then
+    { формула: вправо, десятичное, 2 знака }
+    o := coFormula or coDec or coRight
+  else { текст: влево, как есть }
+    begin
+    o := 0;
+    R := 0;
+    end;
   end;
 
 procedure TCalcInput.HandleEvent;
 
-  function EndEdit: boolean;
+  function EndEdit: Boolean;
     label 2;
     var
       NewS: ShortString;
-      o: AWord;
-      D: byte;
+      O: AWord;
+      D: Byte;
       R: CReal;
-      i: integer;
+      I: Integer;
       P: PCellrec;
-      TypeChanged: boolean;
+      TypeChanged: Boolean;
     begin
-      GetData(NewS);
-      EndEdit := True;
-      with CalcView^ do
+    GetData(NewS);
+    EndEdit := True;
+    with CalcView^ do
+      begin
+      Modified := True;
+      CurrentCalc.X := Delta.X+Cur.X;
+      CurrentCalc.Y := Delta.Y+Cur.Y;
+      DelRight(NewS);
+      P := Cells^.Get(Delta.X+Cur.X, Delta.Y+Cur.Y);
+      if  (P <> nil) and (NewS = P^.S) then
+        Exit;
+      if NewS = '' then
         begin
-          Modified := True;
-          CurrentCalc.X := Delta.X+Cur.X;
-          CurrentCalc.Y := Delta.Y+Cur.Y;
-          DelRight(NewS);
-          P := Cells^.Get(Delta.X+Cur.X, Delta.Y+Cur.Y);
-          if (P <> nil) and (NewS = P^.s) then
-            exit;
-          if NewS = '' then
-            begin
-              if (P = nil) then
-                exit;
-              if MessageBox(GetString(dlWkzWarningClearCell),
-                nil, mfOKCancel) <> cmOK
-              then
-                begin
-                  EndEdit := False;
-                  exit;
-                end;
-              Cells^.DelItem(Delta.X+Cur.X, Delta.Y+Cur.Y);
-              goto 2;
-            end;
+        if  (P = nil) then
+          Exit;
+        if MessageBox(GetString(dlWkzWarningClearCell),
+            nil, mfOKCancel) <> cmOK
+        then
+          begin
+          EndEdit := False;
+          Exit;
+          end;
+        Cells^.DelItem(Delta.X+Cur.X, Delta.Y+Cur.Y);
+        goto 2;
+        end;
 
-          MakeDefaultOptions(NewS, o, D, R);
-          TypeChanged := True; // на случай P=nil
-          if P <> nil then
-            with P^ do
+      MakeDefaultOptions(NewS, O, D, R);
+      TypeChanged := True; // на случай P=nil
+      if P <> nil then
+        with P^ do
+          begin
+          if  (Options and coTypeMask) = coTypeMask then
+            Options := (Options and not coTypeMask) or coFormula;
+          TypeChanged := (Options xor O) and coTypeMask <> 0;
+          if TypeChanged then
+            begin {Изменен тип ячейки}
+            if MessageBox(GetString(dlWkzWarningCellTypeChange),
+                nil, mfOKCancel) <> cmOK
+            then
               begin
-                if (Options and coTypeMask) = coTypeMask then
-                  Options := (Options and not coTypeMask) or
-                    coFormula;
-                TypeChanged := (Options xor o) and coTypeMask <> 0;
-                if TypeChanged then
-                  begin{Изменен тип ячейки}
-                    if MessageBox(GetString(
-                        dlWkzWarningCellTypeChange),
-                      nil, mfOKCancel) <> cmOK
-                    then
-                      begin
-                        EndEdit := False;
-                        exit;
-                      end;
-                  end;
+              EndEdit := False;
+              Exit;
               end;
-          with Cells^.ReplaceItem(Delta.X+Cur.X, Delta.Y+Cur.Y, NewS)^
-          do
-            begin
-              if TypeChanged then
-                begin
-                  Options := o;
-                  Decimals := D;
-                end;
-              Value := R;
             end;
+          end;
+      with Cells^.ReplaceItem(Delta.X+Cur.X, Delta.Y+Cur.Y, NewS)^ do
+        begin
+        if TypeChanged then
+          begin
+          Options := O;
+          Decimals := D;
+          end;
+        Value := R;
+        end;
 2:
-          ReCalc(False);
-        end {with CalcView^};
+      ReCalc(False);
+      end {with CalcView^};
     end { EndEdit: };
 
   procedure Transfer;
     begin
-      CalcView^.FocusEvent := Event;
-      if EndEdit then
-        PWindow(Owner)^.SelectNext(False);
-      ClearEvent(Event)
+    CalcView^.FocusEvent := Event;
+    if EndEdit then
+      PWindow(Owner)^.SelectNext(False);
+    ClearEvent(Event)
     end;
 
   begin { TCalcInput.HandleEvent }
-    case Event.What of
-      evKeyDown:
-        case Event.KeyCode of
-          kbUp, kbDown, kbPgUp, kbPgDn, kbCtrlPgUp,
-          kbCtrlPgDn, kbEnter:
+  case Event.What of
+    evKeyDown:
+      case Event.KeyCode of
+        kbUp, kbDown, kbPgUp, kbPgDn, kbCtrlPgUp,
+        kbCtrlPgDn, kbEnter:
+          Transfer;
+        kbLeft:
+          if CurPos = 0 then
             Transfer;
-          kbLeft:
-            if CurPos = 0 then
-              Transfer;
-          kbRight:
-            if CurPos > Length(CnvString(Data))-1 then
-              Transfer;
-          kbTab:
-            if not EndEdit then
-              ClearEvent(Event);
-        end {case};
-    end {case};
-    TInputLine.HandleEvent(Event);
+        kbRight:
+          if CurPos > Length(CnvString(Data))-1 then
+            Transfer;
+        kbTab:
+          if not EndEdit then
+            ClearEvent(Event);
+      end {case};
+  end {case};
+  TInputLine.HandleEvent(Event);
   end { TCalcInput.HandleEvent };
 
 {-----------------------------    TCalcView     ---------------------------}
 
-Constructor TCalcView.Init;
+constructor TCalcView.Init;
   var
-    i, j: integer;
+    I, J: Integer;
   begin
-    TView.Init(Bounds);
-    HelpCtx := hcSpreadSheet;
-    HScroll := AHScroll;
-    VScroll := AVScroll;
-    Options := Options or ofSelectable;
-    GrowMode := gfGrowHiX+gfGrowHiY;
-    EventMask := $FFFF;
-    CalcInput := AInfo;
-    CellInfo := ACellInfo;
-    PCalcInput(CalcInput)^.CalcView := @Self;
-    FocusEvent.What := evNothing;
-    FillChar(ColWidth, SizeOf(ColWidth), DefaultColWidth);
-    Marking := False;
-    BlockDraw := False;
-    Modified := False;
-    Cells := nil;
-    Delta.X := 0;
-    Delta.Y := 0;
-    Cur := Delta;
-    Mark := Cur;
-    HScroll^.SetParams(0, 0, 255, 1, 1);
-    VScroll^.SetParams(0, 0, MaxCellY-1, Size.Y-3, 1);
-    SName := nil;
+  TView.Init(Bounds);
+  HelpCtx := hcSpreadSheet;
+  HScroll := AHScroll;
+  VScroll := AVScroll;
+  Options := Options or ofSelectable;
+  GrowMode := gfGrowHiX+gfGrowHiY;
+  EventMask := $FFFF;
+  CalcInput := AInfo;
+  CellInfo := ACellInfo;
+  PCalcInput(CalcInput)^.CalcView := @Self;
+  FocusEvent.What := evNothing;
+  FillChar(ColWidth, SizeOf(ColWidth), DefaultColWidth);
+  Marking := False;
+  BlockDraw := False;
+  Modified := False;
+  Cells := nil;
+  Delta.X := 0;
+  Delta.Y := 0;
+  Cur := Delta;
+  Mark := Cur;
+  HScroll^.SetParams(0, 0, 255, 1, 1);
+  VScroll^.SetParams(0, 0, MaxCellY-1, Size.Y-3, 1);
+  SName := nil;
   end { TCalcView.Init };
 
-Constructor TCalcView.Load;
+constructor TCalcView.Load;
   var
     R: TRect;
   begin
-    inherited Load(s);
-    GetPeerViewPtr(s, CalcInput);
-    GetPeerViewPtr(s, CellInfo);
-    GetPeerViewPtr(s, HScroll);
-    GetPeerViewPtr(s, VScroll);
-    s.Read(Delta, SizeOf(Delta)*3);
-    s.Read(NumC, 6); {###}
-    SName := s.ReadStr;
-    LoadSheet(SName^);
-    FocusEvent.What := evNothing;
-    ReCalc(True);
+  inherited Load(S);
+  GetPeerViewPtr(S, CalcInput);
+  GetPeerViewPtr(S, CellInfo);
+  GetPeerViewPtr(S, HScroll);
+  GetPeerViewPtr(S, VScroll);
+  S.Read(Delta, SizeOf(Delta)*3);
+  S.Read(NumC, 6); {###}
+  SName := S.ReadStr;
+  LoadSheet(SName^);
+  FocusEvent.What := evNothing;
+  ReCalc(True);
   end;
 
 procedure TCalcView.Store;
   begin
-    inherited Store(s);
-    PutPeerViewPtr(s, CalcInput);
-    PutPeerViewPtr(s, CellInfo);
-    PutPeerViewPtr(s, HScroll);
-    PutPeerViewPtr(s, VScroll);
-    s.Write(Delta, SizeOf(Delta)*3);
-    s.Write(NumC, 6); {###}
-    s.WriteStr(SName);
+  inherited Store(S);
+  PutPeerViewPtr(S, CalcInput);
+  PutPeerViewPtr(S, CellInfo);
+  PutPeerViewPtr(S, HScroll);
+  PutPeerViewPtr(S, VScroll);
+  S.Write(Delta, SizeOf(Delta)*3);
+  S.Write(NumC, 6); {###}
+  S.WriteStr(SName);
   end;
 
 function TCalcView.Valid;
   begin
-    Valid := Cells <> nil;
+  Valid := Cells <> nil;
   end;
 
 procedure TCalcView.SetState;
   var
     Bounds: TRect;
   begin
-    TView.SetState(AState, Enable);
-    if Enable and (AState and sfFocused <> 0) then
-      DrawView;
-    if (AState and sfActive <> 0) then
-      if Enable then
-        begin
-          HScroll^.GrowTo(HScroll^.Size.X, 1);
-          VScroll^.GrowTo(1, VScroll^.Size.Y);
-          EnableCommands([cmUndo, cmCut, cmCopy, cmPaste, cmClear]);
-        end
-      else
-        begin
-          HScroll^.GrowTo(HScroll^.Size.X, 0);
-          VScroll^.GrowTo(0, VScroll^.Size.Y);
-        end;
-    if Owner <> nil then
+  TView.SetState(AState, Enable);
+  if Enable and (AState and sfFocused <> 0) then
+    DrawView;
+  if  (AState and sfActive <> 0) then
+    if Enable then
       begin
-        GetBounds(Bounds);
-        DisposeStr(PWindow(Owner)^.Title);
-        if SName <> nil then
-          PWindow(Owner)^.Title := NewStr(Cut(SName^, Bounds.B.X-
-            Bounds.A.X-12));
+      HScroll^.GrowTo(HScroll^.Size.X, 1);
+      VScroll^.GrowTo(1, VScroll^.Size.Y);
+      EnableCommands([cmUndo, cmCut, cmCopy, cmPaste, cmClear]);
+      end
+    else
+      begin
+      HScroll^.GrowTo(HScroll^.Size.X, 0);
+      VScroll^.GrowTo(0, VScroll^.Size.Y);
       end;
+  if Owner <> nil then
+    begin
+    GetBounds(Bounds);
+    DisposeStr(PWindow(Owner)^.Title);
+    if SName <> nil then
+      PWindow(Owner)^.Title := NewStr(Cut(SName^,
+             Bounds.B.X-Bounds.A.X-12));
+    end;
   end { TCalcView.SetState };
 
 function TCalcView.GetPalette;
   const
-    s: String[4] = #8#13#14;
+    S: String[4] = #8#13#14;
   begin
-    GetPalette := @S;
+  GetPalette := @S;
   end;
 
 type
-  TQArray = array[0..80, 0..60] of integer;
+  TQArray = array[0..80, 0..60] of Integer;
   PQArray = ^TQArray;
 
 const
@@ -695,82 +699,82 @@ const
 
 function MakeCellText(P: PCellrec): String; {KV}
   var
-    s1: String absolute Result;
-    i, A1, A2: integer;
+    S1: String absolute Result;
+    i, A1, A2: Integer;
   begin
-    s1 := '';
-    case (P^.Options shr 4) and 7 of
-      0:
-        s1 := P^.s;
-      1:
-        Str(P^.Value: 0: P^.Decimals, s1);
-      2:
+  S1 := '';
+  case (P^.Options shr 4) and 7 of
+    0:
+      S1 := P^.S;
+    1:
+      Str(P^.Value: 0: P^.Decimals, S1);
+    2:
+      begin
+      Str(P^.Value: 0: 20, S1);
+      i := Length(S1);
+      while (i > 0) and (S1[i] = '0') do
+        Dec(i);
+      SetLength(S1, i);
+      if S1[Length(S1)] = '.' then
+        SetLength(S1, Length(S1)-1);
+      S1 := MakeComma(S1);
+      end;
+    3:
+      begin
+      Str(P^.Value, S1);
+      A1 := Pos('E', S1);
+      if A1 > 0 then
         begin
-          Str(P^.Value: 0: 20, s1);
-          i := Length(s1);
-          while (i > 0) and (s1[i] = '0') do
-            Dec(i);
-          SetLength(s1, i);
-          if s1[Length(s1)] = '.' then
-            SetLength(s1, Length(s1)-1);
-          s1 := MakeComma(s1);
+        A2 := A1-1;
+        while (S1[A2] = '0') and (S1[A2-1] <> '.') do
+          Dec(A2);
+        Move(S1[A1], S1[A2+1], Length(S1)-A1+1);
+        SetLength(S1, Length(S1)-(A1-A2-1));
         end;
-      3:
-        begin
-          Str(P^.Value, s1);
-          A1 := Pos('E', s1);
-          if A1 > 0 then
-            begin
-              A2 := A1-1;
-              while (s1[A2] = '0') and (s1[A2-1] <> '.') do
-                Dec(A2);
-              Move(s1[A1], s1[A2+1], Length(s1)-A1+1);
-              SetLength(s1, Length(s1)-(A1-A2-1));
-            end;
-        end;
-      4:
-        if P^.Value = 0 then
-          s1 := FalseStr
-        else
-          s1 := TrueStr;
-      5:
-        MakeCurrency(P^.Value, s1);
-      6:
-        begin
-          Str((P^.Value*100): 0: 2, s1);
-          s1 := MakeComma(s1)+'%';
-        end;
-      7:
-        s1 := '';
-    end {case};
+      end;
+    4:
+      if P^.Value = 0 then
+        S1 := FalseStr
+      else
+        S1 := TrueStr;
+    5:
+      MakeCurrency(P^.Value, S1);
+    6:
+      begin
+      Str((P^.Value*100): 0: 2, S1);
+      S1 := MakeComma(S1)+'%';
+      end;
+    7:
+      S1 := '';
+  end {case};
   end { MakeCellText };
 
-procedure FormatCellText(const s1: String; k: integer;
-  ShowSeparators: boolean;
-  Options: AWord; var s: String);
+procedure FormatCellText(const S1: String; k: Integer;
+    ShowSeparators: Boolean;
+    Options: AWord; var S: String);
   var
-    t: integer;
+    T: Integer;
   begin
-    if Length(s1) >= k then
+  if Length(S1) >= k then
+    begin
+    if ShowSeparators then
       begin
-        if ShowSeparators then
-          begin
-            Move(s1[1], s[1], k-1);
-            s[k] := #16;
-          end
-        else
-          Move(s1[1], s[1], Length(s1))
+      Move(S1[1], S[1], k-1);
+      S[k] := #16;
       end
     else
-      begin
-        t := 1-Ord(ShowSeparators);
-        if Options and $C = 0 then
-          Move(s1[1], s[1], Length(s1))
-        else if (Options and $C = coRight) then
-          Move(s1[1], s[k-Length(s1)+t], Length(s1))
-        else
-          Move(s1[1], s[1+(k-Length(s1)) div 2], Length(s1));
-      end;
+      Move(S1[1], S[1], Length(S1))
+    end
+  else
+    begin
+    T := 1-Ord(ShowSeparators);
+    if Options and $C = 0 then
+      Move(S1[1], S[1], Length(S1))
+    else if (Options and $C = coRight) then
+      Move(S1[1], S[k-Length(S1)+T], Length(S1))
+    else
+      Move(S1[1], S[1+(k-Length(S1)) div 2], Length(S1));
+    end;
   end { FormatCellText };
 
 procedure TCalcView.Draw;
@@ -779,336 +783,332 @@ procedure TCalcView.Draw;
     B, B1: TDrawBuffer;
     BC: array[0..High(B)] of record
       C: Char;
-      A: byte;
+      A: Byte;
       end absolute B;
-    i, j, k, l, t: integer;
-    C1, C2, C3: byte;
-    s, s1: String;
+    I, J, K, L, T: Integer;
+    C1, C2, C3: Byte;
+    S, S1: String;
     P: PCellrec;
-    X1, X2, Y1, Y2: integer;
+    X1, X2, Y1, Y2: Integer;
     CurPos: TPoint;
-    StX, EnX, A1, A2: byte;
-    Wrk: integer;
+    StX, EnX, A1, A2: Byte;
+    Wrk: Integer;
     EmptyLine: String;
   begin
-    if BlockDraw then
-      exit;
-    C1 := GetColor(1);
-    C2 := GetColor(2);
-    C3 := GetColor(3);
-    if Q = nil then
-      New(Q);
-    CurPos.X := Delta.X+Cur.X;
-    CurPos.Y := Delta.Y+Cur.Y;
-    if CurPos.X > 255 then
-      Cur.X := 255-Delta.X;
-    if CurPos.Y >= MaxCellY then
-      Cur.Y := MaxCellY-1-Delta.Y;
-    if Cur.Y < 0 then
-      begin
-        j := Cur.Y;
-        Cur.Y := 0;
-        VScroll^.SetValue(Delta.Y+j);
-        exit
-      end;
-    if Cur.X < 0 then
-      begin
-        j := Cur.X;
-        Cur.X := 0;
-        HScroll^.SetValue(Delta.X+j);
-        exit
-      end;
-    CurPos.X := Delta.X+Cur.X;
-    CurPos.Y := Delta.Y+Cur.Y;
-    X1 := CurPos.X;
-    X2 := Mark.X;
-    Y1 := CurPos.Y;
-    Y2 := Mark.Y;
-    if X1 > X2 then
-      begin
-        Wrk := X1;
-        X1 := X2;
-        X2 := Wrk;
-      end;
-    if Y1 > Y2 then
-      begin
-        Wrk := Y1;
-        Y1 := Y2;
-        Y2 := Wrk;
-      end;
-    if Y2 > 4095 then
-      Y2 := 4095;
-    SetLength(EmptyLine, Size.X);
-    FillChar(EmptyLine[1], Size.X, ' ');
-    MoveChar(B, ' ', C1, Size.X);
-    BC[6].C := '│';
-    MoveChar(B1, '─', C1, Size.X);
-    WordRec(B1[6]).Lo := byte('┼');
-    NumC := 0;
-    i := 7;
-    j := Delta.X;
-    StX := i;
-    EnX := Size.X;
+  if BlockDraw then
+    Exit;
+  C1 := GetColor(1);
+  C2 := GetColor(2);
+  C3 := GetColor(3);
+  if Q = nil then
+    New(Q);
+  CurPos.X := Delta.X+Cur.X;
+  CurPos.Y := Delta.Y+Cur.Y;
+  if CurPos.X > 255 then
+    Cur.X := 255-Delta.X;
+  if CurPos.Y >= MaxCellY then
+    Cur.Y := MaxCellY-1-Delta.Y;
+  if Cur.Y < 0 then
+    begin
+    J := Cur.Y;
+    Cur.Y := 0;
+    VScroll^.SetValue(Delta.Y+J);
+    Exit
+    end;
+  if Cur.X < 0 then
+    begin
+    J := Cur.X;
+    Cur.X := 0;
+    HScroll^.SetValue(Delta.X+J);
+    Exit
+    end;
+  CurPos.X := Delta.X+Cur.X;
+  CurPos.Y := Delta.Y+Cur.Y;
+  X1 := CurPos.X;
+  X2 := Mark.X;
+  Y1 := CurPos.Y;
+  Y2 := Mark.Y;
+  if X1 > X2 then
+    begin
+    Wrk := X1;
+    X1 := X2;
+    X2 := Wrk;
+    end;
+  if Y1 > Y2 then
+    begin
+    Wrk := Y1;
+    Y1 := Y2;
+    Y2 := Wrk;
+    end;
+  if Y2 > 4095 then
+    Y2 := 4095;
+  SetLength(EmptyLine, Size.X);
+  FillChar(EmptyLine[1], Size.X, ' ');
+  MoveChar(B, ' ', C1, Size.X);
+  BC[6].C := '│';
+  MoveChar(B1, '─', C1, Size.X);
+  WordRec(B1[6]).Lo := Byte('┼');
+  NumC := 0;
+  I := 7;
+  J := Delta.X;
+  StX := I;
+  EnX := Size.X;
 
-    {Заголовки колонок и верхняя черта}
-    while (i < Size.X) and (j <= HScroll^.Max) do
-      begin
-        k := ColWidth[j];
-        l := ColWidth[j+1];
-        SetLength(s, k);
-        FillChar(s[1], k, ' ');
-        s[k] := '│';
-        s1 := GetColName(j);
-        Move(s1[1], s[k div 2], Length(s1));
-        WordRec(B1[i+k-1]).Lo := byte('┼');
-        MoveStr(B[i], s, C1);
-        if j < X1 then
-          Inc(StX, k);
-        if (j > X2) and (EnX > i) then
-          EnX := i;
-        if (j = HScroll^.Max) and (j <= X2) then
-          EnX := i+k;
-        Inc(NumC);
-        Inc(j);
-        Inc(i, k);
-      end;
+  {Заголовки колонок и верхняя черта}
+  while (I < Size.X) and (J <= HScroll^.Max) do
+    begin
+    K := ColWidth[J];
+    L := ColWidth[J+1];
+    SetLength(S, K);
+    FillChar(S[1], K, ' ');
+    S[K] := '│';
+    S1 := GetColName(J);
+    Move(S1[1], S[K div 2], Length(S1));
+    WordRec(B1[I+K-1]).Lo := Byte('┼');
+    MoveStr(B[I], S, C1);
+    if J < X1 then
+      Inc(StX, K);
+    if  (J > X2) and (EnX > I) then
+      EnX := I;
+    if  (J = HScroll^.Max) and (J <= X2) then
+      EnX := I+K;
+    Inc(NumC);
+    Inc(J);
+    Inc(I, K);
+    end;
 
-    if NumC = 0 then
-      NumC := 1;
-    if Cur.X >= NumC then
-      begin
-        j := Cur.X-NumC+1;
-        Cur.X := NumC-1;
-        HScroll^.SetValue(Delta.X+j);
-        Delta.X := HScroll^.Value;
-        exit;
-      end;
-    PInfoView(CellInfo)^.SetInfo(GetCellName(CurPos.X, CurPos.Y),
-      Owner^.GetColor(9));
-    FillChar(Q^, SizeOf(Q^), 255);
-    for i := 1 to Cells^.Count do
-      begin
-        P := Cells^.At(i-1);
-        if (P^.Row >= Delta.Y) and (P^.Row < Delta.Y+Size.Y-2) and
-          (P^.Col >= Delta.X) and (P^.Col < Delta.X+NumC+3)
-        then
-          Q^[P^.Col-Delta.X, P^.Row-Delta.Y] := i-1;
-      end;
-    WriteBuf(6, 0, Size.X, 1, B[6]);
-    WriteBuf(0, 1, Size.X, 1, B1);
+  if NumC = 0 then
+    NumC := 1;
+  if Cur.X >= NumC then
+    begin
+    J := Cur.X-NumC+1;
+    Cur.X := NumC-1;
+    HScroll^.SetValue(Delta.X+J);
+    Delta.X := HScroll^.Value;
+    Exit;
+    end;
+  PInfoView(CellInfo)^.SetInfo(GetCellName(CurPos.X, CurPos.Y),
+     Owner^.GetColor(9));
+  FillChar(Q^, SizeOf(Q^), 255);
+  for I := 1 to Cells^.Count do
+    begin
+    P := Cells^.At(I-1);
+    if  (P^.Row >= Delta.Y) and (P^.Row < Delta.Y+Size.Y-2) and
+        (P^.Col >= Delta.X) and (P^.Col < Delta.X+NumC+3)
+    then
+      Q^[P^.Col-Delta.X, P^.Row-Delta.Y] := I-1;
+    end;
+  WriteBuf(6, 0, Size.X, 1, B[6]);
+  WriteBuf(0, 1, Size.X, 1, B1);
 
-    for i := 0 to Size.Y-2 do
+  for I := 0 to Size.Y-2 do
+    begin
+    MoveChar(B, ' ', C2, Size.X);
+    if Delta.Y+I <= VScroll^.Max then
       begin
-        MoveChar(B, ' ', C2, Size.X);
-        if Delta.Y+i <= VScroll^.Max then
-          begin
-            Str((Delta.Y+i+1): 5, s);
-            MoveStr(B, s, C1);
-            l := 7;
-            for j := 0 to Min(NumC-1, 255-Delta.X) do
-              begin
-                k := ColWidth[Delta.X+j];
-                if ShowSeparators then
-                  begin{ ограничиваем длину по колонке }
-                    SetLength(s, k);
-                    FillChar(s[1], k, ' ');
-                    s[k] := '│';
-                  end
-                else
-                  begin{ длина до конца экрана }
-                    t := Size.X-l+1;
-                    SetLength(s, t);
-                    FillChar(s[1], t, ' ');
-                  end;
-                P := nil;
-                if Q^[j, i] >= 0 then
-                  begin
-                    P := Cells^.At(Q^[j, i]);
-                    s1 := MakeCellText(P);
-                    FormatCellText(s1, k, ShowSeparators, P^.Options, s)
-                      ;
-                  end;
-                if ShowSeparators or (P <> nil) then
-                  MoveStr(B[l], s, C2);
-                if (Cur.X = j) and (Cur.Y = i) then
-                  begin
-                    if P <> nil then
-                      begin
-                        s := P^.s;
-                        case P^.Options and 3 of
-                          coText:
-                            WriteStr(0, 0, '   T  ', 2);
-                          coValue:
-                            WriteStr(0, 0, '   V  ', 2);
-                          else
-                            WriteStr(0, 0, '   F  ', 2);
-                        end {case};
-                      end
-                    else
-                      begin
-                        WriteStr(0, 0, GetString(dlWKZ_Empty), 2);
-                        s := '';
-                      end;
-                    PCalcInput(CalcInput)^.SetData(s);
-                    CalcInput^.Draw;
-                  end;
-                l := l+k;
-              end;
+      Str((Delta.Y+I+1): 5, S);
+      MoveStr(B, S, C1);
+      L := 7;
+      for J := 0 to Min(NumC-1, 255-Delta.X) do
+        begin
+        K := ColWidth[Delta.X+J];
+        if ShowSeparators then
+          begin { ограничиваем длину по колонке }
+          SetLength(S, K);
+          FillChar(S[1], K, ' ');
+          S[K] := '│';
+          end
+        else
+          begin { длина до конца экрана }
+          T := Size.X-L+1;
+          SetLength(S, T);
+          FillChar(S[1], T, ' ');
           end;
-        BC[6].C := '│';
-        BC[6].A := C1;
-        if (Delta.Y+i >= Y1) and (Delta.Y+i <= Y2) and (StX < EnX)
-        then
-          MoveColor(B[StX], EnX-StX-Ord(ShowSeparators), C3);
-        WriteBuf(0, i+2, Size.X, 1, B);
+        P := nil;
+        if Q^[J, I] >= 0 then
+          begin
+          P := Cells^.At(Q^[J, I]);
+          S1 := MakeCellText(P);
+          FormatCellText(S1, K, ShowSeparators, P^.Options, S);
+          end;
+        if ShowSeparators or (P <> nil) then
+          MoveStr(B[L], S, C2);
+        if  (Cur.X = J) and (Cur.Y = I) then
+          begin
+          if P <> nil then
+            begin
+            S := P^.S;
+            case P^.Options and 3 of
+              coText:
+                WriteStr(0, 0, '   T  ', 2);
+              coValue:
+                WriteStr(0, 0, '   V  ', 2);
+              else {case}
+                WriteStr(0, 0, '   F  ', 2);
+            end {case};
+            end
+          else
+            begin
+            WriteStr(0, 0, GetString(dlWKZ_Empty), 2);
+            S := '';
+            end;
+          PCalcInput(CalcInput)^.SetData(S);
+          CalcInput^.Draw;
+          end;
+        L := L+K;
+        end;
       end;
+    BC[6].C := '│';
+    BC[6].A := C1;
+    if  (Delta.Y+I >= Y1) and (Delta.Y+I <= Y2) and (StX < EnX)
+    then
+      MoveColor(B[StX], EnX-StX-Ord(ShowSeparators), C3);
+    WriteBuf(0, I+2, Size.X, 1, B);
+    end;
   end { TCalcView.Draw };
 
 {-DataCompBoy-}
 procedure TCalcView.HandleEvent;
   type
-    TColIndexArray = array[0..255] of integer; {KV}
-    TColTypeAndLengthRec = record{KV}
-      t: Char;
+    TColIndexArray = array[0..255] of Integer; {KV}
+    TColTypeAndLengthRec = record
+      {KV}
+      T: Char;
       l: AWord;
-      D: byte;
+      D: Byte;
       end;
     PColTypeAndLengthArray = ^TColTypeAndLengthArray;
-    TColTypeAndLengthArray = array[0..255] of TColTypeAndLengthRec;
-      {KV}
+    TColTypeAndLengthArray = array[0..255] of TColTypeAndLengthRec; {KV}
 
   var
     Inf: PCalcInput;
-    s: String;
-    ST: PStream;
-    MaxX, MaxY, k, l: integer;
+    S: String;
+    St: PStream;
+    MaxX, MaxY, K, L: Integer;
     P: PCellrec;
     FName: String;
-    X1, X2, Y1, Y2: integer;
+    X1, X2, Y1, Y2: Integer;
     R: record
-      Display, Justify: word;
+      Display, Justify: Word;
       Dec: String[2];
-      Protect: word;
+      Protect: Word;
       end;
-    i: integer;
-    Wrk: integer;
+    I: Integer;
+    Wrk: Integer;
 
-  procedure kvGetMaxColRow(var MaxCol, MaxRow: integer); {KV}
+  procedure kvGetMaxColRow(var MaxCol, MaxRow: Integer); {KV}
     var
-      i: integer;
+      i: Integer;
       P: PCellrec;
     begin
-      MaxCol := 0;
-      MaxRow := 0;
-      for i := 0 to Cells^.Count-1 do
-        begin
-          P := Cells^.At(i);
-          if MaxCol < P^.Col then
-            MaxCol := P^.Col;
-          if MaxRow < P^.Row then
-            MaxRow := P^.Row;
-        end;
+    MaxCol := 0;
+    MaxRow := 0;
+    for i := 0 to Cells^.Count-1 do
+      begin
+      P := Cells^.At(i);
+      if MaxCol < P^.Col then
+        MaxCol := P^.Col;
+      if MaxRow < P^.Row then
+        MaxRow := P^.Row;
+      end;
     end;
 
-  procedure kvFillColIndexArray(CurRow: integer; var ColIndexArray:
-      TColIndexArray); {KV}
+  procedure kvFillColIndexArray(CurRow: Integer;
+       var ColIndexArray: TColIndexArray); {KV}
     var
-      i: integer;
+      i: Integer;
       P: PCellrec;
     begin
-      FillChar(ColIndexArray, SizeOf(ColIndexArray), 255);
-      for i := 0 to Cells^.Count-1 do
-        begin
-          P := Cells^.At(i);
-          if P^.Row = CurRow then
-            ColIndexArray[P^.Col] := i;
-        end;
+    FillChar(ColIndexArray, SizeOf(ColIndexArray), 255);
+    for i := 0 to Cells^.Count-1 do
+      begin
+      P := Cells^.At(i);
+      if P^.Row = CurRow then
+        ColIndexArray[P^.Col] := i;
+      end;
     end;
 
   procedure ImportFromCsv; {KV}
     var
-      s: String;
+      S: String;
       FileName: String;
       CellValue: String;
       ColSeparator: Char;
       F: lText;
-      CurCol, CurRow: integer;
-      StartCh, EndCh: integer;
+      CurCol, CurRow: Integer;
+      StartCh, EndCh: Integer;
       P: PCellrec;
       R: CReal;
-      i: integer;
+      i: Integer;
     begin
-      if Cells^.Count > 0 then
-        begin
-          if MessageBox(GetString(dlWkzWarningClear), nil,
-            mfYesNoCancel or mfConfirmation) <> cmYes
-          then
-            exit;
-        end;
-      if GetFileName(FileName, '*.CSV', GetString(dlOpenFile),
-          GetString(dlOpenFileName),
-        fdOKButton+fdHelpButton) = cmCancel
+    if Cells^.Count > 0 then
+      begin
+      if MessageBox(GetString(dlWkzWarningClear), nil,
+          mfYesNoCancel or mfConfirmation) <> cmYes
       then
-        exit;
-      {KV: разделитель колонок можно определить автоматически, однако при этом
+        Exit;
+      end;
+    if GetFileName(FileName, '*.CSV', GetString(dlOpenFile),
+           GetString(dlOpenFileName),
+        fdOKButton+fdHelpButton) = cmCancel
+    then
+      Exit;
+    {KV: разделитель колонок можно определить автоматически, однако при этом
          возникает несколько проблем: если в файле только одна строка нельзя
          определить какие символы встречаются во второй строке столько-же раз
          сколько и в первой. Выполнять проверку только на ',',';' неправильно}
-      s := ';';
-      if InputBox(GetString(dlWkzQuerySeparatorTitle), GetString(
-          dlWkzQuerySeparatorLabel),
-        s, 1, hcSpreadSheet) <> cmOK
-      then
-        exit;
-      if s = '' then
-        ColSeparator := ';'
-      else
-        ColSeparator := s[1];
+    S := ';';
+    if InputBox(GetString(dlWkzQuerySeparatorTitle),
+           GetString(dlWkzQuerySeparatorLabel),
+        S, 1, hcSpreadSheet) <> cmOK
+    then
+      Exit;
+    if S = '' then
+      ColSeparator := ';'
+    else
+      ColSeparator := S[1];
 
-      lAssignText(F, FileName);
-      lSetTAttr(F, Archive);
-      lResetTextReadOnly(F);
-      i := IOResult;
-      if i <> 0 then
-        begin
-          MessFileNotOpen(FileName, i);
-          exit;
-        end;
-      Cells^.FreeAll;
-      CurRow := 0;
-      while not Eof(F.t) do
-        begin
-          readln(F.t, s);
-          if s <> '' then
-            begin{KV: Просто на всякий случай}
-              CurCol := 0;
-              StartCh := 1;
-              while StartCh <= Length(s) do
-                begin
-                  EndCh := StartCh;
-                  while (EndCh <= Length(s)) and (s[EndCh] <>
-                      ColSeparator)
-                  do
-                    Inc(EndCh);
-                  if EndCh > StartCh then
-                    begin
-                      CellValue := System.Copy(s, StartCh, EndCh-
-                        StartCh);
-                      P := Cells^.NewItem(CurCol, CurRow, CellValue);
-                      MakeDefaultOptions(CellValue, P^.Options, P^.
-                        Decimals, P^.Value);
-                    end;
-                  StartCh := EndCh+1;
-                  Inc(CurCol);
-                end;
+    lAssignText(F, FileName);
+    lSetTAttr(F, Archive);
+    lResetTextReadOnly(F);
+    i := IOResult;
+    if i <> 0 then
+      begin
+      MessFileNotOpen(FileName, i);
+      Exit;
+      end;
+    Cells^.FreeAll;
+    CurRow := 0;
+    while not Eof(F.T) do
+      begin
+      Readln(F.T, S);
+      if S <> '' then
+        begin {KV: Просто на всякий случай}
+        CurCol := 0;
+        StartCh := 1;
+        while StartCh <= Length(S) do
+          begin
+          EndCh := StartCh;
+          while (EndCh <= Length(S)) and (S[EndCh] <> ColSeparator) do
+            Inc(EndCh);
+          if EndCh > StartCh then
+            begin
+            CellValue := System.Copy(S, StartCh, EndCh-StartCh);
+            P := Cells^.NewItem(CurCol, CurRow, CellValue);
+            MakeDefaultOptions(CellValue, P^.Options, P^.Decimals,
+               P^.Value);
             end;
-          Inc(CurRow);
+          StartCh := EndCh+1;
+          Inc(CurCol);
+          end;
         end;
-      Close(F.t);
-      ReCalc(True);
-      Modified := True;
-      if Owner <> nil then
-        Owner^.Redraw;
+      Inc(CurRow);
+      end;
+    Close(F.T);
+    ReCalc(True);
+    Modified := True;
+    if Owner <> nil then
+      Owner^.Redraw;
     end { ImportFromCsv };
 
   procedure ImportFromDbf; {KV}
@@ -1118,228 +1118,226 @@ procedure TCalcView.HandleEvent;
       CellValue: String;
       P: PCellrec;
       R: CReal;
-      i: integer;
+      i: Integer;
     begin
-      if Cells^.Count > 0 then
-        begin
-          if MessageBox(GetString(dlWkzWarningClear), nil,
-            mfYesNoCancel or mfConfirmation) <> cmYes
-          then
-            exit;
-        end;
-      if GetFileName(FileName, '*.DBF', GetString(dlOpenFile),
-          GetString(dlOpenFileName),
-        fdOKButton+fdHelpButton) = cmCancel
+    if Cells^.Count > 0 then
+      begin
+      if MessageBox(GetString(dlWkzWarningClear), nil,
+          mfYesNoCancel or mfConfirmation) <> cmYes
       then
-        exit;
-      DBF.Init(FileName, stOpenRead, 16384);
-      if DBF.Status <> stOK then
-        begin
-          MessFileNotOpen(FileName, DBF.ErrorInfo);
-          DBF.Done;
-          exit;
-        end;
-
-      Cells^.FreeAll;
-      DBF.First;
-      while not DBF.EofFlag do
-        begin
-          for i := 1 to DBF.FCount do
-            begin
-              CellValue := DBF.FieldAsString(i);
-              DelRight(CellValue);
-              if CellValue <> '' then
-                with Cells^.NewItem(i-1, DBF.CurRecord-1, CellValue) do
-                  case DBF.FieldType(i) of
-                    'N':{число}
-                      begin
-                        DelLeft(s);
-                        Options := coValue or coRight;
-                        Decimals := DBF.FieldDec(i);
-                      end;
-                    'L':{логическое}
-                      begin
-                        if UpCase(CellValue[1]) = 'T' then
-                          s := '-1'
-                        else
-                          s := '0';
-                        Options := coValue or coBool or coRight;
-                      end;
-                    else{текст, дата, мемо...}
-                      if (CellValue[1] = '=') and (Length(CellValue) > 1
-                          )
-                      then
-                        begin
-                          Options := coFormula or coDec or coRight;
-                          Decimals := 2;
-                        end;
-                  end {case};
-            end;
-          DBF.Next;
-        end;
+        Exit;
+      end;
+    if GetFileName(FileName, '*.DBF', GetString(dlOpenFile),
+           GetString(dlOpenFileName),
+        fdOKButton+fdHelpButton) = cmCancel
+    then
+      Exit;
+    DBF.Init(FileName, stOpenRead, 16384);
+    if DBF.Status <> stOK then
+      begin
+      MessFileNotOpen(FileName, DBF.ErrorInfo);
       DBF.Done;
-      ReCalc(True);
-      Modified := True;
-      Owner^.Redraw;
+      Exit;
+      end;
+
+    Cells^.FreeAll;
+    DBF.First;
+    while not DBF.EofFlag do
+      begin
+      for i := 1 to DBF.FCount do
+        begin
+        CellValue := DBF.FieldAsString(i);
+        DelRight(CellValue);
+        if CellValue <> '' then
+          with Cells^.NewItem(i-1, DBF.CurRecord-1, CellValue) do
+            case DBF.FieldType(i) of
+              'N': {число}
+                begin
+                DelLeft(S);
+                Options := coValue or coRight;
+                Decimals := DBF.FieldDec(i);
+                end;
+              'L': {логическое}
+                begin
+                if UpCase(CellValue[1]) = 'T' then
+                  S := '-1'
+                else
+                  S := '0';
+                Options := coValue or coBool or coRight;
+                end;
+              else {текст, дата, мемо...}
+                if  (CellValue[1] = '=') and (Length(CellValue) > 1)
+                then
+                  begin
+                  Options := coFormula or coDec or coRight;
+                  Decimals := 2;
+                  end;
+            end {case};
+        end;
+      DBF.Next;
+      end;
+    DBF.Done;
+    ReCalc(True);
+    Modified := True;
+    Owner^.Redraw;
     end { ImportFromDbf };
 
   procedure ExportToCsv; {KV}
     var
-      s: String;
+      S: String;
       PS: PString;
       ColSeparator: Char;
-      UseFormatFlag: boolean;
-      CalcFormulaFlag: boolean;
+      UseFormatFlag: Boolean;
+      CalcFormulaFlag: Boolean;
       F: lText;
-      MaxCol, MaxRow, CurCol, CurRow: integer;
+      MaxCol, MaxRow, CurCol, CurRow: Integer;
       P: PCellrec;
       ColIndexArray: TColIndexArray;
       R: record
         Separator: String[1];
-        ValueFormat: word;
-        FormulaFormat: word;
+        ValueFormat: Word;
+        FormulaFormat: Word;
         end;
     begin
-      if GetFileName(s, '*.CSV', GetString(dlExportTitle), GetString(
-          dlExportLabel),
+    if GetFileName(S, '*.CSV', GetString(dlExportTitle),
+           GetString(dlExportLabel),
         fdOKButton+fdHelpButton) = cmCancel
+    then
+      Exit;
+    if ExistFile(S) then
+      begin
+      PS := @S;
+      if MessageBox(GetString(dlED_OverQuery), @PS,
+          mfYesNoCancel+mfWarning) <> cmYes
       then
-        exit;
-      if ExistFile(s) then
-        begin
-          PS := @S;
-          if MessageBox(GetString(dlED_OverQuery), @PS,
-            mfYesNoCancel+mfWarning) <> cmYes
-          then
-            exit;
-        end;
+        Exit;
+      end;
 
-      FillChar(R, SizeOf(R), 0);
-      R.Separator := ';';
-      if ExecResource(dlgSetExportCsvFormat, R) = cmOK then
+    FillChar(R, SizeOf(R), 0);
+    R.Separator := ';';
+    if ExecResource(dlgSetExportCsvFormat, R) = cmOK then
+      begin
+      if Length(R.Separator) > 0 then
+        ColSeparator := R.Separator[1]
+      else
+        ColSeparator := ';';
+      UseFormatFlag := (R.ValueFormat = 1);
+      CalcFormulaFlag := (R.FormulaFormat = 1);
+      lAssignText(F, S);
+      lSetTAttr(F, Archive);
+      lRewriteText(F);
+      if IOResult <> 0 then
         begin
-          if Length(R.Separator) > 0 then
-            ColSeparator := R.Separator[1]
-          else
-            ColSeparator := ';';
-          UseFormatFlag := (R.ValueFormat = 1);
-          CalcFormulaFlag := (R.FormulaFormat = 1);
-          lAssignText(F, s);
-          lSetTAttr(F, Archive);
-          lRewriteText(F);
-          if IOResult <> 0 then
-            begin
-              PS := @S;
-              Msg(erCantCreateFile, @PS, mfError+mfOKButton);
-              exit;
-            end;
-          kvGetMaxColRow(MaxCol, MaxRow);
-          for CurRow := 0 to MaxRow do
-            begin
-              kvFillColIndexArray(CurRow, ColIndexArray); {KV}
-              for CurCol := 0 to MaxCol do
-                begin
-                  if ColIndexArray[CurCol] >= 0 then
-                    begin
-                      P := Cells^.At(ColIndexArray[CurCol]);
-                      if ((P^.Options and 3) = coText) or
-                        (((P^.Options and coFormula) <> 0) and (not
-                          CalcFormulaFlag))
-                      then
-                        Write(F.t, P^.s)
-                      else if ((P^.Options and 3) = coValue) or
-                        (((P^.Options and coFormula) <> 0) and
-                          CalcFormulaFlag)
-                      then
-                        begin
-                          if UseFormatFlag then
-                            s := MakeCellText(P)
-                          else
-                            begin
-                              // Оставляем 5 знаков после запятой, на случай если
-                              // неправильно указан формат
-                              if P^.Decimals <= 5 then
-                                Str(P^.Value: 0: 5, s)
-                              else
-                                Str(P^.Value: 0: P^.Decimals, s);
-                              while s[Length(s)] = '0' do
-                                SetLength(s, Length(s)-1);
-                              if s[Length(s)] = '.' then
-                                SetLength(s, Length(s)-1);
-                            end;
-                          Write(F.t, s);
-                        end
-                      else
-                        Write(F.t, P^.s); {This code not use}
-                    end;
-                  if CurCol < MaxCol then
-                    Write(F.t, ColSeparator);
-                end;
-              Writeln(F.t);
-            end;
-          Close(F.t);
+        PS := @S;
+        Msg(erCantCreateFile, @PS, mfError+mfOKButton);
+        Exit;
         end;
+      kvGetMaxColRow(MaxCol, MaxRow);
+      for CurRow := 0 to MaxRow do
+        begin
+        kvFillColIndexArray(CurRow, ColIndexArray); {KV}
+        for CurCol := 0 to MaxCol do
+          begin
+          if ColIndexArray[CurCol] >= 0 then
+            begin
+            P := Cells^.At(ColIndexArray[CurCol]);
+            if  ( (P^.Options and 3) = coText) or
+                ( ( (P^.Options and coFormula) <> 0) and (not
+                   CalcFormulaFlag))
+            then
+              Write(F.T, P^.S)
+            else if ((P^.Options and 3) = coValue) or
+                ( ( (P^.Options and coFormula) <> 0) and
+                 CalcFormulaFlag)
+            then
+              begin
+              if UseFormatFlag then
+                S := MakeCellText(P)
+              else
+                begin
+                // Оставляем 5 знаков после запятой, на случай если
+                // неправильно указан формат
+                if P^.Decimals <= 5 then
+                  Str(P^.Value: 0: 5, S)
+                else
+                  Str(P^.Value: 0: P^.Decimals, S);
+                while S[Length(S)] = '0' do
+                  SetLength(S, Length(S)-1);
+                if S[Length(S)] = '.' then
+                  SetLength(S, Length(S)-1);
+                end;
+              Write(F.T, S);
+              end
+            else
+              Write(F.T, P^.S); {This code not use}
+            end;
+          if CurCol < MaxCol then
+            Write(F.T, ColSeparator);
+          end;
+        Writeln(F.T);
+        end;
+      Close(F.T);
+      end;
     end { ExportToCsv };
 
   procedure kvCalcFieldTypeAndLength(var TypeLenArr:
-      TColTypeAndLengthArray);
+       TColTypeAndLengthArray);
     var
-      i: integer;
+      i: Integer;
       P: PCellrec;
-      s1: String;
+      S1: String;
     begin
-      FillChar(TypeLenArr, SizeOf(TypeLenArr), 0);
-      for i := 0 to Cells^.Count-1 do
+    FillChar(TypeLenArr, SizeOf(TypeLenArr), 0);
+    for i := 0 to Cells^.Count-1 do
+      begin
+      P := Cells^.At(i);
+      with TypeLenArr[P^.Col] do
         begin
-          P := Cells^.At(i);
-          with TypeLenArr[P^.Col] do
-            begin
-              if (P^.Options and coValue) <> coValue then
-                // Если в колонке текст или ошибка в формуле,
-                // то эта колонка сохраняется как текстовая
-                t := 'C'
-              else if (t = #0) and ((P^.Options and $F0) = coBool)
-              then
-                // Если тип колонки еще не оределен и первое найденное значение
-                // имеет формат Boolean, то устанавливаем тип Boolean
-                t := 'L'
-              else if t = #0 then
-                t := 'N'; // По умолчанию - число
-            end;
+        if  (P^.Options and coValue) <> coValue then
+          // Если в колонке текст или ошибка в формуле,
+          // то эта колонка сохраняется как текстовая
+          T := 'C'
+        else if (T = #0) and ((P^.Options and $F0) = coBool) then
+          // Если тип колонки еще не оределен и первое найденное значение
+          // имеет формат Boolean, то устанавливаем тип Boolean
+          T := 'L'
+        else if T = #0 then
+          T := 'N'; // По умолчанию - число
         end;
-      // Делаем второй проход когда типы полей уже известны
-      // для определения размерности
-      for i := 0 to Cells^.Count-1 do
+      end;
+    // Делаем второй проход когда типы полей уже известны
+    // для определения размерности
+    for i := 0 to Cells^.Count-1 do
+      begin
+      P := Cells^.At(i);
+      with TypeLenArr[P^.Col] do
         begin
-          P := Cells^.At(i);
-          with TypeLenArr[P^.Col] do
+        case T of
+          'C':
             begin
-              case t of
-                'C':
-                  begin
-                    if l < Length(P^.s) then
-                      l := Length(P^.s);
-                  end;
-                'N':
-                  begin
-                    Str(P^.Value: 0: P^.Decimals, s1);
-                    if D < P^.Decimals then
-                      begin
-                        if l > 0 then
-                          Inc(l, P^.Decimals-D);
-                        D := P^.Decimals;
-                      end;
-                    if l < Length(s1) then
-                      l := Length(s1);
-                  end;
-                'L':
-                  begin
-                    l := 1;
-                    D := 0;
-                  end;
-              end {case}; { case }
-            end; { with }
-        end; { for }
+            if l < Length(P^.S) then
+              l := Length(P^.S);
+            end;
+          'N':
+            begin
+            Str(P^.Value: 0: P^.Decimals, S1);
+            if D < P^.Decimals then
+              begin
+              if l > 0 then
+                Inc(l, P^.Decimals-D);
+              D := P^.Decimals;
+              end;
+            if l < Length(S1) then
+              l := Length(S1);
+            end;
+          'L':
+            begin
+            l := 1;
+            D := 0;
+            end;
+        end {case}; { case }
+        end; { with }
+      end; { for }
     end { kvCalcFieldTypeAndLength };
 
   procedure ExportToDbf; {KV}
@@ -1347,774 +1345,772 @@ procedure TCalcView.HandleEvent;
       FileName: FNameStr;
       PS: PString;
       TypeLenArr: TColTypeAndLengthArray;
-      i, MaxCol, MaxRow, CurCol, CurRow: integer;
+      i, MaxCol, MaxRow, CurCol, CurRow: Integer;
       DbfHeader: THeaderDBF;
-      s: TDbaseWriter;
+      S: TDbaseWriter;
       Buf: PByteArray;
       TmpS: String;
       FieldName: String;
       ColIndexArray: TColIndexArray;
       P: PCellrec;
     begin
-      if GetFileName(FileName, '*.DBF', GetString(dlExportTitle),
-          GetString(dlExportLabel),
+    if GetFileName(FileName, '*.DBF', GetString(dlExportTitle),
+           GetString(dlExportLabel),
         fdOKButton+fdHelpButton) = cmCancel
+    then
+      Exit;
+
+    if ExistFile(FileName) then
+      begin
+      PS := @FileName;
+      if MessageBox(GetString(dlED_OverQuery), @PS,
+          mfYesNoCancel+mfWarning) <> cmYes
       then
-        exit;
+        Exit;
+      end;
 
-      if ExistFile(FileName) then
+    S.Init(FileName, stCreate, 16384);
+    if S.Status <> stOK then
+      begin
+      PS := @FileName;
+      Msg(erCantCreateFile, @PS, mfError+mfOKButton);
+      S.Done;
+      Exit;
+      end;
+
+    kvGetMaxColRow(MaxCol, MaxRow);
+    kvCalcFieldTypeAndLength(TypeLenArr);
+
+    for i := 0 to MaxCol do
+      begin
+      with TypeLenArr[i] do
         begin
-          PS := @FileName;
-          if MessageBox(GetString(dlED_OverQuery), @PS,
-            mfYesNoCancel+mfWarning) <> cmYes
-          then
-            exit;
+        FieldName := GetColName(i);
+        if T = #0 then
+          begin
+          T := 'N';
+          l := 5;
+          D := 0;
+          end;
+        if l = 0 then
+          l := 1;
+        if  (T = 'L') and (l > 1) then
+          l := 1;
+        if  (T <> 'N') and (D <> 0) then
+          D := 0;
+        S.AddField(FieldName, T, l, D);
         end;
+      end;
 
-      s.Init(FileName, stCreate, 16384);
-      if s.Status <> stOK then
+    S.CreateFile;
+
+    for CurRow := 0 to MaxRow do
+      begin
+      kvFillColIndexArray(CurRow, ColIndexArray);
+      i := 1; // Номер текущего поля внутри записи
+      S.AddRecord; // Добавляем новую пустую запись
+      for CurCol := 0 to MaxCol do
         begin
-          PS := @FileName;
-          Msg(erCantCreateFile, @PS, mfError+mfOKButton);
-          s.Done;
-          exit;
-        end;
-
-      kvGetMaxColRow(MaxCol, MaxRow);
-      kvCalcFieldTypeAndLength(TypeLenArr);
-
-      for i := 0 to MaxCol do
-        begin
-          with TypeLenArr[i] do
+        if ColIndexArray[CurCol] >= 0 then
+          begin
+          P := Cells^.At(ColIndexArray[CurCol]);
+          if TypeLenArr[CurCol].T = 'L' then
             begin
-              FieldName := GetColName(i);
-              if t = #0 then
-                begin
-                  t := 'N';
-                  l := 5;
-                  D := 0;
-                end;
-              if l = 0 then
-                l := 1;
-              if (t = 'L') and (l > 1) then
-                l := 1;
-              if (t <> 'N') and (D <> 0) then
-                D := 0;
-              s.AddField(FieldName, t, l, D);
-            end;
+            if P^.Value = 0 then
+              TmpS := 'F'
+            else
+              TmpS := 'T';
+            S.FieldPutString(i, TmpS);
+            end
+          else if TypeLenArr[CurCol].T = 'N' then
+            S.FieldPutFloat(i, P^.Value)
+          else
+            S.FieldPutString(i, P^.S);
+          end;
+        Inc(i);
         end;
-
-      s.CreateFile;
-
-      for CurRow := 0 to MaxRow do
-        begin
-          kvFillColIndexArray(CurRow, ColIndexArray);
-          i := 1; // Номер текущего поля внутри записи
-          s.AddRecord; // Добавляем новую пустую запись
-          for CurCol := 0 to MaxCol do
-            begin
-              if ColIndexArray[CurCol] >= 0 then
-                begin
-                  P := Cells^.At(ColIndexArray[CurCol]);
-                  if TypeLenArr[CurCol].t = 'L' then
-                    begin
-                      if P^.Value = 0 then
-                        TmpS := 'F'
-                      else
-                        TmpS := 'T';
-                      s.FieldPutString(i, TmpS);
-                    end
-                  else if TypeLenArr[CurCol].t = 'N' then
-                    s.FieldPutFloat(i, P^.Value)
-                  else
-                    s.FieldPutString(i, P^.s);
-                end;
-              Inc(i);
-            end;
-        end;
-      s.WriteEndOfFile;
-      s.Done;
+      end;
+    S.WriteEndOfFile;
+    S.Done;
     end { ExportToDbf };
 
   procedure ExportToXls; {KV}
     var
       FileName: FNameStr;
       PS: PString;
-      i, MaxCol, MaxRow, CurCol, CurRow: integer;
-      s: TExcelWriter;
+      i, MaxCol, MaxRow, CurCol, CurRow: Integer;
+      S: TExcelWriter;
       ColIndexArray: TColIndexArray;
       P: PCellrec;
     begin
-      if GetFileName(FileName, '*.XLS', GetString(dlExportTitle),
-          GetString(dlExportLabel),
+    if GetFileName(FileName, '*.XLS', GetString(dlExportTitle),
+           GetString(dlExportLabel),
         fdOKButton+fdHelpButton) = cmCancel
+    then
+      Exit;
+    if ExistFile(FileName) then
+      begin
+      PS := @FileName;
+      if MessageBox(GetString(dlED_OverQuery), @PS,
+          mfYesNoCancel+mfWarning) <> cmYes
       then
-        exit;
-      if ExistFile(FileName) then
-        begin
-          PS := @FileName;
-          if MessageBox(GetString(dlED_OverQuery), @PS,
-            mfYesNoCancel+mfWarning) <> cmYes
-          then
-            exit;
-        end;
+        Exit;
+      end;
 
-      s.Init(FileName, stCreate, 16384);
-      if s.Status <> stOK then
-        begin
-          PS := @FileName;
-          Msg(erCantCreateFile, @PS, mfError+mfOKButton);
-          s.Done;
-          exit;
-        end;
+    S.Init(FileName, stCreate, 16384);
+    if S.Status <> stOK then
+      begin
+      PS := @FileName;
+      Msg(erCantCreateFile, @PS, mfError+mfOKButton);
+      S.Done;
+      Exit;
+      end;
 
-      kvGetMaxColRow(MaxCol, MaxRow);
-      s.WriteBOF;
-      for CurRow := 0 to MaxRow do
+    kvGetMaxColRow(MaxCol, MaxRow);
+    S.WriteBOF;
+    for CurRow := 0 to MaxRow do
+      begin
+      kvFillColIndexArray(CurRow, ColIndexArray);
+      for CurCol := 0 to MaxCol do
         begin
-          kvFillColIndexArray(CurRow, ColIndexArray);
-          for CurCol := 0 to MaxCol do
+        if ColIndexArray[CurCol] < 0 then
+          S.WriteBLANK(CurCol, CurRow, 0)
+        else
+          begin
+          P := Cells^.At(ColIndexArray[CurCol]);
+          if  (P^.Options and coFormula) <> 0 then
+            S.WriteLABEL(P^.S, CurCol, CurRow, 0)
+          else if (P.Options and coValue) = coValue then
             begin
-              if ColIndexArray[CurCol] < 0 then
-                s.WriteBLANK(CurCol, CurRow, 0)
-              else
-                begin
-                  P := Cells^.At(ColIndexArray[CurCol]);
-                  if (P^.Options and coFormula) <> 0 then
-                    s.WriteLABEL(P^.s, CurCol, CurRow, 0)
-                  else if (P.Options and coValue) = coValue then
-                      begin
-                      if (P^.Options and $F0) = coBool then
-                        s.WriteBOOL(P^.Value <> 0, CurCol, CurRow, 0)
-                      else
-                        s.WriteNUMBER(P^.Value, CurCol, CurRow, 0);
-                    end
-                  else
-                    s.WriteLABEL(P^.s, CurCol, CurRow, 0);
-                end;
-            end;
+            if  (P^.Options and $F0) = coBool then
+              S.WriteBOOL(P^.Value <> 0, CurCol, CurRow, 0)
+            else
+              S.WriteNUMBER(P^.Value, CurCol, CurRow, 0);
+            end
+          else
+            S.WriteLABEL(P^.S, CurCol, CurRow, 0);
+          end;
         end;
-      s.WriteEOF;
-      s.Done;
+      end;
+    S.WriteEOF;
+    S.Done;
     end { ExportToXls };
 
   procedure ExportToFile;
     var
-      s, s1: String;
-      C: array[0..255] of integer;
+      S, S1: String;
+      C: array[0..255] of Integer;
       P: PCellrec;
-      MaxLv, Maxr, i, j, k, l, l1: integer;
+      MaxLv, Maxr, I, J, K, L, L1: Integer;
       F: lText;
     begin
-      if GetFileName(s, x_x, GetString(dlExportTitle), GetString(
-          dlExportLabel),
+    if GetFileName(S, x_x, GetString(dlExportTitle),
+           GetString(dlExportLabel),
         fdOKButton+fdHelpButton) = cmCancel
-      then
-        exit;
-      lAssignText(F, s);
-      lSetTAttr(F, Archive);
-      lRewriteText(F);
-      MaxLv := 0;
-      for i := 1 to Cells^.Count do
+    then
+      Exit;
+    lAssignText(F, S);
+    lSetTAttr(F, Archive);
+    lRewriteText(F);
+    MaxLv := 0;
+    for I := 1 to Cells^.Count do
+      begin
+      P := Cells^.At(I-1);
+      if MaxLv < P^.Row then
+        MaxLv := P^.Row;
+      end;
+    for J := 0 to MaxLv do
+      begin
+      FillChar(C, SizeOf(C), 255);
+      Maxr := 0;
+      for I := 1 to Cells^.Count do
         begin
-          P := Cells^.At(i-1);
-          if MaxLv < P^.Row then
-            MaxLv := P^.Row;
+        P := Cells^.At(I-1);
+        if J = P^.Row then
+          C[P^.Col] := I-1;
+        if Maxr < P^.Col then
+          Maxr := P^.Col;
         end;
-      for j := 0 to MaxLv do
+      for I := 0 to Maxr do
         begin
-          FillChar(C, SizeOf(C), 255);
-          Maxr := 0;
-          for i := 1 to Cells^.Count do
+        K := ColWidth[I];
+        if ShowSeparators then
+          S := Strg(' ', K-1)+'│'
+        else
+          S := Strg(' ', 255);
+        if C[I] >= 0 then
+          begin
+          P := Cells^.At(C[I]);
+          S1 := MakeCellText(P);
+          L1 := Length(S1);
+          FormatCellText(S1, K, ShowSeparators, P^.Options, S);
+          end
+        else
+          L1 := Length(S);
+        if not ShowSeparators then
+          while (I < Maxr) and (C[I+1] < 0) do
             begin
-              P := Cells^.At(i-1);
-              if j = P^.Row then
-                C[P^.Col] := i-1;
-              if Maxr < P^.Col then
-                Maxr := P^.Col;
+            Inc(I);
+            Inc(K, ColWidth[I]);
             end;
-          for i := 0 to Maxr do
-            begin
-              k := ColWidth[i];
-              if ShowSeparators then
-                s := Strg(' ', k-1)+'│'
-              else
-                s := Strg(' ', 255);
-              if C[i] >= 0 then
-                begin
-                  P := Cells^.At(C[i]);
-                  s1 := MakeCellText(P);
-                  l1 := Length(s1);
-                  FormatCellText(s1, k, ShowSeparators, P^.Options, s);
-                end
-              else
-                l1 := Length(s);
-              if not ShowSeparators then
-                while (i < Maxr) and (C[i+1] < 0) do
-                  begin
-                    Inc(i);
-                    Inc(k, ColWidth[i]);
-                  end;
-              if k <= l1 then
-                Write(F.t, System.Copy(s, 1, k))
-              else
-                begin
-                  if k > 255 then
-                    l := 255
-                  else
-                    l := k;
-                  Write(F.t, System.Copy(s, 1, l));
-                  repeat
-                    Dec(k, l);
-                    if k > 255 then
-                      l := 255
-                    else
-                      l := k;
-                    if l <= 0 then
-                      break;
-                    Write(F.t, Strg(' ', l));
-                  until k <= 0;
-                end;
-            end;
-          Writeln(F.t);
+        if K <= L1 then
+          Write(F.T, System.Copy(S, 1, K))
+        else
+          begin
+          if K > 255 then
+            L := 255
+          else
+            L := K;
+          Write(F.T, System.Copy(S, 1, L));
+          repeat
+            Dec(K, L);
+            if K > 255 then
+              L := 255
+            else
+              L := K;
+            if L <= 0 then
+              Break;
+            Write(F.T, Strg(' ', L));
+          until K <= 0;
+          end;
         end;
-      Close(F.t);
+      Writeln(F.T);
+      end;
+    Close(F.T);
     end { ExportToFile };
 
   procedure SetMark;
     begin
-      if Marking then
-        exit;
-      Mark.X := Delta.X+Cur.X;
-      Mark.Y := Delta.Y+Cur.Y;
+    if Marking then
+      Exit;
+    Mark.X := Delta.X+Cur.X;
+    Mark.Y := Delta.Y+Cur.Y;
     end;
 
   procedure CheckMark;
     begin
-      Marking := ShiftState and $3 <> 0
+    Marking := ShiftState and $3 <> 0
     end;
 
   procedure EndMarking;
     begin
-      Marking := False;
-      SetMark;
-      DrawView;
-      ClearEvent(Event)
+    Marking := False;
+    SetMark;
+    DrawView;
+    ClearEvent(Event)
     end;
 
   procedure ChangeFormat;
     const
-      j: integer = 0;
+      J: Integer = 0;
       NewOptions: AWord = 0; {см. комментарий к ForRectangle}
     procedure SetFormat(Item: PCellrec);
       begin
-        with Item^ do
-          begin
-            Options := (Options and 3) or NewOptions;
-            Decimals := j;
-          end;
+      with Item^ do
+        begin
+        Options := (Options and 3) or NewOptions;
+        Decimals := j;
+        end;
       end;
 
-    begin{ChangeFormat}
-      ClearEvent(Event);
-      P := Cells^.Get(Delta.X+Cur.X, Delta.Y+Cur.Y);
-      if P = nil then
+    begin {ChangeFormat}
+    ClearEvent(Event);
+    P := Cells^.Get(Delta.X+Cur.X, Delta.Y+Cur.Y);
+    if P = nil then
+      begin
+      FillChar(R, SizeOf(R), 0);
+      R.Dec := '2'
+      end
+    else
+      begin
+      R.Display := (P^.Options shr 4) and 7;
+      R.Justify := (P^.Options shr 2) and 3;
+      Str(P^.Decimals, R.Dec);
+      R.Protect := (P^.Options shr 7) and 1;
+      end;
+    if ExecResource(dlgSetCellFormat, R) = cmOK then
+      begin
+      X1 := Delta.X+Cur.X;
+      X2 := Mark.X;
+      Y1 := Delta.Y+Cur.Y;
+      Y2 := Mark.Y;
+      if X1 > X2 then
         begin
-          FillChar(R, SizeOf(R), 0);
-          R.Dec := '2'
-        end
-      else
-        begin
-          R.Display := (P^.Options shr 4) and 7;
-          R.Justify := (P^.Options shr 2) and 3;
-          Str(P^.Decimals, R.Dec);
-          R.Protect := (P^.Options shr 7) and 1;
+        Wrk := X1;
+        X1 := X2;
+        X2 := Wrk;
         end;
-      if ExecResource(dlgSetCellFormat, R) = cmOK then
+      if Y1 > Y2 then
         begin
-          X1 := Delta.X+Cur.X;
-          X2 := Mark.X;
-          Y1 := Delta.Y+Cur.Y;
-          Y2 := Mark.Y;
-          if X1 > X2 then
-            begin
-              Wrk := X1;
-              X1 := X2;
-              X2 := Wrk;
-            end;
-          if Y1 > Y2 then
-            begin
-              Wrk := Y1;
-              Y1 := Y2;
-              Y2 := Wrk;
-            end;
-          Val(R.Dec, j, i);
-          NewOptions := ((R.Justify and 3) shl 2)
-          or ((R.Display and 7) shl 4)
-          or ((R.Protect and 1) shl 7);
-          Cells^.ForRectangle(X1, Y1, X2, Y2, @SetFormat);
+        Wrk := Y1;
+        Y1 := Y2;
+        Y2 := Wrk;
         end;
-      Modified := True;
-      DrawView;
+      Val(R.Dec, J, i);
+      NewOptions := ((R.Justify and 3) shl 2)
+        or ((R.Display and 7) shl 4)
+        or ((R.Protect and 1) shl 7);
+      Cells^.ForRectangle(X1, Y1, X2, Y2, @SetFormat);
+      end;
+    Modified := True;
+    DrawView;
     end { ChangeFormat };
 
   procedure CE;
     begin
-      ClearEvent(Event)
+    ClearEvent(Event)
     end;
 
-  procedure ExpandCol(CurCol: integer);
+  procedure ExpandCol(CurCol: Integer);
     begin
-      if ColWidth[CurCol] < ScreenWidth then
-        begin
-          Inc(ColWidth[CurCol]);
-          DrawView
-        end;
-      Modified := True;
+    if ColWidth[CurCol] < ScreenWidth then
+      begin
+      Inc(ColWidth[CurCol]);
+      DrawView
+      end;
+    Modified := True;
     end;
 
-  procedure ShrinkCol(CurCol: integer);
+  procedure ShrinkCol(CurCol: Integer);
     begin
-      if ColWidth[CurCol] > 1 then
-        begin
-          Dec(ColWidth[CurCol]);
-          DrawView
-        end;
-      Modified := True;
+    if ColWidth[CurCol] > 1 then
+      begin
+      Dec(ColWidth[CurCol]);
+      DrawView
+      end;
+    Modified := True;
     end;
 
   var
-    SaveCellWidth: byte;
+    SaveCellWidth: Byte;
     CurCol: AInt;
 
-  begin{TCalcView.HandleEvent}
-    Inf := PCalcInput(CalcInput);
-    if GetState(sfFocused) and (FocusEvent.What <> evNothing) then
-      begin
-        PutEvent(Event);
-        Event := FocusEvent;
-        FocusEvent.What := evNothing;
-      end;
-    TView.HandleEvent(Event);
-    CurCol := Delta.X+Cur.X;
-    case Event.What of
-      evCommand:
-        case Event.Command of
-          cmGetName:
-            PString(Event.InfoPtr)^:= 'Speadsheet - '+SName^;
-          cmImportToFile:
-            begin
-              ExportToFile;
-              ClearEvent(Event)
-            end;
-          cmImportFromCsv:
-            begin
-              ImportFromCsv;
-              ClearEvent(Event);
-            end;
-          cmImportFromDbf:
-            begin
-              ImportFromDbf;
-              ClearEvent(Event);
-            end;
-          cmExportToCsv:
-            begin
-              ExportToCsv;
-              ClearEvent(Event);
-            end;
-          cmExportToDbf:
-            begin
-              ExportToDbf;
-              ClearEvent(Event);
-            end;
-          cmExportToXls:
-            begin
-              ExportToXls;
-              ClearEvent(Event);
-            end;
-          cmSaveSheetAs:
-            begin
-              SaveSheetAs;
-              CE;
-              Owner^.Redraw;
-            end;
-          cmSave:
-            begin
-              SaveSheet;
-              CE;
-              Owner^.Redraw;
-            end;
-          cmOpen:
-            begin
-              CE;
-              k := GetFileName(FName, '*.WKZ', GetString(dlOpenFile),
+  begin {TCalcView.HandleEvent}
+  Inf := PCalcInput(CalcInput);
+  if GetState(sfFocused) and (FocusEvent.What <> evNothing) then
+    begin
+    PutEvent(Event);
+    Event := FocusEvent;
+    FocusEvent.What := evNothing;
+    end;
+  TView.HandleEvent(Event);
+  CurCol := Delta.X+Cur.X;
+  case Event.What of
+    evCommand:
+      case Event.Command of
+        cmGetName:
+          PString(Event.InfoPtr)^:= 'Speadsheet - '+SName^;
+        cmImportToFile:
+          begin
+          ExportToFile;
+          ClearEvent(Event)
+          end;
+        cmImportFromCsv:
+          begin
+          ImportFromCsv;
+          ClearEvent(Event);
+          end;
+        cmImportFromDbf:
+          begin
+          ImportFromDbf;
+          ClearEvent(Event);
+          end;
+        cmExportToCsv:
+          begin
+          ExportToCsv;
+          ClearEvent(Event);
+          end;
+        cmExportToDbf:
+          begin
+          ExportToDbf;
+          ClearEvent(Event);
+          end;
+        cmExportToXls:
+          begin
+          ExportToXls;
+          ClearEvent(Event);
+          end;
+        cmSaveSheetAs:
+          begin
+          SaveSheetAs;
+          CE;
+          Owner^.Redraw;
+          end;
+        cmSave:
+          begin
+          SaveSheet;
+          CE;
+          Owner^.Redraw;
+          end;
+        cmOpen:
+          begin
+          CE;
+          K := GetFileName(FName, '*.WKZ', GetString(dlOpenFile),
               GetString(dlOpenFileName), fdOpenButton
-                { + fdReplaceButton, hsLoadSheet, 0});
-              if k = cmCancel then
-                exit;
-              LoadSheet(FName);
-            end;
-          cmChangeWidth:
+              { + fdReplaceButton, hsLoadSheet, 0});
+          if K = cmCancel then
+            Exit;
+          LoadSheet(FName);
+          end;
+        cmChangeWidth:
+          begin
+          SaveCellWidth := ColWidth[CurCol];
+          while True do
             begin
-              SaveCellWidth := ColWidth[CurCol];
-              while True do
-                begin
-                  CE;
-                  GetKeyEvent(Event);
-                  if Event.What = evKeyDown then
-                    case Event.KeyCode of
-                      kbLeft:
-                        ShrinkCol(CurCol);
-                      kbRight:
-                        ExpandCol(CurCol);
-                      kbEnter:
-                        break;
-                      kbESC:
-                        begin
-                          ColWidth[CurCol] := SaveCellWidth;
-                          DrawView;
-                          break;
-                        end;
-                    end {case};
-                  Application^.Idle;
-                end;
-              CE;
-            end;
-          cmChangeFormat:
-            begin
-              ChangeFormat;
-              CE;
-            end;
-          cmPaste:
-            begin
-              Paste;
-              EndMarking
-            end;
-          cmCopy:
-            begin
-              Copy;
-              EndMarking
-            end;
-          cmCut:
-            begin
-              Copy;
-              Clear;
-              EndMarking
-            end;
-          cmClear:
-            begin
-              Clear;
-              EndMarking
-            end;
-          cmInsertLine:
-            begin
-              InsertLine;
-              EndMarking
-            end;
-          cmInsertColumn:
-            begin
-              InsertCol;
-              EndMarking
-            end;
-          cmDeleteLine:
-            begin
-              DeleteLine;
-              EndMarking
-            end;
-          cmDeleteColumn:
-            begin
-              DeleteCol;
-              EndMarking
-            end;
-          cmToggleShowMode:
-            begin
-              ShowSeparators := not ShowSeparators;
-              DrawView;
-              CE;
-            end;
-          cmRecalc:
-            begin
-              ReCalc(True);
-              DrawView;
-              CE
-            end;
-          cmGotoCell:
-            begin
-              if HistoryCount(hsGotoCell) = 0 then
-                s := 'A1'
-              else
-                s := HistoryStr(hsGotoCell, 0);
-              if ExecResource(dlgGotoCellNumber, s) = cmOK
-              then
-                GotoCell(s);
-              ClearEvent(Event);
-              exit
-            end;
-          cmFindCell:
-            begin
-              if ExecResource(dlgFindCell, SearchData) = cmOK then
-                begin
-                  SearchPos.X := -1;
-                  SearchPos.Y := 0;
-                  WasReplace := False;
-                  SearchCell;
-                end;
-              CE;
-            end;
-          cmSearchAgain:
-            begin
-              SearchCanceled := False;
-              SearchPos.X := CurCol;
-              SearchPos.Y := Delta.Y+Cur.Y;
-              repeat
-                SearchCell
-              until not WasReplace or not ContSearch or
-                SearchCanceled;
-              CE;
-            end;
-          cmReplaceCell:
-            begin
-              l := ExecResource(dlgReplaceCell, ReplaceData);
-              if (l = cmYes) or (l = cmOK) then
-                begin
-                  SearchData.s := ReplaceData.s;
-                  SearchData.TxtOptions := ReplaceData.TxtOptions;
-                  SearchData.CellOptions := ReplaceData.CellOptions;
-                  SearchCanceled := False;
-                  ContSearch := l = cmYes;
-                  SearchPos.X := -1;
-                  SearchPos.Y := 0;
-                  WasReplace := True;
-                  repeat
-                    SearchCell
-                  until not WasReplace or not ContSearch or
-                    SearchCanceled;
-                end;
-              CE;
-            end;
-          cmMainMenu:
-            begin
-              Message(DNApp.MenuBar, evCommand, cmMenu, nil);
-              CE;
-            end;
-        end {case};
-      evKeyDown:
-        case Event.KeyCode of
-          kbDoubleAlt, kbDoubleCtrl:
             CE;
-          kbDel:
-            begin
-              Clear;
-              EndMarking
-            end;
-          kbShiftLeft,
-          kbLeft:
-            if Cur.X > 0 then
-              begin
-                CheckMark;
-                Dec(Cur.X);
-                SetMark;
-                DrawView;
-                CE;
-                exit
-              end
-            else
-              exit;
-          kbShiftRight,
-          kbRight:
-            if (Cur.X < NumC) then
-              begin
-                CheckMark;
-                if (CurCol = HScroll^.Max) then
+            GetKeyEvent(Event);
+            if Event.What = evKeyDown then
+              case Event.KeyCode of
+                kbLeft:
+                  ShrinkCol(CurCol);
+                kbRight:
+                  ExpandCol(CurCol);
+                kbEnter:
+                  Break;
+                kbESC:
                   begin
-                    if Cur.X > 0 then
-                      Dec(Cur.X);
-                    SetMark;
-                    exit
+                  ColWidth[CurCol] := SaveCellWidth;
+                  DrawView;
+                  Break;
                   end;
-                Inc(Cur.X);
-                SetMark;
-                DrawView;
-                ClearEvent(Event);
-                exit
-              end
-            else if (CurCol = HScroll^.Max) then
-              begin
-                CheckMark;
-                if Cur.X > 0 then
-                  Dec(Cur.X);
-                SetMark;
-                exit
-              end
-            else
-              exit;
-          kbShiftUp, kbUp:
-            if Cur.Y > 0 then
-              begin
-                CheckMark;
-                Dec(Cur.Y);
-                SetMark;
-                DrawView;
-                ClearEvent(Event);
-                exit
-              end
-            else
-              exit;
-          kbShiftHome, kbHome:
-            begin
-              CheckMark;
-              Cur.Y := 0;
-              Cur.X := 0;
-              SetMark;
-              HScroll^.SetValue(0);
-              VScroll^.SetValue(0);
-              DrawView;
-              ClearEvent(Event);
-              exit
+              end {case};
+            Application^.Idle;
             end;
-          kbShiftEnd, kbEnd:
-            begin
-              CheckMark;
-              MaxX := 0;
-              MaxY := 0;
-              Cur.Y := 0;
-              Cur.X := 0;
-              for l := 1 to Cells^.Count do
-                begin
-                  P := Cells^.At(l-1);
-                  if P^.Col > MaxX then
-                    MaxX := P^.Col;
-                end;
-              if Cells^.Count <> 0 then
-                MaxY := P^.Row;
-              if (l+ColWidth[CurCol] < Size.X) and (MaxX > 0) then
-                begin
-                  l := 7;
-                  while (l <= Size.X) and (MaxX >= 0) do
-                    begin
-                      k := ColWidth[CurCol];
-                      if MaxX >= 0 then
-                        begin
-                          Inc(Cur.X);
-                          Dec(MaxX)
-                        end;
-                      Inc(l, k);
-                    end;
-                  Dec(Cur.X);
-                  Inc(MaxX);
-                end;
-              VScroll^.SetValue(MaxY-Size.Y+3);
-              Delta.Y := VScroll^.Value;
-              Cur.Y := MaxY-Delta.Y;
-              HScroll^.SetValue(MaxX);
-              Delta.X := HScroll^.Value;
-              SetMark;
-              DrawView;
-              ClearEvent(Event);
-              exit
-            end;
-          kbShiftDown, kbDown:
-            if (Cur.Y < Size.Y-3) then
-              begin
-                CheckMark;
-                if (Delta.Y+Cur.Y >= VScroll^.Max) then
-                  begin
-                    if Cur.Y > 0 then
-                      Dec(Cur.Y);
-                    SetMark;
-                    exit
-                  end;
-                Inc(Cur.Y);
-                SetMark;
-                DrawView;
-                ClearEvent(Event);
-                exit
-              end
-            else if (Delta.Y+Cur.Y >= VScroll^.Max) then
-              begin
-                if Cur.Y > 0 then
-                  Dec(Cur.Y);
-                SetMark;
-                exit
-              end
-            else
-              exit;
-          kbEnter:
-            begin
-              Marking := False;
-              SetMark; //DrawView;
-              PWindow(Owner)^.SelectNext(False);
-              ClearEvent(Event);
-            end;
-          kbTab:
-            begin
-              Marking := False;
-              SetMark;
-              DrawView;
-            end;
-          kbAltLeft:
-            ShrinkCol(CurCol);
-          kbAltRight:
-            ExpandCol(CurCol);
+          CE;
+          end;
+        cmChangeFormat:
+          begin
+          ChangeFormat;
+          CE;
+          end;
+        cmPaste:
+          begin
+          Paste;
+          EndMarking
+          end;
+        cmCopy:
+          begin
+          Copy;
+          EndMarking
+          end;
+        cmCut:
+          begin
+          Copy;
+          Clear;
+          EndMarking
+          end;
+        cmClear:
+          begin
+          Clear;
+          EndMarking
+          end;
+        cmInsertLine:
+          begin
+          InsertLine;
+          EndMarking
+          end;
+        cmInsertColumn:
+          begin
+          InsertCol;
+          EndMarking
+          end;
+        cmDeleteLine:
+          begin
+          DeleteLine;
+          EndMarking
+          end;
+        cmDeleteColumn:
+          begin
+          DeleteCol;
+          EndMarking
+          end;
+        cmToggleShowMode:
+          begin
+          ShowSeparators := not ShowSeparators;
+          DrawView;
+          CE;
+          end;
+        cmRecalc:
+          begin
+          ReCalc(True);
+          DrawView;
+          CE
+          end;
+        cmGotoCell:
+          begin
+          if HistoryCount(hsGotoCell) = 0 then
+            S := 'A1'
           else
-            if Event.CharCode > #31 then
+            S := HistoryStr(hsGotoCell, 0);
+          if ExecResource(dlgGotoCellNumber, S) = cmOK
+          then
+            GotoCell(S);
+          ClearEvent(Event);
+          Exit
+          end;
+        cmFindCell:
+          begin
+          if ExecResource(dlgFindCell, SearchData) = cmOK then
+            begin
+            SearchPos.X := -1;
+            SearchPos.Y := 0;
+            WasReplace := False;
+            SearchCell;
+            end;
+          CE;
+          end;
+        cmSearchAgain:
+          begin
+          SearchCanceled := False;
+          SearchPos.X := CurCol;
+          SearchPos.Y := Delta.Y+Cur.Y;
+          repeat
+            SearchCell
+          until not WasReplace or not ContSearch or SearchCanceled;
+          CE;
+          end;
+        cmReplaceCell:
+          begin
+          L := ExecResource(dlgReplaceCell, ReplaceData);
+          if  (L = cmYes) or (L = cmOK) then
+            begin
+            SearchData.S := ReplaceData.S;
+            SearchData.TxtOptions := ReplaceData.TxtOptions;
+            SearchData.CellOptions := ReplaceData.CellOptions;
+            SearchCanceled := False;
+            ContSearch := L = cmYes;
+            SearchPos.X := -1;
+            SearchPos.Y := 0;
+            WasReplace := True;
+            repeat
+              SearchCell
+            until not WasReplace or not ContSearch or SearchCanceled;
+            end;
+          CE;
+          end;
+        cmMainMenu:
+          begin
+          Message(DNApp.MenuBar, evCommand, cmMenu, nil);
+          CE;
+          end;
+      end {case};
+    evKeyDown:
+      case Event.KeyCode of
+        kbDoubleAlt, kbDoubleCtrl:
+          CE;
+        kbDel:
+          begin
+          Clear;
+          EndMarking
+          end;
+        kbShiftLeft,
+        kbLeft:
+          if Cur.X > 0 then
+            begin
+            CheckMark;
+            Dec(Cur.X);
+            SetMark;
+            DrawView;
+            CE;
+            Exit
+            end
+          else
+            Exit;
+        kbShiftRight,
+        kbRight:
+          if  (Cur.X < NumC) then
+            begin
+            CheckMark;
+            if  (CurCol = HScroll^.Max) then
               begin
-                Marking := False;
-                SetMark;
-                DrawView;
-                PWindow(Owner)^.SelectNext(True);
-                Event.InfoPtr := CalcInput;
-                CalcInput^.PutEvent(Event);
-                ClearEvent(Event)
+              if Cur.X > 0 then
+                Dec(Cur.X);
+              SetMark;
+              Exit
               end;
-        end {case};
-      evBroadcast:
-        case Event.Command of
-          cmScrollBarChanged:
-            if Event.InfoPtr = HScroll then
+            Inc(Cur.X);
+            SetMark;
+            DrawView;
+            ClearEvent(Event);
+            Exit
+            end
+          else if (CurCol = HScroll^.Max) then
+            begin
+            CheckMark;
+            if Cur.X > 0 then
+              Dec(Cur.X);
+            SetMark;
+            Exit
+            end
+          else
+            Exit;
+        kbShiftUp, kbUp:
+          if Cur.Y > 0 then
+            begin
+            CheckMark;
+            Dec(Cur.Y);
+            SetMark;
+            DrawView;
+            ClearEvent(Event);
+            Exit
+            end
+          else
+            Exit;
+        kbShiftHome, kbHome:
+          begin
+          CheckMark;
+          Cur.Y := 0;
+          Cur.X := 0;
+          SetMark;
+          HScroll^.SetValue(0);
+          VScroll^.SetValue(0);
+          DrawView;
+          ClearEvent(Event);
+          Exit
+          end;
+        kbShiftEnd, kbEnd:
+          begin
+          CheckMark;
+          MaxX := 0;
+          MaxY := 0;
+          Cur.Y := 0;
+          Cur.X := 0;
+          for L := 1 to Cells^.Count do
+            begin
+            P := Cells^.At(L-1);
+            if P^.Col > MaxX then
+              MaxX := P^.Col;
+            end;
+          if Cells^.Count <> 0 then
+            MaxY := P^.Row;
+          if  (L+ColWidth[CurCol] < Size.X) and (MaxX > 0) then
+            begin
+            L := 7;
+            while (L <= Size.X) and (MaxX >= 0) do
               begin
-                CheckMark;
-                Delta.X := HScroll^.Value;
-                SetMark;
-                DrawView;
-                exit
-              end
-            else if Event.InfoPtr = VScroll then
+              K := ColWidth[CurCol];
+              if MaxX >= 0 then
+                begin
+                Inc(Cur.X);
+                Dec(MaxX)
+                end;
+              Inc(L, K);
+              end;
+            Dec(Cur.X);
+            Inc(MaxX);
+            end;
+          VScroll^.SetValue(MaxY-Size.Y+3);
+          Delta.Y := VScroll^.Value;
+          Cur.Y := MaxY-Delta.Y;
+          HScroll^.SetValue(MaxX);
+          Delta.X := HScroll^.Value;
+          SetMark;
+          DrawView;
+          ClearEvent(Event);
+          Exit
+          end;
+        kbShiftDown, kbDown:
+          if  (Cur.Y < Size.Y-3) then
+            begin
+            CheckMark;
+            if  (Delta.Y+Cur.Y >= VScroll^.Max) then
               begin
-                CheckMark;
-                Delta.Y := VScroll^.Value;
-                SetMark;
-                DrawView;
-                exit
-              end
-        end {case};
-    end {case};
-    Marking := False;
+              if Cur.Y > 0 then
+                Dec(Cur.Y);
+              SetMark;
+              Exit
+              end;
+            Inc(Cur.Y);
+            SetMark;
+            DrawView;
+            ClearEvent(Event);
+            Exit
+            end
+          else if (Delta.Y+Cur.Y >= VScroll^.Max) then
+            begin
+            if Cur.Y > 0 then
+              Dec(Cur.Y);
+            SetMark;
+            Exit
+            end
+          else
+            Exit;
+        kbEnter:
+          begin
+          Marking := False;
+          SetMark; //DrawView;
+          PWindow(Owner)^.SelectNext(False);
+          ClearEvent(Event);
+          end;
+        kbTab:
+          begin
+          Marking := False;
+          SetMark;
+          DrawView;
+          end;
+        kbAltLeft:
+          ShrinkCol(CurCol);
+        kbAltRight:
+          ExpandCol(CurCol);
+        else {case}
+          if Event.CharCode > #31 then
+            begin
+            Marking := False;
+            SetMark;
+            DrawView;
+            PWindow(Owner)^.SelectNext(True);
+            Event.InfoPtr := CalcInput;
+            CalcInput^.PutEvent(Event);
+            ClearEvent(Event)
+            end;
+      end {case};
+    evBroadcast:
+      case Event.Command of
+        cmScrollBarChanged:
+          if Event.InfoPtr = HScroll then
+            begin
+            CheckMark;
+            Delta.X := HScroll^.Value;
+            SetMark;
+            DrawView;
+            Exit
+            end
+          else if Event.InfoPtr = VScroll then
+            begin
+            CheckMark;
+            Delta.Y := VScroll^.Value;
+            SetMark;
+            DrawView;
+            Exit
+            end
+      end {case};
+  end {case};
+  Marking := False;
   end { TCalcView.HandleEvent };
 {-DataCompBoy-}
 
-function TCalcView.GetCellValue(const s: String): boolean;
+function TCalcView.GetCellValue(const S: String): Boolean;
   var
-    i: integer;
+    I: Integer;
     SR: TCellSearcRec;
   begin
-    Result := False;
-    // DelSpaces(S); UpStr(S);
-    if GetCellCoord(s, SR.Col, SR.Row) then
+  Result := False;
+  // DelSpaces(S); UpStr(S);
+  if GetCellCoord(S, SR.Col, SR.Row) then
+    begin
+    if not Cells^.Search(@SR, I) then
       begin
-        if not Cells^.Search(@SR, i) then
+      Res := 0;
+      Result := True;
+      end
+    else
+      with PCellrec(Cells^.At(I))^ do
+        if Options and 3 <> 0 then
           begin
-            Res := 0;
-            Result := True;
-          end
-        else
-          with PCellrec(Cells^.At(i))^ do
-            if Options and 3 <> 0 then
-              begin
-                Res := Value;
-                Result := True;
-              end;
-      end;
+          Res := Value;
+          Result := True;
+          end;
+    end;
   end { TCalcView.GetCellValue };
 
 {  Вычисление функций SUM и MUL. В скобках через запятую могут быть
@@ -2122,663 +2118,656 @@ function TCalcView.GetCellValue(const s: String): boolean;
 скобки должно быть проверено перед вызовом.
    Пример: =SUM(A 1:B7, C1 8, 1).
    Вычисленное число кладется в Calculat.Res}
-function TCalcView.GetFuncValue(s: String): boolean;
+function TCalcView.GetFuncValue(S: String): Boolean;
   procedure DoSum(PP: PCellrec);
     begin
-      with PP^ do
-        if (Options and 3 <> 0) then
-          Res := Res+PP^.Value
+    with PP^ do
+      if  (Options and 3 <> 0) then
+        Res := Res+PP^.Value
     end;
 
   procedure DoMul(PP: PCellrec);
     begin
-      with PP^ do
-        if (Options and 3 <> 0) then
-          Res := Res*PP^.Value
+    with PP^ do
+      if  (Options and 3 <> 0) then
+        Res := Res*PP^.Value
     end;
 
   var
-    i: integer;
-    AFromX, AToX: byte;
+    I: Integer;
+    AFromX, AToX: Byte;
     AFromY, AToY: AInt;
     Op: Pointer;
     SR: TCellSearcRec;
-    t0, t: integer;
-    s1: String;
+    t0, t: Integer;
+    S1: String;
     R: CReal;
-  begin{TCalcView.GetFuncValue}
-    Result := False;
-    DelSpaces(s);
-    UpStr(s);
-    if (System.Copy(s, 1, 4) = 'SUM(') then
+  begin {TCalcView.GetFuncValue}
+  Result := False;
+  DelSpaces(S);
+  UpStr(S);
+  if  (System.Copy(S, 1, 4) = 'SUM(') then
+    begin
+    Op := @DoSum;
+    Res := 0;
+    end
+  else if (System.Copy(S, 1, 4) = 'MUL(') then
+    begin
+    Op := @DoMul;
+    Res := 1;
+    end
+  else
+    Exit;
+  t := 5;
+  while t <= Length(S) do
+    begin
+    t0 := t;
+    while not (S[t] in [',', ')']) do
+      Inc(t);
+    if t = t0 then
+      Exit;
+    S1 := System.Copy(S, t0, t-t0);
+    I := Pos(':', S1);
+    if I <> 0 then
       begin
-        Op := @DoSum;
-        Res := 0;
-      end
-    else if (System.Copy(s, 1, 4) = 'MUL(') then
-      begin
-        Op := @DoMul;
-        Res := 1;
+      if not GetCellCoord(System.Copy(S1, 1, I-1), AFromX, AFromY) or
+        not GetCellCoord(System.Copy(S1, I+1, MaxStringLength), AToX, AToY)
+      then
+        Exit;
+      Cells^.ForRectangle(AFromX, AFromY, AToX, AToY, Op);
       end
     else
-      exit;
-    t := 5;
-    while t <= Length(s) do
       begin
-        t0 := t;
-        while not (s[t] in [',', ')']) do
-          Inc(t);
-        if t = t0 then
-          exit;
-        s1 := System.Copy(s, t0, t-t0);
-        i := Pos(':', s1);
-        if i <> 0 then
-          begin
-            if not GetCellCoord(System.Copy(s1, 1, i-1), AFromX,
-                AFromY) or
-              not GetCellCoord(System.Copy(s1, i+1, MaxStringLength),
-                AToX, AToY)
-            then
-              exit;
-            Cells^.ForRectangle(AFromX, AFromY, AToX, AToY, Op);
-          end
-        else
-          begin
-            if not GetCellCoord(s1, AFromX, AFromY) then
-              exit;
-            Cells^.ForRectangle(AFromX, AFromY, AFromX, AFromY, Op);
-          end;
-        Inc(t); { пропустить запятую или скобку }
+      if not GetCellCoord(S1, AFromX, AFromY) then
+        Exit;
+      Cells^.ForRectangle(AFromX, AFromY, AFromX, AFromY, Op);
       end;
-    Result := True;
+    Inc(t); { пропустить запятую или скобку }
+    end;
+  Result := True;
   end { TCalcView.GetFuncValue };
 
 procedure TCalcView.CalcError;
   var
-    l: integer;
-    s: String;
-    Err: String;
-    C: word;
+    L: Integer;
+    S: String;
+    err: String;
+    c: Word;
   begin
-    s := GetString(Index)+' '+GetCellName(CurrentCalc.X, CurrentCalc.Y);
-    if EvalueError then
-      begin
-        Err := GetErrOp(l);
-        if (Err = '') and (CalcSym <> #3) then
-          Err := ' '+CalcSym;
-        s := s+^M^C+GetString(CalcErrMess)+Err;
-        EvalueError := False;
-      end;
-    C := MessageBox(s, @Self, {mfYesNoCancel}mfYesButton+mfError);
+  S := GetString(Index)+' '+GetCellName(CurrentCalc.X, CurrentCalc.Y);
+  if EvalueError then
+    begin
+    err := GetErrOp(L);
+    if  (err = '') and (CalcSym <> #3) then
+      err := ' '+CalcSym;
+    S := S+^M^C+GetString(CalcErrMess)+err;
+    EvalueError := False;
+    end;
+  c := MessageBox(S, @Self, {mfYesNoCancel}mfYesButton+mfError);
   end;
 
 destructor TCalcView.Done;
   begin
-    if Cells <> nil then
-      Dispose(Cells, Done);
-    Cells := nil;
-    if Q <> nil then
-      Dispose(Q);
-    Q := nil;
-    DisposeStr(SName);
-    TView.Done;
+  if Cells <> nil then
+    Dispose(Cells, Done);
+  Cells := nil;
+  if Q <> nil then
+    Dispose(Q);
+  Q := nil;
+  DisposeStr(SName);
+  TView.Done;
   end;
 
 function TCalcView.AskSave;
   var
-    A: word;
+    A: Word;
   begin
-    AskSave := True;
-    if not Modified then
-      exit;
-    A := MessageBox(GetString(dlWorkSheet)+' '+Cut(SName^, 40)+
-      GetString(dlNotSaved),
-    nil, mfWarning+mfYesNoCancel);
-    if A <> cmCancel then
-      Modified := False;
-    if A = cmYes then
-      SaveSheet
-    else
-      AskSave := A <> cmCancel;
+  AskSave := True;
+  if not Modified then
+    Exit;
+  A := MessageBox(GetString(dlWorkSheet)+' '+Cut(SName^,
+         40)+GetString(dlNotSaved),
+      nil, mfWarning+mfYesNoCancel);
+  if A <> cmCancel then
+    Modified := False;
+  if A = cmYes then
+    SaveSheet
+  else
+    AskSave := A <> cmCancel;
   end;
 
 {-DataCompBoy-}
 procedure TCalcView.LoadSheet;
   var
-    s: PStream;
+    S: PStream;
     Bounds: TRect;
   begin
-    GetBounds(Bounds);
-    if Modified and not AskSave then
-      exit;
-    if Cells <> nil then
-      Dispose(Cells, Done);
-    Cells := nil;
-    if (FName = '') or (FName = UntitledName) then
-      begin
-        DisposeStr(SName);
-        SName := NewStr(UntitledName);
-        if Owner <> nil then
-          begin
-            DisposeStr(PWindow(Owner)^.Title);
-            PWindow(Owner)^.Title := NewStr(Cut(SName^, Bounds.B.X-
-              Bounds.A.X-12));
-            Owner^.Redraw;
-          end;
-        New(Cells, Init(10, 10));
-        exit
-      end;
-    {$IFDEF OS_DOS}
-    FName := lfGetLongFileName(lFExpand(FName));
-    {$ELSE}
-    FName := lFExpand(FName);
-    {$ENDIF}
-    s := New(PBufStream, Init(FName, stOpenRead, 2048));
+  GetBounds(Bounds);
+  if Modified and not AskSave then
+    Exit;
+  if Cells <> nil then
+    Dispose(Cells, Done);
+  Cells := nil;
+  if  (FName = '') or (FName = UntitledName) then
+    begin
     DisposeStr(SName);
-    SName := NewStr(FName);
+    SName := NewStr(UntitledName);
     if Owner <> nil then
       begin
-        DisposeStr(PWindow(Owner)^.Title);
-        PWindow(Owner)^.Title := NewStr(Cut(SName^, Bounds.B.X-
-          Bounds.A.X-12));
+      DisposeStr(PWindow(Owner)^.Title);
+      PWindow(Owner)^.Title := NewStr(Cut(SName^,
+             Bounds.B.X-Bounds.A.X-12));
+      Owner^.Redraw;
       end;
-    if s^.Status <> stOK then
+    New(Cells, Init(10, 10));
+    Exit
+    end;
+  {$IFDEF OS_DOS}
+  FName := lfGetLongFileName(lFExpand(FName));
+  {$ELSE}
+  FName := lFExpand(FName);
+  {$ENDIF}
+  S := New(PBufStream, Init(FName, stOpenRead, 2048));
+  DisposeStr(SName);
+  SName := NewStr(FName);
+  if Owner <> nil then
+    begin
+    DisposeStr(PWindow(Owner)^.Title);
+    PWindow(Owner)^.Title := NewStr(Cut(SName^, Bounds.B.X-Bounds.A.X-12));
+    end;
+  if S^.Status <> stOK then
+    begin
+    Dispose(S, Done);
+    New(Cells, Init(10, 10));
+    FillChar(ColWidth, SizeOf(ColWidth), DefaultColWidth);
+    //   Owner^.Redraw;
+    Exit
+    end;
+  S^.Read(ColWidth, SizeOf(ColWidth));
+  { Cells := PCellCollection(S^.Get);}
+  New(Cells, ShortLoad(S^));
+  Dispose(S, Done);
+  if Cells = nil then
+    begin
+    ErrMsg(erInvalidFileFormat);
+    DisposeStr(SName);
+    SName := NewStr(UntitledName);
+    if Owner <> nil then
       begin
-        Dispose(s, Done);
-        New(Cells, Init(10, 10));
-        FillChar(ColWidth, SizeOf(ColWidth), DefaultColWidth);
-        //   Owner^.Redraw;
-        exit
+      DisposeStr(PWindow(Owner)^.Title);
+      PWindow(Owner)^.Title := NewStr(Cut(SName^,
+             Bounds.B.X-Bounds.A.X-12));
       end;
-    s^.Read(ColWidth, SizeOf(ColWidth));
-    { Cells := PCellCollection(S^.Get);}
-    New(Cells, ShortLoad(s^));
-    Dispose(s, Done);
-    if Cells = nil then
-      begin
-        ErrMsg(erInvalidFileFormat);
-        DisposeStr(SName);
-        SName := NewStr(UntitledName);
-        if Owner <> nil then
-          begin
-            DisposeStr(PWindow(Owner)^.Title);
-            PWindow(Owner)^.Title := NewStr(Cut(SName^, Bounds.B.X-
-              Bounds.A.X-12));
-          end;
-        New(Cells, Init(10, 10));
-        FillChar(ColWidth, SizeOf(ColWidth), 1);
-      end;
-    Modified := False;
-    ReCalc(True);
+    New(Cells, Init(10, 10));
+    FillChar(ColWidth, SizeOf(ColWidth), DefaultColWidth);
+    end;
+  Modified := False;
+  ReCalc(True);
   end { TCalcView.LoadSheet };
 {-DataCompBoy-}
 
 {-DataCompBoy-}
 procedure TCalcView.SaveSheetAs;
   var
-    s: PStream;
+    S: PStream;
     FName: String;
-    W: word;
+    W: Word;
     PP: Pointer;
     Bounds: TRect;
   begin
-    GetBounds(Bounds);
-    PP := @FName;
-    if GetFileName(FName, '*.WKZ', GetString(dlSaveFileAs),
-      GetString(dlSaveFileAs), fdOKButton {, hsSaveSheetAs, 0}) =
-        cmCancel
+  GetBounds(Bounds);
+  PP := @FName;
+  if GetFileName(FName, '*.WKZ', GetString(dlSaveFileAs),
+      GetString(dlSaveFileAs), fdOKButton {, hsSaveSheetAs, 0})
+     = cmCancel
+  then
+    Exit;
+  {$IFDEF OS_DOS}
+  FName := lfGetLongFileName(lFExpand(FName));
+  {$ELSE}
+  FName := lFExpand(FName);
+  {$ENDIF}
+  S := New(PDosStream, Init(FName, stOpen));
+  W := S^.Status;
+  Dispose(S, Done);
+  if W = 0 then
+    begin
+    if Msg(dlFileExist, @PP, mfYesButton+mfNoButton+mfWarning) <> cmYes
     then
-      exit;
-    {$IFDEF OS_DOS}
-    FName := lfGetLongFileName(lFExpand(FName));
-    {$ELSE}
-    FName := lFExpand(FName);
-    {$ENDIF}
-    s := New(PDosStream, Init(FName, stOpen));
-    W := s^.Status;
-    Dispose(s, Done);
-    if W = 0 then
-      begin
-        if Msg(dlFileExist, @PP, mfYesButton+mfNoButton+mfWarning) <>
-            cmYes
-        then
-          exit;
-      end;
-    DisposeStr(SName);
-    SName := NewStr(FName);
-    if Owner <> nil then
-      begin
-        DisposeStr(PWindow(Owner)^.Title);
-        PWindow(Owner)^.Title := NewStr(Cut(SName^, Bounds.B.X-
-          Bounds.A.X-12));
-        Owner^.Redraw;
-      end;
-    {PInfoView(CellInfo)^.SetInfo(' WORK ', Owner^.GetColor(12));}
-    s := New(PBufStream, Init(FName, stCreate, 2048));
-    s^.Write(ColWidth, SizeOf(ColWidth));
-    { S^.Put(Cells);}
-    Cells^.ShortStore(s^);
-    if s^.Status <> stOK then
-      begin
-        Msg(dlCanNotWrite, @PP, mfError+mfOKButton);
-      end;
-    Modified := False;
-    Dispose(s, Done);
-    FileChanged(FName);
+      Exit;
+    end;
+  DisposeStr(SName);
+  SName := NewStr(FName);
+  if Owner <> nil then
+    begin
+    DisposeStr(PWindow(Owner)^.Title);
+    PWindow(Owner)^.Title := NewStr(Cut(SName^, Bounds.B.X-Bounds.A.X-12));
+    Owner^.Redraw;
+    end;
+  {PInfoView(CellInfo)^.SetInfo(' WORK ', Owner^.GetColor(12));}
+  S := New(PBufStream, Init(FName, stCreate, 2048));
+  S^.Write(ColWidth, SizeOf(ColWidth));
+  { S^.Put(Cells);}
+  Cells^.ShortStore(S^);
+  if S^.Status <> stOK then
+    begin
+    Msg(dlCanNotWrite, @PP, mfError+mfOKButton);
+    end;
+  Modified := False;
+  Dispose(S, Done);
+  FileChanged(FName);
   end { TCalcView.SaveSheetAs };
 {-DataCompBoy-}
 
 procedure TCalcView.SaveSheet;
   var
-    s: PStream;
+    S: PStream;
   begin
-    if SName^ = UntitledName then
-      begin
-        SaveSheetAs;
-        exit
-      end;
-    {PInfoView(CellInfo)^.SetInfo(' WORK ', Owner^.GetColor(12));}
-    s := New(PBufStream, Init(SName^, stCreate, 2048));
-    s^.Write(ColWidth, SizeOf(ColWidth));
-    {S^.Put(Cells);}
-    Cells^.ShortStore(s^);
-    if s^.Status <> stOK then
-      Msg(dlCanNotWrite, SName, mfError+mfOKButton)
-    else
-      Modified := False;
-    Dispose(s, Done);
-    FileChanged(SName^);
-  end { TCalcView.SaveSheet };
+  if SName^ = UntitledName then
+    begin
+    SaveSheetAs;
+    Exit
+    end;
+  {PInfoView(CellInfo)^.SetInfo(' WORK ', Owner^.GetColor(12));}
+  S := New(PBufStream, Init(SName^, stCreate, 2048));
+  S^.Write(ColWidth, SizeOf(ColWidth));
+  {S^.Put(Cells);}
+  Cells^.ShortStore(S^);
+  if S^.Status <> stOK then
+    Msg(dlCanNotWrite, SName, mfError+mfOKButton)
+  else
+    Modified := False;
+  Dispose(S, Done);
+  FileChanged(SName^);
+  end;
 
 procedure TCalcView.Copy;
   var
-    X1, Y1, X2, Y2: integer;
-    Wrk: integer;
+    X1, Y1, X2, Y2: Integer;
+    Wrk: Integer;
 
   procedure ToClip(P: PCellrec);
     begin
-      with CellClipboard^.ReplaceItem(P^.Col, P^.Row, P^.s)^ do
-        begin
-          Options := P^.Options;
-          Value := P^.Value;
-          Decimals := P^.Decimals;
-        end;
+    with CellClipboard^.ReplaceItem(P^.Col, P^.Row, P^.S)^ do
+      begin
+      Options := P^.Options;
+      Value := P^.Value;
+      Decimals := P^.Decimals;
+      end;
     end;
 
   begin
-    X1 := Delta.X+Cur.X;
-    X2 := Mark.X;
-    Y1 := Delta.Y+Cur.Y;
-    Y2 := Mark.Y;
-    if X1 > X2 then
-      begin
-        Wrk := X1;
-        X1 := X2;
-        X2 := Wrk;
-      end;
-    if Y1 > Y2 then
-      begin
-        Wrk := Y1;
-        Y1 := Y2;
-        Y2 := Wrk;
-      end;
-    if CellClipboard <> nil then
-      Dispose(CellClipboard, Done);
-    CellClipboard := nil;
-    New(CellClipboard, Init(10, 10));
-    Cells^.ForRectangle(X1, Y1, X2, Y2, @ToClip);
-    ClipRect.A.X := X1;
-    ClipRect.A.Y := Y1;
-    ClipRect.B.X := X2;
-    ClipRect.B.Y := Y2;
+  X1 := Delta.X+Cur.X;
+  X2 := Mark.X;
+  Y1 := Delta.Y+Cur.Y;
+  Y2 := Mark.Y;
+  if X1 > X2 then
+    begin
+    Wrk := X1;
+    X1 := X2;
+    X2 := Wrk;
+    end;
+  if Y1 > Y2 then
+    begin
+    Wrk := Y1;
+    Y1 := Y2;
+    Y2 := Wrk;
+    end;
+  if CellClipboard <> nil then
+    Dispose(CellClipboard, Done);
+  CellClipboard := nil;
+  New(CellClipboard, Init(10, 10));
+  Cells^.ForRectangle(X1, Y1, X2, Y2, @ToClip);
+  ClipRect.A.X := X1;
+  ClipRect.A.Y := Y1;
+  ClipRect.B.X := X2;
+  ClipRect.B.Y := Y2;
   end { TCalcView.Copy };
 
 {В формуле S ссылки на ячейки (>=LX,>=LY) сдвигать на (DX,DY) }
-function ReformFormula(const s: String; LX, LY, DX, DY: integer):
-    String;
+function ReformFormula(const S: String; LX, LY, DX, DY: Integer): String;
   const
     Signs = [';', '[', ']', '{', '}', #39, ':', '"', '.', '<',
     '>', ',', '/', '?', '\', '-', '=', '|', '_', '(',
     ')', '*', '&', '^', '%', '$', '!', '~', '+', ' '];
   var
-    s1, s2: String;
-    X, X1: byte;
-    i, l: integer;
+    S1, S2: String;
+    X, X1: Byte;
+    I, l: Integer;
     Y, Y1: AInt;
   label EndRowName;
   begin
-    Result := '=';
-    i := 2;
-    while (i <= Length(s)) do
+  Result := '=';
+  I := 2;
+  while (I <= Length(S)) do
+    begin
+    S1 := '';
+    S2 := '';
+    while (I <= Length(S)) and (S[I] in Signs) do
       begin
-        s1 := '';
-        s2 := '';
-        while (i <= Length(s)) and (s[i] in Signs) do
-          begin
-            Result := Result+s[i];
-            Inc(i)
-          end;
-        while (i <= Length(s)) and not (s[i] in Signs) do
-          begin
-            s1 := s1+s[i];
-            Inc(i)
-          end;
-        if GetCellCoord(s1, X, Y) then
-          if (X >= LX) and (Y >= LY) then
-            begin
-              if s1[1] = '@' then
-                s2 := '@'+GetColName(X)
-              else if (X+DX < 0) or (X+DX > 255) then
-                s2 := '?'
-              else
-                s2 := GetColName(X+DX);
-              { сейчас S2 - имя колонки}
+      Result := Result+S[I];
+      Inc(I)
+      end;
+    while (I <= Length(S)) and not (S[I] in Signs) do
+      begin
+      S1 := S1+S[I];
+      Inc(I)
+      end;
+    if GetCellCoord(S1, X, Y) then
+      if  (X >= LX) and (Y >= LY) then
+        begin
+        if S1[1] = '@' then
+          S2 := '@'+GetColName(X)
+        else if (X+DX < 0) or (X+DX > 255) then
+          S2 := '?'
+        else
+          S2 := GetColName(X+DX);
+        { сейчас S2 - имя колонки}
 
-              for l := 2 to Length(s1)-1 do
-                if s1[l] = '@' then
-                  begin
-                    s1 := '@'+GetRowName(Y);
-                    goto EndRowName;
-                  end;
-              if (Y+DY < 0) or (Y+DY > MaxCellY) then
-                s1 := '?'
-              else
-                s1 := GetRowName(Y+DY);
+        for l := 2 to Length(S1)-1 do
+          if S1[l] = '@' then
+            begin
+            S1 := '@'+GetRowName(Y);
+            goto EndRowName;
             end;
+        if  (Y+DY < 0) or (Y+DY > MaxCellY) then
+          S1 := '?'
+        else
+          S1 := GetRowName(Y+DY);
+        end;
 EndRowName: { сейчас S1 - имя строки }
 
-        Result := Result+s2+s1;
-      end;
+    Result := Result+S2+S1;
+    end;
   end { ReformFormula };
 
 procedure TCalcView.Paste;
   var
-    i, j: integer;
+    I, J: Integer;
 
-  procedure RewriteFormulaClip(P: PCellrec; DX, DY: integer);
+  procedure RewriteFormulaClip(P: PCellrec; DX, DY: Integer);
     var
-      s: String;
+      S: String;
     begin
-      if (P^.Options and coFormula) <> 0 then
-        s := ReformFormula(P^.s, 0, 0, DX, DY)
-      else
-        s := P^.s;
-      with Cells^.ReplaceItem(P^.Col+DX, P^.Row+DY, s)^ do
-        begin
-          Options := P^.Options;
-          Value := P^.Value;
-          Decimals := P^.Decimals;
-        end;
+    if  (P^.Options and coFormula) <> 0 then
+      S := ReformFormula(P^.S, 0, 0, DX, DY)
+    else
+      S := P^.S;
+    with Cells^.ReplaceItem(P^.Col+DX, P^.Row+DY, S)^ do
+      begin
+      Options := P^.Options;
+      Value := P^.Value;
+      Decimals := P^.Decimals;
+      end;
     end;
 
   begin
-    if CellClipboard = nil then
-      exit;
-    Mark.X := Delta.X+Cur.X+ClipRect.B.X-ClipRect.A.X;
-    Mark.Y := Delta.Y+Cur.Y+ClipRect.B.Y-ClipRect.A.Y;
-    Clear;
-    for i := 1 to CellClipboard^.Count do
-      RewriteFormulaClip(CellClipboard^.At(i-1),
+  if CellClipboard = nil then
+    Exit;
+  Mark.X := Delta.X+Cur.X+ClipRect.B.X-ClipRect.A.X;
+  Mark.Y := Delta.Y+Cur.Y+ClipRect.B.Y-ClipRect.A.Y;
+  Clear;
+  for I := 1 to CellClipboard^.Count do
+    RewriteFormulaClip(CellClipboard^.At(I-1),
       -ClipRect.A.X+Delta.X+Cur.X,
       -ClipRect.A.Y+Delta.Y+Cur.Y);
-    ReCalc(False);
-    Modified := True;
+  ReCalc(False);
+  Modified := True;
   end { TCalcView.Paste };
 
 procedure TCalcView.Clear;
   var
-    X1, X2, Y1, Y2, k, l: integer;
-    Wrk: integer;
+    X1, X2, Y1, Y2, K, L: Integer;
+    Wrk: Integer;
   begin
-    X1 := Delta.X+Cur.X;
-    X2 := Mark.X;
-    Y1 := Delta.Y+Cur.Y;
-    Y2 := Mark.Y;
-    if X1 > X2 then
-      begin
-        Wrk := X1;
-        X1 := X2;
-        X2 := Wrk;
-      end;
-    if Y1 > Y2 then
-      begin
-        Wrk := Y1;
-        Y1 := Y2;
-        Y2 := Wrk;
-      end;
-    for k := X1 to X2 do
-      for l := Y1 to Y2 do
-        Cells^.DelItem(k, l);
-    ReCalc(False);
-    Modified := True;
+  X1 := Delta.X+Cur.X;
+  X2 := Mark.X;
+  Y1 := Delta.Y+Cur.Y;
+  Y2 := Mark.Y;
+  if X1 > X2 then
+    begin
+    Wrk := X1;
+    X1 := X2;
+    X2 := Wrk;
+    end;
+  if Y1 > Y2 then
+    begin
+    Wrk := Y1;
+    Y1 := Y2;
+    Y2 := Wrk;
+    end;
+  for K := X1 to X2 do
+    for L := Y1 to Y2 do
+      Cells^.DelItem(K, L);
+  ReCalc(False);
+  Modified := True;
   end { TCalcView.Clear };
 
-procedure TCalcView.RewriteFormula(var P: PCellrec; LX, LY, DX, DY:
-    integer);
+procedure TCalcView.RewriteFormula(var P: PCellrec;
+     LX, LY, DX, DY: Integer);
   var
-    s: String;
-    o, D: integer;
+    S: String;
+    O, D: Integer;
     V: CReal;
   begin
-    if (P^.Options and coFormula) = 0 then
-      exit;
-    s := ReformFormula(P^.s, LX, LY, DX, DY);
-    o := P^.Options;
-    D := P^.Decimals;
-    V := P^.Value;
-    P := Cells^.ReplaceItem(P^.Col, P^.Row, s);
-    with P^ do
-      begin
-        Options := o;
-        Decimals := D;
-        Value := V
-      end;
-  end { TCalcView.RewriteFormula };
+  if  (P^.Options and coFormula) = 0 then
+    Exit;
+  S := ReformFormula(P^.S, LX, LY, DX, DY);
+  O := P^.Options;
+  D := P^.Decimals;
+  V := P^.Value;
+  P := Cells^.ReplaceItem(P^.Col, P^.Row, S);
+  with P^ do
+    begin
+    Options := O;
+    Decimals := D;
+    Value := V
+    end;
+  end;
 
 procedure TCalcView.InsertLine;
   var
-    i, l: integer;
+    I, L: Integer;
     P: PCellrec;
   begin
-    l := Delta.Y+Cur.Y;
-    for i := 1 to Cells^.Count do
+  L := Delta.Y+Cur.Y;
+  for I := 1 to Cells^.Count do
+    begin
+    P := Cells^.At(I-1);
+    if P^.Row >= VScroll^.Max then
+      Cells^.AtFree(I-1)
+    else
       begin
-        P := Cells^.At(i-1);
-        if P^.Row >= VScroll^.Max then
-          Cells^.AtFree(i-1)
-        else
-          begin
-            if P^.Row >= l then
-              Inc(P^.Row);
-            RewriteFormula(P, 0, l, 0, 1);
-          end;
+      if P^.Row >= L then
+        Inc(P^.Row);
+      RewriteFormula(P, 0, L, 0, 1);
       end;
-    ReCalc(False);
-    Modified := True;
-  end { TCalcView.InsertLine };
+    end;
+  ReCalc(False);
+  Modified := True;
+  end;
 
 procedure TCalcView.DeleteLine;
   var
-    i, l: integer;
+    I, L: Integer;
     P: PCellrec;
   begin
-    l := Delta.Y+Cur.Y+1;
-    for i := 1 to Cells^.Count do
+  L := Delta.Y+Cur.Y+1;
+  for I := 1 to Cells^.Count do
+    begin
+    P := Cells^.At(I-1);
+    RewriteFormula(P, 0, L, 0, -1);
+    if P^.Row = L-1 then
       begin
-        P := Cells^.At(i-1);
-        RewriteFormula(P, 0, l, 0, -1);
-        if P^.Row = l-1 then
-          begin
-            Cells^.FreeItem(P);
-            Cells^.AtPut(i-1, nil)
-          end
-        else if P^.Row >= l then
-          Dec(P^.Row);
-      end;
-    Cells^.Pack;
-    ReCalc(False);
-    Modified := True;
-  end { TCalcView.DeleteLine };
+      Cells^.FreeItem(P);
+      Cells^.AtPut(I-1, nil)
+      end
+    else if P^.Row >= L then
+      Dec(P^.Row);
+    end;
+  Cells^.Pack;
+  ReCalc(False);
+  Modified := True;
+  end;
 
 procedure TCalcView.InsertCol;
   var
-    i, j, l: integer;
+    I, J, L: Integer;
     P: PCellrec;
   begin
-    l := Delta.X+Cur.X;
-    for i := 1 to Cells^.Count do
+  L := Delta.X+Cur.X;
+  for I := 1 to Cells^.Count do
+    begin
+    P := Cells^.At(I-1);
+    if P^.Col = HScroll^.Max then
+      Cells^.AtFree(I-1)
+    else
       begin
-        P := Cells^.At(i-1);
-        if P^.Col = HScroll^.Max then
-          Cells^.AtFree(i-1)
-        else
-          begin
-            if P^.Col >= l then
-              Inc(P^.Col);
-            RewriteFormula(P, l, 0, 1, 0);
-          end;
+      if P^.Col >= L then
+        Inc(P^.Col);
+      RewriteFormula(P, L, 0, 1, 0);
       end;
-    Move(ColWidth[l], ColWidth[l+1],
-    SizeOf(ColWidth[0])*(High(ColWidth)-l));
-    ColWidth[l] := DefaultColWidth;
-    ReCalc(False);
-    Modified := True;
+    end;
+  Move(ColWidth[L], ColWidth[L+1],
+    SizeOf(ColWidth[0])*(High(ColWidth)-L));
+  ColWidth[L] := DefaultColWidth;
+  ReCalc(False);
+  Modified := True;
   end { TCalcView.InsertCol };
 
 procedure TCalcView.DeleteCol;
   var
-    i, j, l: integer;
+    I, J, L: Integer;
     P: PCellrec;
   begin
-    l := Delta.X+Cur.X+1;
-    for i := 1 to Cells^.Count do
+  L := Delta.X+Cur.X+1;
+  for I := 1 to Cells^.Count do
+    begin
+    P := Cells^.At(I-1);
+    if P^.Col = L-1 then
       begin
-        P := Cells^.At(i-1);
-        if P^.Col = l-1 then
-          begin
-            Cells^.FreeItem(P);
-            Cells^.AtPut(i-1, nil)
-          end
-        else
-          begin
-            if P^.Col >= l then
-              Dec(P^.Col);
-            RewriteFormula(P, l, 0, -1, 0);
-          end;
-      end;
-    Move(ColWidth[l], ColWidth[l-1],
-    SizeOf(ColWidth[0])*(High(ColWidth)-l+1));
-    ColWidth[High(ColWidth)] := DefaultColWidth;
-    Cells^.Pack;
-    ReCalc(False);
-    Modified := True;
-  end { TCalcView.DeleteCol };
-
-{ вычисление формулы; s[1] = '=' }
-function TCalcView.CalcEval(const s: String; var Value: CReal):
-    boolean;
-  var
-    R: CReal;
-  begin
-    R := Evalue(System.Copy(s, 2, MaxStringLength), @self);
-    if EvalueError then
-      begin
-        CalcError(erInvalidFormula);
-        Value := 0;
-        CalcEval := False;
+      Cells^.FreeItem(P);
+      Cells^.AtPut(I-1, nil)
       end
     else
       begin
-        Value := R;
-        CalcEval := True;
+      if P^.Col >= L then
+        Dec(P^.Col);
+      RewriteFormula(P, L, 0, -1, 0);
       end;
+    end;
+  Move(ColWidth[L], ColWidth[L-1],
+    SizeOf(ColWidth[0])*(High(ColWidth)-L+1));
+  ColWidth[High(ColWidth)] := DefaultColWidth;
+  Cells^.Pack;
+  ReCalc(False);
+  Modified := True;
+  end { TCalcView.DeleteCol };
+
+{ вычисление формулы; s[1] = '=' }
+function TCalcView.CalcEval(const s: String; var Value: CReal): Boolean;
+  var
+    R: CReal;
+  begin
+  R := Evalue(System.Copy(s, 2, MaxStringLength), @self);
+  if EvalueError then
+    begin
+    CalcError(erInvalidFormula);
+    Value := 0;
+    CalcEval := False;
+    end
+  else
+    begin
+    Value := R;
+    CalcEval := True;
+    end;
   end;
 
-procedure TCalcView.ReCalc(Full: boolean);
+procedure TCalcView.ReCalc(Full: Boolean);
   var
-    StartRecalc: integer;
-    ierr: integer;
+    StartRecalc: Integer;
+    ierr: Integer;
   begin
-    if not Cells^.TSort(StartRecalc) then
+  if not Cells^.TSort(StartRecalc) then
+    begin
+    with PCellrec(Cells^.At(StartRecalc-1)) do
       begin
-        with PCellrec(Cells^.At(StartRecalc-1)) do
-          begin
-            CurrentCalc.X := Col;
-            CurrentCalc.Y := Row;
-          end;
-        CalcError(erRecurseTooDeep);
-        exit;
+      CurrentCalc.X := Col;
+      CurrentCalc.Y := Row;
       end;
-    while StartRecalc <> 0 do
+    CalcError(erRecurseTooDeep);
+    Exit;
+    end;
+  while StartRecalc <> 0 do
+    begin
+    with PCellrec(Cells^.At(StartRecalc-1))^ do
       begin
-        with PCellrec(Cells^.At(StartRecalc-1))^ do
+      CurrentCalc.X := Col;
+      CurrentCalc.Y := Row;
+      if  (Options and coFormula) <> 0 then
+        begin
+        if not CalcEval(S, Value) then
+          Exit;
+        end
+      else if Full and ((Options and coValue) <> 0) then
+        if S[1] = '=' then
           begin
-            CurrentCalc.X := Col;
-            CurrentCalc.Y := Row;
-            if (Options and coFormula) <> 0 then
-              begin
-                if not CalcEval(s, Value) then
-                  exit;
-              end
-            else if Full and ((Options and coValue) <> 0) then
-              if s[1] = '=' then
-                begin
-                    {После некоторых старых версий DN бывает флаг coValue
+          {После некоторых старых версий DN бывает флаг coValue
           без флага coFormula для формул, включающих только константные
           операнды. То, что TSort не воспринимал их, как формулы, не
           страшно, так как от других ячеек они не зависят. }
-                  Value := Evalue(System.Copy(s, 2, 255), @self);
-                  Options := Options or coValue;
-                end
-              else
-                begin
-                  Val(s, Value, ierr);
-                  if ierr <> 0 then
-                    exit;
-                end;
-            StartRecalc := NextC;
+          Value := Evalue(System.Copy(S, 2, 255), @self);
+          Options := Options or coValue;
+          end
+        else
+          begin
+          Val(S, Value, ierr);
+          if ierr <> 0 then
+            Exit;
           end;
+      StartRecalc := NextC;
       end;
+    end;
   end { TCalcView.ReCalc };
 
 procedure TCalcView.GotoCell;
   var
-    X: byte;
+    X: Byte;
     Y: AInt;
-    l: integer;
+    L: Integer;
   begin
-    if not GetCellCoord(Cell, X, Y) then
+  if not GetCellCoord(Cell, X, Y) then
+    begin
+    ErrMsg(erGotoInvalidNumber);
+    Exit;
+    end;
+  Marking := False;
+  BlockDraw := True;
+  Delta.X := X;
+  Delta.Y := Y-(Size.Y-2) div 2;
+  VScroll^.SetValue(Delta.Y);
+  Delta.Y := VScroll^.Value;
+  Cur.X := 0;
+  Cur.Y := Y-Delta.Y;
+  L := 0;
+  repeat
+    Inc(L, ColWidth[Cur.X]);
+    if Delta.X > 0 then
       begin
-        ErrMsg(erGotoInvalidNumber);
-        exit;
+      Inc(Cur.X);
+      Dec(Delta.X)
       end;
-    Marking := False;
-    BlockDraw := True;
-    Delta.X := X;
-    Delta.Y := Y-(Size.Y-2) div 2;
-    VScroll^.SetValue(Delta.Y);
-    Delta.Y := VScroll^.Value;
-    Cur.X := 0;
-    Cur.Y := Y-Delta.Y;
-    l := 0;
-    repeat
-      Inc(l, ColWidth[Cur.X]);
-      if Delta.X > 0 then
-        begin
-          Inc(Cur.X);
-          Dec(Delta.X)
-        end;
-    until (Delta.X = 0) or (l > Size.X);
-    if l > Size.X div 2 then
-      begin
-        Dec(Cur.X);
-        Inc(Delta.X)
-      end;
-    HScroll^.SetValue(Delta.X);
-    BlockDraw := False;
-    Mark.X := Cur.X+Delta.X;
-    Mark.Y := Cur.Y+Delta.Y;
-    DrawView;
+  until (Delta.X = 0) or (L > Size.X);
+  if L > Size.X div 2 then
+    begin
+    Dec(Cur.X);
+    Inc(Delta.X)
+    end;
+  HScroll^.SetValue(Delta.X);
+  BlockDraw := False;
+  Mark.X := Cur.X+Delta.X;
+  Mark.Y := Cur.Y+Delta.Y;
+  DrawView;
   end { TCalcView.GotoCell };
 
 procedure TCalcView.SearchCell;
@@ -2786,129 +2775,126 @@ procedure TCalcView.SearchCell;
     Signs = [#0..#128]-['A'..'Z', 'a'..'z', '0'..'9', '_'];
   var
     P: PCellrec;
-    i, j: integer;
+    I, J: Integer;
     V: CReal;
-    k, l: byte;
-    s, s1: String;
+    K, L: Byte;
+    S, S1: String;
 
-  function Found: boolean;
+  function Found: Boolean;
     begin
-      Found := True;
-      SearchPos.Y := P^.Row;
-      SearchPos.X := P^.Col;
-      GotoCell(GetCellName(P^.Col, P^.Row));
-      if WasReplace then
-        begin
-          if (SearchData.TxtOptions and 4 <> 0) then
-            if (SearchData.CellOptions = 0) then
-              begin
-                s := P^.s;
-                Delete(s, k+l, Length(s1));
-                Insert(ReplaceData.s1, s, k+l);
-                Cells^.ReplaceItem(P^.Col, P^.Row, s);
-                DrawView;
-                exit
-              end
-            else
-              begin
-                if (P^.Options and coFormula) <> 0 then
-                  begin
-                    Found := False;
-                    exit
-                  end;
-                Val(ReplaceData.s1, V, j);
-                Cells^.ReplaceItem(P^.Col, P^.Row, ReplaceData.s1)^.
-                  Value := V;
-                DrawView;
-                exit
-              end;
-        end;
+    Found := True;
+    SearchPos.Y := P^.Row;
+    SearchPos.X := P^.Col;
+    GotoCell(GetCellName(P^.Col, P^.Row));
+    if WasReplace then
+      begin
+      if  (SearchData.TxtOptions and 4 <> 0) then
+        if  (SearchData.CellOptions = 0) then
+          begin
+          S := P^.S;
+          Delete(S, k+l, Length(S1));
+          Insert(ReplaceData.S1, S, k+l);
+          Cells^.ReplaceItem(P^.Col, P^.Row, S);
+          DrawView;
+          Exit
+          end
+        else
+          begin
+          if  (P^.Options and coFormula) <> 0 then
+            begin
+            Found := False;
+            Exit
+            end;
+          Val(ReplaceData.S1, V, j);
+          Cells^.ReplaceItem(P^.Col, P^.Row, ReplaceData.S1)^.Value := V;
+          DrawView;
+          Exit
+          end;
+      end;
     end { Found: };
 
   procedure SearchSign;
     begin
-      while (k <= Length(s)) and not (s[k] in Signs) do
-        Inc(k);
-      Inc(l, k);
-      s := System.Copy(s, k, MaxStringLength);
+    while (k <= Length(S)) and not (S[k] in Signs) do
+      Inc(k);
+    Inc(l, k);
+    S := System.Copy(S, k, MaxStringLength);
     end;
 
   begin { TCalcView.SearchCell }
-    if SearchData.s = '' then
-      exit;
-    Val(SearchData.s, V, i);
-    if SearchData.TxtOptions and 1 = 0 then
-      s1 := UpStrg(SearchData.s)
-    else
-      s1 := SearchData.s;
-    for i := 1 to Cells^.Count do
-      begin
-        P := Cells^.At(i-1);
-        if (P^.Row >= SearchPos.Y) and (P^.Col > SearchPos.X) then
-          if (SearchData.CellOptions = 0) then
+  if SearchData.S = '' then
+    Exit;
+  Val(SearchData.S, V, I);
+  if SearchData.TxtOptions and 1 = 0 then
+    S1 := UpStrg(SearchData.S)
+  else
+    S1 := SearchData.S;
+  for I := 1 to Cells^.Count do
+    begin
+    P := Cells^.At(I-1);
+    if  (P^.Row >= SearchPos.Y) and (P^.Col > SearchPos.X) then
+      if  (SearchData.CellOptions = 0) then
+        begin
+        if SearchData.TxtOptions and 1 = 0 then
+          S := UpStrg(P^.S)
+        else
+          S := P^.S;
+        K := Pos(S1, S);
+        L := 0;
+        if SearchData.TxtOptions and 2 = 0 then
+          begin
+          if K > 0 then
             begin
-              if SearchData.TxtOptions and 1 = 0 then
-                s := UpStrg(P^.s)
-              else
-                s := P^.s;
-              k := Pos(s1, s);
-              l := 0;
-              if SearchData.TxtOptions and 2 = 0 then
+            if Found then
+              Exit
+            end
+          end
+        else
+          repeat
+            K := Pos(S1, S);
+            L := 0;
+            if K = 0 then
+            else if (K = 1) or (Length(S) = Length(S1)) then
+              begin
+              if  (Length(S) = Length(S1)) or (Length(S) <> Length(S1))
+                and (S[Length(S1)+1] in Signs)
+              then
                 begin
-                  if k > 0 then
-                    begin
-                      if Found then
-                        exit
-                    end
+                if Found then
+                  Exit
                 end
               else
-                repeat
-                  k := Pos(s1, s);
-                  l := 0;
-                  if k = 0 then
-                  else if (k = 1) or (Length(s) = Length(s1)) then
-                    begin
-                      if (Length(s) = Length(s1)) or (Length(s) <>
-                          Length(s1))
-                        and (s[Length(s1)+1] in Signs)
-                      then
-                        begin
-                          if Found then
-                            exit
-                        end
-                      else
-                        SearchSign;
-                    end
-                  else if (k = Length(s)-Length(s1)+1) then
-                    begin
-                      if (s[k-1] in Signs) then
-                        begin
-                          if Found then
-                            exit
-                        end
-                      else
-                        SearchSign;
-                    end
-                  else if (s[k-1] in Signs) and (s[Length(s1)+k] in
-                      Signs)
-                  then
-                    begin
-                      if Found then
-                        exit
-                    end
-                  else
-                    SearchSign;
-                until (k = 0) or (Length(s) < Length(s1));
-            end
-          else if (P^.Options and 3 <> 0) and (V = P^.Value) then
-            begin
+                SearchSign;
+              end
+            else if (K = Length(S)-Length(S1)+1) then
+              begin
+              if  (S[K-1] in Signs) then
+                begin
+                if Found then
+                  Exit
+                end
+              else
+                SearchSign;
+              end
+            else if (S[K-1] in Signs) and (S[Length(S1)+K] in Signs)
+            then
+              begin
               if Found then
-                exit
-            end;
-      end;
-    if not ContSearch and not WasReplace then
-      ErrMsg(erTextNotFound);
-    SearchCanceled := True;
+                Exit
+              end
+            else
+              SearchSign;
+          until (K = 0) or (Length(S) < Length(S1));
+        end
+      else if (P^.Options and 3 <> 0) and (V = P^.Value) then
+        begin
+        if Found then
+          Exit
+        end;
+    end;
+  if not ContSearch and not WasReplace then
+    ErrMsg(erTextNotFound);
+  SearchCanceled := True;
   end { TCalcView.SearchCell };
 
 {------------------------------------------------------------------------------}
@@ -2916,345 +2902,337 @@ procedure TCalcView.SearchCell;
 
 procedure TDbfFieldCollection.FreeItem(Item: Pointer); {KV}
   begin
-    if Item <> nil then
-      Dispose(PDBFField(Item));
+  if Item <> nil then
+    Dispose(PDBFField(Item));
   end;
 
-Constructor TDbaseWriter.Init(FileName: FNameStr; Mode: word; Size:
-    SW_Word); {KV}
+constructor TDbaseWriter.Init(FileName: FNameStr; Mode: Word;
+     Size: SW_Word); {KV}
   begin
-    inherited Init(FileName, Mode, Size);
-    CurRecord := 0;
-    EofFlag := False;
-    New(Fields, Init(10, 10));
-    FillChar(Header, SizeOf(Header), 0);
-    Header.DBFIdent := #3;
-    if (Mode = stOpen) or (Mode = stOpenRead) then
-      ReadFile;
+  inherited Init(FileName, Mode, Size);
+  CurRecord := 0;
+  EofFlag := False;
+  New(Fields, Init(10, 10));
+  FillChar(Header, SizeOf(Header), 0);
+  Header.DBFIdent := #3;
+  if  (Mode = stOpen) or (Mode = stOpenRead) then
+    ReadFile;
   end;
 
 destructor TDbaseWriter.Done; {KV}
   begin
-    if Fields <> nil then
-      Dispose(Fields, Done);
-    Fields := nil;
-    inherited Done;
+  if Fields <> nil then
+    Dispose(Fields, Done);
+  Fields := nil;
+  inherited Done;
   end;
 
-procedure TDbaseWriter.AddField(const NameField: String; TypeField:
-    Char;
-  LenField: integer; DecField: integer); {KV}
+procedure TDbaseWriter.AddField(const NameField: String; TypeField: Char;
+    LenField: Integer; DecField: Integer); {KV}
   var
     P: PDBFField;
   begin
-    New(P);
-    FillChar(P^, SizeOf(TDBFField), 0);
-    StrPCopy(P^.FieldName, System.Copy(NameField, 1, 10));
-    P^.FieldType := TypeField;
-    if TypeField = 'C' then
-      P^.FLength.FieldLength := LenField
-    else
-      begin
-        P^.FLength.NumericLength := LenField;
-        P^.FLength.Decimals := DecField;
-      end;
-    Fields^.Insert(P);
+  New(P);
+  FillChar(P^, SizeOf(TDBFField), 0);
+  StrPCopy(P^.FieldName, System.Copy(NameField, 1, 10));
+  P^.FieldType := TypeField;
+  if TypeField = 'C' then
+    P^.FLength.FieldLength := LenField
+  else
+    begin
+    P^.FLength.NumericLength := LenField;
+    P^.FLength.Decimals := DecField;
+    end;
+  Fields^.Insert(P);
   end;
 
 procedure TDbaseWriter.AddRecord; {KV}
   var
     Buf: PChar;
   begin
-    if Status <> stOK then
-      exit;
-    with Header do
+  if Status <> stOK then
+    Exit;
+  with Header do
+    begin
+    inherited Seek(DataOffset+RecSize*LastRecord);
+    GetMem(Buf, RecSize);
+    FillChar(Buf^, RecSize, ' ');
+    inherited Write(Buf^, RecSize);
+    FreeMem(Buf, RecSize);
+    if Status = stOK then
       begin
-        inherited Seek(DataOffset+RecSize*LastRecord);
-        GetMem(Buf, RecSize);
-        FillChar(Buf^, RecSize, ' ');
-        inherited Write(Buf^, RecSize);
-        FreeMem(Buf, RecSize);
-        if Status = stOK then
-          begin
-            Inc(LastRecord);
-            inherited Seek(0);
-            inherited Write(Header, SizeOf(Header));
-          end;
-        CurRecord := LastRecord;
-        EofFlag := False;
+      Inc(LastRecord);
+      inherited Seek(0);
+      inherited Write(Header, SizeOf(Header));
       end;
+    CurRecord := LastRecord;
+    EofFlag := False;
+    end;
   end { TDbaseWriter.AddRecord };
 
 procedure TDbaseWriter.CreateFile; {KV}
   var
-    i: integer;
+    i: Integer;
   begin
-    Header.RecSize := 1;
-    for i := 0 to Fields^.Count-1 do
+  Header.RecSize := 1;
+  for i := 0 to Fields^.Count-1 do
+    begin
+    with PDBFField(Fields^.At(i))^ do
       begin
-        with PDBFField(Fields^.At(i))^ do
-          begin
-            if FieldType = 'C' then
-              Inc(Header.RecSize, FLength.FieldLength)
-            else
-              Inc(Header.RecSize, FLength.NumericLength);
-          end;
+      if FieldType = 'C' then
+        Inc(Header.RecSize, FLength.FieldLength)
+      else
+        Inc(Header.RecSize, FLength.NumericLength);
       end;
-    Header.DataOffset := SizeOf(THeaderDBF)+(Fields^.Count)*SizeOf(
-      TDBFField)+1;
-    inherited Seek(0);
-    inherited Write(Header, SizeOf(Header));
-    for i := 0 to Fields^.Count-1 do
-      begin
-        inherited Write(PDBFField(Fields^.At(i))^, SizeOf(TDBFField));
-      end;
-    i := $1A0D;
-    inherited Write(i, 2);
+    end;
+  Header.DataOffset := SizeOf(THeaderDBF)+(Fields^.Count)
+      *SizeOf(TDBFField)+1;
+  inherited Seek(0);
+  inherited Write(Header, SizeOf(Header));
+  for i := 0 to Fields^.Count-1 do
+    begin
+    inherited Write(PDBFField(Fields^.At(i))^, SizeOf(TDBFField));
+    end;
+  i := $1A0D;
+  inherited Write(i, 2);
   end { TDbaseWriter.CreateFile };
 
 procedure TDbaseWriter.DeleteRecord; {KV}
   var
     Ch: Char;
   begin
-    if (CurRecord < 1) or (CurRecord > Header.LastRecord) then
-      exit;
-    inherited Seek(FieldOffsetInFile(1)-1);
-    Ch := #$2A;
-    inherited Write(Ch, 1);
+  if  (CurRecord < 1) or (CurRecord > Header.LastRecord) then
+    Exit;
+  inherited Seek(FieldOffsetInFile(1)-1);
+  Ch := #$2A;
+  inherited Write(Ch, 1);
   end;
 
-function TDbaseWriter.FCount: integer;
+function TDbaseWriter.FCount: Integer;
   begin
-    FCount := Fields^.Count;
+  FCount := Fields^.Count;
   end;
 
-function TDbaseWriter.FieldAsString(FieldIndex: integer): String;
-    {KV}
+function TDbaseWriter.FieldAsString(FieldIndex: Integer): String; {KV}
   var
     Buf: array[0..2047] of Char;
-    i: integer;
+    i: Integer;
   begin
-    inherited Seek(FieldOffsetInFile(FieldIndex));
-    FillChar(Buf, SizeOf(Buf), ' ');
-    inherited Read(Buf, FieldLen(FieldIndex));
-    i := FieldLen(FieldIndex)-1;
-    while (i >= 0) and (Buf[i] = ' ') do
-      Dec(i);
-    Buf[i+1] := #0;
-    FieldAsString := StrPas(Buf);
+  inherited Seek(FieldOffsetInFile(FieldIndex));
+  FillChar(Buf, SizeOf(Buf), ' ');
+  inherited Read(Buf, FieldLen(FieldIndex));
+  i := FieldLen(FieldIndex)-1;
+  while (i >= 0) and (Buf[i] = ' ') do
+    Dec(i);
+  Buf[i+1] := #0;
+  FieldAsString := StrPas(Buf);
   end;
 
-function TDbaseWriter.FieldAsInteger(FieldIndex: integer): integer;
-    {KV}
+function TDbaseWriter.FieldAsInteger(FieldIndex: Integer): Integer;
+  {KV}
   var
-    s: String;
-    Value: integer;
-    i: integer;
+    S: String;
+    Value: Integer;
+    i: Integer;
   begin
-    s := FieldAsString(FieldIndex);
-    if s = '' then
-      Value := 0
-    else
-      begin
-        Val(s, Value, i);
-        if i <> 0 then
-          Value := 0;
-      end;
-    FieldAsInteger := Value;
+  S := FieldAsString(FieldIndex);
+  if S = '' then
+    Value := 0
+  else
+    begin
+    Val(S, Value, i);
+    if i <> 0 then
+      Value := 0;
+    end;
+  FieldAsInteger := Value;
   end;
 
-function TDbaseWriter.FieldAsFloat(FieldIndex: integer): Double;
-    {KV}
+function TDbaseWriter.FieldAsFloat(FieldIndex: Integer): Double; {KV}
   var
-    s: String;
+    S: String;
     Value: Double;
-    i: integer;
+    i: Integer;
   begin
-    s := FieldAsString(FieldIndex);
-    if s = '' then
-      Value := 0.0
-    else
-      begin
-        Val(s, Value, i);
-        if i <> 0 then
-          Value := 0.0;
-      end;
-    FieldAsFloat := Value;
+  S := FieldAsString(FieldIndex);
+  if S = '' then
+    Value := 0.0
+  else
+    begin
+    Val(S, Value, i);
+    if i <> 0 then
+      Value := 0.0;
+    end;
+  FieldAsFloat := Value;
   end;
 
-procedure TDbaseWriter.FieldPutString(FieldIndex: integer;
-    FieldValue: String); {KV}
+procedure TDbaseWriter.FieldPutString(FieldIndex: Integer;
+     FieldValue: String); {KV}
   var
     P: PDBFField;
     Buf: array[0..2047] of Char;
-    l: AWord;
-    StrLen: integer;
+    L: AWord;
+    StrLen: Integer;
   begin
-    if (FieldIndex < 1) or (FieldIndex > Fields^.Count) then
-      exit;
-    P := PDBFField(Fields^.At(FieldIndex-1));
-    FillChar(Buf, SizeOf(Buf), ' ');
-    l := FieldLen(FieldIndex);
-    if l > 2047 then
-      l := 2047;
-    StrLen := Length(FieldValue);
-    if StrLen > l then
-      begin
-        StrLen := l;
-        FieldValue := System.Copy(FieldValue, 1, StrLen);
-      end;
-    StrPCopy(Buf, FieldValue); // Можно было использовать Move,
-    // но при работе с длинными строками
-    // так безопаснее
-    Buf[StrLen] := ' ';
-      // Для удаления #0, который вставляет StrPCopy
-    inherited Seek(FieldOffsetInFile(FieldIndex));
-    inherited Write(Buf, l);
+  if  (FieldIndex < 1) or (FieldIndex > Fields^.Count) then
+    Exit;
+  P := PDBFField(Fields^.At(FieldIndex-1));
+  FillChar(Buf, SizeOf(Buf), ' ');
+  L := FieldLen(FieldIndex);
+  if L > 2047 then
+    L := 2047;
+  StrLen := Length(FieldValue);
+  if StrLen > L then
+    begin
+    StrLen := L;
+    FieldValue := System.Copy(FieldValue, 1, StrLen);
+    end;
+  StrPCopy(Buf, FieldValue); // Можно было использовать Move,
+  // но при работе с длинными строками
+  // так безопаснее
+  Buf[StrLen] := ' '; // Для удаления #0, который вставляет StrPCopy
+  inherited Seek(FieldOffsetInFile(FieldIndex));
+  inherited Write(Buf, L);
   end { TDbaseWriter.FieldPutString };
 
-procedure TDbaseWriter.FieldPutInteger(FieldIndex: integer;
-    FieldValue: integer); {KV}
+procedure TDbaseWriter.FieldPutInteger(FieldIndex: Integer;
+     FieldValue: Integer); {KV}
   var
-    s: String;
-    l: AWord;
-    D: byte;
+    S: String;
+    L: AWord;
+    D: Byte;
     R: AWord;
   begin
-    if (FieldIndex < 1) or (FieldIndex > Fields^.Count) then
-      exit;
-    l := FieldLen(FieldIndex);
-    D := FieldDec(FieldIndex);
-    if D > 0 then
-      R := l-D-1
-    else
-      R := l;
-    Str(FieldValue: l, s);
-    if D > 0 then
+  if  (FieldIndex < 1) or (FieldIndex > Fields^.Count) then
+    Exit;
+  L := FieldLen(FieldIndex);
+  D := FieldDec(FieldIndex);
+  if D > 0 then
+    R := L-D-1
+  else
+    R := L;
+  Str(FieldValue: L, S);
+  if D > 0 then
+    begin
+    S := S+'.';
+    Inc(R);
+    while R < L do
       begin
-        s := s+'.';
-        Inc(R);
-        while R < l do
-          begin
-            s := s+'0';
-            Inc(R);
-          end;
+      S := S+'0';
+      Inc(R);
       end;
-    FieldPutString(FieldIndex, s);
+    end;
+  FieldPutString(FieldIndex, S);
   end { TDbaseWriter.FieldPutInteger };
 
-procedure TDbaseWriter.FieldPutFloat(FieldIndex: integer; FieldValue:
-    Double); {KV}
+procedure TDbaseWriter.FieldPutFloat(FieldIndex: Integer;
+     FieldValue: Double); {KV}
   var
-    s: String;
+    S: String;
   begin
-    if (FieldIndex < 1) or (FieldIndex > Fields^.Count) then
-      exit;
-    Str(FieldValue: FieldLen(FieldIndex): FieldDec(FieldIndex), s);
-    FieldPutString(FieldIndex, s);
+  if  (FieldIndex < 1) or (FieldIndex > Fields^.Count) then
+    Exit;
+  Str(FieldValue: FieldLen(FieldIndex): FieldDec(FieldIndex), S);
+  FieldPutString(FieldIndex, S);
   end;
 
-function TDbaseWriter.FieldName(FieldIndex: integer): String; {KV}
+function TDbaseWriter.FieldName(FieldIndex: Integer): String; {KV}
   begin
-    FieldName := StrPas(PDBFField(Fields^.At(FieldIndex-1))^.
-      FieldName);
+  FieldName := StrPas(PDBFField(Fields^.At(FieldIndex-1))^.FieldName);
   end;
 
-function TDbaseWriter.FieldLen(FieldIndex: integer): AWord; {KV}
+function TDbaseWriter.FieldLen(FieldIndex: Integer): AWord; {KV}
   begin
-    with PDBFField(Fields^.At(FieldIndex-1))^ do
-      begin
-        if FieldType = 'C' then
-          FieldLen := FLength.FieldLength
-        else
-          FieldLen := FLength.NumericLength;
-      end;
+  with PDBFField(Fields^.At(FieldIndex-1))^ do
+    begin
+    if FieldType = 'C' then
+      FieldLen := FLength.FieldLength
+    else
+      FieldLen := FLength.NumericLength;
+    end;
   end;
 
-function TDbaseWriter.FieldDec(FieldIndex: integer): byte; {KV}
+function TDbaseWriter.FieldDec(FieldIndex: Integer): Byte; {KV}
   begin
-    with PDBFField(Fields^.At(FieldIndex-1))^ do
-      begin
-        if FieldType = 'C' then
-          FieldDec := 0
-        else
-          FieldDec := FLength.Decimals;
-      end;
+  with PDBFField(Fields^.At(FieldIndex-1))^ do
+    begin
+    if FieldType = 'C' then
+      FieldDec := 0
+    else
+      FieldDec := FLength.Decimals;
+    end;
   end;
 
-function TDbaseWriter.FieldPos(NameField: String): integer; {KV}
+function TDbaseWriter.FieldPos(NameField: String): Integer; {KV}
   var
-    FieldIndex, i: integer;
+    FieldIndex, i: Integer;
   begin
-    UpStr(NameField);
-    FieldIndex := 0;
-    for i := 0 to Fields^.Count-1 do
+  UpStr(NameField);
+  FieldIndex := 0;
+  for i := 0 to Fields^.Count-1 do
+    begin
+    if UpStrg(StrPas(PDBFField(Fields^.At(i))^.FieldName)) = NameField
+    then
       begin
-        if UpStrg(StrPas(PDBFField(Fields^.At(i))^.FieldName)) =
-            NameField
-        then
-          begin
-            FieldIndex := i+1;
-            break;
-          end;
+      FieldIndex := i+1;
+      Break;
       end;
-    FieldPos := FieldIndex;
+    end;
+  FieldPos := FieldIndex;
   end;
 
-function TDbaseWriter.FieldType(FieldIndex: integer): Char; {KV}
+function TDbaseWriter.FieldType(FieldIndex: Integer): Char; {KV}
   begin
-    FieldType := PDBFField(Fields^.At(FieldIndex-1))^.FieldType;
+  FieldType := PDBFField(Fields^.At(FieldIndex-1))^.FieldType;
   end;
 
-function TDbaseWriter.FieldOffsetInBuffer(FieldIndex: integer):
-    integer; {KV}
+function TDbaseWriter.FieldOffsetInBuffer(FieldIndex: Integer): Integer;
+  {KV}
   var
-    Offset: integer;
-    i: integer;
+    Offset: Integer;
+    i: Integer;
   begin
-    Offset := 1;
-    for i := 0 to FieldIndex-2 do
+  Offset := 1;
+  for i := 0 to FieldIndex-2 do
+    begin
+    with PDBFField(Fields^.At(i))^ do
       begin
-        with PDBFField(Fields^.At(i))^ do
-          begin
-            if FieldType = 'C' then
-              Inc(Offset, FLength.FieldLength)
-            else
-              Inc(Offset, FLength.NumericLength);
-          end;
+      if FieldType = 'C' then
+        Inc(Offset, FLength.FieldLength)
+      else
+        Inc(Offset, FLength.NumericLength);
       end;
-    FieldOffsetInBuffer := Offset;
+    end;
+  FieldOffsetInBuffer := Offset;
   end;
 
-function TDbaseWriter.FieldOffsetInFile(FieldIndex: integer):
-    longInt; {KV}
+function TDbaseWriter.FieldOffsetInFile(FieldIndex: Integer): LongInt;
+  {KV}
   begin
-    FieldOffsetInFile := Header.DataOffset+(CurRecord-1)*Header.
-      RecSize+
+  FieldOffsetInFile := Header.DataOffset+(CurRecord-1)*Header.RecSize+
     FieldOffsetInBuffer(FieldIndex);
   end;
 
 procedure TDbaseWriter.First; {KV}
   begin
-    CurRecord := 1;
-    EofFlag := (Header.LastRecord = 0);
+  CurRecord := 1;
+  EofFlag := (Header.LastRecord = 0);
   end;
 
-procedure TDbaseWriter.DBGoTo(NewRecord: integer); {KV}
+procedure TDbaseWriter.DBGoTo(NewRecord: Integer); {KV}
   begin
-    CurRecord := NewRecord;
-    EofFlag := (Header.LastRecord = 0) or (Header.LastRecord <
-      CurRecord);
+  CurRecord := NewRecord;
+  EofFlag := (Header.LastRecord = 0) or (Header.LastRecord < CurRecord);
   end;
 
 procedure TDbaseWriter.Next; {KV}
   begin
-    if CurRecord < Header.LastRecord then
-      begin
-        Inc(CurRecord);
-        EofFlag := False;
-      end
-    else
-      EofFlag := True;
+  if CurRecord < Header.LastRecord then
+    begin
+    Inc(CurRecord);
+    EofFlag := False;
+    end
+  else
+    EofFlag := True;
   end;
 
 procedure TDbaseWriter.ReadFile; {KV}
@@ -3262,46 +3240,45 @@ procedure TDbaseWriter.ReadFile; {KV}
     R: TDBFField;
     P: PDBFField;
   begin
-    inherited Seek(0);
-    FillChar(Header, SizeOf(Header), 0);
-    Fields^.FreeAll;
-    inherited Read(Header, SizeOf(Header));
-    if Status <> stOK then
-      exit;
-    inherited Seek(SizeOf(Header));
-    repeat
-      inherited Read(R, 1);
-      if R.FieldName[0] <> #$0D then
-        begin
-          inherited Read(R.FieldName[1], SizeOf(R)-1);
-          New(P);
-          Move(R, P^, SizeOf(R));
-          Fields^.Insert(P);
-        end;
-    until (R.FieldName[0] = #$0D) or (Status <> stOK);
-    EofFlag := (Header.LastRecord = 0);
-    CurRecord := 1;
+  inherited Seek(0);
+  FillChar(Header, SizeOf(Header), 0);
+  Fields^.FreeAll;
+  inherited Read(Header, SizeOf(Header));
+  if Status <> stOK then
+    Exit;
+  inherited Seek(SizeOf(Header));
+  repeat
+    inherited Read(R, 1);
+    if R.FieldName[0] <> #$0D then
+      begin
+      inherited Read(R.FieldName[1], SizeOf(R)-1);
+      New(P);
+      Move(R, P^, SizeOf(R));
+      Fields^.Insert(P);
+      end;
+  until (R.FieldName[0] = #$0D) or (Status <> stOK);
+  EofFlag := (Header.LastRecord = 0);
+  CurRecord := 1;
   end { TDbaseWriter.ReadFile };
 
 procedure TDbaseWriter.RecallRecord; {KV}
   var
     Ch: Char;
   begin
-    if (CurRecord < 1) or (CurRecord > Header.LastRecord) then
-      exit;
-    inherited Seek(FieldOffsetInFile(1)-1);
-    Ch := #$20;
-    inherited Write(Ch, 1);
+  if  (CurRecord < 1) or (CurRecord > Header.LastRecord) then
+    Exit;
+  inherited Seek(FieldOffsetInFile(1)-1);
+  Ch := #$20;
+  inherited Write(Ch, 1);
   end;
 
 procedure TDbaseWriter.WriteEndOfFile; {KV}
   var
     Ch: Char;
   begin
-    Ch := #$1A;
-    inherited Seek(Header.DataOffset+Header.LastRecord*Header.
-      RecSize);
-    inherited Write(Ch, 1);
+  Ch := #$1A;
+  inherited Seek(Header.DataOffset+Header.LastRecord*Header.RecSize);
+  inherited Write(Ch, 1);
   end;
 
 {------------------------------------------------------------------------------}
@@ -3309,9 +3286,9 @@ procedure TDbaseWriter.WriteEndOfFile; {KV}
 
 type
   TXlsBOF = packed record
-    recNo: AWord; // Record number
+    RecNo: AWord; // Record number
     RecSize: AWord; // Record size
-    vers: AWord; // Version number (0500 for BIFF5 and BIFF7)
+    Vers: AWord; // Version number (0500 for BIFF5 and BIFF7)
     DT: AWord; // Substream type: 0005h = Workbook globals
     //                 0006h = Visual Basic module
     //                 0010h = Worksheet or dialog sheet
@@ -3323,8 +3300,8 @@ type
     end;
 
   TXlsEOF = packed record
-    recNo: AWord; // Record number
-    res1: AWord;
+    RecNo: AWord; // Record number
+    Res1: AWord;
     end;
 
   // LABEL: Cell Value, String Constant (204h)
@@ -3334,9 +3311,9 @@ type
   // The string length is contained in the cch field and must be in the range of
   // 0000h..00FFh (0..255). The string itself is contained in the rgch field.
   TXlsLABEL = packed record
-    recNo: AWord; // Record number
+    RecNo: AWord; // Record number
     RecSize: AWord; // Record size
-    rw: AWord; // Cell Row
+    Rw: AWord; // Cell Row
     Col: AWord; // Cell Col
     ixfe: AWord; // Index to the XF record
     cch: AWord; // Length of the string
@@ -3348,9 +3325,9 @@ type
   // The rw field contains the 0-based row number.
   // The col field contains the 0-based column number.
   TXlsBLANK = packed record
-    recNo: AWord; // Record number
+    RecNo: AWord; // Record number
     RecSize: AWord; // Record size
-    rw: AWord; // Cell Row
+    Rw: AWord; // Cell Row
     Col: AWord; // Cell Col
     ixfe: AWord; // Index to the XF record
     end;
@@ -3361,9 +3338,9 @@ type
   // The col field contains the 0-based column number.
   // The number is contained in the num field in 8-byte IEEE floating-point format.
   TXlsNUMBER = packed record
-    recNo: AWord; // Record number
+    RecNo: AWord; // Record number
     RecSize: AWord; // Record size
-    rw: AWord; // Cell Row
+    Rw: AWord; // Cell Row
     Col: AWord; // Cell Col
     ixfe: AWord; // Index to the XF record
     Num: Double; // Floating-point number value
@@ -3374,13 +3351,13 @@ type
   // The rw field contains the 0-based row number.
   // The col field contains the 0-based column number.
   TXlsBOOLERR = packed record
-    recNo: AWord; // Record number
+    RecNo: AWord; // Record number
     RecSize: AWord; // Record size
-    rw: AWord; // Cell Row
+    Rw: AWord; // Cell Row
     Col: AWord; // Cell Col
     ixfe: AWord; // Index to the XF record
-    bBoolErr: byte; // Boolean value or error value
-    fError: byte; // Boolean/error flag
+    bBoolErr: Byte; // Boolean value or error value
+    fError: Byte; // Boolean/error flag
     end;
 
 const
@@ -3395,103 +3372,103 @@ procedure TExcelWriter.WriteBLANK(const Col, Row, XF: AWord); {KV}
   var
     CDefXlsBLANK: TXlsBLANK;
   begin
-    CDefXlsBLANK.recNo := CXlsBLANK;
-    CDefXlsBLANK.RecSize := SizeOf(TXlsBLANK)-2*SizeOf(AWord);
-    CDefXlsBLANK.rw := Row;
-    CDefXlsBLANK.Col := Col;
-    CDefXlsBLANK.ixfe := XF;
-    inherited Write(CDefXlsBLANK, SizeOf(CDefXlsBLANK));
+  CDefXlsBLANK.RecNo := CXlsBLANK;
+  CDefXlsBLANK.RecSize := SizeOf(TXlsBLANK)-2*SizeOf(AWord);
+  CDefXlsBLANK.Rw := Row;
+  CDefXlsBLANK.Col := Col;
+  CDefXlsBLANK.ixfe := XF;
+  inherited Write(CDefXlsBLANK, SizeOf(CDefXlsBLANK));
   end;
 
 procedure TExcelWriter.WriteBOF; {KV}
   const
     CDefXlsBOF: TXlsBOF =
-    (recNo: CXlsBOF;
-    RecSize: SizeOf(TXlsBOF)-2*SizeOf(AWord);
-    vers: 0;
-    DT: $10;
-    rupBuild: 0;
-    rupYear: 0);
+      (RecNo: CXlsBOF;
+      RecSize: SizeOf(TXlsBOF)-2*SizeOf(AWord);
+      Vers: 0;
+      DT: $10;
+      rupBuild: 0;
+      rupYear: 0);
   begin
-    inherited Write(CDefXlsBOF, SizeOf(CDefXlsBOF));
+  inherited Write(CDefXlsBOF, SizeOf(CDefXlsBOF));
   end;
 
-procedure TExcelWriter.WriteBOOL(const Data: boolean; const Col, Row, XF
-    : AWord); {KV}
+procedure TExcelWriter.WriteBOOL(const Data: Boolean;
+     const Col, Row, XF: AWord); {KV}
   const
-    Values: array[boolean] of byte = (0, 1);
+    Values: array[Boolean] of Byte = (0, 1);
   var
     CDefXlsBOOLERR: TXlsBOOLERR;
   begin
-    CDefXlsBOOLERR.recNo := CXlsBOOLERR;
-    CDefXlsBOOLERR.RecSize := SizeOf(TXlsBOOLERR)-2*SizeOf(AWord);
-    CDefXlsBOOLERR.rw := Row;
-    CDefXlsBOOLERR.Col := Col;
-    CDefXlsBOOLERR.ixfe := XF;
-    CDefXlsBOOLERR.bBoolErr := Values[Data];
-    CDefXlsBOOLERR.fError := 0;
-    inherited Write(CDefXlsBOOLERR, SizeOf(CDefXlsBOOLERR));
+  CDefXlsBOOLERR.RecNo := CXlsBOOLERR;
+  CDefXlsBOOLERR.RecSize := SizeOf(TXlsBOOLERR)-2*SizeOf(AWord);
+  CDefXlsBOOLERR.Rw := Row;
+  CDefXlsBOOLERR.Col := Col;
+  CDefXlsBOOLERR.ixfe := XF;
+  CDefXlsBOOLERR.bBoolErr := Values[Data];
+  CDefXlsBOOLERR.fError := 0;
+  inherited Write(CDefXlsBOOLERR, SizeOf(CDefXlsBOOLERR));
   end;
 
 procedure TExcelWriter.WriteEOF;
   const
     CDefXlsEOF: TXlsEOF =
-    (recNo: CXlsEOF;
-    res1: 0);
+      (RecNo: CXlsEOF;
+      Res1: 0);
   begin
-    inherited Write(CDefXlsEOF, SizeOf(CDefXlsEOF));
+  inherited Write(CDefXlsEOF, SizeOf(CDefXlsEOF));
   end;
 
-procedure TExcelWriter.WriteERROR(const Data: byte; const Col, Row, XF:
-    AWord); {KV}
+procedure TExcelWriter.WriteERROR(const Data: Byte;
+     const Col, Row, XF: AWord); {KV}
   var
     CDefXlsBOOLERR: TXlsBOOLERR;
   begin
-    CDefXlsBOOLERR.recNo := CXlsBOOLERR;
-    CDefXlsBOOLERR.RecSize := SizeOf(TXlsBOOLERR)-2*SizeOf(AWord);
-    CDefXlsBOOLERR.rw := Row;
-    CDefXlsBOOLERR.Col := Col;
-    CDefXlsBOOLERR.ixfe := XF;
-    CDefXlsBOOLERR.bBoolErr := Data;
-    CDefXlsBOOLERR.fError := 1;
-    inherited Write(CDefXlsBOOLERR, SizeOf(CDefXlsBOOLERR));
+  CDefXlsBOOLERR.RecNo := CXlsBOOLERR;
+  CDefXlsBOOLERR.RecSize := SizeOf(TXlsBOOLERR)-2*SizeOf(AWord);
+  CDefXlsBOOLERR.Rw := Row;
+  CDefXlsBOOLERR.Col := Col;
+  CDefXlsBOOLERR.ixfe := XF;
+  CDefXlsBOOLERR.bBoolErr := Data;
+  CDefXlsBOOLERR.fError := 1;
+  inherited Write(CDefXlsBOOLERR, SizeOf(CDefXlsBOOLERR));
   end;
 
-procedure TExcelWriter.WriteLABEL(const Data: String; const Col, Row, XF
-    : AWord); {KV}
+procedure TExcelWriter.WriteLABEL(const Data: String;
+     const Col, Row, XF: AWord); {KV}
   var
-    s: String;
+    S: String;
     CDefXlsLABEL: TXlsLABEL;
   begin
-    CDefXlsLABEL.recNo := CXlsLABEL;
-    s := Data;
-    CDefXlsLABEL.cch := Length(s);
-    if CDefXlsLABEL.cch > 255 then
-      begin
-        CDefXlsLABEL.cch := 255;
-        SetLength(s, CDefXlsLABEL.cch);
-      end;
-    CDefXlsLABEL.rw := Row;
-    CDefXlsLABEL.Col := Col;
-    CDefXlsLABEL.ixfe := XF;
-    CDefXlsLABEL.RecSize := (SizeOf(TXlsLABEL)-2*SizeOf(AWord))+
-      CDefXlsLABEL.cch;
-    inherited Write(CDefXlsLABEL, SizeOf(CDefXlsLABEL));
-    inherited Write(s[1], CDefXlsLABEL.cch);
-  end { TExcelWriter.WriteLABEL };
+  CDefXlsLABEL.RecNo := CXlsLABEL;
+  S := Data;
+  CDefXlsLABEL.cch := Length(S);
+  if CDefXlsLABEL.cch > 255 then
+    begin
+    CDefXlsLABEL.cch := 255;
+    SetLength(S, CDefXlsLABEL.cch);
+    end;
+  CDefXlsLABEL.Rw := Row;
+  CDefXlsLABEL.Col := Col;
+  CDefXlsLABEL.ixfe := XF;
+  CDefXlsLABEL.RecSize := (SizeOf(TXlsLABEL)-2*SizeOf(AWord))
+    +CDefXlsLABEL.cch;
+  inherited Write(CDefXlsLABEL, SizeOf(CDefXlsLABEL));
+  inherited Write(S[1], CDefXlsLABEL.cch);
+  end;
 
-procedure TExcelWriter.WriteNUMBER(const Data: Double; const Col,
-    Row, XF: AWord); {KV}
+procedure TExcelWriter.WriteNUMBER(const Data: Double;
+     const Col, Row, XF: AWord); {KV}
   var
     CDefXlsNUMBER: TXlsNUMBER;
   begin
-    CDefXlsNUMBER.recNo := CXlsNUMBER;
-    CDefXlsNUMBER.RecSize := SizeOf(TXlsNUMBER)-2*SizeOf(AWord);
-    CDefXlsNUMBER.rw := Row;
-    CDefXlsNUMBER.Col := Col;
-    CDefXlsNUMBER.ixfe := XF;
-    CDefXlsNUMBER.Num := Data;
-    inherited Write(CDefXlsNUMBER, SizeOf(CDefXlsNUMBER));
+  CDefXlsNUMBER.RecNo := CXlsNUMBER;
+  CDefXlsNUMBER.RecSize := SizeOf(TXlsNUMBER)-2*SizeOf(AWord);
+  CDefXlsNUMBER.Rw := Row;
+  CDefXlsNUMBER.Col := Col;
+  CDefXlsNUMBER.ixfe := XF;
+  CDefXlsNUMBER.Num := Data;
+  inherited Write(CDefXlsNUMBER, SizeOf(CDefXlsNUMBER));
   end;
 
 end.

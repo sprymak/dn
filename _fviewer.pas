@@ -13,128 +13,130 @@ Copyright (C) 2002 Aleksej Kozlov (Cat)
 interface
 
 uses
-  _Defines, _Streams, _Views;
+  _Defines, _Streams, _Views
+  ;
 
 type
   PViewScroll = ^TViewScroll;
   TViewScroll = object(TView)
-    MaxV, Value: longInt;
+    MaxV, Value: LongInt;
     {function GetPalette: PPalette; virtual;}
     {procedure HandleEvent(var Event: TEvent); virtual;}
-    function GetPartCode: longInt;
+    function GetPartCode: LongInt;
     {procedure Draw; virtual;}
-    function GetSize: integer;
-    procedure DrawPos(Pos: integer);
+    function GetSize: Integer;
+    procedure DrawPos(Pos: Integer);
     end;
 
   PFileViewer = ^TFileViewer;
   TFileViewer = object(TView)
-    OldSizeX: integer;
-    Filtr: boolean;
-    NoEdit: boolean;
+    OldSizeX: Integer;
+    Filtr: Boolean;
+    NoEdit: Boolean;
     FileName: String;
     VFileName: String;
     Buf: PByteArray;
     Fl: PStream;
     UpdateViewTmr: TEventTimer;
     XDelta, ViewMode, HexPos: AInt;
-    SearchActive: boolean;
-    SearchResultVisible: boolean;
-    SearchX: longInt;
+    SearchActive: Boolean;
+    SearchResultVisible: Boolean;
+    SearchX: LongInt;
     SB: PView;
-    Wrap: byte;
+    Wrap: Byte;
     Lines: array[0..200] of
     record
-      Pos: longInt;
-      len: word;
+      Pos: LongInt;
+      len: Word;
       end;
-    FilePos, FileSize, NumLines: longInt;
-    ExposedPos, ExposedLine: longInt;
+    FilePos, FileSize, NumLines: LongInt;
+    ExposedPos, ExposedLine: LongInt;
     Cur: TPoint;
     Info: PView;
-    BufPos: longInt;
-    BufSize, MaxLines: longInt;
+    BufPos: LongInt;
+    BufSize, MaxLines: LongInt;
     BufLines: AInt;
     KillAfterUse, isValid, QuickView, Loaded, HexEdit, BufModified:
-      boolean;
-    FakeKillAfterUse: boolean;
-    Filter: byte;
+     Boolean;
+    FakeKillAfterUse: Boolean;
+    Filter: Byte;
     XLAT: TXlat;
-    UseXLat: boolean;
+    UseXLat: Boolean;
     XLatFile: PString;
     KeyMap: TKeyMap;
     MarkPos: TPosArray;
-    CtrlK: boolean;
-    CtrlQ: boolean;
-    HiLite: boolean;
-    ScrollEOF: boolean;
+    CtrlK: Boolean;
+    CtrlQ: Boolean;
+    HiLite: Boolean;
+    ScrollEOF: Boolean;
     HiLitePar: THighliteParams;
-    Constructor Init(var Bounds: TRect; AStream: PStream;
-    const AFileName, AVFileName: String;
-    ASB: PView; Quick, Hex: boolean);
-    Constructor Load(var s: TStream);
-    procedure Store(var s: TStream);
+    constructor Init(var Bounds: TRect; AStream: PStream;
+        const AFileName, AVFileName: String;
+        ASB: PView; Quick, Hex: Boolean);
+    constructor Load(var S: TStream);
+    procedure Store(var S: TStream);
     {destructor Done; virtual;}
     procedure ShowView; virtual;
     procedure HideView; virtual;
     {procedure Draw; virtual;}
-    procedure SetXlatFile(const FName: String; DoRedraw: boolean);
-    function ReadFile(const FName, VFName: String; NewStream:
-      boolean): boolean;
+    procedure SetXlatFile(const FName: String; DoRedraw: Boolean);
+    function ReadFile(const FName, VFName: String; NewStream: Boolean)
+      : Boolean;
     {procedure SetState(AState: Word; Enable: Boolean); virtual;}
     {procedure HandleEvent(var Event: TEvent); virtual;}
-    function WriteModify: boolean;
-    procedure CountDown(ANumber: integer); virtual;
-    procedure CountUp(ANumber: integer); virtual;
-    procedure Seek(APos: longInt);
+    function WriteModify: Boolean;
+    procedure CountDown(ANumber: Integer); virtual;
+    procedure CountUp(ANumber: Integer); virtual;
+    procedure Seek(APos: LongInt);
     procedure MakeLines; virtual;
     procedure SaveToFile(FN: String);
     {function Valid(Command: Word): Boolean; virtual;}
     {procedure ChangeBounds(var Bounds: TRect); virtual;}
     {function  GetPalette: PPalette; virtual;}
-    procedure DoHighlite(var B; const s: String; const Attr: String);
+    procedure DoHighlite(var B; const S: String; const Attr: String);
     {procedure Update; virtual;}
     procedure SeekEof;
     procedure SeekBof;
-    function BreakOnStreamReadError: boolean;
+    function BreakOnStreamReadError: Boolean;
     end;
 
 implementation
 
 uses
-  _DNFuncs;
+  _DNFuncs
+  ;
 
-function TViewScroll.GetPartCode: longInt;
+function TViewScroll.GetPartCode: LongInt;
   begin
-    Result := _TViewScroll^.GetPartCode(@Self);
+  Result := _TViewScroll^.GetPartCode(@Self);
   end;
 
-function TViewScroll.GetSize: integer;
+function TViewScroll.GetSize: Integer;
   begin
-    Result := _TViewScroll^.GetSize(@Self);
+  Result := _TViewScroll^.GetSize(@Self);
   end;
 
-procedure TViewScroll.DrawPos(Pos: integer);
+procedure TViewScroll.DrawPos(Pos: Integer);
   begin
-    _TViewScroll^.DrawPos(Pos, @Self);
+  _TViewScroll^.DrawPos(Pos, @Self);
   end;
 
-Constructor TFileViewer.Init(var Bounds: TRect; AStream: PStream;
-  const AFileName, AVFileName: String;
-  ASB: PView; Quick, Hex: boolean);
+constructor TFileViewer.Init(var Bounds: TRect; AStream: PStream;
+    const AFileName, AVFileName: String;
+    ASB: PView; Quick, Hex: Boolean);
   begin
-    _TFileViewer^.Init(Bounds, _Model1.PStream(AStream), AFileName,
-      AVFileName, _Model1.PView(ASB), Quick, Hex, nil, @Self);
+  _TFileViewer^.Init(Bounds, _Model1.PStream(AStream), AFileName,
+     AVFileName, _Model1.PView(ASB), Quick, Hex, nil, @Self);
   end;
 
-Constructor TFileViewer.Load(var s: TStream);
+constructor TFileViewer.Load(var S: TStream);
   begin
-    _TFileViewer^.Load(_Model1.TStream(s), nil, @Self);
+  _TFileViewer^.Load(_Model1.TStream(S), nil, @Self);
   end;
 
-procedure TFileViewer.Store(var s: TStream);
+procedure TFileViewer.Store(var S: TStream);
   begin
-    _TFileViewer^.Store(_Model1.TStream(s), @Self);
+  _TFileViewer^.Store(_Model1.TStream(S), @Self);
   end;
 
 procedure TFileViewer.ShowView;
@@ -147,36 +149,35 @@ procedure TFileViewer.HideView;
 asm
 end;
 
-procedure TFileViewer.SetXlatFile(const FName: String; DoRedraw:
-    boolean);
+procedure TFileViewer.SetXlatFile(const FName: String; DoRedraw: Boolean);
   begin
-    _TFileViewer^.SetXlatFile(FName, DoRedraw, @Self);
+  _TFileViewer^.SetXlatFile(FName, DoRedraw, @Self);
   end;
 
-function TFileViewer.ReadFile(const FName, VFName: String; NewStream:
-    boolean): boolean;
+function TFileViewer.ReadFile(const FName, VFName: String;
+     NewStream: Boolean): Boolean;
   begin
-    Result := _TFileViewer^.ReadFile(FName, VFName, NewStream, @Self);
+  Result := _TFileViewer^.ReadFile(FName, VFName, NewStream, @Self);
   end;
 
-function TFileViewer.WriteModify: boolean;
+function TFileViewer.WriteModify: Boolean;
   begin
-    Result := _TFileViewer^.WriteModify(@Self);
+  Result := _TFileViewer^.WriteModify(@Self);
   end;
 
-procedure TFileViewer.CountDown(ANumber: integer);
+procedure TFileViewer.CountDown(ANumber: Integer);
   assembler; {&Frame-}
 asm
 end;
 
-procedure TFileViewer.CountUp(ANumber: integer);
+procedure TFileViewer.CountUp(ANumber: Integer);
   assembler; {&Frame-}
 asm
 end;
 
-procedure TFileViewer.Seek(APos: longInt);
+procedure TFileViewer.Seek(APos: LongInt);
   begin
-    _TFileViewer^.Seek(APos, @Self);
+  _TFileViewer^.Seek(APos, @Self);
   end;
 
 procedure TFileViewer.MakeLines;
@@ -186,28 +187,28 @@ end;
 
 procedure TFileViewer.SaveToFile(FN: String);
   begin
-    _TFileViewer^.SaveToFile(FN, @Self);
+  _TFileViewer^.SaveToFile(FN, @Self);
   end;
 
-procedure TFileViewer.DoHighlite(var B; const s: String; const Attr:
-    String);
+procedure TFileViewer.DoHighlite(var B; const S: String;
+     const Attr: String);
   begin
-    _TFileViewer^.DoHighlite(B, s, Attr, @Self);
+  _TFileViewer^.DoHighlite(B, S, Attr, @Self);
   end;
 
 procedure TFileViewer.SeekEof;
   begin
-    _TFileViewer^.SeekEof(@Self);
+  _TFileViewer^.SeekEof(@Self);
   end;
 
 procedure TFileViewer.SeekBof;
   begin
-    _TFileViewer^.SeekBof(@Self);
+  _TFileViewer^.SeekBof(@Self);
   end;
 
-function TFileViewer.BreakOnStreamReadError: boolean;
+function TFileViewer.BreakOnStreamReadError: Boolean;
   begin
-    Result := _TFileViewer^.BreakOnStreamReadError(@Self);
+  Result := _TFileViewer^.BreakOnStreamReadError(@Self);
   end;
 
 end.

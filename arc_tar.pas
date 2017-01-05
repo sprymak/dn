@@ -50,14 +50,15 @@ unit arc_TAR; {TAR}
 interface
 
 uses
-  Archiver, advance, advance1, Objects, Dos, xTime;
+  Archiver, Advance, Advance1, Objects, Dos, xTime
+  ;
 
 type
   PTARArchive = ^TTARArchive;
   TTARArchive = object(TARJArchive)
-    Constructor Init;
+    constructor Init;
     procedure GetFile; virtual;
-    function GetID: byte; virtual;
+    function GetID: Byte; virtual;
     function GetSign: TStr4; virtual;
     end;
 
@@ -78,159 +79,145 @@ type
     chksum: array[1..Txt_Word] of Char;
     filetype: Char;
     linkname: array[1..MaxTName] of Char;
-    case byte of
+    case Byte of
       0: (
-      (* old-fashion data & padding *)
-      comment: array[1..BlkSize-MaxTName-8-8-8-12-12-8-1-MaxTName-12-12]
-        of Char;
-      srcsum: array[1..Txt_Long] of Char;
-      srclen: array[1..Txt_Long] of Char;
-      );
+        (* old-fashion data & padding *)
+        comment:
+         array[1..BlkSize-MaxTName-8-8-8-12-12-8-1-MaxTName-12-12] of Char;
+        SrcSum: array[1..Txt_Long] of Char;
+        SrcLen: array[1..Txt_Long] of Char;
+        );
       1: (
-      (* System V extensions *)
-      extent: array[1..4] of Char;
-      allext: array[1..4] of Char;
-      Total: array[1..Txt_Long] of Char;
-      );
+        (* System V extensions *)
+        extent: array[1..4] of Char;
+        AllExt: array[1..4] of Char;
+        Total: array[1..Txt_Long] of Char;
+        );
       2: (
-      (* P1003 & GNU extensions *)
-      magic: array[1..8] of Char;
-      uname: array[1..32] of Char;
-      gname: array[1..32] of Char;
-      devmajor: array[1..Txt_Word] of Char;
-      devminor: array[1..Txt_Word] of Char;
-      (* the following fields are added gnu and NOT standard *)
-      ATime: array[1..12] of Char;
-      ctime: array[1..12] of Char;
-      Offset: array[1..12] of Char;
-      );
-  end;
+        (* P1003 & GNU extensions *)
+        magic: array[1..8] of Char;
+        UName: array[1..32] of Char;
+        gname: array[1..32] of Char;
+        devmajor: array[1..Txt_Word] of Char;
+        devminor: array[1..Txt_Word] of Char;
+        (* the following fields are added gnu and NOT standard *)
+        ATime: array[1..12] of Char;
+        ctime: array[1..12] of Char;
+        Offset: array[1..12] of Char;
+        );
+    end;
 
 implementation
 
 { ----------------------------- TAR ------------------------------------}
 
-Constructor TTARArchive.Init;
+constructor TTARArchive.Init;
   var
     Sign: TStr5;
-    Q: String;
+    q: String;
   begin
-    Sign := GetSign;
-    SetLength(Sign, Length(Sign)-1);
-    Sign := Sign+#0;
-    FreeStr := SourceDir+DNARC;
-    TObject.Init;
-    {$IFDEF WIN32}
-    Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, '7Z.EXE'));
-    UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,
-      '7Z.EXE'));
-    Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'e'));
-    ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,
-      'x'));
-    Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'a -ttar'));
-    Move := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove, ''));
-    Delete := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete, 'd'));
-    Garble := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble, '-p'));
-    Test := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest, 't'));
-    IncludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PIncludePaths, ''));
-    ExcludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PExcludePaths, ''));
-    ForceMode := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode,
-      '-y'));
-    RecoveryRec := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec, ''
-      ));
-    SelfExtract := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract, ''
-      ));
-    Solid := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid, ''));
-    RecurseSubDirs := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PRecurseSubDirs, '-r0'));
-    SetPathInside := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PSetPathInside, ''));
-    StoreCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PStoreCompression, ''));
-    FastestCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PFastestCompression, ''));
-    FastCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PFastCompression, ''));
-    NormalCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PNormalCompression, ''));
-    GoodCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PGoodCompression, ''));
-    UltraCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PUltraCompression, ''));
-    ComprListChar := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PComprListChar, '@'));
-    ExtrListChar := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PExtrListChar, '@'));
-    {$ELSE}
-    Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,
-      'TAR.EXE'));
-    UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,
-      'TAR.EXE'));
-    Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'xf'));
-    ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,
-      'xf'));
-    Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'cvf'));
-    Move := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove, 'cvf'));
-    Delete := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete, 'df'));
-    Garble := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble, ''));
-    Test := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest, 'tf'));
-    IncludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PIncludePaths, ''));
-    ExcludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PExcludePaths, ''));
-    ForceMode := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode, ''));
-    RecoveryRec := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec, ''
-      ));
-    SelfExtract := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract, ''
-      ));
-    Solid := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid, ''));
-    RecurseSubDirs := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PRecurseSubDirs, ''));
-    StoreCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PStoreCompression, ''));
-    FastestCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PFastestCompression, ''));
-    FastCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PFastCompression, ''));
-    NormalCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PNormalCompression, ''));
-    GoodCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PGoodCompression, ''));
-    UltraCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PUltraCompression, ''));
-    ComprListChar := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PComprListChar, ' '));
-    ExtrListChar := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PExtrListChar, ' '));
-    {$ENDIF}
+  Sign := GetSign;
+  SetLength(Sign, Length(Sign)-1);
+  Sign := Sign+#0;
+  FreeStr := SourceDir+DNARC;
+  TObject.Init;
+  {$IFDEF WIN32}
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, '7Z.EXE'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, '7Z.EXE'));
+  Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'e'));
+  ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, 'x'));
+  Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'a -ttar'));
+  Move := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove, ''));
+  Delete := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete, 'd'));
+  Garble := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble, '-p'));
+  Test := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest, 't'));
+  IncludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths, ''));
+  ExcludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths, ''));
+  ForceMode := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode, '-y'));
+  RecoveryRec := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec, ''));
+  SelfExtract := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract, ''));
+  Solid := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid, ''));
+  RecurseSubDirs := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PRecurseSubDirs, '-r0'));
+  SetPathInside := NewStr(GetVal(@Sign[1], @FreeStr[1], PSetPathInside,
+         ''));
+  StoreCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PStoreCompression, ''));
+  FastestCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PFastestCompression, ''));
+  FastCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PFastCompression, ''));
+  NormalCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PNormalCompression, ''));
+  GoodCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PGoodCompression, ''));
+  UltraCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PUltraCompression, ''));
+  ComprListChar := NewStr(GetVal(@Sign[1], @FreeStr[1], PComprListChar,
+         '@'));
+  ExtrListChar := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtrListChar,
+       '@'));
+  {$ELSE}
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'TAR.EXE'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'TAR.EXE'));
+  Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'xf'));
+  ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, 'xf'));
+  Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'cvf'));
+  Move := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove, 'cvf'));
+  Delete := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete, 'df'));
+  Garble := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble, ''));
+  Test := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest, 'tf'));
+  IncludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths, ''));
+  ExcludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths, ''));
+  ForceMode := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode, ''));
+  RecoveryRec := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec, ''));
+  SelfExtract := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract, ''));
+  Solid := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid, ''));
+  RecurseSubDirs := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,
+         ''));
+  StoreCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PStoreCompression, ''));
+  FastestCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PFastestCompression, ''));
+  FastCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PFastCompression, ''));
+  NormalCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PNormalCompression, ''));
+  GoodCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PGoodCompression, ''));
+  UltraCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PUltraCompression, ''));
+  ComprListChar := NewStr(GetVal(@Sign[1], @FreeStr[1], PComprListChar,
+         ' '));
+  ExtrListChar := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtrListChar,
+       ' '));
+  {$ENDIF}
 
-    Q := GetVal(@Sign[1], @FreeStr[1], PAllVersion, '0');
-    AllVersion := Q <> '0';
-    Q := GetVal(@Sign[1], @FreeStr[1], PPutDirs, '0');
-    PutDirs := Q <> '0';
-    {$IFDEF OS_DOS}
-    Q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
-    Swap := Q <> '0';
-    {$ELSE}
-    Q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '0');
-    ShortCmdLine := Q <> '0';
-    {$ENDIF}
-    {$IFNDEF OS2}
-    Q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '1');
-    UseLFN := Q <> '0';
-    {$ENDIF}
+  q := GetVal(@Sign[1], @FreeStr[1], PAllVersion, '0');
+  AllVersion := q <> '0';
+  q := GetVal(@Sign[1], @FreeStr[1], PPutDirs, '0');
+  PutDirs := q <> '0';
+  {$IFDEF OS_DOS}
+  q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
+  Swap := q <> '0';
+  {$ELSE}
+  q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '0');
+  ShortCmdLine := q <> '0';
+  {$ENDIF}
+  {$IFNDEF OS2}
+  q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '1');
+  UseLFN := q <> '0';
+  {$ENDIF}
   end { TTARArchive.Init };
 
 function TTARArchive.GetID;
   begin
-    GetID := arcTAR;
+  GetID := arcTAR;
   end;
 
 function TTARArchive.GetSign;
   begin
-    GetSign := sigTAR;
+  GetSign := sigTAR;
   end;
 
 procedure TTARArchive.GetFile;
@@ -239,32 +226,32 @@ procedure TTARArchive.GetFile;
     Hdr: TARHdr absolute Buffer;
     DT: DateTime;
   begin
-    if ArcFile^.GetPos = ArcFile^.GetSize then
-      begin
-        FileInfo.Last := 1;
-        exit
-      end;
-    ArcFile^.Read(Buffer, BlkSize);
-    if ArcFile^.Status <> stOK then
-      begin
-        FileInfo.Last := 2;
-        exit
-      end;
-    FileInfo.Last := 0;
-    FileInfo.FName := Hdr.FName+#0;
-    SetLength(FileInfo.FName, PosChar(#0, FileInfo.FName)-1);
-    if FileInfo.FName = '' then
-      begin
-        FileInfo.Last := 1;
-        exit
-      end;
-    FileInfo.USize := FromOct(Hdr.Size);
-    FileInfo.PSize := FileInfo.USize;
-    GetUNIXDate(FromOct(Hdr.mtime), DT.Year, DT.Month, DT.Day, DT.
-      Hour, DT.Min, DT.Sec);
-    PackTime(DT, FileInfo.Date);
-    ArcFile^.Seek(ArcFile^.GetPos+((FileInfo.PSize+BlkSize-1) div
-      BlkSize)*BlkSize);
+  if ArcFile^.GetPos = ArcFile^.GetSize then
+    begin
+    FileInfo.Last := 1;
+    Exit
+    end;
+  ArcFile^.Read(Buffer, BlkSize);
+  if ArcFile^.Status <> stOK then
+    begin
+    FileInfo.Last := 2;
+    Exit
+    end;
+  FileInfo.Last := 0;
+  FileInfo.FName := Hdr.FName+#0;
+  SetLength(FileInfo.FName, PosChar(#0, FileInfo.FName)-1);
+  if FileInfo.FName = '' then
+    begin
+    FileInfo.Last := 1;
+    Exit
+    end;
+  FileInfo.USize := FromOct(Hdr.Size);
+  FileInfo.PSize := FileInfo.USize;
+  GetUNIXDate(FromOct(Hdr.mtime), DT.Year, DT.Month, DT.Day, DT.Hour,
+     DT.Min, DT.Sec);
+  PackTime(DT, FileInfo.Date);
+  ArcFile^.Seek(ArcFile^.GetPos+((FileInfo.PSize+BlkSize-1) div
+     BlkSize)*BlkSize);
   end { TTARArchive.GetFile };
 
 end.

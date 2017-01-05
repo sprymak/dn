@@ -48,60 +48,62 @@
 unit TitleSet;
 interface
 
-procedure SetTitle(text: String);
+procedure SetTitle(Text: String);
 
 implementation
 
 {$IFDEF OS2}
 uses
-  Dn2PmApi;
+  Dn2PmApi
+  ;
 
 var
   CurrentTitle: String;
 
-procedure SetTitle(text: String);
+procedure SetTitle(Text: String);
   begin
-    text := 'DN/2: '+text;
-    if text = CurrentTitle then
-      exit;
-    CurrentTitle := text;
+  Text := 'DN/2: '+Text;
+  if Text = CurrentTitle then
+    Exit;
+  CurrentTitle := Text;
 
-    DN_XSetTitle(text);
+  DN_XSetTitle(Text);
   end;
 
 begin
-  {$ENDIF}
-  {$IFDEF WIN32}
-  uses
-    Windows,
-    VpSysLow, U_KeyMap;
+{$ENDIF}
+{$IFDEF WIN32}
+uses
+  Windows,
+  VpSysLow, U_KeyMap
+  ;
 
-  var
-    CurrentTitle: String;
+var
+  CurrentTitle: String;
 
-  procedure SetTitle(text: String);
-    begin
-      text := 'DN/2: '+text;
-      if text = CurrentTitle then
-        exit;
-      CurrentTitle := text;
+procedure SetTitle(Text: String);
+  begin
+  Text := 'DN/2: '+Text;
+  if Text = CurrentTitle then
+    Exit;
+  CurrentTitle := Text;
 
-      {AK155 Под Win NT заголовок окна отображается в кодировке OEM,
+  {AK155 Под Win NT заголовок окна отображается в кодировке OEM,
 а  в  Win 9x - в кодировке ANSI. Поэтому флаг перекодировки
 устанавливается в зависимости от типа операционной системы
 }
-      if (SysPlatformId = 1 {Win 9x}) then
-        text := ascii_ansi(text)+#0
-      else
-        text := text+#0;
-      SetConsoleTitle(@Text[1]);
-    end;
-  {$ENDIF}
-  {$IFDEF DPMI32}
-  procedure SetTitle(text: String);
-    begin
-      {Cat:todo DPMI32}
-    end;
-  {$ENDIF}
+  if  (SysPlatformId = 1 {Win 9x}) then
+    Text := Ascii_Ansi(Text)+#0
+  else
+    Text := Text+#0;
+  SetConsoleTitle(@Text[1]);
+  end;
+{$ENDIF}
+{$IFDEF DPMI32}
+procedure SetTitle(Text: String);
+  begin
+  {Cat:todo DPMI32}
+  end;
+{$ENDIF}
 
 end.

@@ -62,12 +62,12 @@ type
   { Trash can object }
   PTrashCan = ^TTrashCan;
   TTrashCan = object(TView)
-    ImVisible: boolean;
-    Constructor Init(var R: TRect);
+    ImVisible: Boolean;
+    constructor Init(var R: TRect);
     procedure Draw; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     function GetPalette: PPalette; virtual;
-    procedure SetState(AState: word; Enable: boolean); virtual;
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
     end;
   {$ENDIF}
 
@@ -76,45 +76,45 @@ type
     Limit: AInt;
     Count: AInt;
     Keys: PWordArray;
-    Constructor Init;
-    Constructor Load(var s: TStream);
-    procedure PutKey(KeyCode: word);
-    procedure Store(var s: TStream);
+    constructor Init;
+    constructor Load(var S: TStream);
+    procedure PutKey(KeyCode: Word);
+    procedure Store(var S: TStream);
     procedure Play;
     destructor Done; virtual;
     end;
 
 const
-  LastHour: word = $FF;
-  LastMin: word = 0;
+  LastHour: Word = $FF;
+  LastMin: Word = 0;
 
 const
   KeyMacroses: PCollection = nil;
-  MacroRecord: boolean = False;
+  MacroRecord: Boolean = False;
 
 type
   PHeapView = ^THeapView;
   THeapView = object(TView)
-    OldMem: longInt;
-    Constructor Init(var Bounds: TRect);
+    OldMem: LongInt;
+    constructor Init(var Bounds: TRect);
     procedure Draw; virtual;
-    procedure UpDate; virtual;
+    procedure Update; virtual;
     end;
 
   PClockView = ^TClockView;
   TClockView = object(TView)
-    Refresh: byte;
+    Refresh: Byte;
     LastTime: DateTime;
-    LastSemi: boolean;
+    LastSemi: Boolean;
     TimeStr: String[16]; {-SSK (old version: string[12])}
     OldXCoord: AInt; {-SSK}
-    OldShowSeconds: boolean;
+    OldShowSeconds: Boolean;
     Utimer: TEventTimer;
-    Constructor Init(var Bounds: TRect);
+    constructor Init(var Bounds: TRect);
     procedure Draw; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-    function FormatTimeStr(H, M, SS: word): String; virtual;
-    procedure UpDate; virtual;
+    function FormatTimeStr(H, M, SS: Word): String; virtual;
+    procedure Update; virtual;
     end;
 
   {$IFDEF Printer}
@@ -123,154 +123,154 @@ procedure PrintFiles(Files: PCollection; Own: PView);
 
 implementation
 uses
-  Memory, Tree, Messages, DNApp, advance, advance1, advance2,
-    advance3,
+  Memory, Tree, Messages, DNApp, Advance, Advance1, Advance2, Advance3,
   {$IFDEF OS2}Dn2PmApi, {$ENDIF} {AK155}
   {SysUtils,}
-  FilesCol, RStrings, Startup, DnIni; {-$VIV}
+  FilesCol, RStrings, Startup, DnIni
+  ; {-$VIV}
 
-Constructor TKeyMacros.Init;
+constructor TKeyMacros.Init;
   begin
-    inherited Init;
-    Limit := 10;
-    Count := 0;
-    Keys := MemAlloc(Limit*SizeOf(word));
-    if Keys = nil then
-      Fail;
+  inherited Init;
+  Limit := 10;
+  Count := 0;
+  Keys := MemAlloc(Limit*SizeOf(Word));
+  if Keys = nil then
+    Fail;
   end;
 
 destructor TKeyMacros.Done;
   begin
-    if Keys <> nil then
-      FreeMem(Keys, Limit*SizeOf(word));
-    inherited Done;
+  if Keys <> nil then
+    FreeMem(Keys, Limit*SizeOf(Word));
+  inherited Done;
   end;
 
-Constructor TKeyMacros.Load;
+constructor TKeyMacros.Load;
   begin
-    s.Read(Limit, SizeOf(AWord)*2);
-    Keys := MemAlloc(SizeOf(AWord)*Limit);
-    if Keys = nil then
-      Fail;
-    s.Read(Keys^, SizeOf(AWord)*Count);
+  S.Read(Limit, SizeOf(AWord)*2);
+  Keys := MemAlloc(SizeOf(AWord)*Limit);
+  if Keys = nil then
+    Fail;
+  S.Read(Keys^, SizeOf(AWord)*Count);
   end;
 
 procedure TKeyMacros.Store;
   begin
-    s.Write(Limit, SizeOf(Limit)*2);
-    s.Write(Keys^, SizeOf(AWord)*Count);
+  S.Write(Limit, SizeOf(Limit)*2);
+  S.Write(Keys^, SizeOf(AWord)*Count);
   end;
 
 procedure TKeyMacros.PutKey;
   var
     P: Pointer;
   begin
-    if Count >= Limit then
-      begin
-        Inc(Limit, 10);
-        P := MemAlloc(Limit*SizeOf(word));
-        if P = nil then
-          exit;
-        Move(Keys^, P^, Count*SizeOf(word));
-        Keys := P;
-      end;
-    Keys^[Count] := KeyCode;
-    Inc(Count);
+  if Count >= Limit then
+    begin
+    Inc(Limit, 10);
+    P := MemAlloc(Limit*SizeOf(Word));
+    if P = nil then
+      Exit;
+    Move(Keys^, P^, Count*SizeOf(Word));
+    Keys := P;
+    end;
+  Keys^[Count] := KeyCode;
+  Inc(Count);
   end;
 
 procedure TKeyMacros.Play;
   var
-    i: integer;
+    I: Integer;
   begin
-    for i := 0 to Count-1 do
-      Message(Application, evKeyDown, Keys^[i], nil);
+  for I := 0 to Count-1 do
+    Message(Application, evKeyDown, Keys^[I], nil);
   end;
 
 {------ Heap Window object ----------}
 
-Constructor THeapView.Init(var Bounds: TRect);
+constructor THeapView.Init(var Bounds: TRect);
   begin
-    TView.Init(Bounds);
-    OldMem := 0;
+  TView.Init(Bounds);
+  OldMem := 0;
   end;
 
 procedure THeapView.Draw;
   var
-    s: String;
+    S: String;
     B: TDrawBuffer;
-    C: byte;
+    C: Byte;
   begin
-    OldMem := MemAvail;
-    Str(OldMem, s);
-    C := GetColor(2);
-    MoveChar(B, ' ', C, Size.X);
-    MoveStr(B, s, C);
-    WriteLine(0, 0, Size.X, 1, B);
+  OldMem := MemAvail;
+  Str(OldMem, S);
+  C := GetColor(2);
+  MoveChar(B, ' ', C, Size.X);
+  MoveStr(B, S, C);
+  WriteLine(0, 0, Size.X, 1, B);
   end;
 
-procedure THeapView.UpDate;
+procedure THeapView.Update;
   begin
-    if (OldMem <> MemAvail) then
-      DrawView;
+  if  (OldMem <> MemAvail) then
+    DrawView;
   end;
 
 {-------- ClockView Object --------}
 
-function LeadingZero(W: word): String;
+function LeadingZero(w: Word): String;
   var
     s: String[20];
   begin
-    Str(W: 0, s);
-    LeadingZero := Copy('00', 1, 2-Length(s))+s;
+  Str(w: 0, s);
+  LeadingZero := Copy('00', 1, 2-Length(s))+s;
   end;
 
-Constructor TClockView.Init(var Bounds: TRect);
+constructor TClockView.Init(var Bounds: TRect);
   var
-    s, hund: word;
+    s, hund: Word;
   begin
-    TView.Init(Bounds);
-    FillChar(LastTime, SizeOf(LastTime), #$FF);
-    TimeStr := '';
-    Refresh := 1;
-    OldXCoord := -1;
-    OldShowSeconds := ShowSeconds;
-    EventMask := evMouse or evMessage;
-    Options := Options or ofTopSelect;
-    GrowMode := gfGrowHiX;
-    GetTime(LastHour, LastMin, s, hund);
-    LastSemi := hund < 50;
-    RegisterToBackground(@Self);
-    if ShowSeconds then
-      UpdTicks := 18
-    else
-      UpdTicks := 9;
-    NewTimerSecs(Utimer, 1200+Random(1200));
-  end { TClockView.Init };
+  TView.Init(Bounds);
+  FillChar(LastTime, SizeOf(LastTime), #$FF);
+  TimeStr := '';
+  Refresh := 1;
+  OldXCoord := -1;
+  OldShowSeconds := ShowSeconds;
+  EventMask := evMouse or evMessage;
+  Options := Options or ofTopSelect;
+  GrowMode := gfGrowHiX;
+  GetTime(LastHour, LastMin, s, hund);
+  LastSemi := hund < 50;
+  RegisterToBackground(@Self);
+  if ShowSeconds then
+    UpdTicks := 18
+  else
+    UpdTicks := 9;
+  NewTimerSecs(Utimer, 1200+Random(1200));
+  end;
 
 procedure TClockView.Draw;
   var
     B: TDrawBuffer;
-    C: byte;
+    C: Byte;
   begin
-    Size.Y := 1;
-    C := GetColor(1);
-    MoveChar(B, ' ', C, Size.X);
-    if MacroRecord then
-      MoveStr(B, '>MACRO<', C)
-    else
+  Size.Y := 1;
+  C := GetColor(1);
+  MoveChar(B, ' ', C, Size.X);
+  if MacroRecord then
+    MoveStr(B, '>MACRO<', C)
+  else
+    begin
+    if  (RightAlignClock = True) and
+        (Origin.X+Size.X <> ScreenWidth)
+    then
+      MoveTo(ScreenWidth-Size.X, Origin.Y);
+    if Length(TimeStr) <> Size.X then
       begin
-        if (RightAlignClock = True) and
-          (Origin.X+Size.X <> ScreenWidth)
-        then
-          MoveTo(ScreenWidth-Size.X, Origin.Y);
-        if Length(TimeStr) <> Size.X then
-          begin
-            GrowTo(Length(TimeStr), 1);
-            exit
-          end;
-        MoveStr(B, TimeStr, C);
+      GrowTo(Length(TimeStr), 1);
+      Exit
       end;
-    WriteLine(0, 0, Size.X, 1, B);
+    MoveStr(B, TimeStr, C);
+    end;
+  WriteLine(0, 0, Size.X, 1, B);
   end { TClockView.Draw };
 
 procedure TClockView.HandleEvent;
@@ -278,174 +278,170 @@ procedure TClockView.HandleEvent;
     P: TPoint;
     R: TRect;
   begin
-    P := Size;
-    Application^.GetBounds(R);
-    if Event.What = evMouseDown then
+  P := Size;
+  Application^.GetBounds(R);
+  if Event.What = evMouseDown then
+    begin
+    {$IFDEF Calendar}
+    if Event.Double then
       begin
-        {$IFDEF Calendar}
-        if Event.Double then
-          begin
-            InsertCalendar;
-            exit
-          end;
-        {$ENDIF}
-        OldXCoord := -1; {-SSK}
-        TView.DragView(Event, dmDragMove, R, P, P);
+      InsertCalendar;
+      Exit
       end;
+    {$ENDIF}
+    OldXCoord := -1; {-SSK}
+    TView.DragView(Event, dmDragMove, R, P, P);
+    end;
   end;
 
-procedure TClockView.UpDate;
+procedure TClockView.Update;
   var
-    H, M, s, hund: word;
-    D, Mn, Y: word;
+    h, m, s, hund: Word;
+    d, mn, y: Word;
     SS: String[40];
     Event: TEvent;
     P: PView;
-    DayWeek: byte;
+    DayWeek: Byte;
     R: TRect;
-    StdClockWidth: byte;
-    Semi: boolean;
+    StdClockWidth: Byte;
+    Semi: Boolean;
   begin
-    if ShowSeconds then
-      StdClockWidth := 10
-    else
-      StdClockWidth := 7;
-    GetTime(H, M, s, hund);
-    Semi := hund < 50;
-    if (Abs(s-LastTime.Sec) >= Refresh) or (Semi <> LastSemi) then
-      begin
-        GetDate(Y, Mn, D, hund);
-        if (ShiftState and 7 <> 0)
-          {$IFDEF OS2}
-          {AK155 В неактивном оконном состоянии не надо реагировать на
+  if ShowSeconds then
+    StdClockWidth := 10
+  else
+    StdClockWidth := 7;
+  GetTime(h, m, s, hund);
+  Semi := hund < 50;
+  if  (Abs(s-LastTime.Sec) >= Refresh) or (Semi <> LastSemi) then
+    begin
+    GetDate(y, mn, d, hund);
+    if  (ShiftState and 7 <> 0)
+      {$IFDEF OS2}
+      {AK155 В неактивном оконном состоянии не надо реагировать на
           Shift, Alt, Ctrl}
-          and not DN_IsBGWindow
-          {$ENDIF}
-        then
+      and not DN_IsBGWindow
+      {$ENDIF}
+      then
+      begin
+      if ShiftState and 3 <> 0 then
+        TimeStr := ' '+FStr(MemAvail)+' '
+      else
+        begin
+        MakeDateFull(0, d, mn, y, 0, 0, SS, ShowCentury);
+        if ShowCentury then
+          TimeStr := Copy(SS, 1, 10)+' '
+        else
+          TimeStr := Copy(SS, 1, 8)+' ';
+        if ShowDayOfWeek then
           begin
-            if ShiftState and 3 <> 0 then
-              TimeStr := ' '+FStr(MemAvail)+' '
-            else
-              begin
-                MakeDateFull(0, D, Mn, Y, 0, 0, SS, ShowCentury);
-                if ShowCentury then
-                  TimeStr := Copy(SS, 1, 10)+' '
-                else
-                  TimeStr := Copy(SS, 1, 8)+' ';
-                if ShowDayOfWeek then
-                  begin
-                    DayWeek := hund; {DayOfWeek(Date)-1;}
-                      {Cat: странные какие-то проблемы...}
-                    if (Length(DaysOfWeek) <> 14) and (Length(
-                        DaysOfWeek) <> 21)
-                    then
-                      TimeStr := ' '+Copy(GetString(stDaysWeek), 1+
-                        DayWeek*2, 2)
-                      +' '+TimeStr
-                    else
-                      TimeStr := ' '+Copy(DaysOfWeek, 1+DayWeek*
-                      (Length(DaysOfWeek) div 7), (Length(DaysOfWeek)
-                        div 7))
-                      +' '+TimeStr
-                  end
-                else
-                  TimeStr := ' '+TimeStr;
-              end;
-            if not RightAlignClock then
-              begin
-                if OldXCoord = -1 then
-                  OldXCoord := Origin.X;
-                if (Origin.X+(Size.X shr 1)) > (ScreenWidth shr 1)
-                then
-                  R.Assign(OldXCoord+StdClockWidth-Length(TimeStr),
-                    Origin.Y,
-                  OldXCoord+StdClockWidth, Origin.Y+Size.Y)
-                else
-                  R.Assign(OldXCoord, Origin.Y,
-                  OldXCoord+Length(TimeStr), Origin.Y+Size.Y);
-                TView.Locate(R);
-              end;
-            UpdTicks := 6;
+          DayWeek := hund; {DayOfWeek(Date)-1;}
+          {Cat: странные какие-то проблемы...}
+          if  (Length(DaysOfWeek) <> 14) and (Length(DaysOfWeek) <> 21)
+          then
+            TimeStr := ' '+Copy(GetString(stDaysWeek), 1+DayWeek*2, 2)
+              +' '+TimeStr
+          else
+            TimeStr := ' '+Copy(DaysOfWeek, 1+DayWeek*
+                  (Length(DaysOfWeek) div 7), (Length(DaysOfWeek) div 7))
+              +' '+TimeStr
+          end
+        else
+          TimeStr := ' '+TimeStr;
+        end;
+      if not RightAlignClock then
+        begin
+        if OldXCoord = -1 then
+          OldXCoord := Origin.X;
+        if  (Origin.X+(Size.X shr 1)) > (ScreenWidth shr 1) then
+          R.Assign(OldXCoord+StdClockWidth-Length(TimeStr), Origin.y,
+            OldXCoord+StdClockWidth, Origin.y+Size.y)
+        else
+          R.Assign(OldXCoord, Origin.y,
+            OldXCoord+Length(TimeStr), Origin.y+Size.y);
+        TView.Locate(R);
+        end;
+      UpdTicks := 6;
+      end
+    else
+      begin
+      if not RightAlignClock then
+        if not (OldXCoord = -1) then
+          begin {-SSK}
+          R.Assign(OldXCoord, Origin.y, OldXCoord+Length(TimeStr),
+             Origin.y+Size.y);
+          OldXCoord := -1;
+          TView.Locate(R);
+          end; {-SSK}
+      if ShowSeconds then
+        UpdTicks := 18
+      else
+        UpdTicks := 9;
+      with LastTime do
+        begin
+        Inc(LastMin);
+        Hour := h;
+        Min := m;
+        Sec := s;
+        Day := d;
+        Month := mn;
+        Year := y;
+        end;
+      LastSemi := Semi;
+      TimeStr := FormatTimeStr(h, m, s);
+      if not ShowSeconds then
+        TimeStr := Copy(TimeStr, 1, 6)+' '; {-$VIV}
+      {-SSK}
+      if BlinkSeparator and not (Semi or ShowSeconds) then
+        TimeStr[4] := ' ';
+      if ShowSeconds <> OldShowSeconds then
+        begin
+        if Origin.X > (ScreenWidth shr 1) then
+          begin
+          R.B.X := Origin.X+Size.X;
+          R.A.X := R.B.X-StdClockWidth
           end
         else
           begin
-            if not RightAlignClock then
-              if not (OldXCoord = -1) then
-                begin{-SSK}
-                  R.Assign(OldXCoord, Origin.Y, OldXCoord+Length(
-                    TimeStr), Origin.Y+Size.Y);
-                  OldXCoord := -1;
-                  TView.Locate(R);
-                end; {-SSK}
-            if ShowSeconds then
-              UpdTicks := 18
-            else
-              UpdTicks := 9;
-            with LastTime do
-              begin
-                Inc(LastMin);
-                Hour := H;
-                Min := M;
-                Sec := s;
-                Day := D;
-                Month := Mn;
-                Year := Y;
-              end;
-            LastSemi := Semi;
-            TimeStr := FormatTimeStr(H, M, s);
-            if not ShowSeconds then
-              TimeStr := Copy(TimeStr, 1, 6)+' '; {-$VIV} {-SSK}
-            if BlinkSeparator and not (Semi or ShowSeconds) then
-                TimeStr[4] := ' ';
-            if ShowSeconds <> OldShowSeconds then
-              begin
-                if Origin.X > (ScreenWidth shr 1) then
-                  begin
-                    R.B.X := Origin.X+Size.X;
-                    R.A.X := R.B.X-StdClockWidth
-                  end
-                else
-                  begin
-                    R.A.X := Origin.X;
-                    R.B.X := R.A.X+StdClockWidth
-                  end;
-                R.A.Y := Origin.Y;
-                R.B.Y := R.A.Y+1;
-                TView.Locate(R);
-                OldShowSeconds := ShowSeconds
-              end;
+          R.A.X := Origin.X;
+          R.B.X := R.A.X+StdClockWidth
           end;
-        DrawView;
-      end
-    else
-      UpdTicks := 1
-  end { TClockView.UpDate };
+        R.A.y := Origin.y;
+        R.B.y := R.A.y+1;
+        TView.Locate(R);
+        OldShowSeconds := ShowSeconds
+        end;
+      end;
+    DrawView;
+    end
+  else
+    UpdTicks := 1
+  end { TClockView.Update };
 
 function TClockView.FormatTimeStr;
   var
-    n: String[3];
-    s: String[20];
+    N: String[3];
+    S: String[20];
   begin
-    if (CountryInfo.TimeFmt = 0) and (H > 12) then
-      begin
-        s := ' '+LeadingZero(H-12)+CountryInfo.TimeSep+LeadingZero(M)+
-          CountryInfo.TimeSep+LeadingZero(SS);
-        n := 'pm ';
-      end
+  if  (CountryInfo.TimeFmt = 0) and (H > 12) then
+    begin
+    S := ' '+LeadingZero(H-12)+CountryInfo.TimeSep+LeadingZero(M)
+      +CountryInfo.TimeSep+LeadingZero(SS);
+    N := 'pm ';
+    end
+  else
+    begin
+    S := ' '+LeadingZero(H)+CountryInfo.TimeSep+LeadingZero(M)
+      +CountryInfo.TimeSep+LeadingZero(SS);
+    if CountryInfo.TimeFmt = 0
+    then
+      if  (H < 12) then
+        N := 'am '
+      else
+        N := 'pm '
     else
-      begin
-        s := ' '+LeadingZero(H)+CountryInfo.TimeSep+LeadingZero(M)+
-          CountryInfo.TimeSep+LeadingZero(SS);
-        if CountryInfo.TimeFmt = 0
-        then
-          if (H < 12) then
-            n := 'am '
-          else
-            n := 'pm '
-        else
-          n := ' ';
-      end;
-    FormatTimeStr := s+n;
+      N := ' ';
+    end;
+  FormatTimeStr := S+N;
   end { TClockView.FormatTimeStr };
 
 {$IFDEF TrashCan}
@@ -454,86 +450,85 @@ const
 
   { TTrashCan }
 
-Constructor TTrashCan.Init;
+constructor TTrashCan.Init;
   begin
-    inherited Init(R);
-    GrowMode := gfGrowAll;
-    Options := Options or ofTopSelect;
-    EventMask := EventMask or evBroadcast;
-    Hide;
+  inherited Init(R);
+  GrowMode := gfGrowAll;
+  Options := Options or ofTopSelect;
+  EventMask := EventMask or evBroadcast;
+  Hide;
   end;
 
 function TTrashCan.GetPalette: PPalette;
   begin
-    GetPalette := @CTrashCan;
+  GetPalette := @CTrashCan;
   end;
 
 procedure TTrashCan.Draw;
   var
     B: TDrawBuffer;
-    C: word;
+    C: Word;
   begin
-    if State and sfDragging <> 0 then
-      C := 3
-    else if State and sfSelected = 0 then
-      C := 1
-    else
-      C := 2;
-    C := GetColor(C);
-    MoveStr(B, #209#209#216#209#209, C);
-    WriteLine(0, 0, Size.X, 1, B);
-    MoveStr(B, GetString(dlTrashCaption), C);
-    WriteLine(0, 1, Size.X, 1, B);
-    MoveStr(B, #192#193#193#193#217, C);
-    WriteLine(0, 2, Size.X, 1, B);
+  if State and sfDragging <> 0 then
+    C := 3
+  else if State and sfSelected = 0 then
+    C := 1
+  else
+    C := 2;
+  C := GetColor(C);
+  MoveStr(B, #209#209#216#209#209, C);
+  WriteLine(0, 0, Size.X, 1, B);
+  MoveStr(B, GetString(dlTrashCaption), C);
+  WriteLine(0, 1, Size.X, 1, B);
+  MoveStr(B, #192#193#193#193#217, C);
+  WriteLine(0, 2, Size.X, 1, B);
   end;
 
 procedure TTrashCan.HandleEvent(var Event: TEvent);
   var
     Where: TPoint;
-    SaveConfirm: boolean;
-    extent: TRect;
+    SaveConfirm: Boolean;
+    Extent: TRect;
     Msg: String;
-    Cfms: word;
+    Cfms: Word;
 
   begin
-    inherited HandleEvent(Event);
+  inherited HandleEvent(Event);
 
-    if (Event.What = evBroadcast) and (Event.Command = cmDropped)
-    then
+  if  (Event.What = evBroadcast) and (Event.Command = cmDropped) then
+    begin
+    Cfms := Confirms;
+    if Confirms and cfMouseConfirm = 0 then
+      Confirms := 0;
+    Message(PCopyRec(Event.InfoPtr)^.Owner, evCommand, cmEraseGroup,
+       PCopyRec(Event.InfoPtr)^.FC);
+    Confirms := Cfms;
+    {EraseFiles(PCopyRec(Event.InfoPtr)^.FC);}
+    ClearEvent(Event);
+    end;
+  if Event.What = evMouseDown then
+    if Event.Double then
       begin
-        Cfms := Confirms;
-        if Confirms and cfMouseConfirm = 0 then
-          Confirms := 0;
-        Message(PCopyRec(Event.InfoPtr)^.Owner, evCommand,
-          cmEraseGroup, PCopyRec(Event.InfoPtr)^.FC);
-        Confirms := Cfms;
-        {EraseFiles(PCopyRec(Event.InfoPtr)^.FC);}
-        ClearEvent(Event);
+      Event.What := evCommand;
+      Event.Command := cmReanimator;
+      Event.InfoPtr := nil;
+      PutEvent(Event);
+      ClearEvent(Event);
+      end
+    else
+      begin
+      Owner^.GetExtent(Extent);
+      DragView(Event, dmDragMove, Extent, Size, Size);
       end;
-    if Event.What = evMouseDown then
-      if Event.Double then
-        begin
-          Event.What := evCommand;
-          Event.Command := cmReanimator;
-          Event.InfoPtr := nil;
-          PutEvent(Event);
-          ClearEvent(Event);
-        end
-      else
-        begin
-          Owner^.GetExtent(extent);
-          DragView(Event, dmDragMove, extent, Size, Size);
-        end;
   end { TTrashCan.HandleEvent };
 
-procedure TTrashCan.SetState(AState: word; Enable: boolean);
+procedure TTrashCan.SetState(AState: Word; Enable: Boolean);
   begin
-    inherited SetState(AState, Enable);
-    if AState and sfSelected <> 0 then
-      EnableCommands([cmNext, cmPrev]);
-    if (AState and (sfSelected+sfFocused+sfDragging) <> 0) then
-      DrawView;
+  inherited SetState(AState, Enable);
+  if AState and sfSelected <> 0 then
+    EnableCommands([cmNext, cmPrev]);
+  if  (AState and (sfSelected+sfFocused+sfDragging) <> 0) then
+    DrawView;
   end;
 {$ENDIF}
 
@@ -542,50 +537,49 @@ procedure TTrashCan.SetState(AState: word; Enable: boolean);
 procedure PrintFiles;
   var
     PF: PFileRec;
-    i, j: integer;
-    s: String;
+    I, J: Integer;
+    S: String;
   begin
-    if Files = nil then
-      exit;
-    j := 0;
-    for i := 0 to Files^.Count-1 do
+  if Files = nil then
+    Exit;
+  J := 0;
+  for I := 0 to Files^.Count-1 do
+    begin
+    PF := Files^.At(I);
+    if PF^.Attr and Directory = 0 then
+      Inc(J);
+    end;
+  if J = 0 then
+    Exit;
+  if Files^.Count = 1 then
+    begin
+    {$IFNDEF OS2}
+    S := GetString(dlDIFile)
+        +' '+Cut(GetLFN(PFileRec(Files^.At(0))^.Lfn), 40)
+    {$ELSE}
+    S := GetString(dlDIFile)+' '+Cut(PFileRec(Files^.At(0))^.Name, 40)
+      {$ENDIF}
+    end
+  else
+    S := ItoS(Files^.Count)+' '+GetString(dlDIFiles);
+  if MessageBox(GetString(dlPM_Print)+S+'?', nil, mfYesNoConfirm)
+     <> cmYes
+  then
+    Exit;
+  for I := 0 to Files^.Count-1 do
+    begin
+    PF := Files^.At(I);
+    if PF^.Attr and Directory = 0 then
       begin
-        PF := Files^.At(i);
-        if PF^.Attr and Directory = 0 then
-          Inc(j);
+      {$IFNDEF OS2}
+      S := MakeNormName(PF^.Owner^, GetLFN(PF^.Lfn));
+      {$ELSE}
+      S := MakeNormName(PF^.Owner^, PF^.Name);
+      {$ENDIF}
+      Message(Own, evCommand, cmCopyUnselect, PF);
+      Message(Application, evCommand, cmFilePrint, @S);
       end;
-    if j = 0 then
-      exit;
-    if Files^.Count = 1 then
-      begin
-        {$IFNDEF OS2}
-        s := GetString(dlDIFile)+' '+Cut(GetLFN(PFileRec(Files^.At(0))^.
-          Lfn), 40)
-        {$ELSE}
-        s := GetString(dlDIFile)+' '+Cut(PFileRec(Files^.At(0))^.
-          Name, 40)
-        {$ENDIF}
-      end
-    else
-      s := ItoS(Files^.Count)+' '+GetString(dlDIFiles);
-    if MessageBox(GetString(dlPM_Print)+s+'?', nil, mfYesNoConfirm) <>
-        cmYes
-    then
-      exit;
-    for i := 0 to Files^.Count-1 do
-      begin
-        PF := Files^.At(i);
-        if PF^.Attr and Directory = 0 then
-          begin
-            {$IFNDEF OS2}
-            s := MakeNormName(PF^.Owner^, GetLFN(PF^.Lfn));
-            {$ELSE}
-            s := MakeNormName(PF^.Owner^, PF^.Name);
-            {$ENDIF}
-            Message(Own, evCommand, cmCopyUnselect, PF);
-            Message(Application, evCommand, cmFilePrint, @S);
-          end;
-      end;
+    end;
   end { PrintFiles };
 {$ENDIF}
 {-DataCompBoy-}

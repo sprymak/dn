@@ -51,13 +51,13 @@ unit ASCIITab;
 interface
 
 uses
-  advance, advance1, advance2, advance3, Objects, DNApp, Views,
-    Drivers,
-  RStrings;
+  Advance, Advance1, Advance2, Advance3, Objects, DNApp, Views, Drivers,
+  RStrings
+  ;
 
 const
   boundsASCII: TPoint = (X: 0; Y: 0);
-  charASCII: Char = #04;
+  CharASCII: Char = #04;
   AsciiTableCommandBase: AWord = 910;
 
 type
@@ -65,24 +65,24 @@ type
   TTable = object(TView)
     procedure Draw; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-    function DataSize: word; virtual;
+    function DataSize: Word; virtual;
     procedure GetData(var Data); virtual;
     procedure SetData(var Data); virtual;
     end;
 
   PReport = ^TReport;
   TReport = object(TView)
-    ASCIIChar: longInt;
-    Constructor Load(var s: TStream);
+    ASCIIChar: LongInt;
+    constructor Load(var S: TStream);
     procedure Draw; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-    procedure Store(var s: TStream);
+    procedure Store(var S: TStream);
     end;
 
   PASCIIChart = ^TASCIIChart;
   TASCIIChart = object(TWindow)
-    Constructor Init(var R: TRect);
-    function Execute: word; virtual;
+    constructor Init(var R: TRect);
+    function Execute: Word; virtual;
     end;
 
 procedure ASCIITable;
@@ -90,7 +90,8 @@ procedure ASCIITable;
 implementation
 
 uses
-  Commands, DNHelp;
+  Commands, DNHelp
+  ;
 
 const
   cmCharacterFocused = 0;
@@ -98,50 +99,50 @@ const
 procedure TTable.Draw;
   var
     Buf: TDrawBuffer;
-    X, Y: integer;
-    Color: byte;
+    X, Y: Integer;
+    Color: Byte;
   begin
-    Color := GetColor(6);
-    for Y := 0 to Size.Y-1 do
-      begin
-        MoveChar(Buf, ' ', Color, Size.X);
-        for X := 0 to Size.X-1 do
-          MoveChar(Buf[X], Chr(32*Y+X), Color, 1);
-        WriteLine(0, Y, Size.X, 1, Buf);
-      end;
-    ShowCursor;
+  Color := GetColor(6);
+  for Y := 0 to Size.Y-1 do
+    begin
+    MoveChar(Buf, ' ', Color, Size.X);
+    for X := 0 to Size.X-1 do
+      MoveChar(Buf[X], Chr(32*Y+X), Color, 1);
+    WriteLine(0, Y, Size.X, 1, Buf);
+    end;
+  ShowCursor;
   end;
 
 procedure ASCIITable;
   var
     P: PWindow;
-    W: word;
+    W: Word;
     E: TEvent;
     R: TRect;
     CR: PView;
-  function GetCH: boolean;
+  function GetCH: Boolean;
     begin
-      W := Desktop^.ExecView(P);
-      P^.GetData(charASCII);
-      E.What := evKeyDown;
-      E.KeyCode := byte(charASCII);
-      if W in [cmOK, cmYes] then
-        Application^.HandleEvent(E);
-      GetCH := W = cmYes;
+    W := Desktop^.ExecView(P);
+    P^.GetData(CharASCII);
+    E.What := evKeyDown;
+    E.KeyCode := Byte(CharASCII);
+    if W in [cmOK, cmYes] then
+      Application^.HandleEvent(E);
+    GetCH := W = cmYes;
     end;
   begin
-    P := New(PASCIIChart, Init(R));
-    P^.MoveTo(boundsASCII.X, boundsASCII.Y);
-    P^.SetData(charASCII);
-    CR := Desktop^.Current;
-    {  Desktop^.Lock;}
-    while GetCH do
-      ;
-    {  Desktop^.UnLock;}
-    boundsASCII := P^.Origin;
-    Dispose(P, Done);
-    if CR <> nil then
-      CR^.Select;
+  P := New(PASCIIChart, Init(R));
+  P^.MoveTo(boundsASCII.X, boundsASCII.Y);
+  P^.SetData(CharASCII);
+  CR := Desktop^.Current;
+  {  Desktop^.Lock;}
+  while GetCH do
+    ;
+  {  Desktop^.UnLock;}
+  boundsASCII := P^.Origin;
+  Dispose(P, Done);
+  if CR <> nil then
+    CR^.Select;
   end { ASCIITable };
 
 procedure TTable.HandleEvent(var Event: TEvent);
@@ -151,261 +152,258 @@ procedure TTable.HandleEvent(var Event: TEvent);
 
   procedure CharFocused;
     begin
-      MessageL(Owner, evBroadcast, AsciiTableCommandBase+
-        cmCharacterFocused,
+    MessageL(Owner, evBroadcast, AsciiTableCommandBase+cmCharacterFocused,
       Cursor.X+32*Cursor.Y);
     end;
 
   var
-    cX, cY: integer;
+    cX, cY: Integer;
   begin
-    if Event.What = evMouseDown then
+  if Event.What = evMouseDown then
+    begin
+    if Event.Double then
       begin
-        if Event.Double then
-          begin
-            Event.What := evKeyDown;
-            GetData(C);
-            Event.KeyCode := byte(C);
-            PutEvent(Event);
-            ClearEvent(Event);
-            exit;
-          end;
-        repeat
-          if MouseInView(Event.Where) then
-            begin
-              MakeLocal(Event.Where, CurrentSpot);
-              SetCursor(CurrentSpot.X, CurrentSpot.Y);
-              CharFocused;
-            end;
-        until not MouseEvent(Event, evMouseMove);
-        ClearEvent(Event);
-      end
-    else if Event.What = evKeyDown then
-      with Cursor do
+      Event.What := evKeyDown;
+      GetData(C);
+      Event.KeyCode := Byte(C);
+      PutEvent(Event);
+      ClearEvent(Event);
+      Exit;
+      end;
+    repeat
+      if MouseInView(Event.Where) then
         begin
-          cX := X;
-          cY := Y;
-          case Event.KeyCode of
-            kbCtrlPgUp:
-              SetCursor(0, 0);
-            kbCtrlPgDn:
-              SetCursor(Size.X-1, Size.Y-1);
-            kbCtrlHome, kbPgUp:
-              SetCursor(X, 0);
-            kbCtrlEnd, kbPgDn:
-              SetCursor(X, Size.Y-1);
-            kbHome:
-              SetCursor(0, Y);
-            kbEnd:
-              SetCursor(Size.X-1, Y);
-            kbUp:
-              begin
-                Dec(cY, 1);
-                if cY < 1 then
-                  cY := 0;
-                SetCursor(cX, cY);
-              end;
-            kbDown:
-              begin
-                Inc(cY, 1);
-                if cY > Size.Y-1 then
-                  cY := Size.Y-1;
-                SetCursor(cX, cY);
-              end;
-            kbLeft:
-              begin
-                Dec(cX, 1);
-                if cX < 1 then
-                  cX := 0;
-                SetCursor(cX, cY);
-              end;
-            kbRight:
-              begin
-                Inc(cX, 1);
-                if cX > Size.X-1 then
-                  cX := Size.X-1;
-                SetCursor(cX, cY);
-              end;
-            kbCtrlUp:
-              begin
-                Dec(cY, 2);
-                if cY < 1 then
-                  cY := 0;
-                SetCursor(cX, cY);
-              end;
-            kbCtrlDown:
-              begin
-                Inc(cY, 2);
-                if cY > Size.Y-1 then
-                  cY := Size.Y-1;
-                SetCursor(cX, cY);
-              end;
-            kbCtrlLeft:
-              begin
-                Dec(cX, 5);
-                if cX < 1 then
-                  cX := 0;
-                SetCursor(cX, cY);
-              end;
-            kbCtrlRight:
-              begin
-                Inc(cX, 5);
-                if cX > Size.X-1 then
-                  cX := Size.X-1;
-                SetCursor(cX, cY);
-              end;
-            else
-              if (Ord(Event.CharCode) > 0) then
-                SetCursor(Ord(Event.CharCode) mod 32, Ord(Event.
-                  CharCode) div 32);
-          end {case};
-          CharFocused;
-          ClearEvent(Event);
+        MakeLocal(Event.Where, CurrentSpot);
+        SetCursor(CurrentSpot.X, CurrentSpot.Y);
+        CharFocused;
         end;
-    TView.HandleEvent(Event);
+    until not MouseEvent(Event, evMouseMove);
+    ClearEvent(Event);
+    end
+  else if Event.What = evKeyDown then
+    with Cursor do
+      begin
+      cX := X;
+      cY := Y;
+      case Event.KeyCode of
+        kbCtrlPgUp:
+          SetCursor(0, 0);
+        kbCtrlPgDn:
+          SetCursor(Size.X-1, Size.Y-1);
+        kbCtrlHome, kbPgUp:
+          SetCursor(X, 0);
+        kbCtrlEnd, kbPgDn:
+          SetCursor(X, Size.Y-1);
+        kbHome:
+          SetCursor(0, Y);
+        kbEnd:
+          SetCursor(Size.X-1, Y);
+        kbUp:
+          begin
+          Dec(cY, 1);
+          if cY < 1 then
+            cY := 0;
+          SetCursor(cX, cY);
+          end;
+        kbDown:
+          begin
+          Inc(cY, 1);
+          if cY > Size.Y-1 then
+            cY := Size.Y-1;
+          SetCursor(cX, cY);
+          end;
+        kbLeft:
+          begin
+          Dec(cX, 1);
+          if cX < 1 then
+            cX := 0;
+          SetCursor(cX, cY);
+          end;
+        kbRight:
+          begin
+          Inc(cX, 1);
+          if cX > Size.X-1 then
+            cX := Size.X-1;
+          SetCursor(cX, cY);
+          end;
+        kbCtrlUp:
+          begin
+          Dec(cY, 2);
+          if cY < 1 then
+            cY := 0;
+          SetCursor(cX, cY);
+          end;
+        kbCtrlDown:
+          begin
+          Inc(cY, 2);
+          if cY > Size.Y-1 then
+            cY := Size.Y-1;
+          SetCursor(cX, cY);
+          end;
+        kbCtrlLeft:
+          begin
+          Dec(cX, 5);
+          if cX < 1 then
+            cX := 0;
+          SetCursor(cX, cY);
+          end;
+        kbCtrlRight:
+          begin
+          Inc(cX, 5);
+          if cX > Size.X-1 then
+            cX := Size.X-1;
+          SetCursor(cX, cY);
+          end;
+        else {case}
+          if  (Ord(Event.CharCode) > 0) then
+            SetCursor(Ord(Event.CharCode) mod 32, Ord(Event.CharCode) div
+               32);
+      end {case};
+      CharFocused;
+      ClearEvent(Event);
+      end;
+  TView.HandleEvent(Event);
   end { TTable.HandleEvent };
 
 { TReport }
 
-Constructor TReport.Load(var s: TStream);
+constructor TReport.Load(var S: TStream);
   begin
-    TView.Load(s);
-    s.Read(ASCIIChar, SizeOf(ASCIIChar));
+  TView.Load(S);
+  S.Read(ASCIIChar, SizeOf(ASCIIChar));
   end;
 
 procedure TReport.Draw;
   var
-    Ch: longInt;
+    Ch: LongInt;
     Buf: TDrawBuffer;
     TempStr: String;
   begin
-    if ASCIIChar > 0 then
-      FormatStr(TempStr,
-        ' Char: ~%c~ Decimal: ~%0#%3d~ Hex: ~%0#%02x~   ', ASCIIChar)
-    else
-      FormatStr(TempStr,
-        ' Char:   Decimal: ~%0#%3d~ Hex: ~%0#%02x~   ', ASCIIChar);
-    MoveCStr(Buf, TempStr, GetColor(07) shl 8+GetColor(06));
-    MoveChar(Buf[Size.X-2], #$FE, ASCIIChar, 1);
-    WriteBuf(0, 0, 50, 1, Buf);
-    { WriteStr(0, 0, TempStr, 6);}
+  if ASCIIChar > 0 then
+    FormatStr(TempStr,
+       ' Char: ~%c~ Decimal: ~%0#%3d~ Hex: ~%0#%02x~   ', ASCIIChar)
+  else
+    FormatStr(TempStr, ' Char:   Decimal: ~%0#%3d~ Hex: ~%0#%02x~   ',
+       ASCIIChar);
+  MoveCStr(Buf, TempStr, GetColor(07) shl 8+GetColor(06));
+  MoveChar(Buf[Size.X-2], #$FE, ASCIIChar, 1);
+  WriteBuf(0, 0, 50, 1, Buf);
+  { WriteStr(0, 0, TempStr, 6);}
   end;
 
 procedure TReport.HandleEvent(var Event: TEvent);
   var
     Table: PTable;
   begin
-    TView.HandleEvent(Event);
-    if Event.What = evBroadcast then
-      if Event.Command = AsciiTableCommandBase+cmCharacterFocused
-      then
-        begin
-          ASCIIChar := Event.InfoLong;
-          DrawView;
-        end;
+  TView.HandleEvent(Event);
+  if Event.What = evBroadcast then
+    if Event.Command = AsciiTableCommandBase+cmCharacterFocused then
+      begin
+      ASCIIChar := Event.InfoLong;
+      DrawView;
+      end;
   end;
 
-procedure TReport.Store(var s: TStream);
+procedure TReport.Store(var S: TStream);
   begin
-    TView.Store(s);
-    s.Write(ASCIIChar, SizeOf(ASCIIChar));
+  TView.Store(S);
+  S.Write(ASCIIChar, SizeOf(ASCIIChar));
   end;
 
 function TTable.DataSize;
   begin
-    DataSize := 1;
+  DataSize := 1;
   end;
 
 procedure TTable.GetData;
   begin
-    byte(Data) := Cursor.Y*32+Cursor.X;
+  Byte(Data) := Cursor.Y*32+Cursor.X;
   end;
 
 procedure TTable.SetData;
   begin
-    SetCursor(byte(Data) mod 32, byte(Data) div 32);
-    MessageL(Owner, evBroadcast, AsciiTableCommandBase+
-      cmCharacterFocused,
+  SetCursor(Byte(Data) mod 32, Byte(Data) div 32);
+  MessageL(Owner, evBroadcast, AsciiTableCommandBase+cmCharacterFocused,
     Cursor.X+32*Cursor.Y);
-    Owner^.Redraw;
+  Owner^.Redraw;
   end;
 
-Constructor TASCIIChart.Init;
+constructor TASCIIChart.Init;
   var
     Control: PView;
   begin
-    R.Assign(0, 0, 34, 12);
-    TWindow.Init(R, GetString(dlASCIIChart), wnNoNumber);
-    Flags := Flags and not (wfGrow+wfZoom);
-    Options := Options and ofTopSelect;
-    HelpCtx := hcAsciiChart;
-    Palette := wpGrayWindow;
+  R.Assign(0, 0, 34, 12);
+  TWindow.Init(R, GetString(dlASCIIChart), wnNoNumber);
+  Flags := Flags and not (wfGrow+wfZoom);
+  Options := Options and ofTopSelect;
+  HelpCtx := hcAsciiChart;
+  Palette := wpGrayWindow;
 
-    R.Grow(-1, -1);
-    R.A.Y := R.B.Y-1;
-    Control := New(PReport, Init(R));
-    with Control^ do
-      begin
-        Options := Options or ofFramed;
-        EventMask := EventMask or evBroadcast;
-      end;
-    Insert(Control);
+  R.Grow(-1, -1);
+  R.A.Y := R.B.Y-1;
+  Control := New(PReport, Init(R));
+  with Control^ do
+    begin
+    Options := Options or ofFramed;
+    EventMask := EventMask or evBroadcast;
+    end;
+  Insert(Control);
 
-    GetExtent(R);
-    R.Grow(-1, -1);
-    R.B.Y := R.B.Y-2;
-    Control := New(PTable, Init(R));
-    with Control^ do
-      begin
-        Options := Options or ofFramed or ofSelectable;
-        EventMask := $FFFF;
-        BlockCursor;
-      end;
-    Insert(Control);
-    Control^.Select;
+  GetExtent(R);
+  R.Grow(-1, -1);
+  R.B.Y := R.B.Y-2;
+  Control := New(PTable, Init(R));
+  with Control^ do
+    begin
+    Options := Options or ofFramed or ofSelectable;
+    EventMask := $FFFF;
+    BlockCursor;
+    end;
+  Insert(Control);
+  Control^.Select;
   end { TASCIIChart.Init };
 
-function TASCIIChart.Execute: word;
+function TASCIIChart.Execute: Word;
   var
     Event: TEvent;
   begin
-    repeat
-      GetEvent(Event);
-      case Event.What of
-        evKeyDown:
-          case Event.KeyCode of
-            kbESC:
-              begin
-                Event.What := evCommand;
-                Event.Command := cmCancel;
-              end;
-            kbEnter, kbCtrlB, kbCtrlP:
-              begin
-                Event.What := evCommand;
-                Event.Command := cmOK;
-              end;
-            kbCtrlEnter:
-              begin
-                Event.What := evCommand;
-                Event.Command := cmYes;
-              end;
-            else
-              if Event.CharCode > #0 then
-                begin
-                  SetData(Event.CharCode);
-                  Event.What := evCommand;
-                  Event.Command := cmOK;
-                end;
-          end {case};
-        evCommand:
-          if Event.Command = cmClose then
+  repeat
+    GetEvent(Event);
+    case Event.What of
+      evKeyDown:
+        case Event.KeyCode of
+          kbESC:
+            begin
+            Event.What := evCommand;
             Event.Command := cmCancel;
-      end {case};
-      if Event.What <> evNothing then
-        HandleEvent(Event);
-    until (Event.What = evCommand) and ((Event.Command < 255) and
-    (Event.Command in [cmOK, cmCancel, cmYes]));
-    Execute := Event.Command;
+            end;
+          kbEnter, kbCtrlB, kbCtrlP:
+            begin
+            Event.What := evCommand;
+            Event.Command := cmOK;
+            end;
+          kbCtrlEnter:
+            begin
+            Event.What := evCommand;
+            Event.Command := cmYes;
+            end;
+          else {case}
+            if Event.CharCode > #0 then
+              begin
+              SetData(Event.CharCode);
+              Event.What := evCommand;
+              Event.Command := cmOK;
+              end;
+        end {case};
+      evCommand:
+        if Event.Command = cmClose then
+          Event.Command := cmCancel;
+    end {case};
+    if Event.What <> evNothing then
+      HandleEvent(Event);
+  until (Event.What = evCommand) and ((Event.Command < 255) and
+      (Event.Command in [cmOK, cmCancel, cmYes]));
+  Execute := Event.Command;
   end { TASCIIChart.Execute: };
 
 end.

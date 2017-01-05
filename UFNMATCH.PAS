@@ -51,236 +51,233 @@ unit UFNMatch;
 
 interface
 
-function FnMatch(Pattern, Str: String): boolean;
+function FnMatch(Pattern, Str: String): Boolean;
 
 implementation
 
 uses
-  Commands {Cat};
+  Commands {Cat}
+  ;
 
-function FnMatchFunc(Pattern, Str: String; AllLiters: boolean):
-    boolean;
+function FnMatchFunc(Pattern, Str: String; AllLiters: Boolean): Boolean;
   var
-    C, C1: Char;
-    P, n: byte;
-    nt: boolean;
+    c, c1: Char;
+    p, n: Byte;
+    nt: Boolean;
     cstart, cend: Char;
   label Litera;
   begin
-    P := 1;
-    n := 1;
-    while (P <= Length(Pattern)) do
+  p := 1;
+  n := 1;
+  while (p <= Length(Pattern)) do
+    begin
+    c := Pattern[p];
+    Inc(p);
+    if c = '"' then
       begin
-        C := Pattern[P];
-        Inc(P);
-        if C = '"' then
+      AllLiters := not AllLiters;
+      Continue;
+      end;
+
+    case (c) of
+      '?':
+        if  (n > Length(Str)) then
           begin
-            AllLiters := not AllLiters;
-            continue;
+          FnMatchFunc := False;
+          Exit;
+          end;
+      {-------------------------------------------------------}
+      '*':
+        begin
+        c := Pattern[p];
+        Inc(p);
+        while ((c = '?') or (c = '*')) and (p <= Length(Pattern)) do
+          begin
+          if c = '?' then
+            Inc(n); {DataCompBoy: * may present 0 chars...}
+          if  (c = '?') and (n > Length(Str)) then
+            begin
+            FnMatchFunc := False;
+            Exit;
+            end;
+          c := Pattern[p];
+          Inc(p);
           end;
 
-        case (C) of
-          '?':
-            if (n > Length(Str)) then
-              begin
-                FnMatchFunc := False;
-                exit;
-              end;
-          {-------------------------------------------------------}
-          '*':
-            begin
-              C := Pattern[P];
-              Inc(P);
-              while ((C = '?') or (C = '*')) and (P <= Length(
-                  Pattern))
-              do
-                begin
-                  if C = '?' then
-                    Inc(n); {DataCompBoy: * may present 0 chars...}
-                  if (C = '?') and (n > Length(Str)) then
-                    begin
-                      FnMatchFunc := False;
-                      exit;
-                    end;
-                  C := Pattern[P];
-                  Inc(P);
-                end;
-
-              if P-1 > Length(Pattern) then
-                begin
-                  FnMatchFunc := True;
-                  exit;
-                end;
-
-              C1 := C;
-              Dec(P);
-              while n <= Length(Str) do
-                begin
-                  if ((((C = '[') and not AllLiters) or (Str[n] = C1))
-                      and
-                    (FnMatchFunc(Copy(Pattern, P, MaxStringLength),
-                      Copy(Str, n, MaxStringLength), AllLiters)))
-                  then
-                    begin
-                      FnMatchFunc := True;
-                      exit;
-                    end;
-                  Inc(n);
-                end;
-              FnMatchFunc := False;
-              exit;
-            end;
-          {-------------------------------------------------------}
-          '[':
-            begin
-              if AllLiters then
-                goto Litera;
-              if n > Length(Str) then
-                begin
-                  FnMatchFunc := False;
-                  exit;
-                end;
-              nt := Pattern[P] = '^';
-              if nt then
-                Inc(P);
-              C := Pattern[P];
-              Inc(P);
-
-              repeat
-                cstart := C;
-                cend := C;
-                if P > Length(Pattern) then
-                  begin
-                    FnMatchFunc := False;
-                    exit;
-                  end;
-                C := Pattern[P];
-                Inc(P);
-                if (C = '-') and (Pattern[P] <> ']') then
-                  begin
-                    cend := Pattern[P];
-                    Inc(P);
-                    if P > Length(Pattern) then
-                      begin
-                        FnMatchFunc := False;
-                        exit;
-                      end;
-                    C := Pattern[P];
-                    Inc(P);
-                  end;
-                if (Str[n] >= cstart) and (Str[n] <= cend) then
-                  break;
-              until C = ']';
-
-              if not ((Str[n] >= cstart) and (Str[n] <= cend)) then
-                begin
-                  if not nt then
-                    begin
-                      FnMatchFunc := False;
-                      exit;
-                    end;
-                end
-              else
-                begin
-                  {Skip the rest of the [...] that already matched.}
-                  while C <> ']' do
-                    begin
-                      if P > Length(Pattern) then
-                        begin
-                          FnMatchFunc := False;
-                          exit;
-                        end;
-                      { [... (unterminated) loses.  }
-                      C := Pattern[P];
-                      Inc(P);
-                    end;
-                  if nt then
-                    begin
-                      FnMatchFunc := False;
-                      exit;
-                    end;
-                end;
-            end;
-          {-------------------------------------------------------}
-          else
-Litera:
-              if (C <> Str[n]) or (n > Length(Str))
-              then
-                begin
-                  FnMatchFunc := False;
-                  exit;
-                end
-              else if Copy(Pattern, P, 255) = '*.*'
-              then
-                begin
-                  FnMatchFunc := True;
-                  exit;
-                end;
-          {checks only for '*.*', because '*' checked under Case (c) of '*'}
-        end {case};
-
-        if (n = Length(Str)) and (Copy(Pattern, P, 255) = '.*')
-        then
+        if p-1 > Length(Pattern) then
           begin
+          FnMatchFunc := True;
+          Exit;
+          end;
+
+        c1 := c;
+        Dec(p);
+        while n <= Length(Str) do
+          begin
+          if  ( ( ( (c = '[') and not AllLiters) or (Str[n] = c1)) and
+                (FnMatchFunc(Copy(Pattern, p, MaxStringLength), Copy(Str,
+                     n, MaxStringLength), AllLiters)))
+          then
+            begin
             FnMatchFunc := True;
-            exit;
+            Exit;
+            end;
+          Inc(n);
           end;
-        Inc(n);
-      end;
-
-    if n > Length(Str) then
-      begin
-        FnMatchFunc := True;
-        exit;
-      end;
-
-    FnMatchFunc := False;
-  end { FnMatchFunc };
-
-function FnMatch(Pattern, Str: String): boolean;
-  var
-    k, l: byte;
-    j: String;
-  begin
-    k := 1;
-    l := 0;
-    j := '';
-    while k <= Length(Pattern) do
-      begin
-        if Pattern[k] = '?' then
+        FnMatchFunc := False;
+        Exit;
+        end;
+      {-------------------------------------------------------}
+      '[':
+        begin
+        if AllLiters then
+          goto Litera;
+        if n > Length(Str) then
           begin
-            j := '?'+j;
-            if l = 0 then
-              l := k;
-            Inc(k);
-          end
-        else if Pattern[k] = '*' then
+          FnMatchFunc := False;
+          Exit;
+          end;
+        nt := Pattern[p] = '^';
+        if nt then
+          Inc(p);
+        c := Pattern[p];
+        Inc(p);
+
+        repeat
+          cstart := c;
+          cend := c;
+          if p > Length(Pattern) then
+            begin
+            FnMatchFunc := False;
+            Exit;
+            end;
+          c := Pattern[p];
+          Inc(p);
+          if  (c = '-') and (Pattern[p] <> ']') then
+            begin
+            cend := Pattern[p];
+            Inc(p);
+            if p > Length(Pattern) then
+              begin
+              FnMatchFunc := False;
+              Exit;
+              end;
+            c := Pattern[p];
+            Inc(p);
+            end;
+          if  (Str[n] >= cstart) and (Str[n] <= cend) then
+            Break;
+        until c = ']';
+
+        if not ((Str[n] >= cstart) and (Str[n] <= cend)) then
           begin
-            if j[Length(j)] <> '*' then
-              j := j+'*';
-            if l = 0 then
-              l := k;
-            Inc(k);
+          if not nt then
+            begin
+            FnMatchFunc := False;
+            Exit;
+            end;
           end
         else
           begin
-            Inc(k);
-            if l > 0 then
+          {Skip the rest of the [...] that already matched.}
+          while c <> ']' do
+            begin
+            if p > Length(Pattern) then
               begin
-                Delete(Pattern, l, k-l-1);
-                Insert(j, Pattern, l);
-                k := l+Length(j);
-                j := '';
-                l := 0;
+              FnMatchFunc := False;
+              Exit;
               end;
+            { [... (unterminated) loses.  }
+            c := Pattern[p];
+            Inc(p);
+            end;
+          if nt then
+            begin
+            FnMatchFunc := False;
+            Exit;
+            end;
           end;
-      end;
-    if l > 0 then
+        end;
+      {-------------------------------------------------------}
+      else {case}
+Litera:
+          if  (c <> Str[n]) or (n > Length(Str))
+          then
+            begin
+            FnMatchFunc := False;
+            Exit;
+            end
+          else if Copy(Pattern, p, 255) = '*.*'
+          then
+            begin
+            FnMatchFunc := True;
+            Exit;
+            end;
+      {checks only for '*.*', because '*' checked under Case (c) of '*'}
+    end {case};
+
+    if  (n = Length(Str)) and (Copy(Pattern, p, 255) = '.*')
+    then
       begin
-        Delete(Pattern, l, k-l);
-        Insert(j, Pattern, l);
+      FnMatchFunc := True;
+      Exit;
       end;
-    FnMatch := FnMatchFunc(Pattern, Str, False);
+    Inc(n);
+    end;
+
+  if n > Length(Str) then
+    begin
+    FnMatchFunc := True;
+    Exit;
+    end;
+
+  FnMatchFunc := False;
+  end { FnMatchFunc };
+
+function FnMatch(Pattern, Str: String): Boolean;
+  var
+    k, l: Byte;
+    j: String;
+  begin
+  k := 1;
+  l := 0;
+  j := '';
+  while k <= Length(Pattern) do
+    begin
+    if Pattern[k] = '?' then
+      begin
+      j := '?'+j;
+      if l = 0 then
+        l := k;
+      Inc(k);
+      end
+    else if Pattern[k] = '*' then
+      begin
+      if j[Length(j)] <> '*' then
+        j := j+'*';
+      if l = 0 then
+        l := k;
+      Inc(k);
+      end
+    else
+      begin
+      Inc(k);
+      if l > 0 then
+        begin
+        Delete(Pattern, l, k-l-1);
+        Insert(j, Pattern, l);
+        k := l+Length(j);
+        j := '';
+        l := 0;
+        end;
+      end;
+    end;
+  if l > 0 then
+    begin
+    Delete(Pattern, l, k-l);
+    Insert(j, Pattern, l);
+    end;
+  FnMatch := FnMatchFunc(Pattern, Str, False);
   end { FnMatch };
 
 end.

@@ -116,41 +116,38 @@ const
   hoEscSingleQuate = $02; { \' represents ' (C-Style) }
   hoHashCharacter = $04; { #number represents a character (Pascal) }
   hoCtrlCharacter = $08;
-    { ^char represents a control character (Pascal) }
+  { ^char represents a control character (Pascal) }
   hoOctalCharacter = $10; { octal_numberC represents a character }
-  hoNoSQuotedStrings = $20;
-    { Do not highlight single quoted strings }
-  hoNoDQuotedStrings = $40;
-    { Do not highlight double quoted strings }
+  hoNoSQuotedStrings = $20; { Do not highlight single quoted strings }
+  hoNoDQuotedStrings = $40; { Do not highlight double quoted strings }
   hoStrictCtrlChar = $80;
-    { Do not highlight ^char followed by '0..9' or 'A..Z' }
+  { Do not highlight ^char followed by '0..9' or 'A..Z' }
 
 type
 
   PHighliteParams = ^THighliteParams;
   THighliteParams = record
-    GenFlags: word;
-    HexFlags: word;
-    DecFlags: word;
-    OctFlagsQ: word;
-    OctFlagsO: word;
-    BinFlags: word;
-    StrFlags: word;
+    GenFlags: Word;
+    HexFlags: Word;
+    DecFlags: Word;
+    OctFlagsQ: Word;
+    OctFlagsO: Word;
+    BinFlags: Word;
+    StrFlags: Word;
     RulesBuffer: array[1..$800] of Char;
     end;
 
   THighliteRule = (
-  hrCommentStarts,
-  hrCommentStrings,
-  hrKeywords1,
-  hrKeywords2
-  );
+    hrCommentStarts,
+    hrCommentStrings,
+    hrKeywords1,
+    hrKeywords2
+    );
 
-procedure Highlites(len: integer; s: PChar; const Params:
-    THighliteParams);
+procedure Highlites(Len: Integer; S: PChar; const Params: THighliteParams);
 procedure FixHighliteParams(var Params: THighliteParams);
-function InsertHighliteRule(var Params: THighliteParams; Index:
-    THighliteRule; const Rule: String): boolean;
+function InsertHighliteRule(var Params: THighliteParams;
+     Index: THighliteRule; const Rule: String): Boolean;
 
 const
 
@@ -173,8 +170,9 @@ implementation
 uses
   {Consts,} {Cat: зачем? и без этого отлично компилится}
   Objects, { TCharSet }
-  advance, { BreakChars }
-  advance1; { UpStr, UpCase }
+  Advance, { BreakChars }
+  Advance1
+  ; { UpStr, UpCase }
 
 const
 
@@ -204,22 +202,22 @@ type
  *
  *****************************************************************)
 
-function GetHighliteRules(const Params: THighliteParams; var Rules:
-    array of PChar): PChar;
+function GetHighliteRules(const Params: THighliteParams;
+     var Rules: array of PChar): PChar;
 
   function NextStr(P, PEnd: PChar): PChar;
     {$IFDEF NOASM}
     var
-      C: Char;
+      c: Char;
     begin
-      while P < PEnd do
-        begin
-          C := P^;
-          Inc(P);
-          if C = #0 then
-            break;
-        end;
-      NextStr := P;
+    while P < PEnd do
+      begin
+      c := P^;
+      Inc(P);
+      if c = #0 then
+        Break;
+      end;
+    NextStr := P;
     end;
     {$ELSE}
     assembler;
@@ -236,23 +234,22 @@ function GetHighliteRules(const Params: THighliteParams; var Rules:
         JNE     @@1
   @@2:
         MOV     EAX,ESI
-  end
-    ;
+  end;
   {$ENDIF}
 
   var
-    PEnd: PChar;
-    P: PChar;
-    i: integer;
+    pend: PChar;
+    p: PChar;
+    i: Integer;
   begin { GetHighliteRules }
-    PEnd := @Params.RulesBuffer[High(Params.RulesBuffer)];
-    P := @Params.RulesBuffer;
-    for i := Low(Rules) to High(Rules) do
-      begin
-        Rules[i] := P;
-        P := NextStr(P, PEnd);
-      end;
-    GetHighliteRules := P;
+  pend := @Params.RulesBuffer[High(Params.RulesBuffer)];
+  p := @Params.RulesBuffer;
+  for i := Low(Rules) to High(Rules) do
+    begin
+    Rules[i] := p;
+    p := NextStr(p, pend);
+    end;
+  GetHighliteRules := p;
   end { GetHighliteRules };
 
 (*****************************************************************
@@ -275,8 +272,7 @@ function GetHighliteRules(const Params: THighliteParams; var Rules:
  *
  *****************************************************************)
 
-procedure Highlites(len: integer; s: PChar; const Params:
-    THighliteParams);
+procedure Highlites(Len: Integer; S: PChar; const Params: THighliteParams);
 
   const
     HexDigits = ['0'..'9', 'A'..'F', 'a'..'f'];
@@ -284,20 +280,20 @@ procedure Highlites(len: integer; s: PChar; const Params:
     OctDigits = ['0'..'7'];
     BinDigits = ['0'..'1'];
 
-  function CheckEmpty(len: integer; s: PChar): boolean;
+  function CheckEmpty(Len: Integer; S: PChar): Boolean;
     {$IFDEF NOASM}
     var
-      i: integer;
+      i: Integer;
     begin
-      CheckEmpty := False;
-      while len > 0 do
-        begin
-          if not (s^ in [' ', #9]) then
-            exit;
-          Inc(s);
-          Dec(len);
-        end;
-      CheckEmpty := True;
+    CheckEmpty := False;
+    while Len > 0 do
+      begin
+      if not (S^ in [' ', #9]) then
+        Exit;
+      Inc(S);
+      Dec(Len);
+      end;
+    CheckEmpty := True;
     end;
     {$ELSE}
     assembler;
@@ -319,46 +315,44 @@ procedure Highlites(len: integer; s: PChar; const Params:
         INC     AH
    @@3:
         XCHG    AL,AH
-   end
-    ;
+   end;
   {$ENDIF}
 
-  function CheckStartComment(len: integer; s: PChar; t: PChar):
-      boolean;
+  function CheckStartComment(Len: Integer; S: PChar; T: PChar): Boolean;
     {$IFDEF NOASM}
     var
-      i: integer;
-      j: integer;
-      C: Char;
+      i: Integer;
+      j: Integer;
+      c: Char;
     begin
-      CheckStartComment := False;
-      while s^ in [#32, #9] do
+    CheckStartComment := False;
+    while S^ in [#32, #9] do
+      begin
+      if S^ = #0 then
+        Exit;
+      Inc(S)
+      end;
+    CheckStartComment := True;
+    i := 0;
+    j := 0;
+    repeat
+      c := T^;
+      Inc(T);
+      if  (c in [#0, ',']) and (j > 0) then
+        Exit
+      else if (j < Len) and (c = S[j]) then
+        Inc(j)
+      else
         begin
-          if s^ = #0 then
-            exit;
-          Inc(s)
+        { skip current comment word }
+        repeat
+          c := T^;
+          Inc(T);
+        until c in [#0, ','];
+        j := 0;
         end;
-      CheckStartComment := True;
-      i := 0;
-      j := 0;
-      repeat
-        C := t^;
-        Inc(t);
-        if (C in [#0, ',']) and (j > 0) then
-          exit
-        else if (j < len) and (C = s[j]) then
-          Inc(j)
-        else
-          begin
-            { skip current comment word }
-            repeat
-              C := t^;
-              Inc(t);
-            until C in [#0, ','];
-            j := 0;
-          end;
-      until C = #0;
-      CheckStartComment := False;
+    until c = #0;
+    CheckStartComment := False;
     end { CheckStartComment };
     {$ELSE}
     assembler;
@@ -395,32 +389,31 @@ procedure Highlites(len: integer; s: PChar; const Params:
         OR      AL,AL
         JNE     @@4
    @@5:
-   end
-    ;
+   end;
   {$ENDIF}
 
-  function CheckPattern(i: integer; len: integer; s: PChar; const P:
-      String; CaseSensitive: boolean): boolean;
+  function CheckPattern(I: Integer; len: Integer; S: PChar;
+       const P: String; CaseSensitive: Boolean): Boolean;
     {$IFDEF NOASM}
     var
-      j: integer;
-      C: Char;
+      j: Integer;
+      c: Char;
     begin
-      CheckPattern := False;
-      j := 1;
-      while j <= Length(P) do
-        begin
-          if (i >= len) then
-            exit;
-          C := s[i];
-          if not CaseSensitive then
-            C := UpCase(C);
-          if (C <> P[j]) then
-            exit;
-          Inc(j);
-          Inc(i);
-        end;
-      CheckPattern := True;
+    CheckPattern := False;
+    j := 1;
+    while j <= Length(P) do
+      begin
+      if  (I >= len) then
+        Exit;
+      c := S[I];
+      if not CaseSensitive then
+        c := UpCase(c);
+      if  (c <> P[j]) then
+        Exit;
+      Inc(j);
+      Inc(I);
+      end;
+    CheckPattern := True;
     end { CheckPattern };
     {$ELSE}
     assembler;
@@ -458,344 +451,337 @@ procedure Highlites(len: integer; s: PChar; const Params:
         INC     AH
    @@4:
         XCHG    AL,AH
-   end
-    ;
+   end;
   {$ENDIF}
 
-  function ParseChars(i: integer; const Prefix: String; const
-      Allowed: TCharSet; const Suffix: String): integer;
+  function ParseChars(I: Integer; const Prefix: String;
+       const Allowed: TCharSet; const Suffix: String): Integer;
     var
-      j: integer;
-      k: integer;
+      j: Integer;
+      k: Integer;
       {   t : String; }
     begin
-      ParseChars := 0;
-      j := i;
-      if not CheckPattern(j, len, s, Prefix, False) then
-        exit;
-      Inc(j, Length(Prefix));
-      k := 0;
-      while (j < len) and (s[j] in Allowed) do
-        begin
-          Inc(j);
-          Inc(k);
-        end;
-      if k <= 0 then
-        exit;
-      if not CheckPattern(j, len, s, Suffix, False) then
-        exit;
-      Inc(j, Length(Suffix));
-      ParseChars := j-i;
+    ParseChars := 0;
+    j := I;
+    if not CheckPattern(j, len, S, Prefix, False) then
+      Exit;
+    Inc(j, Length(Prefix));
+    k := 0;
+    while (j < len) and (S[j] in Allowed) do
+      begin
+      Inc(j);
+      Inc(k);
+      end;
+    if k <= 0 then
+      Exit;
+    if not CheckPattern(j, len, S, Suffix, False) then
+      Exit;
+    Inc(j, Length(Suffix));
+    ParseChars := j-I;
     end { ParseChars };
 
-  function CheckNumber(i: integer): integer;
+  function CheckNumber(I: Integer): Integer;
 
-    function ParseNumber(Max: integer; Mode: Char; Options: word;
-        const Digits: TCharSet): integer;
+    function ParseNumber(Max: Integer; Mode: Char; Options: Word;
+         const Digits: TCharSet): Integer;
       const
         strSuffix: String[1] = 'X';
         strAmpersandPrefix: String[2] = '&X';
         strAmpersandText: String[3] = '&X''';
         strPrefix: String[2] = 'X''';
       var
-        j: integer;
+        j: Integer;
       begin
-        if ((hoSuffix and Options) <> 0) and (s[i] in DecDigits)
-        then
-          begin
-            strSuffix[1] := Mode;
-            j := ParseChars(i, '', Digits, strSuffix);
-            if j > Max then
-              Max := j;
-          end;
-        if (hoAmpersandPrefix and Options) <> 0 then
-          begin
-            strAmpersandPrefix[2] := Mode;
-            j := ParseChars(i, strAmpersandPrefix, Digits, '');
-            if j > Max then
-              Max := j;
-          end;
-        if (hoAmpersandText and Options) <> 0 then
-          begin
-            strAmpersandText[2] := Mode;
-            j := ParseChars(i, strAmpersandText, Digits, '''');
-            if j > Max then
-              Max := j;
-          end;
-        if (hoPrefix and Options) <> 0 then
-          begin
-            strPrefix[1] := Mode;
-            j := ParseChars(i, strPrefix, Digits, '');
-            if j > Max then
-              Max := j;
-          end;
-        if (hoPrefixText and Options) <> 0 then
-          begin
-            strPrefix[1] := Mode;
-            j := ParseChars(i, strPrefix, Digits, '''');
-            if j > Max then
-              Max := j;
-          end;
-        ParseNumber := Max;
+      if  ( (hoSuffix and Options) <> 0) and (S[i] in DecDigits) then
+        begin
+        strSuffix[1] := Mode;
+        j := ParseChars(i, '', Digits, strSuffix);
+        if j > Max then
+          Max := j;
+        end;
+      if  (hoAmpersandPrefix and Options) <> 0 then
+        begin
+        strAmpersandPrefix[2] := Mode;
+        j := ParseChars(i, strAmpersandPrefix, Digits, '');
+        if j > Max then
+          Max := j;
+        end;
+      if  (hoAmpersandText and Options) <> 0 then
+        begin
+        strAmpersandText[2] := Mode;
+        j := ParseChars(i, strAmpersandText, Digits, '''');
+        if j > Max then
+          Max := j;
+        end;
+      if  (hoPrefix and Options) <> 0 then
+        begin
+        strPrefix[1] := Mode;
+        j := ParseChars(i, strPrefix, Digits, '');
+        if j > Max then
+          Max := j;
+        end;
+      if  (hoPrefixText and Options) <> 0 then
+        begin
+        strPrefix[1] := Mode;
+        j := ParseChars(i, strPrefix, Digits, '''');
+        if j > Max then
+          Max := j;
+        end;
+      ParseNumber := Max;
       end { ParseNumber };
 
-    function ParseFloat: integer;
+    function ParseFloat: Integer;
       var
-        Max: integer;
-        j: integer;
-        k: integer;
+        max: Integer;
+        j: Integer;
+        k: Integer;
       begin
-        ParseFloat := 0;
-        j := i;
-        while (j < len) and (s[j] in DecDigits) do
-          Inc(j);
-        if (i = j) and ((Params.GenFlags and hoAllowShortFloat) = 0)
-        then
-          exit;
-        Max := j-i;
+      ParseFloat := 0;
+      j := i;
+      while (j < len) and (S[j] in DecDigits) do
+        Inc(j);
+      if  (i = j) and ((Params.GenFlags and hoAllowShortFloat) = 0) then
+        Exit;
+      max := j-i;
+      k := j;
+      if S[j] = '.' then
+        Inc(j)
+      else if j = i then
+        begin
+        ParseFloat := max;
+        Exit;
+        end;
+      if j > k then
+        begin
         k := j;
-        if s[j] = '.' then
-          Inc(j)
-        else if j = i then
+        while (j < len) and (S[j] in DecDigits) do
+          Inc(j);
+        if j = k then
           begin
-            ParseFloat := Max;
-            exit;
+          ParseFloat := max;
+          Exit;
           end;
+        end;
+      max := j-i;
+      if S[j] in ['e', 'E'] then
+        begin
+        Inc(j);
+        if  (j < len) and (S[j] in ['+', '-']) then
+          Inc(j);
+        k := j;
+        while (j < len) and (S[j] in DecDigits) do
+          Inc(j);
         if j > k then
-          begin
-            k := j;
-            while (j < len) and (s[j] in DecDigits) do
-              Inc(j);
-            if j = k then
-              begin
-                ParseFloat := Max;
-                exit;
-              end;
-          end;
-        Max := j-i;
-        if s[j] in ['e', 'E'] then
-          begin
-            Inc(j);
-            if (j < len) and (s[j] in ['+', '-']) then
-              Inc(j);
-            k := j;
-            while (j < len) and (s[j] in DecDigits) do
-              Inc(j);
-            if j > k then
-              Max := j-i;
-          end;
-        ParseFloat := Max;
+          max := j-i;
+        end;
+      ParseFloat := max;
       end { ParseFloat: };
 
     var
-      Max: integer;
-      j: integer;
+      max: Integer;
+      j: Integer;
     begin { CheckNumber }
 
-      {Default is float or decimal}
+    {Default is float or decimal}
 
-      if (hoFloatNumbers and Params.GenFlags) <> 0 then
-        Max := ParseFloat
-      else
-        Max := ParseChars(i, '', DecDigits, '');
+    if  (hoFloatNumbers and Params.GenFlags) <> 0 then
+      max := ParseFloat
+    else
+      max := ParseChars(I, '', DecDigits, '');
 
-      {   0x####  C-Style }
+    {   0x####  C-Style }
 
-      if (ho0xPrefixHex and Params.GenFlags) <> 0 then
-        begin
-          j := ParseChars(i, '0X', HexDigits, '');
-          if j >= Max then
-            Max := j;
-        end;
+    if  (ho0xPrefixHex and Params.GenFlags) <> 0 then
+      begin
+      j := ParseChars(I, '0X', HexDigits, '');
+      if j >= max then
+        max := j;
+      end;
 
-      {    $####  Pascal-Style }
+    {    $####  Pascal-Style }
 
-      if (hoDollarPrefixHex and Params.GenFlags) <> 0 then
-        begin
-          j := ParseChars(i, '$', HexDigits, '');
-          if j >= Max then
-            Max := j;
-        end;
+    if  (hoDollarPrefixHex and Params.GenFlags) <> 0 then
+      begin
+      j := ParseChars(I, '$', HexDigits, '');
+      if j >= max then
+        max := j;
+      end;
 
-      {Hex numbers}
+    {Hex numbers}
 
-      if Params.HexFlags <> 0 then
-        Max := ParseNumber(Max, 'H', Params.HexFlags, HexDigits);
+    if Params.HexFlags <> 0 then
+      max := ParseNumber(max, 'H', Params.HexFlags, HexDigits);
 
-      {Decimal numbers}
+    {Decimal numbers}
 
-      if Params.DecFlags <> 0 then
-        Max := ParseNumber(Max, 'D', Params.DecFlags, DecDigits);
+    if Params.DecFlags <> 0 then
+      max := ParseNumber(max, 'D', Params.DecFlags, DecDigits);
 
-      {Octal numbers Q}
+    {Octal numbers Q}
 
-      if Params.OctFlagsQ <> 0 then
-        Max := ParseNumber(Max, 'Q', Params.OctFlagsQ, OctDigits);
+    if Params.OctFlagsQ <> 0 then
+      max := ParseNumber(max, 'Q', Params.OctFlagsQ, OctDigits);
 
-      {Octal numbers O}
+    {Octal numbers O}
 
-      if Params.OctFlagsO <> 0 then
-        Max := ParseNumber(Max, 'O', Params.OctFlagsO, OctDigits);
+    if Params.OctFlagsO <> 0 then
+      max := ParseNumber(max, 'O', Params.OctFlagsO, OctDigits);
 
-      {Binary numbers}
+    {Binary numbers}
 
-      if Params.BinFlags <> 0 then
-        Max := ParseNumber(Max, 'B', Params.BinFlags, BinDigits);
+    if Params.BinFlags <> 0 then
+      max := ParseNumber(max, 'B', Params.BinFlags, BinDigits);
 
-      CheckNumber := Max;
+    CheckNumber := max;
 
-  end { CheckNumber };
+    end { CheckNumber };
 
-  function CheckString(i: integer): integer;
+  function CheckString(I: Integer): Integer;
     var
-      Opts: word;
-      j: integer;
-      k: integer;
-      l: integer;
-      Term: Char;
-      esc: boolean;
+      opts: Word;
+      j: Integer;
+      k: Integer;
+      l: Integer;
+      term: Char;
+      esc: Boolean;
     begin
-      CheckString := 0;
-      Opts := Params.StrFlags;
-      j := i;
+    CheckString := 0;
+    opts := Params.StrFlags;
+    j := I;
 
-      repeat
-        if ((s[j] = '''') and ((hoNoSQuotedStrings and Opts) = 0))
-          or ((s[j] = '"') and ((hoNoDQuotedStrings and Opts) = 0))
-        then
+    repeat
+      if  ( (S[j] = '''') and ((hoNoSQuotedStrings and opts) = 0))
+        or ((S[j] = '"') and ((hoNoDQuotedStrings and opts) = 0))
+      then
+        begin
+        term := S[j];
+        esc := False;
+        k := j+1;
+        while k < len do
           begin
-            Term := s[j];
-            esc := False;
-            k := j+1;
-            while k < len do
-              begin
-                if (s[k] = '\') and not esc then
-                  begin
-                    esc := True;
-                  end
-                else if s[k] = Term then
-                  begin
-                    if not ((Term = '"') and ((hoEscDoubleQuate and
-                        Opts) <> 0) and esc)
-                      and not ((Term = '''') and ((hoEscSingleQuate
-                        and Opts) <> 0) and esc)
-                    then
-                      begin
-                        Inc(k);
-                        break;
-                      end;
-                  end
-                else
-                  begin
-                    esc := False;
-                  end;
-                Inc(k);
-              end;
-            Dec(k, j);
-          end
-        else if ((hoHashCharacter and Opts) <> 0) and (s[j] = '#')
-        then
-          begin
-            k := CheckNumber(j+1);
-            if k > 0 then
-              Inc(k);
-          end
-        else if ((hoCtrlCharacter and Opts) <> 0) and (s[j] = '^')
-        then
-          begin
-            k := j+1;
-            if (k < len) and (UpCase(s[k]) in ['@'..'_'])
-              and (((Opts and hoStrictCtrlChar) = 0) or ((k+1) = len) or
-                not (UpCase(s[k+1]) in ['0'..'9', 'A'..'Z']))
+          if  (S[k] = '\') and not esc then
+            begin
+            esc := True;
+            end
+          else if S[k] = term then
+            begin
+            if not ((term = '"') and ((hoEscDoubleQuate and opts) <> 0)
+                 and esc)
+              and not ((term = '''') and ((hoEscSingleQuate and opts) <>
+                   0) and esc)
             then
-              k := 2
-            else
-              k := 0;
-          end
-        else if ((hoOctalCharacter and Opts) <> 0) and (s[j] in
-            OctDigits)
-        then
-          begin
-            k := ParseChars(j, '', OctDigits, 'C');
-            if k > 0 then
+              begin
               Inc(k);
-          end
-        else
-          begin
-            k := 0;
+              Break;
+              end;
+            end
+          else
+            begin
+            esc := False;
+            end;
+          Inc(k);
           end;
-        Inc(j, k);
-      until k = 0;
+        Dec(k, j);
+        end
+      else if ((hoHashCharacter and opts) <> 0) and (S[j] = '#') then
+        begin
+        k := CheckNumber(j+1);
+        if k > 0 then
+          Inc(k);
+        end
+      else if ((hoCtrlCharacter and opts) <> 0) and (S[j] = '^') then
+        begin
+        k := j+1;
+        if  (k < len) and (UpCase(S[k]) in ['@'..'_'])
+          and (((opts and hoStrictCtrlChar) = 0) or ((k+1) = len) or not
+               (UpCase(S[k+1]) in ['0'..'9', 'A'..'Z']))
+        then
+          k := 2
+        else
+          k := 0;
+        end
+      else if ((hoOctalCharacter and opts) <> 0) and (S[j] in OctDigits)
+      then
+        begin
+        k := ParseChars(j, '', OctDigits, 'C');
+        if k > 0 then
+          Inc(k);
+        end
+      else
+        begin
+        k := 0;
+        end;
+      Inc(j, k);
+    until k = 0;
 
-      CheckString := j-i;
+    CheckString := j-I;
 
-  end { CheckString };
+    end { CheckString };
 
-  function CheckComment(i: integer; len: integer; s: PChar; t: PChar):
-      integer;
+  function CheckComment(I: Integer; len: Integer; S: PChar; T: PChar)
+    : Integer;
     {$IFDEF NOASM}
     var
-      j: integer;
-      k: integer;
-      o: integer;
-      C: Char;
+      j: Integer;
+      k: Integer;
+      o: Integer;
+      c: Char;
     begin
-      k := i;
-      repeat
-        C := t^;
-        Inc(t);
-        if (C in [#0, #13, ',']) and (k > i) then
+    k := I;
+    repeat
+      c := T^;
+      Inc(T);
+      if  (c in [#0, #13, ',']) and (k > I) then
+        begin
+        CheckComment := len-I+1;
+        { parse comment }
+        if c = #13 then
           begin
-            CheckComment := len-i+1;
-            { parse comment }
-            if C = #13 then
+          j := 0;
+          o := k;
+          while not (T[j] in [#0, ',']) and (k < len) do
+            begin
+            if T[j] = S[k] then
               begin
-                j := 0;
-                o := k;
-                while not (t[j] in [#0, ',']) and (k < len) do
-                  begin
-                    if t[j] = s[k] then
-                      begin
-                        { move pointer if everything matches }
-                        Inc(j);
-                        Inc(k);
-                      end
-                    else
-                      begin
-                        { search again but one character further }
-                        Inc(o);
-                        k := o;
-                        j := 0;
-                      end;
-                  end;
-                if k > o then
-                  CheckComment := k-i;
-              end;
-            exit;
-          end;
-        if C <> #0 then
-          begin
-            if (k < len) and (C = s[k]) then
-              { going down into a comment }
-              Inc(k)
+              { move pointer if everything matches }
+              Inc(j);
+              Inc(k);
+              end
             else
               begin
-                { skip current comment }
-                repeat
-                  C := t^;
-                  Inc(t);
-                until (C = #0) or (C = ',');
-                { back to start }
-                k := i;
+              { search again but one character further }
+              Inc(o);
+              k := o;
+              j := 0;
               end;
+            end;
+          if k > o then
+            CheckComment := k-I;
           end;
-      until C = #0;
-      CheckComment := 0;
+        Exit;
+        end;
+      if c <> #0 then
+        begin
+        if  (k < len) and (c = S[k]) then
+          { going down into a comment }
+          Inc(k)
+        else
+          begin
+          { skip current comment }
+          repeat
+            c := T^;
+            Inc(T);
+          until (c = #0) or (c = ',');
+          { back to start }
+          k := I;
+          end;
+        end;
+    until c = #0;
+    CheckComment := 0;
     end { CheckComment };
     {$ELSE}
     assembler;
-    {&Frame-} {$USES ESI, EDI, EDX, ECX, EBX}
-      { Kirill: add save ebx }
+    {&Frame-} {$USES ESI, EDI, EDX, ECX, EBX} { Kirill: add save ebx }
   asm
         CLD
         XOR     EAX,EAX
@@ -863,49 +849,48 @@ procedure Highlites(len: integer; s: PChar; const Params:
         INC     EDI
         JMP     @@1
    @@4:
-   end
-    ;
+   end;
   {$ENDIF}
 
-  function CheckKeyword(i: integer; len: integer; s: PChar; Keywords:
-      PChar): integer;
+  function CheckKeyword(I: Integer; len: Integer; S: PChar;
+       Keywords: PChar): Integer;
     {$IFDEF NOASM}
     var
-      j: integer;
-      k: integer;
-      C: Char;
+      j: Integer;
+      k: Integer;
+      c: Char;
     begin
-      j := i;
-      k := i;
-      repeat
-        C := Keywords^;
-        Inc(Keywords);
-        if C in [#0, ','] then
-          begin
-            { get the longest keyword }
-            if k > j then
-              j := k;
-            { back to start }
-            k := i;
-          end
+    j := I;
+    k := I;
+    repeat
+      c := Keywords^;
+      Inc(Keywords);
+      if c in [#0, ','] then
+        begin
+        { get the longest keyword }
+        if k > j then
+          j := k;
+        { back to start }
+        k := I;
+        end
+      else
+        begin
+        if  (k < len) and (c = S[k]) then
+          { going down into a keyword }
+          Inc(k)
         else
           begin
-            if (k < len) and (C = s[k]) then
-              { going down into a keyword }
-              Inc(k)
-            else
-              begin
-                { skip current keyword }
-                repeat
-                  C := Keywords^;
-                  Inc(Keywords);
-                until C in [#0, ','];
-                { back to start }
-                k := i;
-              end;
+          { skip current keyword }
+          repeat
+            c := Keywords^;
+            Inc(Keywords);
+          until c in [#0, ','];
+          { back to start }
+          k := I;
           end;
-      until C = #0;
-      CheckKeyword := j-i;
+        end;
+    until c = #0;
+    CheckKeyword := j-I;
     end { CheckKeyword };
     {$ELSE}
     assembler;
@@ -951,115 +936,113 @@ procedure Highlites(len: integer; s: PChar; const Params:
    @@5:
         MOV     EAX,EBX
         SUB     EAX,ECX
-   end
-    ;
+   end;
   {$ENDIF}
 
   var
-    i: integer;
-    Max: integer;
-    j: integer;
-    k: integer;
-    l: integer;
-    C: Char;
-    D: Char;
-    B: boolean;
-    Rules: THiliteRules;
-    BC: Set of Char;
+    i: Integer;
+    max: Integer;
+    j: Integer;
+    k: Integer;
+    l: Integer;
+    c: Char;
+    d: Char;
+    b: Boolean;
+    rules: THiliteRules;
+    bc: set of Char;
   begin { Highlites }
-    GetHighliteRules(Params, Rules);
-    if (Params.GenFlags and hoCaseSensitive) = 0 then
+  GetHighliteRules(Params, rules);
+  if  (Params.GenFlags and hoCaseSensitive) = 0 then
+    begin
+    for i := 0 to Len-1 do
+      S[i] := UpCase(S[i]);
+    end;
+  if CheckEmpty(Len, S) then
+    begin
+    FillChar(S^, Len, hhSymbol);
+    end
+  else if CheckStartComment(Len, S, rules[hrCommentStarts]) then
+    begin
+    FillChar(S^, Len, hhComment);
+    end
+  else
+    begin
+    bc := BreakChars;
+    if  (Params.GenFlags and hoNoStrings) = 0 then
       begin
-        for i := 0 to len-1 do
-          s[i] := UpCase(s[i]);
+      if  (Params.StrFlags and hoNoSQuotedStrings) = 0 then
+        Include(bc, '''');
+      if  (Params.StrFlags and hoNoDQuotedStrings) = 0 then
+        Include(bc, '"');
       end;
-    if CheckEmpty(len, s) then
+    b := True;
+    i := 0;
+    while i < Len do
       begin
-        FillChar(s^, len, hhSymbol);
-      end
-    else if CheckStartComment(len, s, Rules[hrCommentStarts]) then
+      max := 1;
+      if S[i] in bc then
+        c := hhSymbol
+      else
+        c := hhNothing;
+      if b then
         begin
-        FillChar(s^, len, hhComment);
-      end
-    else
-      begin
-        BC := BreakChars;
-        if (Params.GenFlags and hoNoStrings) = 0 then
+        k := max;
+        d := c;
+        if  (Params.GenFlags and hoNoNumbers) = 0 then
           begin
-            if (Params.StrFlags and hoNoSQuotedStrings) = 0 then
-              Include(BC, '''');
-            if (Params.StrFlags and hoNoDQuotedStrings) = 0 then
-              Include(BC, '"');
+          j := CheckNumber(i);
+          if j >= k then
+            begin
+            k := j;
+            d := hhNumber;
+            end;
           end;
-        B := True;
-        i := 0;
-        while i < len do
+        j := CheckKeyword(i, Len, S, rules[hrKeywords1]);
+        if j >= k then
           begin
-            Max := 1;
-            if s[i] in BC then
-              C := hhSymbol
-            else
-              C := hhNothing;
-            if B then
-              begin
-                k := Max;
-                D := C;
-                if (Params.GenFlags and hoNoNumbers) = 0 then
-                  begin
-                    j := CheckNumber(i);
-                    if j >= k then
-                      begin
-                        k := j;
-                        D := hhNumber;
-                      end;
-                  end;
-                j := CheckKeyword(i, len, s, Rules[hrKeywords1]);
-                if j >= k then
-                  begin
-                    k := j;
-                    D := hhKeyword1;
-                  end;
-                j := CheckKeyword(i, len, s, Rules[hrKeywords2]);
-                if j >= k then
-                  begin
-                    k := j;
-                    D := hhKeyword2;
-                  end;
-                if ((i+k) >= len) or (s[i+k] in BC) or (s[i+k-1] in BC)
-                then
-                  begin
-                    Max := k;
-                    C := D;
-                  end;
-              end;
-            B := False;
-            j := CheckComment(i, len, s, Rules[hrCommentStrings]);
-            if j >= Max then
-              begin
-                Max := j;
-                C := hhComment;
-                B := True;
-              end;
-            if (Params.GenFlags and hoNoStrings) = 0 then
-              begin
-                j := CheckString(i);
-                if j >= Max then
-                  begin
-                    Max := j;
-                    C := hhString;
-                    B := True;
-                  end;
-              end;
-            if C = hhSymbol then
-              begin
-                B := True;
-                if (Params.GenFlags and hoNoSymbols) <> 0 then
-                  C := hhNothing;
-              end;
-            FillChar(s[i], Max, C);
-            Inc(i, Max);
+          k := j;
+          d := hhKeyword1;
           end;
+        j := CheckKeyword(i, Len, S, rules[hrKeywords2]);
+        if j >= k then
+          begin
+          k := j;
+          d := hhKeyword2;
+          end;
+        if  ( (i+k) >= Len) or (S[i+k] in bc) or (S[i+k-1] in bc) then
+          begin
+          max := k;
+          c := d;
+          end;
+        end;
+      b := False;
+      j := CheckComment(i, Len, S, rules[hrCommentStrings]);
+      if j >= max then
+        begin
+        max := j;
+        c := hhComment;
+        b := True;
+        end;
+      if  (Params.GenFlags and hoNoStrings) = 0 then
+        begin
+        j := CheckString(i);
+        if j >= max then
+          begin
+          max := j;
+          c := hhString;
+          b := True;
+          end;
+        end;
+      if c = hhSymbol then
+        begin
+        b := True;
+        if  (Params.GenFlags and hoNoSymbols) <> 0 then
+          c := hhNothing;
+        end;
+      FillChar(S[i], max, c);
+      Inc(i, max);
       end;
+    end;
   end { Highlites };
 
 (*****************************************************************
@@ -1083,28 +1066,28 @@ procedure Highlites(len: integer; s: PChar; const Params:
 
 procedure FixHighliteParams(var Params: THighliteParams);
 
-  procedure UpPStr(s: PChar);
+  procedure UpPStr(S: PChar);
     begin
-      while s^ <> #0 do
-        begin
-          s^:= UpCase(s^);
-          Inc(s);
-        end;
+    while S^ <> #0 do
+      begin
+      S^:= UpCase(S^);
+      Inc(S);
+      end;
     end;
 
   var
-    Rules: THiliteRules;
+    rules: THiliteRules;
     i: THighliteRule;
   begin
-    Params.RulesBuffer[High(Params.RulesBuffer)] := #0;
-    GetHighliteRules(Params, Rules);
-    if (Params.GenFlags and hoCaseSensitive) = 0 then
+  Params.RulesBuffer[High(Params.RulesBuffer)] := #0;
+  GetHighliteRules(Params, rules);
+  if  (Params.GenFlags and hoCaseSensitive) = 0 then
+    begin
+    for i := Low(rules) to High(rules) do
       begin
-        for i := Low(Rules) to High(Rules) do
-          begin
-            UpPStr(Rules[i]);
-          end;
+      UpPStr(rules[i]);
       end;
+    end;
   end { FixHighliteParams };
 
 (*****************************************************************
@@ -1129,45 +1112,42 @@ procedure FixHighliteParams(var Params: THighliteParams);
  *
  *****************************************************************)
 
-function InsertHighliteRule(var Params: THighliteParams; Index:
-    THighliteRule; const Rule: String): boolean;
+function InsertHighliteRule(var Params: THighliteParams;
+     Index: THighliteRule; const Rule: String): Boolean;
   var
-    exrules: array[Low(THighliteRule)..succ(High(THighliteRule))] of
-      PChar;
-    Rules: THiliteRules absolute exrules;
-    space: integer;
-    comma: boolean;
-    needed: integer;
+    exrules: array[Low(THighliteRule)..Succ(High(THighliteRule))] of PChar;
+    rules: THiliteRules absolute exrules;
+    space: Integer;
+    comma: Boolean;
+    needed: Integer;
   const
-    l = Low(exrules);
+    L = Low(exrules);
     H = High(exrules);
   begin
-    InsertHighliteRule := False;
-    if (Index in [Low(Rules)..High(Rules)]) and (Rule <> '') and (
-        Pos(#0, Rule) = 0)
-    then
+  InsertHighliteRule := False;
+  if  (Index in [Low(rules)..High(rules)]) and (Rule <> '')
+         and (Pos(#0, Rule) = 0)
+  then
+    begin
+    exrules[H] := GetHighliteRules(Params, rules);
+    space := @Params.RulesBuffer[High(Params.RulesBuffer)]-exrules[H]+1;
+    needed := Length(Rule);
+    comma := rules[Index]^ <> #0;
+    if comma then
+      Inc(needed);
+    if needed <= space then
       begin
-        exrules[H] := GetHighliteRules(Params, Rules);
-        space := @Params.RulesBuffer[High(Params.RulesBuffer)]-
-          exrules[H]+1;
-        needed := Length(Rule);
-        comma := Rules[Index]^ <> #0;
-        if comma then
-          Inc(needed);
-        if needed <= space then
-          begin
-            exrules[l] := exrules[succ(Index)]-1;
-            Move(exrules[l][0], exrules[l][needed], exrules[H]-
-              exrules[l]);
-            if comma then
-              begin
-                exrules[l]^:= ',';
-                Inc(exrules[l]);
-              end;
-            Move(Rule[1], exrules[l]^, Length(Rule));
-            InsertHighliteRule := True;
-          end;
+      exrules[L] := exrules[Succ(Index)]-1;
+      Move(exrules[L][0], exrules[L][needed], exrules[H]-exrules[L]);
+      if comma then
+        begin
+        exrules[L]^:= ',';
+        Inc(exrules[L]);
+        end;
+      Move(Rule[1], exrules[L]^, Length(Rule));
+      InsertHighliteRule := True;
       end;
+    end;
   end { InsertHighliteRule };
 
 end.

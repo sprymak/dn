@@ -61,34 +61,38 @@ unit WinClpVp;
 interface
 
 uses
-  Objects, Collect;
+  Objects, Collect
+  ;
 
-function SetWinClip(PC: PLineCollection): boolean; {$IFDEF DPMI32}
-    inline;
-  begin{Cat:todo DPMI32}
+function SetWinClip(PC: PLineCollection): Boolean; {$IFDEF DPMI32}
+  inline;
+  begin {Cat:todo DPMI32}
   end; {$ENDIF}
-function GetWinClip(var PCL: PLineCollection {; NeedStream: boolean}):
-  boolean; {$IFDEF DPMI32} inline;
-  begin{Cat:todo DPMI32}
+function GetWinClip(var PCL: PLineCollection {; NeedStream: boolean})
+  : Boolean; {$IFDEF DPMI32}
+  inline;
+  begin {Cat:todo DPMI32}
   end; {$ENDIF}
-function GetWinClipSize: boolean; {$IFDEF DPMI32} inline;
-  begin{Cat:todo DPMI32}
+function GetWinClipSize: Boolean; {$IFDEF DPMI32}
+  inline;
+  begin {Cat:todo DPMI32}
   end; {$ENDIF}
-procedure SyncClipIn; {$IFDEF DPMI32} inline;
-  begin{Cat:todo DPMI32}
+procedure SyncClipIn; {$IFDEF DPMI32}
+  inline;
+  begin {Cat:todo DPMI32}
   end; {$ENDIF}
 procedure SyncClipOut {(NeedStream: boolean)}; {$IFDEF DPMI32}
-    inline;
-  begin{Cat:todo DPMI32}
+  inline;
+  begin {Cat:todo DPMI32}
   end; {$ENDIF}
 
 procedure CopyLines2Stream(PC: PCollection; var PCS: PStream);
-  {$IFDEF DPMI32} inline;
-  begin{Cat:todo DPMI32}
+{$IFDEF DPMI32} inline;
+  begin {Cat:todo DPMI32}
   end; {$ENDIF}
 procedure CopyStream2Lines(PCS: PStream; var PC: PCollection);
-  {$IFDEF DPMI32} inline;
-  begin{Cat:todo DPMI32}
+{$IFDEF DPMI32} inline;
+  begin {Cat:todo DPMI32}
   end; {$ENDIF}
 
 implementation
@@ -97,107 +101,108 @@ implementation
 
 uses
   {$IFDEF OS2}Os2Base, Dn2PmApi, {$ELSE}VpSysLow, {$ENDIF}
-  Microed, advance, advance1, DnIni;
+  Microed, Advance, Advance1, DnIni
+  ;
 
 procedure SyncClipIn;
   begin
-    if ClipBoard <> nil then
-      SetWinClip(PLineCollection(ClipBoard));
+  if ClipBoard <> nil then
+    SetWinClip(PLineCollection(ClipBoard));
   end;
 
 procedure SyncClipOut {(NeedStream: boolean)};
   begin
-    GetWinClip(PLineCollection(ClipBoard) {, NeedStream});
+  GetWinClip(PLineCollection(ClipBoard) {, NeedStream});
   end;
 
 {Cat: добавил обработку коллекций с длинными строками}
-function SetWinClip(PC: PLineCollection): boolean;
+function SetWinClip(PC: PLineCollection): Boolean;
   var
     B: PChar;
-    Idx: PChar;
-    Size: longInt;
-    i, j: longInt;
+    idx: PChar;
+    Size: LongInt;
+    I, J: LongInt;
     P: PString; {AK155}
     PL: PLongString;
-    s: LongString;
+    S: LongString;
   begin
-    Size := 0;
+  Size := 0;
 
-    if PC = nil then
-      exit; {Cat: коллекции может и не быть}
+  if PC = nil then
+    Exit; {Cat: коллекции может и не быть}
 
-    if PC^.LongStrings then
+  if PC^.LongStrings then
+    begin
+    for I := 0 to PC^.Count-1 do
       begin
-        for i := 0 to PC^.Count-1 do
-          begin
-            PL := PC^.At(i);
-            if PL = nil then
-              Inc(Size, 2)
-            else
-              Inc(Size, Length(PL^)+2);
-          end;
-      end
-    else
-      {AK155 Исправлена ошибка в подсчете длины
+      PL := PC^.At(I);
+      if PL = nil then
+        Inc(Size, 2)
+      else
+        Inc(Size, Length(PL^)+2);
+      end;
+    end
+  else
+    {AK155 Исправлена ошибка в подсчете длины
 (не учитывалось, что в коллекции могут быть nil) }
+    begin
+    for I := 0 to PC^.Count-1 do
       begin
-        for i := 0 to PC^.Count-1 do
-          begin
-            P := PC^.At(i);
-            if P = nil then
-              Inc(Size, 2)
-            else
-              Inc(Size, Length(P^)+2);
-          end;
+      P := PC^.At(I);
+      if P = nil then
+        Inc(Size, 2)
+      else
+        Inc(Size, Length(P^)+2);
       end;
-    {/AK}
-    Dec(Size);
-    GetMem(B, Size);
-    Idx := B;
-    for i := 0 to PC^.Count-1 do
+    end;
+  {/AK}
+  Dec(Size);
+  GetMem(B, Size);
+  idx := B;
+  for I := 0 to PC^.Count-1 do
+    begin
+    if I > 0 then
       begin
-        if i > 0 then
-          begin
-            s := #$0D#$0A;
-            Move(s[1], Idx^, Length(s));
-            Inc(Idx, Length(s));
-          end;
-        if PC^.LongStrings then
-          s := CnvLongString(PC^.At(i))
-        else
-          s := CnvString(PC^.At(i));
-        {JO}
-        for j := 1 to Length(s) do
-          if s[j] = #0 then
-            s[j] := ' ';
-        {/JO}
-        Move(s[1], Idx^, Length(s));
-        Inc(Idx, Length(s));
+      S := #$0D#$0A;
+      Move(S[1], idx^, Length(S));
+      Inc(idx, Length(S));
       end;
-    byte(Idx^) := 0;
-    {$IFDEF OS2}
-    SetWinClip := DN_XClipCopy(B, Size);
-    {$ELSE}
-    SetWinClip := SysClipCopy(B, Size);
-    {$ENDIF}
-    FreeMem(B, Size);
+    if PC^.LongStrings then
+      S := CnvLongString(PC^.At(I))
+    else
+      S := CnvString(PC^.At(I));
+    {JO}
+    for J := 1 to Length(S) do
+      if S[J] = #0 then
+        S[J] := ' ';
+    {/JO}
+    Move(S[1], idx^, Length(S));
+    Inc(idx, Length(S));
+    end;
+  Byte(idx^) := 0;
+  {$IFDEF OS2}
+  SetWinClip := DN_XClipCopy(B, Size);
+  {$ELSE}
+  SetWinClip := SysClipCopy(B, Size);
+  {$ENDIF}
+  FreeMem(B, Size);
   end { SetWinClip };
 {/Cat}
 
 {AK155 GetWinClip переписан почти полностью, так как та версия,
 которая мне досталась, во-первых, не работала, а во-вторых,
 делала это очень медленно :) }
-function GetWinClip(var PCL: PLineCollection {; NeedStream: boolean}):
-    boolean;
+function GetWinClip(var PCL: PLineCollection {; NeedStream: boolean})
+  : Boolean;
   var
-    Size: longInt;
+    Size: LongInt;
     Buf: PChar;
     {idx : PChar;
       s: string;}
     Start, Stop: PChar;
-    i: longInt;
+    i: LongInt;
     {ODOA: boolean;}
-    f0D: boolean; { только что был 0D }
+    f0D: Boolean; { только что был 0D }
 
     {Cat: переписал для совместимости с типами AnsiString и LongString
       добавил обработку коллекций с длинными строками}
@@ -206,98 +211,98 @@ function GetWinClip(var PCL: PLineCollection {; NeedStream: boolean}):
      преобразовать в строку и добавить в PCL }
   procedure Str2Collection;
     var
-      l: longInt;
+      l: LongInt;
       P: PString;
       PL: PLongString;
     begin
-      l := Stop-Start;
-      if l = 0 then
-        with PCL^ do
-          AtInsert(Count, nil)
-        else if PCL^.LongStrings then
-        begin
-          New(PL);
-          SetLength(PL^, l);
-          Move(Start^, PL^[1], l);
-          with PCL^ do
-            AtInsert(Count, PL);
-        end
-      else
-        begin
-          GetMem(P, l+1);
-          SetLength(P^, l);
-          Move(Start^, P^[1], l);
-          with PCL^ do
-            AtInsert(Count, P);
-        end;
-      Start := Stop+1;
+    l := Stop-Start;
+    if l = 0 then
+      with PCL^ do
+        AtInsert(Count, nil)
+    else if PCL^.LongStrings then
+      begin
+      New(PL);
+      SetLength(PL^, l);
+      Move(Start^, PL^[1], l);
+      with PCL^ do
+        AtInsert(Count, PL);
+      end
+    else
+      begin
+      GetMem(P, l+1);
+      SetLength(P^, l);
+      Move(Start^, P^[1], l);
+      with PCL^ do
+        AtInsert(Count, P);
+      end;
+    Start := Stop+1;
     end { Str2Collection };
   {/Cat}
 
   begin { GetWinClip }
-    {$IFDEF OS2}
-    if not DN_XClipCanPaste then
-      {$ELSE}
-      if not SysClipCanPaste then
-        {$ENDIF}
+  {$IFDEF OS2}
+  if not DN_XClipCanPaste then
+  {$ELSE}
+  if not SysClipCanPaste then
+    {$ENDIF}
+    begin
+    GetWinClip := False;
+    Exit;
+    end
+  else
+    GetWinClip := True;
+
+  if PCL <> nil then
+    PCL^.FreeAll
+  else
+    New(PCL, Init($10, $10, True));
+
+  {$IFDEF OS2}
+  Buf := DN_XClipPaste(Size);
+  {$ELSE}
+  Buf := SysClipPaste(Size);
+  {$ENDIF}
+  Start := Buf;
+  Stop := Start;
+
+  for i := 1 to Size-1 do
+    begin
+    case Stop^ of
+      #$0D:
         begin
-          GetWinClip := False;
-          exit;
-        end
-      else
-        GetWinClip := True;
+        Str2Collection;
+        f0D := True;
+        end;
+      #$0A:
+        begin
+        if f0D then
+          Inc(Start)
+        else
+          Str2Collection;
+        f0D := False;
+        end;
+      else {case}
+        f0D := False;
+    end {case};
+    Inc(Stop);
+    end;
+  Str2Collection;
+  {/AK155}
 
-    if PCL <> nil then
-      PCL^.FreeAll
-    else
-      New(PCL, Init($10, $10, True));
+  {$IFDEF OS2}
+  DosFreeMem(Buf);
+  {$ELSE}
+  FreeMem(Buf, Size);
+  {$ENDIF}
+  Buf := nil;
+  Size := 0;
 
-    {$IFDEF OS2}
-    Buf := DN_XClipPaste(Size);
-    {$ELSE}
-    Buf := SysClipPaste(Size);
-    {$ENDIF}
-    Start := Buf;
-    Stop := Start;
-
-    for i := 1 to Size-1 do
-      begin
-        case Stop^ of
-          #$0D:
-            begin
-              Str2Collection;
-              f0D := True;
-            end;
-          #$0A:
-            begin
-              if f0D then
-                Inc(Start)
-              else
-                Str2Collection;
-              f0D := False;
-            end;
-          else
-            f0D := False;
-        end {case};
-        Inc(Stop);
-      end;
-    Str2Collection;
-    {/AK155}
-
-    {$IFDEF OS2}
-    DosFreeMem(Buf);
-    {$ELSE}
-    FreeMem(Buf, Size);
-    {$ENDIF}
-    Buf := nil;
-    Size := 0;
-
-    {Cat: приводит к дублированию строк в Clipboard-е
+  {Cat: приводит к дублированию строк в Clipboard-е
       в случае использования "текстового буфера системы"
       в результате выкидывания возможно появление новых
       глюков, т.к. я абсолютно не понимаю, какой способ
       работы Clipboard-а надлежит считать правильным...}
-    (*
+  (*
    if NeedStream then begin
      I := 0;
      if ClipBoardStream<>nil then
@@ -307,194 +312,191 @@ function GetWinClip(var PCL: PLineCollection {; NeedStream: boolean}):
 *)
   end { GetWinClip };
 
-function GetWinClipSize: boolean;
+function GetWinClipSize: Boolean;
   begin
-    {$IFDEF OS2}
-    GetWinClipSize := DN_XClipCanPaste;
-    {$ELSE}
-    GetWinClipSize := SysClipCanPaste;
-    {$ENDIF}
+  {$IFDEF OS2}
+  GetWinClipSize := DN_XClipCanPaste;
+  {$ELSE}
+  GetWinClipSize := SysClipCanPaste;
+  {$ENDIF}
   end;
 
 {Cat: добавил обработку коллекций с длинными строками}
 procedure PackLinesStream(var PCS: PStream); {-$VOL begin}
   var
-    PS: PString;
+    ps: PString;
     pls: PLongString;
-    Sp: longInt;
+    sp: LongInt;
     MS: PStream;
-    LongStrings: boolean;
+    LongStrings: Boolean;
     TempString: String;
     TempLongString: LongString;
   begin
-    Sp := PCS^.GetSize-CBSize;
-    PCS^.Seek(0);
-    PCS^.Read(LongStrings, 1); {читаем флажок "длинноты" строк}
-    if LongStrings then
-      while PCS^.GetPos < Sp do
-        begin
-          (*
+  sp := PCS^.GetSize-cbSize;
+  PCS^.Seek(0);
+  PCS^.Read(LongStrings, 1); {читаем флажок "длинноты" строк}
+  if LongStrings then
+    while PCS^.GetPos < sp do
+      begin
+      (*
         pls:=PCS^.ReadLongStr;
         DisposeLongStr(pls);
 *)
-          PCS^.ReadLongStrV(TempLongString);
-        end
-      else
-      while PCS^.GetPos < Sp do
-        begin
-          (*
+      PCS^.ReadLongStrV(TempLongString);
+      end
+  else
+    while PCS^.GetPos < sp do
+      begin
+      (*
         ps:=PCS^.ReadStr;
         DisposeStr(ps);
 *)
-          PCS^.ReadStrV(TempString);
-        end;
+      PCS^.ReadStrV(TempString);
+      end;
 
-    MS := GetMeMemoStream;
-    if MS = nil then
-      exit;
-    MS^.Write(LongStrings, 1); {пишем флажок "длинноты" строк}
-    if LongStrings then
-      while (PCS^.GetPos < PCS^.GetSize) do
-        begin
-          pls := PCS^.ReadLongStr;
-          MS^.WriteLongStr(pls);
-          DisposeLongStr(pls);
-        end
-      else
-      while (PCS^.GetPos < PCS^.GetSize) do
-        begin
-          PS := PCS^.ReadStr;
-          MS^.WriteStr(PS);
-          DisposeStr(PS);
-        end;
-    Dispose(PCS, Done);
-    PCS := MS;
+  MS := GetMeMemoStream;
+  if MS = nil then
+    Exit;
+  MS^.Write(LongStrings, 1); {пишем флажок "длинноты" строк}
+  if LongStrings then
+    while (PCS^.GetPos < PCS^.GetSize) do
+      begin
+      pls := PCS^.ReadLongStr;
+      MS^.WriteLongStr(pls);
+      DisposeLongStr(pls);
+      end
+  else
+    while (PCS^.GetPos < PCS^.GetSize) do
+      begin
+      ps := PCS^.ReadStr;
+      MS^.WriteStr(ps);
+      DisposeStr(ps);
+      end;
+  Dispose(PCS, Done);
+  PCS := MS;
   end { PackLinesStream }; {-$VOL end}
 
 procedure CopyLines2Stream(PC: PCollection; var PCS: PStream);
-    {-$VOL begin}
+  {-$VOL begin}
   var
-    i: longInt;
+    i: LongInt;
     P: PLineCollection absolute PC;
-    Pos: longInt;
-    LongStrings: boolean;
+    Pos: LongInt;
+    LongStrings: Boolean;
     TempString: String;
     TempLongString: LongString;
   begin
-    if PC = nil then
-      exit;
-    if PCS = nil then
-      PCS := GetMeMemoStream;
-    if PCS = nil then
-      exit;
-    Pos := PCS^.GetPos;
-    if Pos = 0 then
-      begin
-        LongStrings := P^.LongStrings;
-        PCS^.Write(LongStrings, 1) {пишем флажок "длинноты" строк}
-      end
-    else
-      with PCS^ do
-        begin{выдёргиваем записанный когда-то давно в самое}
-          Seek(0); {начало потока флажок "длинноты" строк}
-          Read(LongStrings, 1);
-          Seek(Pos);
-        end;
-    if LongStrings then
-      if P^.LongStrings then
-        begin
-            {пишем длинные строки из коллекции в длинные строки потока}
-          for i := 0 to P^.Count-1 do
-            begin
-              TempLongString := CnvLongString(P^.At(i));
-              if TempLongString = '' then
-                TempLongString := ' ';
-              PCS^.WriteLongStr(@TempLongString);
-            end;
-          PCS^.WriteLongStr(nil);
-        end
-      else
-        begin
-            {пишем короткие строки из коллекции в длинные строки потока}
-          for i := 0 to P^.Count-1 do
-            begin
-              TempLongString := CnvString(P^.At(i));
-              if TempLongString = '' then
-                TempLongString := ' ';
-              PCS^.WriteLongStr(@TempLongString);
-            end;
-          PCS^.WriteLongStr(nil);
-        end
-    else if P^.LongStrings then
-      begin
-          {пишем длинные строки из коллекции в короткие строки потока}
-        for i := 0 to P^.Count-1 do
-          begin
-            TempString := CnvLongString(P^.At(i));
-            if TempString = '' then
-              TempString := ' ';
-            PCS^.WriteStr(@TempString);
-          end;
-        PCS^.WriteStr(nil);
-      end
-    else
-      begin
-          {пишем короткие строки из коллекции в короткие строки потока}
-        for i := 0 to P^.Count-1 do
-          begin
-            TempString := CnvString(P^.At(i));
-            if TempString = '' then
-              TempString := ' ';
-            PCS^.WriteStr(@TempString);
-          end;
-        PCS^.WriteStr(nil);
+  if PC = nil then
+    Exit;
+  if PCS = nil then
+    PCS := GetMeMemoStream;
+  if PCS = nil then
+    Exit;
+  Pos := PCS^.GetPos;
+  if Pos = 0 then
+    begin
+    LongStrings := P^.LongStrings;
+    PCS^.Write(LongStrings, 1) {пишем флажок "длинноты" строк}
+    end
+  else
+    with PCS^ do
+      begin {выдёргиваем записанный когда-то давно в самое}
+      Seek(0); {начало потока флажок "длинноты" строк}
+      Read(LongStrings, 1);
+      Seek(Pos);
       end;
-    if (PCS^.GetSize > CBSize) and (P^.Count > 1) then
-      PackLinesStream(PCS);
+  if LongStrings then
+    if P^.LongStrings then
+      begin {пишем длинные строки из коллекции в длинные строки потока}
+      for i := 0 to P^.Count-1 do
+        begin
+        TempLongString := CnvLongString(P^.At(i));
+        if TempLongString = '' then
+          TempLongString := ' ';
+        PCS^.WriteLongStr(@TempLongString);
+        end;
+      PCS^.WriteLongStr(nil);
+      end
+    else
+      begin
+      {пишем короткие строки из коллекции в длинные строки потока}
+      for i := 0 to P^.Count-1 do
+        begin
+        TempLongString := CnvString(P^.At(i));
+        if TempLongString = '' then
+          TempLongString := ' ';
+        PCS^.WriteLongStr(@TempLongString);
+        end;
+      PCS^.WriteLongStr(nil);
+      end
+  else if P^.LongStrings then
+    begin {пишем длинные строки из коллекции в короткие строки потока}
+    for i := 0 to P^.Count-1 do
+      begin
+      TempString := CnvLongString(P^.At(i));
+      if TempString = '' then
+        TempString := ' ';
+      PCS^.WriteStr(@TempString);
+      end;
+    PCS^.WriteStr(nil);
+    end
+  else
+    begin {пишем короткие строки из коллекции в короткие строки потока}
+    for i := 0 to P^.Count-1 do
+      begin
+      TempString := CnvString(P^.At(i));
+      if TempString = '' then
+        TempString := ' ';
+      PCS^.WriteStr(@TempString);
+      end;
+    PCS^.WriteStr(nil);
+    end;
+  if  (PCS^.GetSize > cbSize) and (P^.Count > 1) then
+    PackLinesStream(PCS);
   end { CopyLines2Stream }; {-$VOL end}
 
 procedure CopyStream2Lines(PCS: PStream; var PC: PCollection);
-    {-$VOL begin}
+  {-$VOL begin}
   var
     PS: PString;
-    pls: PLongString;
-    LongStrings: boolean;
+    PLS: PLongString;
+    LongStrings: Boolean;
   begin
-    if PCS = nil then
-      exit;
-    PCS^.Seek(0);
-    PCS^.Read(LongStrings, 1); {читаем флажок "длинноты" строк}
-    if PC = nil then
-      PC := New(PLineCollection, Init(50, 5, LongStrings));
-    if PC = nil then
-      exit;
-    if LongStrings then
+  if PCS = nil then
+    Exit;
+  PCS^.Seek(0);
+  PCS^.Read(LongStrings, 1); {читаем флажок "длинноты" строк}
+  if PC = nil then
+    PC := New(PLineCollection, Init(50, 5, LongStrings));
+  if PC = nil then
+    Exit;
+  if LongStrings then
+    begin
+    PLS := PCS^.ReadLongStr;
+    while (PLS <> nil) and not PCS^.Eof do
       begin
-        pls := PCS^.ReadLongStr;
-        while (pls <> nil) and not PCS^.Eof do
-          begin
-            if pls^ = ' ' then
-              pls^:= '';
-            PC^.AtInsert(0, pls);
-            if (PCS^.GetPos > CBSize) and (PC^.Count > 1) then
-              PC^.AtFree(0);
-            pls := PCS^.ReadLongStr;
-          end;
-      end
-    else
-      begin
-        PS := PCS^.ReadStr;
-        while (PS <> nil) and not PCS^.Eof do
-          begin
-            if PS^ = ' ' then
-              PS^:= '';
-            PC^.AtInsert(0, PS);
-            if (PCS^.GetPos > CBSize) and (PC^.Count > 1) then
-              PC^.AtFree(0);
-            PS := PCS^.ReadStr;
-          end;
+      if PLS^ = ' ' then
+        PLS^:= '';
+      PC^.AtInsert(0, PLS);
+      if  (PCS^.GetPos > cbSize) and (PC^.Count > 1) then
+        PC^.AtFree(0);
+      PLS := PCS^.ReadLongStr;
       end;
-    PC^.Pack;
+    end
+  else
+    begin
+    PS := PCS^.ReadStr;
+    while (PS <> nil) and not PCS^.Eof do
+      begin
+      if PS^ = ' ' then
+        PS^:= '';
+      PC^.AtInsert(0, PS);
+      if  (PCS^.GetPos > cbSize) and (PC^.Count > 1) then
+        PC^.AtFree(0);
+      PS := PCS^.ReadStr;
+      end;
+    end;
+  PC^.Pack;
   end { CopyStream2Lines }; {-$VOL end}
 {/Cat}
 

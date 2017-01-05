@@ -51,7 +51,8 @@ unit UniWin;
 interface
 
 uses
-  Views, Drivers, Objects, DnIni;
+  Views, Drivers, Objects, DnIni
+  ;
 
 type
   { TUniWindow }
@@ -60,9 +61,9 @@ type
   TUniWindow = object(TWindow)
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     function GetPalette: PPalette; virtual;
-    function MakeScrollBar(AOptions: word): PScrollBar;
+    function MakeScrollBar(AOptions: Word): PScrollBar;
     procedure InitFrame; virtual;
-    function ReactOnCmd: boolean; virtual;
+    function ReactOnCmd: Boolean; virtual;
     end;
 
   { TEditScrollBar }
@@ -80,39 +81,38 @@ type
     end;
 
 const
-  CUniWindow =
-    #70#64#65#66#67#68#69#71#72#73#74#75#76#77#78#164#182#183+
+  CUniWindow = #70#64#65#66#67#68#69#71#72#73#74#75#76#77#78#164#182#183+
   #184#185#189#190#191#197#198;
 
 implementation
 
 function TUniWindow.GetPalette;
   const
-    P: String[Length(CUniWindow)] = CUniWindow;
+    p: String[Length(CUniWindow)] = CUniWindow;
   begin
-    GetPalette := @P;
+  GetPalette := @P;
   end;
 
 function TEditFrame.GetPalette;
   const
-    P: String[9] = #1#1#8#9#10#10#10#9#15;
+    p: String[9] = #1#1#8#9#10#10#10#9#15;
   begin
-    GetPalette := @P;
+  GetPalette := @P;
   end;
 
 function TEditScrollBar.GetPalette;
   const
-    P: String[3] = #11#12#12;
+    p: String[3] = #11#12#12;
   begin
-    GetPalette := @P;
+  GetPalette := @P;
   end;
 
 procedure TUniWindow.InitFrame;
   var
     R: TRect;
   begin
-    R.Assign(0, 0, Size.X, Size.Y);
-    Frame := New(PEditFrame, Init(R));
+  R.Assign(0, 0, Size.X, Size.Y);
+  Frame := New(PEditFrame, Init(R));
   end;
 
 function TUniWindow.MakeScrollBar;
@@ -120,37 +120,37 @@ function TUniWindow.MakeScrollBar;
     P: PEditScrollBar;
     R: TRect;
   begin
-    GetExtent(R);
-    if AOptions and sbVertical <> 0
+  GetExtent(R);
+  if AOptions and sbVertical <> 0
+  then
+    begin
+    Inc(R.A.Y);
+    Dec(R.B.Y);
+    R.A.X := R.B.X-1;
+    end
+  else
+    begin
+    if FastBookmark
     then
-      begin
-        Inc(R.A.Y);
-        Dec(R.B.Y);
-        R.A.X := R.B.X-1;
-      end
+      Inc(R.A.X, 52)
     else
-      begin
-        if FastBookmark
-        then
-          Inc(R.A.X, 52)
-        else
-          Inc(R.A.X, 39);
-        Dec(R.B.X, 2);
-        R.A.Y := R.B.Y-1;
-      end;
-    New(P, Init(R));
-    if AOptions and sbVertical = 0 then
-      P^.GrowMode := gfGrowLoY+gfGrowHiY+gfGrowHiX
-    else{p^.GrowMode:=gfGrowHiY+gfGrowHiX}
-      ;
-    P^.Options := P^.Options or ofPostProcess;
-    Insert(P);
-    MakeScrollBar := P;
+      Inc(R.A.X, 39);
+    Dec(R.B.X, 2);
+    R.A.Y := R.B.Y-1;
+    end;
+  New(P, Init(R));
+  if AOptions and sbVertical = 0 then
+    P^.GrowMode := gfGrowLoY+gfGrowHiY+gfGrowHiX
+  else {p^.GrowMode:=gfGrowHiY+gfGrowHiX}
+    ;
+  P^.Options := P^.Options or ofPostProcess;
+  Insert(P);
+  MakeScrollBar := P;
   end { TUniWindow.MakeScrollBar };
 
 function TUniWindow.ReactOnCmd;
   begin
-    ReactOnCmd := True
+  ReactOnCmd := True
   end;
 
 end.

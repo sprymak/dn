@@ -52,9 +52,10 @@ interface
 
 uses
   {$IFDEF PLUGIN}Plugin, {$ENDIF} {Cat}
-  fnotify, advance2,
-  DNUtil, DNApp, Drivers, Gauges, advance, advance3, Views, Commands,
-  UserMenu, Messages, Startup, xTime, FlPanelX, Macro, Objects;
+  fnotify, Advance2,
+  DNUtil, DNApp, Drivers, Gauges, Advance, Advance3, Views, Commands,
+  UserMenu, Messages, Startup, xTime, FlPanelX, Macro, Objects
+  ;
 
 type
   MyApp = object(TDNApplication)
@@ -73,7 +74,8 @@ uses
   {$IFNDEF DPMI32}Killer, {$ENDIF}
   VpSysLow,
   Drives,
-  DN1;
+  DN1
+  ;
 
 (*{$I  runcmd.inc}*)
 
@@ -83,186 +85,187 @@ procedure PostQuitMessage;
   var
     Event: TEvent;
   begin
-    w95locked := True;
-    Event.What := evCommand;
-    Event.Command := cmQuit;
-    PDNApplication(Application)^.HandleCommand(Event);
-    if w95locked then
-      MyApplication.HandleEvent(Event);
+  w95locked := True;
+  Event.What := evCommand;
+  Event.Command := cmQuit;
+  PDNApplication(Application)^.HandleCommand(Event);
+  if w95locked then
+    MyApplication.HandleEvent(Event);
   end;
 {$ENDIF}
 
 procedure MyApp.GetEvent;
   var
-    W: word;
-    WW: word;
+    W: Word;
+    WW: Word;
     PM: PKeyMacros;
 
   const
-    MacroPlaying: boolean = False;
-    MacroKey: integer = 0;
+    MacroPlaying: Boolean = False;
+    MacroKey: Integer = 0;
     CurrentMacro: PKeyMacros = nil;
     QuitEvent: TEvent = (What: evKeyDown; KeyCode: kbAltX);
   begin
-    {$IFNDEF DPMI32}
-    if Killer.fQuit then
-      begin
-        PutEvent(QuitEvent);
-        Killer.fQuit := False;
-      end;
-    {$ENDIF}
-    {$IFDEF OS_DOS}
-    if (not w95locked) and w95QuitCheck then
-      PostQuitMessage; {Gimly}
-    {$ENDIF}
+  {$IFNDEF DPMI32}
+  if Killer.fQuit then
+    begin
+    PutEvent(QuitEvent);
+    Killer.fQuit := False;
+    end;
+  {$ENDIF}
+  {$IFDEF OS_DOS}
+  if  (not w95locked) and w95QuitCheck then
+    PostQuitMessage; {Gimly}
+  {$ENDIF}
 
-    inherited GetEvent(Event);
-    if MacroPlaying and ((Event.What = evKeyDown) or (Event.What =
-        evNothing))
-    then
-      begin
-        Event.What := evKeyDown;
-        Event.KeyCode := CurrentMacro^.Keys^[MacroKey];
-        Inc(MacroKey);
-        MacroPlaying := MacroKey < CurrentMacro^.Count;
-      end;
-    case Event.What of
-      evNothing:
-        if (NeedLocated > 0) and (GetSTime-NeedLocated > 30) then
-          begin
-            NeedLocated := 0;
-            Message(Desktop, evCommand, cmDoSendLocated, nil);
-          end;
-      evKeyDown:
+  inherited GetEvent(Event);
+  if MacroPlaying and ((Event.What = evKeyDown) or (Event.What =
+         evNothing))
+  then
+    begin
+    Event.What := evKeyDown;
+    Event.KeyCode := CurrentMacro^.Keys^[MacroKey];
+    Inc(MacroKey);
+    MacroPlaying := MacroKey < CurrentMacro^.Count;
+    end;
+  case Event.What of
+    evNothing:
+      if  (NeedLocated > 0) and (GetSTime-NeedLocated > 30) then
         begin
-          {          if (Event.KeyCode = kbAltQ) and Desktop^.GetState(sfFocused) then begin OpenSmartpad; ClearEvent(Event) end;}
-          if Event.KeyCode = kbNoKey then
+        NeedLocated := 0;
+        Message(Desktop, evCommand, cmDoSendLocated, nil);
+        end;
+    evKeyDown:
+      begin
+      {          if (Event.KeyCode = kbAltQ) and Desktop^.GetState(sfFocused) then begin OpenSmartpad; ClearEvent(Event) end;}
+      if Event.KeyCode = kbNoKey then
+        begin
+        Event.What := evNothing;
+        Exit
+        end
+      else if (not MacroPlaying)
+        and (Event.KeyCode = kbAltShiftIns)
+        and (ShiftState and kbCtrlShift = 0)
+      then
+        begin
+        Event.What := evNothing;
+        ScreenGrabber(False);
+        Exit
+        end;
+      if  (Event.ScanCode >= Hi(kbCtrlF1))
+             and (Event.ScanCode <= Hi(kbCtrlF10))
+        and (Pointer(Current) = Pointer(Desktop))
+           and (ShiftState and 3 <> 0)
+      then
+        begin
+        if QuickExecExternal(Event.ScanCode-Hi(kbCtrlF1)+1) then
+          begin
+          Event.What := evCommand;
+          Event.Command := cmExecString;
+          Event.InfoPtr := @QuickExecExternalStr;
+          end
+        else
+          Event.What := evNothing;
+        Exit;
+        end;
+      if  (ShiftState and 7 <> 0)
+             and ((ShiftState and 4 = 0) or (ShiftState and 3 = 0)) and
+          (Event.ScanCode >= Hi(kbAlt1))
+           and (Event.ScanCode <= Hi(kbAlt9))
+      then
+        begin
+        WW := Event.ScanCode-Hi(kbAlt1);
+        if ShiftState and 3 <> 0 then
+          begin
+          if KeyMacroses = nil then
             begin
-              Event.What := evNothing;
-              exit
-            end
-          else if (not MacroPlaying)
-            and (Event.KeyCode = kbAltShiftIns)
-            and (ShiftState and kbCtrlShift = 0)
-          then
-            begin
-              Event.What := evNothing;
-              ScreenGrabber(False);
-              exit
+            New(KeyMacroses, Init(10, 10));
+            for W := 1 to 10 do
+              KeyMacroses^.Insert(nil);
             end;
-          if (Event.ScanCode >= Hi(kbCtrlF1)) and (Event.ScanCode <= Hi(
-              kbCtrlF10))
-            and (Pointer(Current) = Pointer(Desktop)) and (
-              ShiftState and 3 <> 0)
-          then
+          if MacroRecord then
             begin
-              if QuickExecExternal(Event.ScanCode-Hi(kbCtrlF1)+1)
-              then
-                begin
-                  Event.What := evCommand;
-                  Event.Command := cmExecString;
-                  Event.InfoPtr := @QuickExecExternalStr;
-                end
-              else
-                Event.What := evNothing;
-              exit;
+            MacroRecord := False;
+            ClearEvent(Event);
+            Exit;
             end;
-          if (ShiftState and 7 <> 0) and ((ShiftState and 4 = 0) or (
-              ShiftState and 3 = 0)) and
-            (Event.ScanCode >= Hi(kbAlt1)) and (Event.ScanCode <= Hi(
-              kbAlt9))
-          then
+          MacroRecord := True;
+          KeyMacroses^.AtFree(WW);
+          New(PM, Init);
+          KeyMacroses^.AtInsert(WW, PM);
+          CurrentMacro := PM;
+          end
+        else if KeyMacroses <> nil then
+          begin
+          if MacroRecord then
             begin
-              WW := Event.ScanCode-Hi(kbAlt1);
-              if ShiftState and 3 <> 0 then
-                begin
-                  if KeyMacroses = nil then
-                    begin
-                      New(KeyMacroses, Init(10, 10));
-                      for W := 1 to 10 do
-                        KeyMacroses^.Insert(nil);
-                    end;
-                  if MacroRecord then
-                    begin
-                      MacroRecord := False;
-                      ClearEvent(Event);
-                      exit;
-                    end;
-                  MacroRecord := True;
-                  KeyMacroses^.AtFree(WW);
-                  New(PM, Init);
-                  KeyMacroses^.AtInsert(WW, PM);
-                  CurrentMacro := PM;
-                end
-              else if KeyMacroses <> nil then
-                begin
-                  if MacroRecord then
-                    begin
-                      MacroRecord := False;
-                      ClearEvent(Event);
-                      exit;
-                    end;
-                  CurrentMacro := KeyMacroses^.At(WW);
-                  MacroPlaying := CurrentMacro <> nil;
-                  MacroKey := 0;
-                end;
-              ClearEvent(Event);
+            MacroRecord := False;
+            ClearEvent(Event);
+            Exit;
             end;
+          CurrentMacro := KeyMacroses^.At(WW);
+          MacroPlaying := CurrentMacro <> nil;
+          MacroKey := 0;
+          end;
+        ClearEvent(Event);
+        end;
 
-          {AK155: Alt-Shift-F3 -> cmFileTextView}
-          {if (Event.KeyCode = kbAltF3) and
+      {AK155: Alt-Shift-F3 -> cmFileTextView}
+      {if (Event.KeyCode = kbAltF3) and
               (ShiftState and kbAltShift <> 0) and
               (ShiftState and (kbRightShift or kbLeftShift) <> 0) then}
-          if Event.KeyCode = kbAltShiftF3 then{Cat}
-            begin
-              Event.What := evCommand;
-              Event.Command := cmFileTextView;
-              exit;
-            end;
-          {/AK155}
-          {if (Event.KeyCode = kbAlt0) and (ShiftState and 3 <> 0) then}
-          if Event.KeyCode = kbAltShift0 then{Cat}
-            begin
-              Event.What := evCommand;
-              Event.Command := cmListOfDirs;
-              exit;
-            end;
-          if MsgActive then
-            if Event.KeyCode = kbLeft then
-              Event.KeyCode := kbShiftTab
-            else if Event.KeyCode = kbRight then
-              Event.KeyCode := kbTab;
-          if (Event.What = evKeyDown) then
-            begin
-              if MacroRecord and (CurrentMacro <> nil) then
-                CurrentMacro^.PutKey(Event.KeyCode);
-              if (StatusLine <> nil) and not SkyVisible then
-                StatusLine^.HandleEvent(Event);
-            end;
+      if Event.KeyCode = kbAltShiftF3 then
+        {Cat}
+        begin
+        Event.What := evCommand;
+        Event.Command := cmFileTextView;
+        Exit;
         end;
-    end {case};
-    case Event.What of
-      evCommand:
-        case Event.Command of
-          cmTree,
-          cmGetTeam,
-          cmHelp,
-          cmClearData,
-          cmSearchAdvance,
-          cmAdvancePortSetup,
-          cmNavyLinkSetup,
-          cmQuit:
-            HandleCommand(Event);
-          {Cat: проверяем, не пора ли запускать плагины - EventCatcher-ы}
-          {$IFDEF PLUGIN}
-          else
-            CatchersHandleCommand(Event.Command);
-          {$ENDIF}
-          {/Cat}
-        end {case};
-    end {case};
+      {/AK155}
+      {if (Event.KeyCode = kbAlt0) and (ShiftState and 3 <> 0) then}
+      if Event.KeyCode = kbAltShift0 then
+        {Cat}
+        begin
+        Event.What := evCommand;
+        Event.Command := cmListOfDirs;
+        Exit;
+        end;
+      if MsgActive then
+        if Event.KeyCode = kbLeft then
+          Event.KeyCode := kbShiftTab
+        else if Event.KeyCode = kbRight then
+          Event.KeyCode := kbTab;
+      if  (Event.What = evKeyDown) then
+        begin
+        if MacroRecord and (CurrentMacro <> nil) then
+          CurrentMacro^.PutKey(Event.KeyCode);
+        if  (StatusLine <> nil) and not SkyVisible then
+          StatusLine^.HandleEvent(Event);
+        end;
+      end;
+  end {case};
+  case Event.What of
+    evCommand:
+      case Event.Command of
+        cmTree,
+        cmGetTeam,
+        cmHelp,
+        cmClearData,
+        cmSearchAdvance,
+        cmAdvancePortSetup,
+        cmNavyLinkSetup,
+        cmQuit:
+          HandleCommand(Event);
+        {Cat: проверяем, не пора ли запускать плагины - EventCatcher-ы}
+        {$IFDEF PLUGIN}
+        else {case}
+          CatchersHandleCommand(Event.Command);
+        {$ENDIF}
+        {/Cat}
+      end {case};
+  end {case};
 
-end { MyApp.GetEvent };
+  end { MyApp.GetEvent };
 
 var
   L_Tmr: TEventTimer;
@@ -272,11 +275,11 @@ procedure MyApp.Idle;
 
   procedure L_On;
     begin
-      xTime.NewTimer(L_Tmr, 2)
+    xTime.NewTimer(L_Tmr, 2)
     end;
   procedure NLS;
     begin
-      xTime.NewTimer(LSliceTimer, 3)
+    xTime.NewTimer(LSliceTimer, 3)
     end;
 
   var
@@ -284,101 +287,102 @@ procedure MyApp.Idle;
 
   begin
 
-    if not FullSpeed then
-      TinySlice;
+  if not FullSpeed then
+    TinySlice;
 
-    {  Put IdleEvt after IdleClick Expired  }
-    with IdleEvt do
-      if What <> evNothing then
-        if xTime.TimerExpired(IdleClick) then
-          begin
-            PutEvent(IdleEvt);
-            if What = evCommand then
-              begin
-                What := evBroadcast;
-                PutEvent(IdleEvt);
-              end;
-            ClearEvent(IdleEvt);
-          end;
-
-    if not SkyVisible then
-      begin
-        TApplication.Idle;
-      end;
-    {Cat}
-    if DnIni.AutoRefreshPanels
-      and xTime.TimerExpired(NotifyTmr)
-    then{JO}
-      begin
-        NotifyAsk(NewNotify);
-        if (NewNotify <> OldNotify) and (OldNotify <> '') then
-          {$IFDEF OS2}
-          FileChanged(OldNotify);
-          {$ELSE}
-          RereadDirectory(OldNotify);
-        {$ENDIF}
-        OldNotify := NewNotify;
-        xTime.NewTimerSecs(NotifyTmr, 1); {JO}
-      end;
-    {/Cat}
-
-    UpdateAll(True);
-
-    if CtrlWas then
-      if ShiftState and kbCtrlShift = 0 then
+  {  Put IdleEvt after IdleClick Expired  }
+  with IdleEvt do
+    if What <> evNothing then
+      if xTime.TimerExpired(IdleClick) then
         begin
-          CtrlWas := False;
-          {if DelSpaces(CmdLine.Str) = '' then}
-          Message(@Self, evCommand, cmTouchFile, nil);
+        PutEvent(IdleEvt);
+        if What = evCommand then
+          begin
+          What := evBroadcast;
+          PutEvent(IdleEvt);
+          end;
+        ClearEvent(IdleEvt);
         end;
 
-    IdleWas := True;
+  if not SkyVisible then
+    begin
+    TApplication.Idle;
+    end;
+  {Cat}
+  if DnIni.AutoRefreshPanels
+    and xTime.TimerExpired(NotifyTmr)
+  then
+    {JO}
+    begin
+    NotifyAsk(NewNotify);
+    if  (NewNotify <> OldNotify) and (OldNotify <> '') then
+      {$IFDEF OS2}
+      FileChanged(OldNotify);
+      {$ELSE}
+      RereadDirectory(OldNotify);
+    {$ENDIF}
+    OldNotify := NewNotify;
+    xTime.NewTimerSecs(NotifyTmr, 1); {JO}
+    end;
+  {/Cat}
 
-end { MyApp.Idle };
+  UpdateAll(True);
+
+  if CtrlWas then
+    if ShiftState and kbCtrlShift = 0 then
+      begin
+      CtrlWas := False;
+      {if DelSpaces(CmdLine.Str) = '' then}
+      Message(@Self, evCommand, cmTouchFile, nil);
+      end;
+
+  IdleWas := True;
+
+  end { MyApp.Idle };
 
 procedure MyApp.HandleEvent;
   var
-    s: word;
+    s: Word;
 
   procedure UpView(P: PView);
     begin
-      P^.MakeFirst;
-      Clock^.MakeFirst;
+    P^.MakeFirst;
+    Clock^.MakeFirst;
     end;
 
   begin
-    if Event.What = evMouseDown
+  if Event.What = evMouseDown
+  then
+    if  (Event.Where.Y = 0) and (Event.Buttons and mbLeftButton <> 0)
     then
-      if (Event.Where.Y = 0) and (Event.Buttons and mbLeftButton <> 0)
-      then
-        MenuBar^.HandleEvent(Event);
-    if Event.What <> evNothing then
-      inherited HandleEvent(Event);
-    case Event.What of
-      evCommand:
-        case Event.Command of
-          cmUpdateConfig:
-            begin
-              UpdateConfig;
-              WriteConfig;
-            end;
-          cmMenuOn:
-            if (Event.InfoPtr = MenuBar) then
-              UpView(MenuBar);
-          cmMenuOff:
-            if (Event.InfoPtr = MenuBar) then
-              UpView(Desktop);
-          {$IFNDEF PLUGIN}
-          cmEnvEdit:
-            EditDOSEnvironment(Environment);
-          {$ELSE}
-          cmEnvEdit:
-            EditDOSEnvironment(Environment);
-          {$ENDIF}
-          else
-            HandleCommand(Event);
-        end {case};
-    end {case};
+      MenuBar^.HandleEvent(Event);
+  if Event.What <> evNothing then
+    inherited HandleEvent(Event);
+  case Event.What of
+    evCommand:
+      case Event.Command of
+        cmUpdateConfig:
+          begin
+          UpdateConfig;
+          WriteConfig;
+          end;
+        cmMenuOn:
+          if  (Event.InfoPtr = MenuBar) then
+            UpView(MenuBar);
+        cmMenuOff:
+          if  (Event.InfoPtr = MenuBar) then
+            UpView(Desktop);
+        {$IFNDEF PLUGIN}
+        cmEnvEdit:
+          EditDOSEnvironment(Environment);
+        {$ELSE}
+        cmEnvEdit:
+          EditDOSEnvironment(Environment);
+        {$ENDIF}
+        else {case}
+          HandleCommand(Event);
+      end {case};
+  end {case};
   end { MyApp.HandleEvent };
 
 end.

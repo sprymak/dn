@@ -45,11 +45,11 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 
-CursorHidden: boolean = True;
+CursorHidden: Boolean = True;
 
-procedure ShowBuffer(BufOfs, len: word);
+procedure ShowBuffer(BufOfs, Len: Word);
   begin
-    asm
+  asm
                 push    esi
                 push    edi
                 mov     esi,ScreenBuffer
@@ -94,22 +94,23 @@ procedure ShowBuffer(BufOfs, len: word);
                 mov     Len,eax
                 pop     edi
                 pop     esi
-  end
-      ;
-    if len <> 0 then
-      SysTvShowBuf(BufOfs, len);
   end;
+  if Len <> 0 then
+    SysTvShowBuf(BufOfs, Len);
+  end { ShowBuffer };
 
 { Convert color into attribute                          }
 { In    AL = Color                                      }
 { Out   AL = Attribute                                  }
 
-procedure MapColor; assembler; {&USES ebx} {&FRAME-}
+procedure MapColor;
+  assembler; {&USES ebx}
+  {&FRAME-}
   const
     Self = 8;
     vmtHeaderSize = 8;
     TView_GetPalette = vmtHeaderSize+$30;
-asm
+    asm
                 test    al,al
                 jz      @@3
                 mov     ecx,[ebp].Self
@@ -136,15 +137,15 @@ asm
               @@3:
                 mov     al,ErrorAttr
               @@4:
-end
-  ;
+end;
 
-{ Convert color pair into attribute pair                }
-{ In    AX = Color pair                                 }
-{ Out   AX = Attribute pair                             }
+    { Convert color pair into attribute pair                }
+    { In    AX = Color pair                                 }
+    { Out   AX = Attribute pair                             }
 
-procedure MapCPair; {&USES None} {&FRAME-}
-asm
+  procedure MapCPair; {&USES None}
+    {&FRAME-}
+  asm
                 test    ah,ah
                 jz      @@1
                 xchg    al,ah
@@ -152,22 +153,23 @@ asm
                 xchg    al,ah
               @@1:
                 Call    MapColor
-end
-  ;
+end;
 
-{ Write to view                                         }
-{ In    eax   = Y coordinate                            }
-{       ebx   = X coordinate                            }
-{       ecx   = Count                                   }
-{       edi   = Buffer Pointer                          }
+  { Write to view                                         }
+  { In    eax   = Y coordinate                            }
+  {       ebx   = X coordinate                            }
+  {       ecx   = Count                                   }
+  {       edi   = Buffer Pointer                          }
 
-procedure WriteView; assembler; {&USES None} {&FRAME-}
-  const
-    Self = 8;
-    Target = -4;
-    Buffer = -8;
-    BufOfs = -12;
-asm
+  procedure WriteView;
+    assembler; {&USES None}
+    {&FRAME-}
+    const
+      Self = 8;
+      Target = -4;
+      Buffer = -8;
+      BufOfs = -12;
+      asm
                 mov     [ebp].BufOfs,ebx
                 mov     [ebp].Buffer[0],edi
                 add     ecx,ebx
@@ -392,14 +394,14 @@ asm
                 pop     ecx
                 pop     edi
                 ret
-end
-  ;
+end;
 
-function TView.Exposed: boolean; assembler; {&USES ebx,esi,edi}
-    {&FRAME+}
-  var
-    Target: Pointer;
-asm
+    function TView.Exposed: Boolean;
+      assembler; {&USES ebx,esi,edi}
+      {&FRAME+}
+      var
+        Target: Pointer;
+        asm
                 mov     edi,Self
                 test    [edi].TView.State,sfExposed
                 je      @@2
@@ -506,18 +508,18 @@ asm
                 jc      @@20
                 retn
               @@30:
-end
-  ;
+end;
 
-function TView.GetColor(Color: word): word; {&USES None} {&FRAME+}
-asm
+      function TView.GetColor(Color: Word): Word; {&USES None}
+        {&FRAME+}
+      asm
                 mov     eax,Color
                 Call    MapCPair
-end
-  ;
+end;
 
-procedure TView.ResetCursor; {&USES esi,edi} {&FRAME-}
-asm
+      procedure TView.ResetCursor; {&USES esi,edi}
+        {&FRAME-}
+      asm
                 mov     edi,Self
                 xor     eax,eax
                 mov     ax,[edi].TView.State
@@ -594,16 +596,16 @@ asm
                 push    ecx                     // [2]:Integer = Y2
                 push    eax                     // [3]:Boolean = Show
                 Call    SysTVSetCurType
-end
-  ;
+end;
 
-procedure TView.WriteBuf(X, Y, W, H: integer; var Buf); assembler;
-    {&USES ebx,esi,edi} {&FRAME+}
-  var
-    Target: Pointer; {Variables used by WriteView}
-    Buffer: Pointer;
-    Offset: word;
-asm
+      procedure TView.WriteBuf(X, Y, W, H: Integer; var Buf);
+        assembler; {&USES ebx,esi,edi}
+        {&FRAME+}
+        var
+          Target: Pointer; {Variables used by WriteView}
+          Buffer: Pointer;
+          Offset: Word;
+          asm
                 cmp     H,0
                 jle     @@2
               @@1:
@@ -619,16 +621,17 @@ asm
                 dec     H
                 jnz     @@1
               @@2:
-end
-  ;
+end;
 
-procedure TView.WriteChar(X, Y: integer; C: Char; Color: byte;
-  Count: integer); assembler; {&USES ebx,esi,edi} {&FRAME+}
-  var
-    Target: Pointer; {Variables used by WriteView}
-    Buffer: Pointer;
-    Offset: word;
-asm
+        procedure TView.WriteChar(X, Y: Integer; C: Char; Color: Byte;
+            Count: Integer);
+          assembler; {&USES ebx,esi,edi}
+          {&FRAME+}
+          var
+            Target: Pointer; {Variables used by WriteView}
+            Buffer: Pointer;
+            Offset: Word;
+            asm
                 mov     al,Color
                 Call    MapColor
                 mov     ah,al
@@ -662,16 +665,16 @@ asm
                 pop     eax
                 add     esp,eax
               @@2:
-end
-  ;
+end;
 
-procedure TView.WriteLine(X, Y, W, H: integer; var Buf); assembler;
-    {&USES ebx,esi,edi} {&FRAME+}
-  var
-    Target: Pointer; {Variables used by WriteView}
-    Buffer: Pointer;
-    Offset: word;
-asm
+          procedure TView.WriteLine(X, Y, W, H: Integer; var Buf);
+            assembler; {&USES ebx,esi,edi}
+            {&FRAME+}
+            var
+              Target: Pointer; {Variables used by WriteView}
+              Buffer: Pointer;
+              Offset: Word;
+              asm
                 cmp     H,0
                 jle     @@2
               @@1:
@@ -684,17 +687,18 @@ asm
                 dec     H
                 jne     @@1
               @@2:
-end
-  ;
+end;
 
 
-procedure TView.WriteStr(X, Y: integer; Str: String; Color: byte);
-    assembler; {&USES ebx,esi,edi} {&FRAME+}
-  var
-    Target: Pointer; {Variables used by WriteView}
-    Buffer: Pointer;
-    Offset: word;
-asm
+            procedure TView.WriteStr(X, Y: Integer; Str: String;
+                 Color: Byte);
+              assembler; {&USES ebx,esi,edi}
+              {&FRAME+}
+              var
+                Target: Pointer; {Variables used by WriteView}
+                Buffer: Pointer;
+                Offset: Word;
+                asm
                 mov     al,Color
                 Call    MapColor
                 mov     ah,al
@@ -722,6 +726,6 @@ asm
                 pop     eax
                 add     esp,eax
               @@2:
-end
-  ;
+end;
 
+                

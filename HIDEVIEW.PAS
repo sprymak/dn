@@ -51,13 +51,14 @@ unit HideView;
 interface
 
 uses
-  Menus, Objects, Views, Drivers;
+  Menus, Objects, Views, Drivers
+  ;
 
 type
   PHideView = ^THideView;
   THideView = object(TView)
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
-    OldSizeX: integer;
+    OldSizeX: Integer;
     procedure HideView; virtual;
     procedure ShowView; virtual;
     end;
@@ -65,20 +66,21 @@ type
 implementation
 
 uses
-  DNApp, Dialogs, advance, advance1, advance2, advance3, Commands;
+  DNApp, Dialogs, Advance, Advance1, Advance2, Advance3, Commands
+  ;
 
 procedure THideView.HideView;
   begin
-    OldSizeX := Size.X;
-    GrowTo(0, Size.Y);
-    EventMask := 0;
-    TView.Hide;
+  OldSizeX := Size.X;
+  GrowTo(0, Size.Y);
+  EventMask := 0;
+  TView.Hide;
   end;
 
 procedure THideView.ShowView;
   begin
-    EventMask := $FFFF;
-    TView.Show;
+  EventMask := $FFFF;
+  TView.Show;
   end;
 
 end.

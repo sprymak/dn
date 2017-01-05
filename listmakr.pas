@@ -50,18 +50,19 @@ unit ListMakr;
 interface
 
 uses
-  Objects, Collect, ObjType;
+  Objects, Collect, ObjType
+  ;
 
 type
   { TStrListMaker object }
 
   PStrListMaker = ^TStrListMaker;
   TStrListMaker = object(TObject)
-    Constructor Init(AStrSize, AIndexSize: AWord);
+    constructor Init(AStrSize, AIndexSize: AWord);
     destructor Done; virtual;
-    procedure Put(Key: AWord; s: String);
-    procedure Store(var s: TStream);
-    private
+    procedure Put(Key: AWord; S: String);
+    procedure Store(var S: TStream);
+  private
     StrPos: AWord;
     StrSize: AWord;
     Strings: PByteArray;
@@ -74,63 +75,63 @@ type
 
 const
   RStrListMaker: TStreamRec = (
-  ObjType: otStrListMaker;
-  VmtLink: (TypeOf(TStrListMaker));
-  Load: nil;
-  Store: @TStrListMaker.Store);
+    ObjType: otStrListMaker;
+    VmtLink: (TypeOf(TStrListMaker));
+    Load: nil;
+    Store: @TStrListMaker.Store);
 
 implementation
 
 { TStrListMaker }
 
-Constructor TStrListMaker.Init(AStrSize, AIndexSize: AWord);
+constructor TStrListMaker.Init(AStrSize, AIndexSize: AWord);
   begin
-    inherited Init;
-    StrSize := AStrSize;
-    IndexSize := AIndexSize;
-    GetMem(Strings, AStrSize);
-    GetMem(Index, AIndexSize*SizeOf(TStrIndexRec));
+  inherited Init;
+  StrSize := AStrSize;
+  IndexSize := AIndexSize;
+  GetMem(Strings, AStrSize);
+  GetMem(Index, AIndexSize*SizeOf(TStrIndexRec));
   end;
 
 destructor TStrListMaker.Done;
   begin
-    FreeMem(Index, IndexSize*SizeOf(TStrIndexRec));
-    FreeMem(Strings, StrSize);
+  FreeMem(Index, IndexSize*SizeOf(TStrIndexRec));
+  FreeMem(Strings, StrSize);
   end;
 
 procedure TStrListMaker.CloseCurrent;
   begin
-    if Cur.Count <> 0 then
-      begin
-        Index^[IndexPos] := Cur;
-        Inc(IndexPos);
-        Cur.Count := 0;
-      end;
+  if Cur.Count <> 0 then
+    begin
+    Index^[IndexPos] := Cur;
+    Inc(IndexPos);
+    Cur.Count := 0;
+    end;
   end;
 
 {Cat: переделал для совместимости с AnsiString}
-procedure TStrListMaker.Put(Key: AWord; s: String);
+procedure TStrListMaker.Put(Key: AWord; S: String);
   begin
-    if (Cur.Count = 16) or (Key <> Cur.Key+Cur.Count) then
-        CloseCurrent;
-    if Cur.Count = 0 then
-      begin
-        Cur.Key := Key;
-        Cur.Offset := StrPos;
-      end;
-    Inc(Cur.Count);
-    Move(s, Strings^[StrPos], Length(s)+1);
-    Inc(StrPos, Length(s)+1);
+  if  (Cur.Count = 16) or (Key <> Cur.Key+Cur.Count) then
+    CloseCurrent;
+  if Cur.Count = 0 then
+    begin
+    Cur.Key := Key;
+    Cur.Offset := StrPos;
+    end;
+  Inc(Cur.Count);
+  Move(S, Strings^[StrPos], Length(S)+1);
+  Inc(StrPos, Length(S)+1);
   end;
 {/Cat}
 
-procedure TStrListMaker.Store(var s: TStream);
+procedure TStrListMaker.Store(var S: TStream);
   begin
-    CloseCurrent;
-    s.Write(StrPos, SizeOf(StrPos));
-    s.Write(Strings^, StrPos);
-    s.Write(IndexPos, SizeOf(IndexPos));
-    s.Write(Index^, IndexPos*SizeOf(TStrIndexRec));
+  CloseCurrent;
+  S.Write(StrPos, SizeOf(StrPos));
+  S.Write(Strings^, StrPos);
+  S.Write(IndexPos, SizeOf(IndexPos));
+  S.Write(Index^, IndexPos*SizeOf(TStrIndexRec));
   end;
 
 end.

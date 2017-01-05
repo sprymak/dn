@@ -45,115 +45,110 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
-unit arc_arc; {ARC}
+unit arc_ARC; {ARC}
 
 interface
 
 uses
-  Archiver, advance, advance1, Objects;
+  Archiver, Advance, Advance1, Objects
+  ;
 
 type
   PARCArchive = ^TARCArchive;
   TARCArchive = object(TARJArchive)
-    Constructor Init;
+    constructor Init;
     procedure GetFile; virtual;
-    function GetID: byte; virtual;
+    function GetID: Byte; virtual;
     function GetSign: TStr4; virtual;
     end;
 
 type
   ARCHdr = record
-    Mark: byte;
-    Version: byte;
+    Mark: Byte;
+    Version: Byte;
     Name: array[1..13] of Char;
-    PackedSize: longInt;
-    Date: longInt;
+    PackedSize: LongInt;
+    Date: LongInt;
     CRC: AWord;
-    OriginSize: longInt;
+    OriginSize: LongInt;
     end;
 
 implementation
 
 { ----------------------------- ARC ------------------------------------}
 
-Constructor TARCArchive.Init;
+constructor TARCArchive.Init;
   var
     Sign: TStr5;
-    Q: String;
+    q: String;
   begin
-    Sign := GetSign;
-    SetLength(Sign, Length(Sign)-1);
-    Sign := Sign+#0;
-    FreeStr := SourceDir+DNARC;
-    TObject.Init;
-    Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,
-      'PAK.EXE'));
-    UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,
-      'PAK.EXE'));
-    Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'E'));
-    ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,
-      'E /WA'));
-    Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'A'));
-    Move := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove, 'A /M'));
-    Delete := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete, 'D'));
-    Garble := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble, '/G'));
-    Test := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest, 'T'));
-    IncludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PIncludePaths, ''));
-    ExcludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PExcludePaths, ''));
-    ForceMode := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode, ''));
-    RecoveryRec := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec, ''
-      ));
-    SelfExtract := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,
-      '/EXE'));
-    Solid := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid, ''));
-    RecurseSubDirs := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PRecurseSubDirs, '/I'));
-    SetPathInside := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PSetPathInside, ''));
-    StoreCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PStoreCompression, ''));
-    FastestCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PFastestCompression, '/C'));
-    FastCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PFastCompression, '/S'));
-    NormalCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PNormalCompression, '/ZS /BUGS'));
-    GoodCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PGoodCompression, '/CR'));
-    UltraCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PUltraCompression, '/O'));
-    ComprListChar := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PComprListChar, '@'));
-    ExtrListChar := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PExtrListChar, '@'));
+  Sign := GetSign;
+  SetLength(Sign, Length(Sign)-1);
+  Sign := Sign+#0;
+  FreeStr := SourceDir+DNARC;
+  TObject.Init;
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'PAK.EXE'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'PAK.EXE'));
+  Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'E'));
+  ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, 'E /WA'));
+  Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'A'));
+  Move := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove, 'A /M'));
+  Delete := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete, 'D'));
+  Garble := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble, '/G'));
+  Test := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest, 'T'));
+  IncludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths, ''));
+  ExcludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths, ''));
+  ForceMode := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode, ''));
+  RecoveryRec := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec, ''));
+  SelfExtract := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,
+         '/EXE'));
+  Solid := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid, ''));
+  RecurseSubDirs := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PRecurseSubDirs, '/I'));
+  SetPathInside := NewStr(GetVal(@Sign[1], @FreeStr[1], PSetPathInside,
+         ''));
+  StoreCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PStoreCompression, ''));
+  FastestCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PFastestCompression, '/C'));
+  FastCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PFastCompression, '/S'));
+  NormalCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PNormalCompression, '/ZS /BUGS'));
+  GoodCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PGoodCompression, '/CR'));
+  UltraCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PUltraCompression, '/O'));
+  ComprListChar := NewStr(GetVal(@Sign[1], @FreeStr[1], PComprListChar,
+         '@'));
+  ExtrListChar := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtrListChar,
+       '@'));
 
-    Q := GetVal(@Sign[1], @FreeStr[1], PAllVersion, '0');
-    AllVersion := Q <> '0';
-    Q := GetVal(@Sign[1], @FreeStr[1], PPutDirs, '0');
-    PutDirs := Q <> '0';
-    {$IFDEF OS_DOS}
-    Q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
-    Swap := Q <> '0';
-    {$ELSE}
-    Q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '1');
-    ShortCmdLine := Q <> '0';
-    {$ENDIF}
-    {$IFNDEF OS2}
-    Q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
-    UseLFN := Q <> '0';
-    {$ENDIF}
+  q := GetVal(@Sign[1], @FreeStr[1], PAllVersion, '0');
+  AllVersion := q <> '0';
+  q := GetVal(@Sign[1], @FreeStr[1], PPutDirs, '0');
+  PutDirs := q <> '0';
+  {$IFDEF OS_DOS}
+  q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
+  Swap := q <> '0';
+  {$ELSE}
+  q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '1');
+  ShortCmdLine := q <> '0';
+  {$ENDIF}
+  {$IFNDEF OS2}
+  q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
+  UseLFN := q <> '0';
+  {$ENDIF}
   end { TARCArchive.Init };
 
 function TARCArchive.GetID;
   begin
-    GetID := arcARC;
+  GetID := arcARC;
   end;
 
 function TARCArchive.GetSign;
   begin
-    GetSign := sigARC;
+  GetSign := sigARC;
   end;
 
 procedure TARCArchive.GetFile;
@@ -161,34 +156,33 @@ procedure TARCArchive.GetFile;
     i: AWord;
     P: ARCHdr;
   begin
-    ArcFile^.Read(P, 2);
-    if (P.Mark = $1a {^Z}) and (P.Version <> 0) and (ArcFile^.Status =
-        stOK)
-    then
-      ArcFile^.Read(P.Name, SizeOf(P)-2);
-    if (P.Version = 0) then
-      begin
-        FileInfo.Last := 1;
-        exit;
-      end;
-    if (ArcFile^.Status <> stOK) then
-      begin
-        FileInfo.Last := 2;
-        exit;
-      end;
-    i := 1;
-    FileInfo.FName := '';
-    while (i < 14) and (P.Name[i] <> #0) do
-      begin
-        FileInfo.FName := FileInfo.FName+P.Name[i];
-        Inc(i);
-      end;
-    FileInfo.Last := 0;
-    FileInfo.Attr := 0;
-    FileInfo.USize := P.OriginSize;
-    FileInfo.PSize := P.PackedSize;
-    FileInfo.Date := (P.Date shr 16) or (P.Date shl 16);
-    ArcFile^.Seek(ArcFile^.GetPos+P.PackedSize);
+  ArcFile^.Read(P, 2);
+  if  (P.Mark = $1a {^Z}) and (P.Version <> 0) and (ArcFile^.Status = stOK)
+  then
+    ArcFile^.Read(P.Name, SizeOf(P)-2);
+  if  (P.Version = 0) then
+    begin
+    FileInfo.Last := 1;
+    Exit;
+    end;
+  if  (ArcFile^.Status <> stOK) then
+    begin
+    FileInfo.Last := 2;
+    Exit;
+    end;
+  i := 1;
+  FileInfo.FName := '';
+  while (i < 14) and (P.Name[i] <> #0) do
+    begin
+    FileInfo.FName := FileInfo.FName+P.Name[i];
+    Inc(i);
+    end;
+  FileInfo.Last := 0;
+  FileInfo.Attr := 0;
+  FileInfo.USize := P.OriginSize;
+  FileInfo.PSize := P.PackedSize;
+  FileInfo.Date := (P.Date shr 16) or (P.Date shl 16);
+  ArcFile^.Seek(ArcFile^.GetPos+P.PackedSize);
   end { TARCArchive.GetFile };
 
 end.

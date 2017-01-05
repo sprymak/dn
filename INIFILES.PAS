@@ -52,7 +52,8 @@ IniFiles;
 interface
 
 uses
-  Objects, Collect;
+  Objects, Collect
+  ;
 
 type
   { Collection of strings like "video=vesa.bgi"  }
@@ -65,26 +66,26 @@ type
   PIniSection = ^TIniSection;
   TIniSection = object(TCollection)
     TheName: PString;
-    Constructor Init(const AName: String);
+    constructor Init(const AName: String);
     destructor Done; virtual;
-    function GetIndexOf(Key: String): integer;
+    function GetIndexOf(Key: String): Integer;
     function Get(const Key: String): String;
-    procedure Put(const Key, Value: String; var Modified: boolean);
-    function GetKeyAt(const Index: integer): String;
-    function GetValueAt(const Index: integer): String;
+    procedure Put(const Key, Value: String; var Modified: Boolean);
+    function GetKeyAt(const Index: Integer): String;
+    function GetValueAt(const Index: Integer): String;
     function Name: String;
     procedure FreeItem(Item: Pointer); virtual;
     procedure Insert(Item: Pointer); virtual;
-    Constructor Load(var s: TStream);
-    procedure Store(var s: TStream); virtual;
+    constructor Load(var S: TStream);
+    procedure Store(var S: TStream); virtual;
     end;
 
   { Collection of TIniSections }
   PIniFile = ^TIniFile;
   TIniFile = object(TCollection)
-    Modified: boolean;
+    Modified: Boolean;
     Name: PString;
-    Constructor Init(FileName: String; var AStatus: integer);
+    constructor Init(FileName: String; var AStatus: Integer);
     destructor Done; virtual;
     function Get(const Section, Key: String): String;
     procedure Put(const Section, Key, Value: String);
@@ -94,147 +95,146 @@ type
 implementation
 
 uses
-  advance, advance1, advance2, advance3, Commands {Cat};
+  Advance, Advance1, Advance2, Advance3, Commands {Cat}
+  ;
 
 const
   CrLf: array[0..1] of Char = (#13, #10);
 
 function PStr2Str(P: PString): String;
   begin
-    if P <> nil
-    then
-      PStr2Str := P^
-    else
-      PStr2Str := ''
+  if P <> nil
+  then
+    PStr2Str := P^
+  else
+    PStr2Str := ''
   end;
 
 function ReadString(var Stream: TStream): String;
   var
-    s: String;
+    S: String;
     C: Char;
   label
     Loop, Failure;
   begin
-    s := '';
+  S := '';
 Loop:
-    Stream.Read(C, 1);
-    if (C <> #13) and (Stream.Status = stOK) then
-      begin
-        s := s+C;
-        goto Loop;
-      end;
-    ReadString := s;
-    if Stream.Status <> stOK then
+  Stream.Read(C, 1);
+  if  (C <> #13) and (Stream.Status = stOK) then
+    begin
+    S := S+C;
+    goto Loop;
+    end;
+  ReadString := S;
+  if Stream.Status <> stOK then
 Failure:
-      begin
-        Stream.Reset;
-        exit;
-      end;
-    Stream.Read(C, 1);
-    if (C <> #10) or (Stream.Status <> stOK) then
-      begin
-        Stream.Reset;
-        Stream.Seek(Stream.GetPos-1);
-      end;
+    begin
+    Stream.Reset;
+    Exit;
+    end;
+  Stream.Read(C, 1);
+  if  (C <> #10) or (Stream.Status <> stOK) then
+    begin
+    Stream.Reset;
+    Stream.Seek(Stream.GetPos-1);
+    end;
   end { ReadString };
 
 {                                INI Section                                 }
 {----------------------------------------------------------------------------}
-Constructor TIniSection.Init;
+constructor TIniSection.Init;
   begin
-    inherited Init(5, 5);
-    TheName := NewStr(AName);
+  inherited Init(5, 5);
+  TheName := NewStr(AName);
   end;
 
-function RemoveLeadSpaces(const s: String): String;
+function RemoveLeadSpaces(const S: String): String;
   var
-    i: integer;
+    I: Integer;
   begin
-    i := 1;
-    while (i <= Length(s)) and (s[i] = ' ') do
-      Inc(i);
-    RemoveLeadSpaces := Copy(s, i, MaxStringLength);
+  I := 1;
+  while (I <= Length(S)) and (S[I] = ' ') do
+    Inc(I);
+  RemoveLeadSpaces := Copy(S, I, MaxStringLength);
   end;
 
-function TruncSpace(s: String): String;
+function TruncSpace(S: String): String;
   var
-    i: byte;
+    I: Byte;
   begin
-    i := Length(s);
-    while (i > 0) and (s[i] = ' ') do
-      Dec(i);
-    SetLength(s, i);
-    TruncSpace := s
+  I := Length(S);
+  while (I > 0) and (S[I] = ' ') do
+    Dec(I);
+  SetLength(S, I);
+  TruncSpace := S
   end;
 
-Constructor TIniSection.Load;
+constructor TIniSection.Load;
   var
-    Base, l: longInt;
+    Base, L: LongInt;
     Str: String;
-  function Simplify(s: String): String;
+  function Simplify(S: String): String;
     var
-      i: integer;
+      I: Integer;
     begin
-      i := Pos('=', s);
-      if i <> 0 then
-        begin
-          Simplify := RemoveLeadSpaces(TruncSpace(Copy(s, 1, i-1)))
-          +'='+RemoveLeadSpaces(TruncSpace(Copy(s, i+1,
-            MaxStringLength)));
-        end
-      else
-        Simplify := RemoveLeadSpaces(TruncSpace(s));
+    I := Pos('=', S);
+    if I <> 0 then
+      begin
+      Simplify := RemoveLeadSpaces(TruncSpace(Copy(S, 1, I-1)))
+        +'='+RemoveLeadSpaces(TruncSpace(Copy(S, I+1, MaxStringLength)));
+      end
+    else
+      Simplify := RemoveLeadSpaces(TruncSpace(S));
     end;
   label
     Loop, Skip;
-  begin { TIniSection.Load }
-    TCollection.Init(5, 5);
-    Base := s.GetPos;
-    Str := ReadString(s);
-    if (Str <> '') and (Str[1] = '[') and (Str[Length(Str)] = ']')
-    then
-      begin
-        TheName := NewStr(Copy(Str, 2, Length(Str)-2));
-      end
-    else
-      begin
-        TheName := nil;
-        s.Seek(Base);
-      end;
+  begin
+  TCollection.Init(5, 5);
+  Base := S.GetPos;
+  Str := ReadString(S);
+  if  (Str <> '') and (Str[1] = '[') and (Str[Length(Str)] = ']') then
+    begin
+    TheName := NewStr(Copy(Str, 2, Length(Str)-2));
+    end
+  else
+    begin
+    TheName := nil;
+    S.Seek(Base);
+    end;
 
 Loop:
-    Str := Simplify(ReadString(s));
-    if Str <> '' then
-      begin
-        Insert(NewStr(Str));
-        goto Loop;
-      end;
+  Str := Simplify(ReadString(S));
+  if Str <> '' then
+    begin
+    Insert(NewStr(Str));
+    goto Loop;
+    end;
 
 Skip:
-    l := s.GetPos;
-    Str := ReadString(s);
-    if Str <> ''
-    then
-      s.Seek(l)
-    else if s.GetPos <> l then
-      goto Skip;
+  L := S.GetPos;
+  Str := ReadString(S);
+  if Str <> ''
+  then
+    S.Seek(L)
+  else if S.GetPos <> L then
+    goto Skip;
 
-    if s.GetPos = Base then
-      begin
-        inherited Done;
-        Fail
-      end;
+  if S.GetPos = Base then
+    begin
+    inherited Done;
+    Fail
+    end;
   end { TIniSection.Load };
 
 procedure TIniSection.FreeItem;
   begin
-    DisposeStr(PString(Item));
+  DisposeStr(PString(Item));
   end;
 
 procedure TIniSection.Insert;
   begin
-    if Item <> nil then
-      inherited Insert(Item);
+  if Item <> nil then
+    inherited Insert(Item);
   end;
 
 procedure TIniSection.Store;
@@ -242,200 +242,200 @@ procedure TIniSection.Store;
     Str: String;
   procedure DoPutItem(P: PString);
     begin
-      Str := PStr2Str(P)+#13#10;
-      s.Write(Str[1], Length(Str));
+    Str := PStr2Str(P)+#13#10;
+    S.Write(Str[1], Length(Str));
     end;
   begin
-    Str := PStr2Str(TheName);
-    if Str <> '' then
-      begin
-        Str := '['+Str+']'+#13#10;
-        s.Write(Str[1], Length(Str));
-      end;
-    ForEach(@DoPutItem);
-    s.Write(CrLf, SizeOf(CrLf));
+  Str := PStr2Str(TheName);
+  if Str <> '' then
+    begin
+    Str := '['+Str+']'+#13#10;
+    S.Write(Str[1], Length(Str));
+    end;
+  ForEach(@DoPutItem);
+  S.Write(CrLf, SizeOf(CrLf));
   end;
 
 destructor TIniSection.Done;
   begin
-    inherited Done;
-    DisposeStr(TheName);
+  inherited Done;
+  DisposeStr(TheName);
   end;
 
 function TIniSection.Name;
   begin
-    Name := PStr2Str(TheName)
+  Name := PStr2Str(TheName)
   end;
 
 function TIniSection.GetIndexOf;
   var
     P: PString;
-    s: String;
-    i: integer;
-  function Search(P: PString): boolean;
+    S: String;
+    I: Integer;
+  function Search(P: PString): Boolean;
     var
-      s: String;
-      i: integer;
+      S: String;
+      I: Integer;
     begin
-      s := UpStrg(PStr2Str(P));
-      i := Pos(Key, s);
-      Search := (i = 1) and (s[Length(Key)+1] = '=');
+    S := UpStrg(PStr2Str(P));
+    I := Pos(Key, S);
+    Search := (I = 1) and (S[Length(Key)+1] = '=');
     end;
   begin
-    UpStr(Key);
-    GetIndexOf := IndexOf(FirstThat(@Search));
+  UpStr(Key);
+  GetIndexOf := IndexOf(FirstThat(@Search));
   end;
 
 function TIniSection.Get;
   var
-    i: integer;
-    s: String;
+    I: Integer;
+    S: String;
   begin
-    i := GetIndexOf(Key);
-    if i >= 0 then
+  I := GetIndexOf(Key);
+  if I >= 0 then
+    begin
+    S := PStr2Str(At(I));
+    I := Pos('=', S);
+    if I > 0 then
       begin
-        s := PStr2Str(At(i));
-        i := Pos('=', s);
-        if i > 0 then
-          begin
-            Get := Copy(s, i+1, MaxStringLength);
-            exit
-          end;
+      Get := Copy(S, I+1, MaxStringLength);
+      Exit
       end;
-    Get := ''
+    end;
+  Get := ''
   end;
 
 procedure TIniSection.Put;
   var
-    i: integer;
-    s: String;
+    I: Integer;
+    S: String;
     NewValue: String;
   begin
-    if Key = '' then
+  if Key = '' then
+    begin
+    Insert(NewStr(Value));
+    Exit;
+    end;
+  I := GetIndexOf(Key);
+  NewValue := Key+'='+Value;
+  if I >= 0 then
+    begin
+    S := PStr2Str(At(I));
+    if S <> NewValue then
       begin
-        Insert(NewStr(Value));
-        exit;
+      AtReplace(I, NewStr(NewValue));
+      Modified := True;
       end;
-    i := GetIndexOf(Key);
-    NewValue := Key+'='+Value;
-    if i >= 0 then
-      begin
-        s := PStr2Str(At(i));
-        if s <> NewValue then
-          begin
-            AtReplace(i, NewStr(NewValue));
-            Modified := True;
-          end;
-      end
-    else
-      begin
-        Insert(NewStr(NewValue));
-        Modified := True;
-      end;
+    end
+  else
+    begin
+    Insert(NewStr(NewValue));
+    Modified := True;
+    end;
   end { TIniSection.Put };
 
 function TIniSection.GetKeyAt;
   var
-    s: String;
-    i: integer;
+    S: String;
+    I: Integer;
   begin
-    s := PStr2Str(At(Index));
-    i := PosChar('=', s);
-    if i = 0
-    then
-      GetKeyAt := ''
-    else
-      GetKeyAt := TruncSpace(Copy(s, 1, i-1));
+  S := PStr2Str(At(Index));
+  I := PosChar('=', S);
+  if I = 0
+  then
+    GetKeyAt := ''
+  else
+    GetKeyAt := TruncSpace(Copy(S, 1, I-1));
   end;
 
 function TIniSection.GetValueAt;
   var
-    s: String;
-    i: integer;
+    S: String;
+    I: Integer;
   begin
-    s := PStr2Str(At(Index));
-    i := PosChar('=', s);
-    if i = 0
-    then
-      GetValueAt := ''
-    else
-      GetValueAt := RemoveLeadSpaces(Copy(s, i+1, MaxStringLength));
+  S := PStr2Str(At(Index));
+  I := PosChar('=', S);
+  if I = 0
+  then
+    GetValueAt := ''
+  else
+    GetValueAt := RemoveLeadSpaces(Copy(S, I+1, MaxStringLength));
   end;
 
 {                                  INI File                                  }
 {----------------------------------------------------------------------------}
-Constructor TIniFile.Init;
+constructor TIniFile.Init;
   var
-    t: TBufStream;
+    T: TBufStream;
     P: PIniSection;
   begin
-    inherited Init(5, 5);
-    Name := NewStr(FileName);
-    t.Init(FileName, stOpenRead, 512);
-    if t.Status = stOK then
-      repeat
-        P := New(PIniSection, Load(t));
-        if P <> nil
-        then
-          Insert(P);
-      until P = nil;
-    AStatus := t.Status;
-    t.Done;
+  inherited Init(5, 5);
+  Name := NewStr(FileName);
+  T.Init(FileName, stOpenRead, 512);
+  if T.Status = stOK then
+    repeat
+      P := New(PIniSection, Load(T));
+      if P <> nil
+      then
+        Insert(P);
+    until P = nil;
+  AStatus := T.Status;
+  T.Done;
   end;
 
 destructor TIniFile.Done;
   var
-    t: TBufStream;
+    T: TBufStream;
   procedure DoPutItem(P: PIniSection);
     begin
-      if P <> nil then
-        P^.Store(t);
+    if P <> nil then
+      P^.Store(T);
     end;
   begin
-    if Modified then
-      begin
-        t.Init(PStr2Str(Name), stCreate, 512);
-        ForEach(@DoPutItem);
-        t.Done;
-      end;
-    DisposeStr(Name);
-    inherited Done;
+  if Modified then
+    begin
+    T.Init(PStr2Str(Name), stCreate, 512);
+    ForEach(@DoPutItem);
+    T.Done;
+    end;
+  DisposeStr(Name);
+  inherited Done;
   end;
 
 function TIniFile.GetSection;
-  function Search(P: PIniSection): boolean;
+  function Search(P: PIniSection): Boolean;
     begin
-      Search := UpStrg(P^.Name) = Section
+    Search := UpStrg(P^.Name) = Section
     end;
   begin
-    UpStr(Section);
-    GetSection := FirstThat(@Search)
+  UpStr(Section);
+  GetSection := FirstThat(@Search)
   end;
 
 function TIniFile.Get;
   var
     P: PIniSection;
   begin
-    P := GetSection(Section);
-    if P <> nil
-    then
-      Get := P^.Get(Key)
-    else
-      Get := ''
+  P := GetSection(Section);
+  if P <> nil
+  then
+    Get := P^.Get(Key)
+  else
+    Get := ''
   end;
 
 procedure TIniFile.Put;
   var
     P: PIniSection;
   begin
-    P := GetSection(Section);
-    if P = nil then
-      begin
-        New(P, Init(Key));
-        Insert(P);
-        Modified := True;
-      end;
-    P^.Put(Key, Value, Modified);
+  P := GetSection(Section);
+  if P = nil then
+    begin
+    New(P, Init(Key));
+    Insert(P);
+    Modified := True;
+    end;
+  P^.Put(Key, Value, Modified);
   end;
 
 end.

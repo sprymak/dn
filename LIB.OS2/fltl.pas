@@ -13,51 +13,51 @@ const
   ageLastAccess = 3;
   ageAll = 4;
 
-function GetFileAge(s: String; AgeType: byte): longInt;
+function GetFileAge(S: String; AgeType: Byte): LongInt;
 {JO: возвращает время и дату файла или каталога по полному пути (S); }
 {    тип времени и даты задаётся в AgeType и может принимать         }
 {    значение трёх стандартных переменных  ageLastWrite,             }
 {    ageCreation и ageLastAccess                                     }
 
-function SetFileAge(s: String; Age: longInt; AgeType: byte): longInt;
+function SetFileAge(S: String; Age: LongInt; AgeType: Byte): LongInt;
 {JO: устанавливает время и дату файла или каталога по полному пути (S);}
 {    тип времени и даты задаётся в AgeType и может принимать           }
 {    значение трёх стандартных переменных  ageLastWrite,               }
 {    ageCreation и ageLastAccess                                       }
 
-function GetFileAges(s: String; var Age_LWr, Age_Cr, Age_LAc:
-    longInt): longInt;
+function GetFileAges(S: String; var Age_LWr, Age_Cr, Age_LAc: LongInt)
+  : LongInt;
 {JO: возвращает время и дату последней модификации (Age_LWr),                   }
 {    время и дату создания (Age_Cr) и время и дату последнего доступа (Age_LAc) }
 {    файла или каталога по полному пути (S), принимает значение кода ошибки     }
 
-function SetFileAges(s: String; Age_LWr, Age_Cr, Age_LAc: longInt):
-  longInt;
+function SetFileAges(S: String; Age_LWr, Age_Cr, Age_LAc: LongInt)
+  : LongInt;
 {JO: устанавливает время и дату последней модификации (Age_LWr),                }
 {    время и дату создания (Age_Cr) и время и дату последнего доступа (Age_LAc) }
 {    файла или каталога по полному пути (S), принимает значение кода ошибки     }
 
-function GetVolSer(DriveNum: longInt; var Serial: longInt; VolLab:
-    String): longInt;
-function SetVolume(DriveNum: longInt; VolLab: String): longInt;
-function GetBytesPerCluster(DriveNum: longInt): longInt;
+function GetVolSer(DriveNum: LongInt; var Serial: LongInt; VolLab: String)
+  : LongInt;
+function SetVolume(DriveNum: LongInt; VolLab: String): LongInt;
+function GetBytesPerCluster(DriveNum: LongInt): LongInt;
 
 procedure CopyEAs(FFromName, FToName: String);
 
-function GetEAString(const FileName, Name: String; var Value: String;
-    Silent: boolean): integer;
+function GetEAString(const Filename, Name: String; var Value: String;
+     Silent: Boolean): Integer;
 (*
 function SetEAString(const Filename, Name, Value: string): Integer;
 *)
-procedure SetEALongname(FileName: String);
+procedure SetEALongname(Filename: String);
 function GetDriveTypeString(Drive: Char): String; {AK155}
 
 implementation
 
 uses
   {SysUtils,}Os2Base, Strings {, Crt, Messages}
-  {для CopyEAs}, Collect, Messages, EAOper, advance1, Commands,
-    DNApp;
+  {для CopyEAs}, Collect, Messages, EAOper, Advance1, Commands, DNApp
+  ;
 
 (*
 function GetFileAge(S: String): longint;
@@ -66,381 +66,379 @@ function GetFileAge(S: String): longint;
  end;
 *)
 
-function GetFileAge(s: String; AgeType: byte): longInt;
+function GetFileAge(S: String; AgeType: Byte): LongInt;
   var
     fsts3ConfigInfo: FileStatus3;
-    ulBufSize: longInt;
-    rc: longInt;
+    ulBufSize: LongInt;
+    rc: LongInt;
     PS: PChar;
     PSArr: array[0..255] of Char;
   begin
-    ulBufSize := SizeOf(FileStatus3);
-    PS := PSArr;
-    PS := StrPCopy(PS, s);
-    rc := DosQueryPathInfo(
-    PS,
-    fil_Standard,
-    fsts3ConfigInfo,
-    ulBufSize);
+  ulBufSize := SizeOf(FileStatus3);
+  PS := PSArr;
+  PS := StrPCopy(PS, S);
+  rc := DosQueryPathInfo(
+      PS,
+      fil_Standard,
+      fsts3ConfigInfo,
+      ulBufSize);
 
-    if rc > 0 then
-      GetFileAge := 0
-    else
-      case AgeType of
-        ageLastWrite:
-          GetFileAge := (fsts3ConfigInfo.fdateLastWrite shl 16)+
-            fsts3ConfigInfo.ftimeLastWrite;
-        ageCreation:
-          GetFileAge := (fsts3ConfigInfo.fdateCreation shl 16)+
-            fsts3ConfigInfo.ftimeCreation;
-        ageLastAccess:
-          GetFileAge := (fsts3ConfigInfo.fdateLastAccess shl 16)+
-            fsts3ConfigInfo.ftimeLastAccess;
-        else
-          GetFileAge := 0;
-      end {case};
-  end { GetFileAge };
-
-function SetFileAge(s: String; Age: longInt; AgeType: byte): longInt;
-  var
-    fsts3ConfigInfo: FileStatus3;
-    ulBufSize: longInt;
-    rc: longInt;
-    PS: PChar;
-    PSArr: array[0..255] of Char;
-  begin
-    ulBufSize := SizeOf(FileStatus3);
-    PS := PSArr;
-    PS := StrPCopy(PS, s);
-    rc := DosQueryPathInfo(
-    PS,
-    fil_Standard,
-    fsts3ConfigInfo,
-    ulBufSize);
-
+  if rc > 0 then
+    GetFileAge := 0
+  else
     case AgeType of
       ageLastWrite:
-        begin
-          fsts3ConfigInfo.fdateLastWrite := Age shr 16;
-          fsts3ConfigInfo.ftimeLastWrite := Age and $FFFF;
-        end;
+        GetFileAge := (fsts3ConfigInfo.fdateLastWrite shl 16)
+          +fsts3ConfigInfo.ftimeLastWrite;
       ageCreation:
-        begin
-          fsts3ConfigInfo.fdateCreation := Age shr 16;
-          fsts3ConfigInfo.ftimeCreation := Age and $FFFF;
-        end;
+        GetFileAge := (fsts3ConfigInfo.fdateCreation shl 16)
+          +fsts3ConfigInfo.ftimeCreation;
       ageLastAccess:
-        begin
-          fsts3ConfigInfo.fdateLastAccess := Age shr 16;
-          fsts3ConfigInfo.ftimeLastAccess := Age and $FFFF;
-        end;
-      ageAll:
-        begin
-          fsts3ConfigInfo.fdateLastWrite := Age shr 16;
-          fsts3ConfigInfo.ftimeLastWrite := Age and $FFFF;
-          fsts3ConfigInfo.fdateCreation := Age shr 16;
-          fsts3ConfigInfo.ftimeCreation := Age and $FFFF;
-          fsts3ConfigInfo.fdateLastAccess := Age shr 16;
-          fsts3ConfigInfo.ftimeLastAccess := Age and $FFFF;
-        end;
-      else
-        begin
-          SetFileAge := 1;
-          exit;
-        end;
+        GetFileAge := (fsts3ConfigInfo.fdateLastAccess shl 16)
+          +fsts3ConfigInfo.ftimeLastAccess;
+      else {case}
+        GetFileAge := 0;
     end {case};
+  end { GetFileAge };
 
-    {ulBufSize := sizeof(FileStatus3);}
-    rc := DosSetPathInfo(
-    PS,
-    fil_Standard,
-    fsts3ConfigInfo,
-    ulBufSize,
-    0);
-    SetFileAge := rc;
-  end { SetFileAge };
-
-function GetFileAges(s: String; var Age_LWr, Age_Cr, Age_LAc:
-    longInt): longInt;
+function SetFileAge(S: String; Age: LongInt; AgeType: Byte): LongInt;
   var
     fsts3ConfigInfo: FileStatus3;
-    ulBufSize: longInt;
-    rc: longInt;
+    ulBufSize: LongInt;
+    rc: LongInt;
     PS: PChar;
     PSArr: array[0..255] of Char;
   begin
-    ulBufSize := SizeOf(FileStatus3);
-    PS := PSArr;
-    PS := StrPCopy(PS, s);
-    rc := DosQueryPathInfo(
-    PS,
-    fil_Standard,
-    fsts3ConfigInfo,
-    ulBufSize);
-    if rc > 0 then
+  ulBufSize := SizeOf(FileStatus3);
+  PS := PSArr;
+  PS := StrPCopy(PS, S);
+  rc := DosQueryPathInfo(
+      PS,
+      fil_Standard,
+      fsts3ConfigInfo,
+      ulBufSize);
+
+  case AgeType of
+    ageLastWrite:
       begin
-        Age_LWr := 0;
-        Age_Cr := 0;
-        Age_LAc := 0;
-      end
-    else
-      begin
-        Age_LWr := (fsts3ConfigInfo.fdateLastWrite shl 16)+
-          fsts3ConfigInfo.ftimeLastWrite;
-        Age_Cr := (fsts3ConfigInfo.fdateCreation shl 16)+
-          fsts3ConfigInfo.ftimeCreation;
-        Age_LAc := (fsts3ConfigInfo.fdateLastAccess shl 16)+
-          fsts3ConfigInfo.ftimeLastAccess;
+      fsts3ConfigInfo.fdateLastWrite := Age shr 16;
+      fsts3ConfigInfo.ftimeLastWrite := Age and $FFFF;
       end;
-    GetFileAges := rc;
+    ageCreation:
+      begin
+      fsts3ConfigInfo.fdateCreation := Age shr 16;
+      fsts3ConfigInfo.ftimeCreation := Age and $FFFF;
+      end;
+    ageLastAccess:
+      begin
+      fsts3ConfigInfo.fdateLastAccess := Age shr 16;
+      fsts3ConfigInfo.ftimeLastAccess := Age and $FFFF;
+      end;
+    ageAll:
+      begin
+      fsts3ConfigInfo.fdateLastWrite := Age shr 16;
+      fsts3ConfigInfo.ftimeLastWrite := Age and $FFFF;
+      fsts3ConfigInfo.fdateCreation := Age shr 16;
+      fsts3ConfigInfo.ftimeCreation := Age and $FFFF;
+      fsts3ConfigInfo.fdateLastAccess := Age shr 16;
+      fsts3ConfigInfo.ftimeLastAccess := Age and $FFFF;
+      end;
+    else {case}
+      begin
+      SetFileAge := 1;
+      Exit;
+      end;
+  end {case};
+
+  {ulBufSize := sizeof(FileStatus3);}
+  rc := DosSetPathInfo(
+      PS,
+      fil_Standard,
+      fsts3ConfigInfo,
+      ulBufSize,
+      0);
+  SetFileAge := rc;
+  end { SetFileAge };
+
+function GetFileAges(S: String; var Age_LWr, Age_Cr, Age_LAc: LongInt)
+  : LongInt;
+  var
+    fsts3ConfigInfo: FileStatus3;
+    ulBufSize: LongInt;
+    rc: LongInt;
+    PS: PChar;
+    PSArr: array[0..255] of Char;
+  begin
+  ulBufSize := SizeOf(FileStatus3);
+  PS := PSArr;
+  PS := StrPCopy(PS, S);
+  rc := DosQueryPathInfo(
+      PS,
+      fil_Standard,
+      fsts3ConfigInfo,
+      ulBufSize);
+  if rc > 0 then
+    begin
+    Age_LWr := 0;
+    Age_Cr := 0;
+    Age_LAc := 0;
+    end
+  else
+    begin
+    Age_LWr := (fsts3ConfigInfo.fdateLastWrite shl 16)
+      +fsts3ConfigInfo.ftimeLastWrite;
+    Age_Cr := (fsts3ConfigInfo.fdateCreation shl 16)
+      +fsts3ConfigInfo.ftimeCreation;
+    Age_LAc := (fsts3ConfigInfo.fdateLastAccess shl 16)
+      +fsts3ConfigInfo.ftimeLastAccess;
+    end;
+  GetFileAges := rc;
   end { GetFileAges };
 
 
-function SetFileAges(s: String; Age_LWr, Age_Cr, Age_LAc: longInt):
-    longInt;
+function SetFileAges(S: String; Age_LWr, Age_Cr, Age_LAc: LongInt)
+  : LongInt;
   var
     fsts3ConfigInfo: FileStatus3;
-    ulBufSize: longInt;
-    rc: longInt;
+    ulBufSize: LongInt;
+    rc: LongInt;
     PS: PChar;
     PSArr: array[0..255] of Char;
   begin
-    ulBufSize := SizeOf(FileStatus3);
-    PS := PSArr;
-    PS := StrPCopy(PS, s);
-    rc := DosQueryPathInfo(
-    PS,
-    fil_Standard,
-    fsts3ConfigInfo,
-    ulBufSize);
+  ulBufSize := SizeOf(FileStatus3);
+  PS := PSArr;
+  PS := StrPCopy(PS, S);
+  rc := DosQueryPathInfo(
+      PS,
+      fil_Standard,
+      fsts3ConfigInfo,
+      ulBufSize);
 
-    fsts3ConfigInfo.fdateLastWrite := Age_LWr shr 16;
-    fsts3ConfigInfo.ftimeLastWrite := Age_LWr and $FFFF;
-    fsts3ConfigInfo.fdateCreation := Age_Cr shr 16;
-    fsts3ConfigInfo.ftimeCreation := Age_Cr and $FFFF;
-    fsts3ConfigInfo.fdateLastAccess := Age_LAc shr 16;
-    fsts3ConfigInfo.ftimeLastAccess := Age_LAc and $FFFF;
+  fsts3ConfigInfo.fdateLastWrite := Age_LWr shr 16;
+  fsts3ConfigInfo.ftimeLastWrite := Age_LWr and $FFFF;
+  fsts3ConfigInfo.fdateCreation := Age_Cr shr 16;
+  fsts3ConfigInfo.ftimeCreation := Age_Cr and $FFFF;
+  fsts3ConfigInfo.fdateLastAccess := Age_LAc shr 16;
+  fsts3ConfigInfo.ftimeLastAccess := Age_LAc and $FFFF;
 
-    {ulBufSize := sizeof(FileStatus3);}
-    rc := DosSetPathInfo(
-    PS,
-    fil_Standard,
-    fsts3ConfigInfo,
-    ulBufSize,
-    0);
-    SetFileAges := rc;
+  {ulBufSize := sizeof(FileStatus3);}
+  rc := DosSetPathInfo(
+      PS,
+      fil_Standard,
+      fsts3ConfigInfo,
+      ulBufSize,
+      0);
+  SetFileAges := rc;
   end { SetFileAges };
 
 
-function GetVolSer(DriveNum: longInt; var Serial: longInt; VolLab:
-    String): longInt;
+function GetVolSer(DriveNum: LongInt; var Serial: LongInt; VolLab: String)
+  : LongInt;
   type
     fsInfoBuf = record
-      UlVolser: longInt {ULong}; // Volume serial number
+      ulVolser: LongInt {ULong}; // Volume serial number
       Vol: VolumeLabel; // Volume label
       end;
   var
     VolumeInfo: fsInfoBuf; // File system info buffer
-    rc: longInt {ApiRet};
+    rc: LongInt {ApiRet};
 
   begin
-    rc := DosQueryFSInfo(DriveNum, fsil_VolSer, VolumeInfo, SizeOf(
-      fsInfoBuf));
-    if rc = 0 then
-      begin
-        Serial := VolumeInfo.UlVolser;
-        VolLab := VolumeInfo.Vol;
-      end
-    else
-      begin
-        Serial := 0;
-        VolLab := '';
-      end;
-    GetVolSer := rc;
+  rc := DosQueryFSInfo(DriveNum, fsil_VolSer, VolumeInfo,
+         SizeOf(fsInfoBuf));
+  if rc = 0 then
+    begin
+    Serial := VolumeInfo.ulVolser;
+    VolLab := VolumeInfo.Vol;
+    end
+  else
+    begin
+    Serial := 0;
+    VolLab := '';
+    end;
+  GetVolSer := rc;
   end { GetVolSer };
 
-function SetVolume(DriveNum: longInt; VolLab: String): longInt;
+function SetVolume(DriveNum: LongInt; VolLab: String): LongInt;
   var
-    fsInfoBuf: VolumeLabel; // File system info buffer
-    rc: longInt;
+    FSInfoBuf: VolumeLabel; // File system info buffer
+    rc: LongInt;
   begin
-    fsInfoBuf := VolLab;
-    rc := DosSetFSInfo(DriveNum, fsil_VolSer, fsInfoBuf, SizeOf(
-      VolumeLabel));
-    SetVolume := rc;
+  FSInfoBuf := VolLab;
+  rc := DosSetFSInfo(DriveNum, fsil_VolSer, FSInfoBuf,
+       SizeOf(VolumeLabel));
+  SetVolume := rc;
   end;
 
-function GetBytesPerCluster(DriveNum: longInt): longInt;
+function GetBytesPerCluster(DriveNum: LongInt): LongInt;
   var
     aulFSInfoBuf: FsAllocate;
-    rc: longInt;
+    rc: LongInt;
   begin
-    rc := DosQueryFSInfo(DriveNum, fsil_Alloc, aulFSInfoBuf, SizeOf(
-      FsAllocate));
-    if rc = 0 then
-      GetBytesPerCluster := aulFSInfoBuf.cSectorUnit*aulFSInfoBuf.
-        cbSector
-    else
-      GetBytesPerCluster := 0;
+  rc := DosQueryFSInfo(DriveNum, fsil_Alloc, aulFSInfoBuf,
+         SizeOf(FsAllocate));
+  if rc = 0 then
+    GetBytesPerCluster := aulFSInfoBuf.cSectorUnit*aulFSInfoBuf.cbSector
+  else
+    GetBytesPerCluster := 0;
   end;
 
 procedure CopyEAs(FFromName, FToName: String);
   var
     coll: PStringCollection;
     ulrc, ulEASize: Cardinal;
-    i: longInt;
-    pszName: PChar;
-    Params: array[0..1] of Pointer;
+    i: LongInt;
+    PszName: PChar;
+    params: array[0..1] of Pointer;
     ea: Pointer;
 
   begin
-    coll := New(PStringCollection, Init(5, 10, False));
-    ulrc := EnumEAs(FFromName, coll);
-    if ulrc = 0 then
-      begin
-        if (coll^.Count > 0) then
-            {JO: см. комментарий от 30-07-2002 к EAOper.EnumEAs }
-          for i := coll^.Count-1 downto 0 do
+  coll := New(PStringCollection, Init(5, 10, False));
+  ulrc := EnumEAs(FFromName, coll);
+  if ulrc = 0 then
+    begin
+    if  (coll^.Count > 0) then
+      {JO: см. комментарий от 30-07-2002 к EAOper.EnumEAs }
+      for i := coll^.Count-1 downto 0 do
+        begin
+        PszName := PChar(coll^.At(i));
+        Inc(PszName);
+        {JO почему возникает необходимость так извращаться - непонятно, но надо}
+        {если брать просто PString(coll^.At(i)) - падает}
+        ulrc := RetrieveEA(FFromName, PszName, ea, ulEASize, False);
+        if ulrc = 0 then
+          begin
+          ulrc := StoreEA(FToName, PszName, ea, ulEASize);
+          if  (ulrc <> 0)
+            and (ulrc <> 282)
+            { Destination file system does not support EAs }
+            and (ulrc <> 283)
+            { Destination file system does not support EAs }
+            { and the source file's EAs contain a need EA  }
+            then
             begin
-              pszName := PChar(coll^.At(i));
-              Inc(pszName);
-                {JO почему возникает необходимость так извращаться - непонятно, но надо}
-              {если брать просто PString(coll^.At(i)) - падает}
-              ulrc := RetrieveEA(FFromName, pszName, ea, ulEASize,
-                False);
-              if ulrc = 0 then
-                begin
-                  ulrc := StoreEA(FToName, pszName, ea, ulEASize);
-                  if (ulrc <> 0)
-                    and (ulrc <> 282)
-                      { Destination file system does not support EAs }
-                    and (ulrc <> 283)
-                      { Destination file system does not support EAs }
-                    { and the source file's EAs contain a need EA  }
-                  then
-                    begin
-                      Params[0] := coll^.At(i);
-                      Params[1] := Pointer(ulrc);
-                      MessageBox(#3+GetString(dl_Failed_to_store_EA)+
-                        ' "%s"'+^M^C'(RC=%d)', @params,
-                      mfError or mfOKButton);
-                    end;
-                  if ulrc = 283 then
-                    MessageBox(GetString(dl_Critical_EA_Copy_Fail)+
-                      FFromName, nil, mfOKButton);
-                  FreeMem(ea);
-                end
-              else
-                begin
-                  Params[0] := coll^.At(i);
-                  Params[1] := Pointer(ulrc);
-                  MessageBox(#3+GetString(dl_Failed_to_retrieve_EA)+
-                    ' "%s"'+^M^C'(RC=%d)', @params,
-                  mfError or mfOKButton);
-                end;
+            params[0] := coll^.At(i);
+            params[1] := Pointer(ulrc);
+            MessageBox
+              (#3+GetString(dl_Failed_to_store_EA)+' "%s"'+^M^C'(RC=%d)'
+              , @params,
+              mfError or mfOKButton);
             end;
-      end
-    else if ulrc <> 124 then
-        {JO: ошибка 124 - не предусмотренный для данного      }
-      {    устройства уровень получения/задания информации  }
-      MessageBox(#3+GetString(dl_Failed_to_enumerate_EA)+
-        ^M^C'(RC=%d)',
+          if ulrc = 283 then
+            MessageBox(GetString(dl_Critical_EA_Copy_Fail)+FFromName,
+               nil, mfOKButton);
+          FreeMem(ea);
+          end
+        else
+          begin
+          params[0] := coll^.At(i);
+          params[1] := Pointer(ulrc);
+          MessageBox
+            (#3+GetString(dl_Failed_to_retrieve_EA)+' "%s"'+^M^C'(RC=%d)'
+            , @params,
+            mfError or mfOKButton);
+          end;
+        end;
+    end
+  else if ulrc <> 124 then
+    {JO: ошибка 124 - не предусмотренный для данного      }
+    {    устройства уровень получения/задания информации  }
+    MessageBox(#3+GetString(dl_Failed_to_enumerate_EA)+^M^C'(RC=%d)',
       @ulrc, mfError or mfOKButton);
-    Dispose(coll, Done);
+  Dispose(coll, Done);
   end { CopyEAs };
 
-function GetEAString(const FileName, Name: String; var Value: String;
-    Silent: boolean): integer;
+function GetEAString(const Filename, Name: String; var Value: String;
+     Silent: Boolean): Integer;
   var
     ea: Pointer;
     ulEASize, ulSize: Cardinal;
     szName: array[0..255] of Char;
     pszValue: PChar;
   begin
-    Value := '';
-    Result := RetrieveEA(FileName, StrPCopy(szName, Name), ea,
-      ulEASize, Silent);
-    if (Result = 0) and (ea <> nil) then
-      begin
-        ulSize := RetrieveStringSize(ea);
-        GetMem(pszValue, succ(ulSize));
-        Value := StrPas(RetrieveString(ea, pszValue));
-        FreeMem(pszValue);
-        FreeMem(ea);
-      end;
+  Value := '';
+  Result := RetrieveEA(Filename, StrPCopy(szName, Name), ea, ulEASize,
+       Silent);
+  if  (Result = 0) and (ea <> nil) then
+    begin
+    ulSize := RetrieveStringSize(ea);
+    GetMem(pszValue, Succ(ulSize));
+    Value := StrPas(RetrieveString(ea, pszValue));
+    FreeMem(pszValue);
+    FreeMem(ea);
+    end;
   end;
 
-function SetEAString(const FileName, Name, Value: String): integer;
+function SetEAString(const Filename, Name, Value: String): Integer;
   var
     ea: Pointer;
     szValue, szName: array[0..255] of Char;
     ulEASize: Cardinal;
   begin
-    ea := BuildEAFromString(StrPCopy(szValue, Value), ulEASize);
-    SetEAString := StoreEA(FileName, StrPCopy(szName, Name), ea,
-      ulEASize);
-    FreeMem(ea);
+  ea := BuildEAFromString(StrPCopy(szValue, Value), ulEASize);
+  SetEAString := StoreEA(Filename, StrPCopy(szName, Name), ea, ulEASize);
+  FreeMem(ea);
   end;
 
-procedure SetEALongname(FileName: String);
+procedure SetEALongname(Filename: String);
   var
     LNValue: String;
-    Result_: integer;
+    Result_: Integer;
   begin
-    Result_ := GetEAString(FileName, '.LONGNAME', LNValue, True);
-    if Result_ = 0 then
-      begin
-        if BigInputBox(GetString(dlEditEALongname), GetString(
-            dl_EALongname), LNValue, 255, hsEditEALongname) <> cmOK
-        then
-          exit;
-        Result_ := SetEAString(FileName, '.LONGNAME', LNValue);
-        if Result_ <> 0 then
-          MessageBox(
-            #3'Failed to write .LONGNAME extended attribute'+
-            ^M^C'(RC=%d)',
-          @Result_, mfError or mfOKButton);
-      end
-    else if Result_ <> 48 then
-        {JO: ошибку 48, которая в оси зарезервирована      }
-      {    мы используем, когда DosQueryPathInfo выдаёт  }
-      {    fst4.cbList (величина списка EA) равным нулю, }
-      {    что строго говоря не ошибка, но является      }
-      {    поводом прервать дальнейшую работу с EA , т.к.}
-      {    наблюдается на дисках, не поддерживающих EA   }
-      MessageBox(#3'Failed to read .LONGNAME extended attribute'+
-        ^M^C'(RC=%d)', @Result_, mfError or mfOKButton)
-    else
-      MessageBox(GetString(dlOperationNotValidForDdrive), nil,
-        mfOKButton);
+  Result_ := GetEAString(Filename, '.LONGNAME', LNValue, True);
+  if Result_ = 0 then
+    begin
+    if BigInputBox(GetString(dlEditEALongname),
+         GetString(dl_EALongname), LNValue, 255, hsEditEALongname)
+       <> cmOK
+    then
+      Exit;
+    Result_ := SetEAString(Filename, '.LONGNAME', LNValue);
+    if Result_ <> 0 then
+      MessageBox
+        (#3'Failed to write .LONGNAME extended attribute'+^M^C'(RC=%d)',
+        @Result_, mfError or mfOKButton);
+    end
+  else if Result_ <> 48 then
+    {JO: ошибку 48, которая в оси зарезервирована      }
+    {    мы используем, когда DosQueryPathInfo выдаёт  }
+    {    fst4.cbList (величина списка EA) равным нулю, }
+    {    что строго говоря не ошибка, но является      }
+    {    поводом прервать дальнейшую работу с EA , т.к.}
+    {    наблюдается на дисках, не поддерживающих EA   }
+    MessageBox
+      (#3'Failed to read .LONGNAME extended attribute'+^M^C'(RC=%d)',
+       @Result_, mfError or mfOKButton)
+  else
+    MessageBox(GetString(dlOperationNotValidForDdrive), nil, mfOKButton);
   end { SetEALongname };
 
 {AK155}
 function GetDriveTypeString(Drive: Char): String;
   var
-    BufLen: word;
+    BufLen: Word;
     FSQb: pFSQBuffer2;
     DrvName: String[3];
     Ordinal: SmallWord;
-    Name: PChar;
-    rc: word;
+    name: PChar;
+    rc: Word;
     {DiskSize  : Word;}
   begin
-    GetDriveTypeString := '';
-    BufLen := 100;
-    GetMem(FSQb, BufLen);
-    DrvName := Drive+':'#0;
-    Ordinal := 0;
-    rc := DosQueryFSAttach(@DrvName[1], Ordinal, fsail_QueryName,
-      FSQb, BufLen);
-    if rc = 0 then
-      with FSQb^ do
-        begin
-          Name := szName+cbName+1;
-          GetDriveTypeString := StrPas(Name);
-        end;
+  GetDriveTypeString := '';
+  BufLen := 100;
+  GetMem(FSQb, BufLen);
+  DrvName := Drive+':'#0;
+  Ordinal := 0;
+  rc := DosQueryFSAttach(@DrvName[1], Ordinal, fsail_QueryName, FSQb,
+       BufLen);
+  if rc = 0 then
+    with FSQb^ do
+      begin
+      name := szName+cbName+1;
+      GetDriveTypeString := StrPas(name);
+      end;
 
-    FreeMem(FSQb, 100);
+  FreeMem(FSQb, 100);
   end { GetDriveTypeString };
 {/AK155}
 

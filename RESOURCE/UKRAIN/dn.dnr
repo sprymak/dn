@@ -2188,14 +2188,14 @@ Menu dlgEditorMenu
 
  SubMenu '~Ф~айл', hcedFile
       MenuItem '~В~iдкрити...', 'F3', kbShiftF3, cmLoadText, hcedFile,
-      MenuItem 'В~i~дкрити файл пiд курсором...', 'Ctrl+Enter', kbCtrlEnter, cmOpenFileAtCursor, hcedFile,
+      MenuItem 'В~i~дкрити файл пiд курсором...', 'Ctrl-Enter', kbCtrlEnter, cmOpenFileAtCursor, hcedFile,
       MenuItem '~З~берегти', 'F2', kbF2, cmSaveText, hcedFile,
       MenuItem 'Зберегти ~я~к...', 'Shift-F2', kbShiftF2, cmSaveTextAs, hcedFile,
       MenuItem 'Зберегти ~в~се...', 'Ctrl-F2', kbCtrlF2, cmSaveAll, hcedFile,
       MenuLine
 ; {-$VIV}
-      MenuItem '~Д~рук', 'Ctrl+F8', kbCtrlF8, cmPrintFileEd, hcedFile,
-      MenuItem 'Друкувати ~б~лок', 'Shift+F8', kbShiftF8, cmPrintBlock, hcedFile,
+      MenuItem '~Д~рук', 'Ctrl-F8', kbCtrlF8, cmPrintFileEd, hcedFile,
+      MenuItem 'Друкувати ~б~лок', 'Shift-F8', kbShiftF8, cmPrintBlock, hcedFile,
       MenuLine
       MenuItem '~Г~оловне меню', 'F10', kbF10, cmMainMenu, hcedFile,
       MenuItem 'В~и~хiд', 'Ctrl-F4', kbCtrlF4, cmClose, hcedFile,
@@ -2256,7 +2256,7 @@ Menu dlgEditorMenu
       MenuItem 'С~о~ртувати', 'Alt-T', kbAltT, cmSortBlock, hcedParagraph,
       MenuItem 'Об~ч~ислити суму', 'Alt-Ins', kbAltIns, cmCalcBlock, hcedParagraph,
 ;{-$VIV 18.05.99--}
-      MenuItem '~Р~ос/Анг Конвертувати Рядок', 'Alt+F12', kbAltF12, cmRusEngConv, 0,
+      MenuItem '~Р~ос/Анг Конвертувати Рядок', 'Alt-F12', kbAltF12, cmRusEngConv, 0,
     END
  SubMenu 'Pi~з~не', hcEditMiscMenu,
 
@@ -2269,17 +2269,17 @@ Menu dlgEditorMenu
      MenuLine
      SubMenu 'М~а~лi букви', hcMiscUpper,
       MenuItem '~С~лово', 'Ctrl ]', kbNoKey, cmLowWord, hcMiscUpper,
-      MenuItem '~Р~ядок', 'Ctrl+Shift ]', kbNoKey, cmLowString, hcMiscUpper,
+      MenuItem '~Р~ядок', 'Ctrl-Shift ]', kbNoKey, cmLowString, hcMiscUpper,
       MenuItem '~Б~лок', 'Ctrl K ]', kbNoKey, cmLowcaseBlock, hcMiscUpper,
      END
      SubMenu '~В~еликi букви', hcMiscLower,
       MenuItem '~С~лово', 'Ctrl [', kbNoKey, cmUpWord, hcMiscLower,
-      MenuItem '~Р~ядок', 'Ctrl+Shift [', kbNoKey, cmUpString, hcMiscLower,
+      MenuItem '~Р~ядок', 'Ctrl-Shift [', kbNoKey, cmUpString, hcMiscLower,
       MenuItem '~Б~лок', 'Cltr K [', kbNoKey, cmUpcaseBlock, hcMiscLower,
      END
      SubMenu '~З~аголовнi букви', hcMiscCapitalize,
       MenuItem '~С~лово', 'Ctrl \', kbNoKey, cmCapWord, hcMiscCapitalize,
-      MenuItem '~Р~ядок', 'Ctrl+Shift \', kbNoKey, cmCapString, hcMiscCapitalize,
+      MenuItem '~Р~ядок', 'Ctrl-Shift \', kbNoKey, cmCapString, hcMiscCapitalize,
       MenuItem '~Б~лок', 'Ctrl K \', kbNoKey, cmCapitalizeBlock, hcMiscCapitalize,
      END
      SubMenu 'Перевод рядка', 0,
@@ -2287,7 +2287,7 @@ Menu dlgEditorMenu
       MenuItem '~L~F',   '', kbNoKey, cmEditLfMode, 0,
       MenuItem '~C~R',   '', kbNoKey, cmEditCrMode, 0,
      END
-     MenuItem 'З~м~iнити регiстр букви', 'Ctrl+/', kbCtrlSlash, cmChangeCharCase, 0,
+     MenuItem 'З~м~iнити регiстр букви', 'Ctrl-/', kbCtrlSlash, cmChangeCharCase, 0,
    END
  SubMenu 'Оп~ц~iї', hcedOptions,
       MenuItem 'Вiдступ при ~з~абої', 'Off', kbNoKey, cmSwitchBack, hcedOptions,
@@ -2318,7 +2318,7 @@ Menu dlgFixerMenu
       MenuItem '~В~ихiд', 'Alt-F3', kbAltF3, cmClose, hcDiskEditor,
     END
  SubMenu 'Р~е~дактоp', hcDiskEditor,
-      MenuItem '~А~нулювання', 'Alt+BkSp', kbAltBack, cmUndo, hcDiskEditor,
+      MenuItem '~А~нулювання', 'Alt-BkSp', kbAltBack, cmUndo, hcDiskEditor,
       MenuLine
       MenuItem '~К~опiювати', 'Ctrl-Ins', kbCtrlIns, cmCopy, hcDiskEditor,
       MenuItem '~В~ставити поверх', 'Shift-Ins', kbShiftIns, cmPaste, hcDiskEditor,

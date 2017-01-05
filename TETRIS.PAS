@@ -55,14 +55,15 @@
 }
 
 {$IFDEF PLUGIN1}
-  {JO: временно заменил PLUGIN на несуществующий дефайн PLUGIN1 }
+{JO: временно заменил PLUGIN на несуществующий дефайн PLUGIN1 }
 library Tetris;
 
 uses
   Objects, Drivers, Views, DNApp, Dialogs, Memory, Menus, Messages,
-  Commands, advance, advance1, advance2, advance3, RStrings,
+  Commands, Advance, Advance1, Advance2, Advance3, RStrings,
   xTime, Startup, DNHelp,
-  VPUtils;
+  VPUtils
+  ;
 
 
 {$ELSE}
@@ -72,19 +73,20 @@ interface
 
 uses
   Objects, Drivers, Views, DNApp, Dialogs, Memory, Menus, Messages,
-  Commands, advance, advance1, advance2, advance3, RStrings;
+  Commands, Advance, Advance1, Advance2, Advance3, RStrings
+  ;
 {$ENDIF}
 
 const
   Shi = 12;
   Vis = 19;
   F = False;
-  t = True;
+  T = True;
 
 type
   PGameWindow = ^TGameWindow;
   TGameWindow = object(TDialog)
-    Constructor Init;
+    constructor Init;
     procedure HandleEvent(var Event: TEvent); virtual;
     end;
 
@@ -93,45 +95,45 @@ type
     Info: PView;
     {Hi  : PView;}
 
-    Glass: array[-2..Vis+2, -1..Shi+2] of byte;
+    Glass: array[-2..Vis+2, -1..Shi+2] of Byte;
 
-    Delay: word;
-    CurFig: integer;
-    Fig, OldF: array[1..5, 1..2] of byte;
+    Delay: Word;
+    CurFig: Integer;
+    Fig, OldF: array[1..5, 1..2] of Byte;
 
     Pos: TPoint;
-    LastT: longInt;
-    ChPos: boolean;
-    HideFig, Stop: boolean;
-    Score, Lines: longInt;
-    NextFig: byte;
-    OldX, OldY, X, Y: shortint;
+    LastT: LongInt;
+    ChPos: Boolean;
+    HideFig, Stop: Boolean;
+    Score, Lines: LongInt;
+    NextFig: Byte;
+    OldX, OldY, X, Y: ShortInt;
 
-    TMaxFig: byte;
+    TMaxFig: Byte;
 
-    Level, StartLevel: integer;
-    Preview: boolean;
-    Pentix: boolean;
+    Level, StartLevel: Integer;
+    Preview: Boolean;
+    Pentix: Boolean;
     HiScores: array[1..20] of record
       Name: String[30];
-      StLv, EndLv: byte;
-      Score: longInt;
+      StLv, EndLv: Byte;
+      Score: LongInt;
       end;
-    Constructor Init(R: TRect);
-    Constructor Load(var s: TStream);
-    procedure Store(var s: TStream);
+    constructor Init(R: TRect);
+    constructor Load(var S: TStream);
+    procedure Store(var S: TStream);
     procedure NewGame;
     procedure Draw; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure Rotate;
     procedure ReadFig;
-    procedure UpDate; virtual;
-    function MoveFig(DeltaX, DeltaY: integer): boolean;
-    function ValidMove(DeltaX, DeltaY: integer): boolean;
-    function MoveDown: boolean;
+    procedure Update; virtual;
+    function MoveFig(DeltaX, DeltaY: Integer): Boolean;
+    function ValidMove(DeltaX, DeltaY: Integer): Boolean;
+    function MoveDown: Boolean;
     procedure MakeTime;
-    procedure ShowScores(HighLight: integer);
-    procedure SetState(AState: word; Enable: boolean); virtual;
+    procedure ShowScores(HighLight: Integer);
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
     destructor Done; virtual;
     end;
 
@@ -140,8 +142,8 @@ type
     Hc, Gm: PGameView;
     function GetPalette: PPalette; virtual;
     procedure Draw; virtual;
-    Constructor Load(var s: TStream);
-    procedure Store(var s: TStream);
+    constructor Load(var S: TStream);
+    procedure Store(var S: TStream);
     end;
 
 const
@@ -151,243 +153,248 @@ const
 implementation
 
 uses
-  xTime, Startup, DNHelp, VPUtils;
+  xTime, Startup, DNHelp, VPUtils
+  ;
 {$ENDIF}
 
 const
   MaxFig = 28;
-  Figures: array[1..5*MaxFig, 1..2] of byte =
-  ((1, 3), (2, 3), (3, 3), (3, 2), (0, 0),
-  (1, 2), (2, 2), (3, 2), (3, 3), (0, 0),
-  (1, 2), (2, 2), (3, 2), (4, 2), (0, 0),
-  (2, 2), (2, 3), (3, 2), (3, 3), (0, 0),
-  (1, 2), (2, 2), (2, 3), (3, 2), (0, 0),
-  (1, 2), (2, 2), (2, 3), (3, 3), (0, 0),
-  (1, 3), (2, 3), (2, 2), (3, 2), (0, 0),
-  (1, 1), (0, 0), (0, 0), (0, 0), (0, 0),
-  (1, 1), (2, 1), (0, 0), (0, 0), (0, 0),
-  (1, 2), (2, 2), (3, 2), (0, 0), (0, 0),
-  (1, 1), (2, 1), (2, 2), (0, 0), (0, 0),
-  (1, 3), (2, 3), (3, 3), (4, 3), (5, 3),
-  (1, 2), (2, 1), (2, 2), (2, 3), (3, 2),
-  (2, 2), (2, 3), (3, 2), (3, 3), (3, 4),
-  (2, 2), (2, 3), (3, 1), (3, 2), (3, 3),
-  (1, 1), (1, 3), (2, 1), (2, 2), (2, 3),
-  (1, 1), (2, 1), (2, 2), (3, 2), (3, 3),
-  (1, 2), (2, 2), (3, 2), (3, 3), (4, 3),
-  (1, 3), (2, 3), (3, 2), (3, 3), (4, 2),
-  (1, 1), (1, 2), (2, 2), (3, 2), (3, 3),
-  (1, 2), (1, 3), (2, 2), (3, 1), (3, 2),
-  (1, 1), (2, 1), (2, 2), (2, 3), (3, 2),
-  (1, 3), (2, 1), (2, 2), (2, 3), (3, 2),
-  (1, 1), (1, 2), (1, 3), (2, 2), (3, 2),
-  (1, 2), (2, 2), (2, 3), (3, 2), (4, 2),
-  (1, 3), (2, 2), (2, 3), (3, 3), (4, 3),
-  (1, 1), (2, 1), (3, 1), (3, 2), (3, 3),
-  (1, 3), (1, 2), (2, 3), (3, 3), (4, 3) {AK155}
-  );
-  ColPo: array[0..MaxFig-1] of byte =
-  (4, 4, 4, 4, 4, 4, 4, 1, 2, 3, 3, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-    5, 5, 5, 5, 5);
+  Figures: array[1..5*MaxFig, 1..2] of Byte =
+    ( (1, 3), (2, 3), (3, 3), (3, 2), (0, 0),
+      (1, 2), (2, 2), (3, 2), (3, 3), (0, 0),
+      (1, 2), (2, 2), (3, 2), (4, 2), (0, 0),
+      (2, 2), (2, 3), (3, 2), (3, 3), (0, 0),
+      (1, 2), (2, 2), (2, 3), (3, 2), (0, 0),
+      (1, 2), (2, 2), (2, 3), (3, 3), (0, 0),
+      (1, 3), (2, 3), (2, 2), (3, 2), (0, 0),
+      (1, 1), (0, 0), (0, 0), (0, 0), (0, 0),
+      (1, 1), (2, 1), (0, 0), (0, 0), (0, 0),
+      (1, 2), (2, 2), (3, 2), (0, 0), (0, 0),
+      (1, 1), (2, 1), (2, 2), (0, 0), (0, 0),
+      (1, 3), (2, 3), (3, 3), (4, 3), (5, 3),
+      (1, 2), (2, 1), (2, 2), (2, 3), (3, 2),
+      (2, 2), (2, 3), (3, 2), (3, 3), (3, 4),
+      (2, 2), (2, 3), (3, 1), (3, 2), (3, 3),
+      (1, 1), (1, 3), (2, 1), (2, 2), (2, 3),
+      (1, 1), (2, 1), (2, 2), (3, 2), (3, 3),
+      (1, 2), (2, 2), (3, 2), (3, 3), (4, 3),
+      (1, 3), (2, 3), (3, 2), (3, 3), (4, 2),
+      (1, 1), (1, 2), (2, 2), (3, 2), (3, 3),
+      (1, 2), (1, 3), (2, 2), (3, 1), (3, 2),
+      (1, 1), (2, 1), (2, 2), (2, 3), (3, 2),
+      (1, 3), (2, 1), (2, 2), (2, 3), (3, 2),
+      (1, 1), (1, 2), (1, 3), (2, 2), (3, 2),
+      (1, 2), (2, 2), (2, 3), (3, 2), (4, 2),
+      (1, 3), (2, 2), (2, 3), (3, 3), (4, 3),
+      (1, 1), (2, 1), (3, 1), (3, 2), (3, 3),
+      (1, 3), (1, 2), (2, 3), (3, 3), (4, 3) {AK155}
+    );
+  ColPo: array[0..MaxFig-1] of Byte =
+    (4, 4, 4, 4, 4, 4, 4, 1, 2, 3, 3, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+     5, 5, 5, 5, 5);
   {0         5         10         15         20}
-  CRot: array[0..MaxFig-1] of byte =
-  (4, 4, 4, 4, 3, 4, 4, 1, 2, 3, 2, 5, 3, 4, 4, 3, 3, 4, 4, 3, 3, 3, 3,
-    3, 4, 4, 3, 4);
+  CRot: array[0..MaxFig-1] of Byte =
+    (4, 4, 4, 4, 3, 4, 4, 1, 2, 3, 2, 5, 3, 4, 4, 3, 3, 4, 4, 3, 3, 3, 3,
+     3, 4, 4, 3, 4);
 
-function LevelDelay(Level: byte): word;
+function LevelDelay(Level: Byte): Word;
   var
-    Delay: word;
+    Delay: Word;
   begin
-    case Level of
-      1:
-        Delay := 80;
-      2:
-        Delay := 60;
-      3:
-        Delay := 50;
-      4:
-        Delay := 30;
-      5:
-        Delay := 25;
-      6:
-        Delay := 20;
-      7:
-        Delay := 15;
-      8:
-        Delay := 10;
-      9:
-        Delay := 5;
-      10:
-        Delay := 4;
-    end {case};
-    LevelDelay := Delay*200
+  case Level of
+    1:
+      Delay := 80;
+    2:
+      Delay := 60;
+    3:
+      Delay := 50;
+    4:
+      Delay := 30;
+    5:
+      Delay := 25;
+    6:
+      Delay := 20;
+    7:
+      Delay := 15;
+    8:
+      Delay := 10;
+    9:
+      Delay := 5;
+    10:
+      Delay := 4;
+  end {case};
+  LevelDelay := Delay*200
   end { LevelDelay };
 
-Constructor TGameWindow.Init;
+constructor TGameWindow.Init;
   var
     R: TRect;
     Gm: PGameView;
     Hi, Info: PGameInfo;
   begin
-    R.Assign(1, 1, 30+Shi*2, 4+Vis);
-    inherited Init(R, GetString(dlGameTitle));
-    Number := GetNum;
-    HelpCtx := hcTetris+byte(TetrisRec.s = 1);
-    Options := Options or ofCentered;
-    R.Assign(2, 2, 2+Shi*2, 2+Vis);
-    Gm := New(PGameView, Init(R));
-    Insert(Gm);
-    R.Assign(4+Shi*2, 1, 27+Shi*2, 16);
-    Info := New(PGameInfo, Init(R));
-    Insert(Info);
-    Info^.Gm := Gm;
-    Gm^.Info := Info;
-    R.Assign(4+Shi*2, 17, 15+Shi*2, 19);
-    Insert(New(PButton, Init(R, GetString(dlNewButton), cmNewGame, 0)));
-    R.Assign(15+Shi*2, 17, 26+Shi*2, 19);
-    Insert(New(PButton, Init(R, GetString(dlSetupButton), cmSetup, 0)));
-    R.Assign(4+Shi*2, 19, 15+Shi*2, 21);
-    Insert(New(PButton, Init(R, GetString(dlTop10Button), cmShowHi, 0)))
-      ;
-    R.Assign(15+Shi*2, 19, 26+Shi*2, 21);
-    Insert(New(PButton, Init(R, GetString(dlPauseButton), cmStop, 0)));
-    SelectNext(False);
+  R.Assign(1, 1, 30+Shi*2, 4+Vis);
+  inherited Init(R, GetString(dlGameTitle));
+  Number := GetNum;
+  HelpCtx := hcTetris+Byte(TetrisRec.S = 1);
+  Options := Options or ofCentered;
+  R.Assign(2, 2, 2+Shi*2, 2+Vis);
+  Gm := New(PGameView, Init(R));
+  Insert(Gm);
+  R.Assign(4+Shi*2, 1, 27+Shi*2, 16);
+  Info := New(PGameInfo, Init(R));
+  Insert(Info);
+  Info^.Gm := Gm;
+  Gm^.Info := Info;
+  R.Assign(4+Shi*2, 17, 15+Shi*2, 19);
+  Insert(New(PButton, Init(R, GetString(dlNewButton), cmNewGame, 0)));
+  R.Assign(15+Shi*2, 17, 26+Shi*2, 19);
+  Insert(New(PButton, Init(R, GetString(dlSetupButton), cmSetup, 0)));
+  R.Assign(4+Shi*2, 19, 15+Shi*2, 21);
+  Insert(New(PButton, Init(R, GetString(dlTop10Button), cmShowHi, 0)));
+  R.Assign(15+Shi*2, 19, 26+Shi*2, 21);
+  Insert(New(PButton, Init(R, GetString(dlPauseButton), cmStop, 0)));
+  SelectNext(False);
   end { TGameWindow.Init };
 
-Constructor TGameInfo.Load(var s: TStream);
+constructor TGameInfo.Load(var S: TStream);
   begin
-    inherited Load(s);
-    GetPeerViewPtr(s, Gm);
+  inherited Load(S);
+  GetPeerViewPtr(S, Gm);
   end;
 
-procedure TGameInfo.Store(var s: TStream);
+procedure TGameInfo.Store(var S: TStream);
   begin
-    inherited Store(s);
-    PutPeerViewPtr(s, Gm);
+  inherited Store(S);
+  PutPeerViewPtr(S, Gm);
   end;
 
 function TGameInfo.GetPalette;
   const
-    s: String[2] = #7#8;
+    S: String[2] = #7#8;
   begin
-    GetPalette := @S;
+  GetPalette := @S;
   end;
 
 procedure TGameInfo.Draw;
   var
     B: TDrawBuffer;
-    s: String;
-    C, i, j, k: word;
+    S: String;
+    C, I, J, K: Word;
   begin
-    C := GetColor($0201);
-    MoveChar(B, #196, C, Size.X);
-    s := GetString(dlGameInfo);
-    MoveCStr(B[(Size.X-CStrLen(s)) div 2], s, C);
-    MoveChar(B, #218, C, 1);
-    MoveChar(B[Size.X-1], #191, C, 1);
-    WriteLine(0, 0, Size.X, 1, B);
+  C := GetColor($0201);
+  MoveChar(B, #196, C, Size.X);
+  S := GetString(dlGameInfo);
+  MoveCStr(B[(Size.X-CStrLen(S)) div 2], S, C);
+  MoveChar(B, #218, C, 1);
+  MoveChar(B[Size.X-1], #191, C, 1);
+  WriteLine(0, 0, Size.X, 1, B);
 
-    MoveChar(B, ' ', C, Size.X);
-    MoveCStr(B, GetString(dlGameScore2)+ItoS(Gm^.Score)+'~', C);
-    MoveChar(B[Size.X-1], #179, C, 1);
-    WriteLine(0, 1, Size.X, 1, B);
-    MoveChar(B, ' ', C, Size.X);
-    MoveCStr(B, GetString(dlGameLines)+ItoS(Gm^.Lines)+'~', C);
-    MoveChar(B[Size.X-1], #179, C, 1);
-    WriteLine(0, 2, Size.X, 1, B);
-    MoveChar(B, ' ', C, Size.X);
-    MoveCStr(B, GetString(dlGameLevel)+ItoS(Gm^.Level)+'~', C);
-    MoveChar(B[Size.X-1], #179, C, 1);
-    WriteLine(0, 3, Size.X, 1, B);
-    { MoveChar(B, #196, C, Size.X);
+  MoveChar(B, ' ', C, Size.X);
+  MoveCStr(B, GetString(dlGameScore2)+ItoS(Gm^.Score)+'~', C);
+  MoveChar(B[Size.X-1], #179, C, 1);
+  WriteLine(0, 1, Size.X, 1, B);
+  MoveChar(B, ' ', C, Size.X);
+  MoveCStr(B, GetString(dlGameLines)+ItoS(Gm^.Lines)+'~', C);
+  MoveChar(B[Size.X-1], #179, C, 1);
+  WriteLine(0, 2, Size.X, 1, B);
+  MoveChar(B, ' ', C, Size.X);
+  MoveCStr(B, GetString(dlGameLevel)+ItoS(Gm^.Level)+'~', C);
+  MoveChar(B[Size.X-1], #179, C, 1);
+  WriteLine(0, 3, Size.X, 1, B);
+  { MoveChar(B, #196, C, Size.X);
  MoveChar(B, #192, C, 1);
  MoveChar(B[Size.X-1], #217, C, 1);
  WriteLine(0,4,Size.X,1,B);}
 
-    MoveChar(B, #196, C, Size.X);
-    s := GetString(dlTetrisNext);
-    MoveCStr(B[(Size.X-CStrLen(s)) div 2], s, C);
-    MoveChar(B, #195, C, 1);
-    MoveChar(B[Size.X-1], #180, C, 1);
-    WriteLine(0, 4, Size.X, 1, B);
-    k := ((15-Gm^.NextFig mod 7) shl 8)+219;
-    for i := 5 to 10 do
+  MoveChar(B, #196, C, Size.X);
+  S := GetString(dlTetrisNext);
+  MoveCStr(B[(Size.X-CStrLen(S)) div 2], S, C);
+  MoveChar(B, #195, C, 1);
+  MoveChar(B[Size.X-1], #180, C, 1);
+  WriteLine(0, 4, Size.X, 1, B);
+  K := ((15-Gm^.NextFig mod 7) shl 8)+219;
+  for I := 5 to 10 do
+    begin
+    MoveChar(B, ' ', 07, Size.X);
+    if not Gm^.Stop and Gm^.Preview then
       begin
-        MoveChar(B, ' ', 07, Size.X);
-        if not Gm^.Stop and Gm^.Preview then
+      for J := 1 to ColPo[Gm^.NextFig] do
+        if Figures[Gm^.NextFig*5+J, 1] = I-4 then
           begin
-            for j := 1 to ColPo[Gm^.NextFig] do
-              if Figures[Gm^.NextFig*5+j, 1] = i-4 then
-                begin
-                  B[Figures[Gm^.NextFig*5+j, 2]*2+3] := k;
-                  B[Figures[Gm^.NextFig*5+j, 2]*2+4] := k;
-                end;
+          B[Figures[Gm^.NextFig*5+J, 2]*2+3] := K;
+          B[Figures[Gm^.NextFig*5+J, 2]*2+4] := K;
           end;
-        MoveChar(B, #179, C, 1);
-        MoveChar(B[Size.X-1], #179, C, 1);
-        WriteLine(0, i, Size.X, 1, B);
       end;
-    MoveChar(B, #196, C, Size.X);
-    MoveChar(B, #192, C, 1);
-    MoveChar(B[Size.X-1], #217, C, 1);
-    WriteLine(0, 10, Size.X, 1, B);
+    MoveChar(B, #179, C, 1);
+    MoveChar(B[Size.X-1], #179, C, 1);
+    WriteLine(0, I, Size.X, 1, B);
+    end;
+  MoveChar(B, #196, C, Size.X);
+  MoveChar(B, #192, C, 1);
+  MoveChar(B[Size.X-1], #217, C, 1);
+  WriteLine(0, 10, Size.X, 1, B);
 
-    C := Owner^.GetColor($1112);
-    MoveChar(B, #196, C, Size.X);
-    s := GetString(dlTetrisBest);
-    MoveCStr(B[(Size.X-CStrLen(s)) div 2], s, C);
-    MoveChar(B, #218, C, 1);
-    MoveChar(B[Size.X-1], #191, C, 1);
-    WriteLine(0, 11, Size.X, 1, B);
-    MoveChar(B, ' ', C, Size.X);
-    MoveCStr(B, GetString(dlTetName)+Gm^.HiScores[1+10*byte(Gm^.
-      Pentix)].Name, C);
-    MoveChar(B[Size.X-1], #179, C, 1);
-    WriteLine(0, 12, Size.X, 1, B);
-    MoveChar(B, ' ', C, Size.X);
-    MoveCStr(B, +GetString(dlGameScore)+ItoS(Gm^.HiScores[1+10*byte(Gm^.
-      Pentix)].Score), C);
-    MoveChar(B[Size.X-1], #179, C, 1);
-    WriteLine(0, 13, Size.X, 1, B);
-    MoveChar(B, #196, C, Size.X);
-    MoveChar(B, #192, C, 1);
-    MoveChar(B[Size.X-1], #217, C, 1);
-    WriteLine(0, 14, Size.X, 1, B);
+  C := Owner^.GetColor($1112);
+  MoveChar(B, #196, C, Size.X);
+  S := GetString(dlTetrisBest);
+  MoveCStr(B[(Size.X-CStrLen(S)) div 2], S, C);
+  MoveChar(B, #218, C, 1);
+  MoveChar(B[Size.X-1], #191, C, 1);
+  WriteLine(0, 11, Size.X, 1, B);
+  MoveChar(B, ' ', C, Size.X);
+  MoveCStr(B,
+     GetString(dlTetName)+Gm^.HiScores[1+10*Byte(Gm^.Pentix)].Name, C);
+  MoveChar(B[Size.X-1], #179, C, 1);
+  WriteLine(0, 12, Size.X, 1, B);
+  MoveChar(B, ' ', C, Size.X);
+  MoveCStr(B,
+
+
+
+
+     +GetString(dlGameScore)+ItoS(Gm^.HiScores[1+10*Byte(Gm^.Pentix)].Score),
+     C);
+  MoveChar(B[Size.X-1], #179, C, 1);
+  WriteLine(0, 13, Size.X, 1, B);
+  MoveChar(B, #196, C, Size.X);
+  MoveChar(B, #192, C, 1);
+  MoveChar(B[Size.X-1], #217, C, 1);
+  WriteLine(0, 14, Size.X, 1, B);
   end { TGameInfo.Draw };
 
-Constructor TGameView.Init;
+constructor TGameView.Init;
   var
-    i, j: integer;
-    s: PDosStream;
-    C: word;
-    B: array[0..1024] of byte;
+    I, J: Integer;
+    S: PDosStream;
+    C: Word;
+    B: array[0..1024] of Byte;
   begin
-    Randomize;
-    inherited Init(R);
-    Options := Options or ofFramed or ofSelectable or ofPreProcess;
-    EventMask := $FFFF;
-    Game := @Self;
-    Delay := 30;
-    with TetrisRec do
-      begin
-        StartLevel := l+1;
-        Level := StartLevel;
-        Pentix := (s = 1);
-        Preview := (P and 1 <> 0);
-      end;
-    for i := 1 to 20 do
-      begin
-        HiScores[i].Name := GetString(dlAnonymous);
-        HiScores[i].Score := 0;
-        HiScores[i].StLv := 1;
-        HiScores[i].EndLv := 1;
-      end;
-    s := New(PDosStream, Init(SourceDir+'TETRIS.CFG', stOpenRead));
-    if s^.Status = stOK then
-      s^.Read(B, SizeOf(HiScores));
-    Dispose(s, Done);
-    i := SizeOf(HiScores);
-    asm
+  Randomize;
+  inherited Init(R);
+  Options := Options or ofFramed or ofSelectable or ofPreProcess;
+  EventMask := $FFFF;
+  Game := @Self;
+  Delay := 30;
+  with TetrisRec do
+    begin
+    StartLevel := l+1;
+    Level := StartLevel;
+    Pentix := (S = 1);
+    Preview := (P and 1 <> 0);
+    end;
+  for I := 1 to 20 do
+    begin
+    HiScores[I].Name := GetString(dlAnonymous);
+    HiScores[I].Score := 0;
+    HiScores[I].StLv := 1;
+    HiScores[I].EndLv := 1;
+    end;
+  S := New(PDosStream, Init(SourceDir+'TETRIS.CFG', stOpenRead));
+  if S^.Status = stOK then
+    S^.Read(B, SizeOf(HiScores));
+  Dispose(S, Done);
+  I := SizeOf(HiScores);
+  asm
    lea ebx, B
    mov ecx, I
  @@1:
@@ -396,26 +403,25 @@ Constructor TGameView.Init;
    xor [ebx], dl
    inc ebx
    loop @@1
- end
-      ;
-    Move(B, HiScores, SizeOf(HiScores));
-    for i := 1 to 20 do
-      if not (HiScores[i].StLv in [1..10]) then
+ end;
+  Move(B, HiScores, SizeOf(HiScores));
+  for I := 1 to 20 do
+    if not (HiScores[I].StLv in [1..10]) then
+      begin
+      for I := 1 to 20 do
         begin
-          for i := 1 to 20 do
-            begin
-              HiScores[i].Name := GetString(dlAnonymous);
-              HiScores[i].Score := 0;
-              HiScores[i].StLv := 1;
-              HiScores[i].EndLv := 1;
-            end;
-          s := New(PDosStream, Init(SourceDir+'TETRIS.CFG', stCreate));
-          s^.Write(HiScores, SizeOf(HiScores));
-          Dispose(s, Done);
-          break;
+        HiScores[I].Name := GetString(dlAnonymous);
+        HiScores[I].Score := 0;
+        HiScores[I].StLv := 1;
+        HiScores[I].EndLv := 1;
         end;
-    NewGame;
-    RegisterToBackground(@Self);
+      S := New(PDosStream, Init(SourceDir+'TETRIS.CFG', stCreate));
+      S^.Write(HiScores, SizeOf(HiScores));
+      Dispose(S, Done);
+      Break;
+      end;
+  NewGame;
+  RegisterToBackground(@Self);
   end { TGameView.Init };
 
 (*
@@ -433,163 +439,161 @@ procedure TGameView.ShowScores;
     D: PDialog;
     R: TRect;
     P: PView;
-    s: String;
-    i: byte;
-    PP: boolean;
+    S: String;
+    I: Byte;
+    PP: Boolean;
   begin
-    D := PDialog(LoadResource(TDlgIdx(byte(dlgTetrisTop10)+byte(
-      Pentix))));
-    R.Assign(2, 4, D^.Size.X-2, 14);
-    P := New(PView, Init(R));
-    P^.Options := P^.Options or ofFramed;
-    D^.Insert(P);
-    for i := 1 to 10 do
-      with HiScores[i+10*byte(Pentix)] do
+  D := PDialog(LoadResource(TDlgIdx(Byte(dlgTetrisTop10)+Byte(Pentix))));
+  R.Assign(2, 4, D^.Size.X-2, 14);
+  P := New(PView, Init(R));
+  P^.Options := P^.Options or ofFramed;
+  D^.Insert(P);
+  for I := 1 to 10 do
+    with HiScores[I+10*Byte(Pentix)] do
+      begin
+      if Score > 0 then
         begin
-          if Score > 0 then
-            begin
-              s := Name;
-              if i = HighLight then
-                s := '~'+s+'~';
-              s := s+Strg('.', 30-CStrLen(s));
-              s := s+' '+SStr(StLv, 5, '.')+' '+
-              SStr(EndLv, 5, '.')+' '+
-              SStr(Score, 10, '.');
-            end
-          else
-            s := '';
-          R.Assign(2, 3+i, D^.Size.X-2, 4+i);
-          D^.Insert(New(PLabel, Init(R, s, nil)));
-        end;
-    PP := Stop;
-    Stop := True;
-    Desktop^.ExecView(D);
-    Stop := PP;
-    Dispose(D, Done);
+        S := Name;
+        if I = HighLight then
+          S := '~'+S+'~';
+        S := S+Strg('.', 30-CStrLen(S));
+        S := S+' '+SStr(StLv, 5, '.')+' '+
+          SStr(EndLv, 5, '.')+' '+
+          SStr(Score, 10, '.');
+        end
+      else
+        S := '';
+      R.Assign(2, 3+I, D^.Size.X-2, 4+I);
+      D^.Insert(New(PLabel, Init(R, S, nil)));
+      end;
+  PP := Stop;
+  Stop := True;
+  Desktop^.ExecView(D);
+  Stop := PP;
+  Dispose(D, Done);
   end { TGameView.ShowScores };
 
-Constructor TGameView.Load(var s: TStream);
+constructor TGameView.Load(var S: TStream);
   begin
-    inherited Load(s);
-    GetPeerViewPtr(s, Info);
-    s.Read(Glass, SizeOf(Self)-SizeOf(TView)-SizeOf(PView));
-    Game := @Self;
-    RegisterToBackground(@Self);
+  inherited Load(S);
+  GetPeerViewPtr(S, Info);
+  S.Read(Glass, SizeOf(Self)-SizeOf(TView)-SizeOf(PView));
+  Game := @Self;
+  RegisterToBackground(@Self);
   end;
 
-procedure TGameView.Store(var s: TStream);
+procedure TGameView.Store(var S: TStream);
   begin
-    inherited Store(s);
-    PutPeerViewPtr(s, Info);
-    s.Write(Glass, SizeOf(Self)-SizeOf(TView)-SizeOf(PView));
+  inherited Store(S);
+  PutPeerViewPtr(S, Info);
+  S.Write(Glass, SizeOf(Self)-SizeOf(TView)-SizeOf(PView));
   end;
 
 destructor TGameView.Done;
   begin
-    Game := nil;
-    inherited Done;
+  Game := nil;
+  inherited Done;
   end;
 
 procedure TGameView.NewGame;
   var
-    i, j: integer;
+    I, J: Integer;
   begin
-    TMaxFig := 7;
+  TMaxFig := 7;
 
-    if Pentix then
-      TMaxFig := MaxFig;
+  if Pentix then
+    TMaxFig := MaxFig;
 
-    for i := 0 to Vis+2 do
-      for j := -1 to Shi+2 do
-        Glass[i, j] := byte((j < 1) or (j > Shi) or (i > Vis-1) or (i <
-          0));
+  for I := 0 to Vis+2 do
+    for J := -1 to Shi+2 do
+      Glass[I, J] := Byte((J < 1) or (J > Shi) or (I > Vis-1) or (I < 0));
 
-    CurFig := Random(TMaxFig);
-    ReadFig;
-    X := Shi shr 1-2;
-    Y := 0;
-    NextFig := Random(TMaxFig);
-    Score := 0;
-    Lines := 0;
-    Delay := LevelDelay(StartLevel);
-    Level := StartLevel;
+  CurFig := Random(TMaxFig);
+  ReadFig;
+  X := Shi shr 1-2;
+  Y := 0;
+  NextFig := Random(TMaxFig);
+  Score := 0;
+  Lines := 0;
+  Delay := LevelDelay(StartLevel);
+  Level := StartLevel;
 
-    if Info <> nil then
-      Info^.DrawView;
+  if Info <> nil then
+    Info^.DrawView;
 
-end { TGameView.NewGame };
+  end { TGameView.NewGame };
 
 function TGameView.ValidMove;
   var
-    i: integer;
+    I: Integer;
   begin
-    ValidMove := False;
-    for i := 1 to ColPo[CurFig] do
-      if Glass[Fig[i, 1]+Y+DeltaY, Fig[i, 2]+X+DeltaX+1] <> 0 then
-          exit;
-    ValidMove := True;
+  ValidMove := False;
+  for I := 1 to ColPo[CurFig] do
+    if Glass[Fig[I, 1]+Y+DeltaY, Fig[I, 2]+X+DeltaX+1] <> 0 then
+      Exit;
+  ValidMove := True;
   end;
 
 procedure TGameView.SetState;
   begin
-    inherited SetState(AState, Enable);
-    if not Enable and (AState and (sfActive+sfFocused) <> 0) and
+  inherited SetState(AState, Enable);
+  if not Enable and (AState and (sfActive+sfFocused) <> 0) and
       (Owner^.State and sfActive <> 0) and not Stop and
-      ValidMove(0, 0)
-    then
-      Stop := True;
+    ValidMove(0, 0)
+  then
+    Stop := True;
   end;
 
 function TGameView.MoveFig;
   label 1;
   var
-    i, j: integer;
+    I, J: Integer;
   begin
-    MoveFig := False;
-    if not ValidMove(DeltaX, DeltaY) then
-      exit;
-    MoveFig := True;
-    ChPos := True;
-    HideFig := True;
-    Draw;
-    Inc(X, DeltaX);
-    Inc(Y, DeltaY);
-    ChPos := True;
-    Draw;
+  MoveFig := False;
+  if not ValidMove(DeltaX, DeltaY) then
+    Exit;
+  MoveFig := True;
+  ChPos := True;
+  HideFig := True;
+  Draw;
+  Inc(X, DeltaX);
+  Inc(Y, DeltaY);
+  ChPos := True;
+  Draw;
 1:
   end;
 
 function TGameView.MoveDown;
   var
-    i, j, k, l, W, Bw: integer;
-    B, BB, BBW: boolean;
+    I, J, K, L, W, BW: Integer;
+    B, BB, BBW: Boolean;
 
   procedure CheckHiScores;
     var
-      i, j: integer;
-      s: PDosStream;
+      I, J: Integer;
+      S: PDosStream;
       Nm: String;
-      B: array[0..1024] of byte;
+      B: array[0..1024] of Byte;
     label 1;
     begin
-      for i := 1 to 10 do
-        if HiScores[i+10*byte(Pentix)].Score < Score then
-          goto 1;
-      exit;
+    for I := 1 to 10 do
+      if HiScores[I+10*Byte(Pentix)].Score < Score then
+        goto 1;
+    Exit;
 1:
-      for j := 10 downto i+1 do
-        HiScores[j+10*byte(Pentix)] := HiScores[j-1+10*byte(Pentix)];
-      Nm := GetString(dlAnonymous);
-      ExecResource(dlgTetrisWinner, Nm);
+    for J := 10 downto I+1 do
+      HiScores[J+10*Byte(Pentix)] := HiScores[J-1+10*Byte(Pentix)];
+    Nm := GetString(dlAnonymous);
+    ExecResource(dlgTetrisWinner, Nm);
 
-      HiScores[i+10*byte(Pentix)].Name := Nm;
-      HiScores[i+10*byte(Pentix)].StLv := StartLevel;
-      HiScores[i+10*byte(Pentix)].EndLv := Level;
-      HiScores[i+10*byte(Pentix)].Score := Score;
-      s := New(PDosStream, Init(SourceDir+'TETRIS.CFG', stCreate));
-      Move(HiScores, B, SizeOf(HiScores));
-      j := SizeOf(HiScores);
-      asm
+    HiScores[I+10*Byte(Pentix)].Name := Nm;
+    HiScores[I+10*Byte(Pentix)].StLv := StartLevel;
+    HiScores[I+10*Byte(Pentix)].EndLv := Level;
+    HiScores[I+10*Byte(Pentix)].Score := Score;
+    S := New(PDosStream, Init(SourceDir+'TETRIS.CFG', stCreate));
+    Move(HiScores, B, SizeOf(HiScores));
+    J := SizeOf(HiScores);
+    asm
     lea ebx, B
     mov ecx, J
   @@1:
@@ -598,367 +602,362 @@ function TGameView.MoveDown;
     xor [ebx], dl
     inc ebx
     loop @@1
-  end
-        ;
-      s^.Write(B, SizeOf(HiScores));
-      Dispose(s, Done);
-      ShowScores(i);
+  end;
+    S^.Write(B, SizeOf(HiScores));
+    Dispose(S, Done);
+    ShowScores(I);
     end { CheckHiScores };
 
   begin { TGameView.MoveDown }
-    if Stop then
-      exit;
-    if MoveFig(0, 1) then
-      MoveDown := True
-    else
+  if Stop then
+    Exit;
+  if MoveFig(0, 1) then
+    MoveDown := True
+  else
+    begin
+    for I := 1 to ColPo[CurFig] do
+      Glass[Fig[I, 1]+Y, Fig[I, 2]+X+1] := 15-CurFig mod 7;
+    Inc(Score, ((Size.Y-Y)*2+Level*6)*(10-3*Byte(Preview)) div 10);
+    BB := False;
+    W := 0;
+    BW := 0;
+    for I := 0 to Vis-1 do
       begin
-        for i := 1 to ColPo[CurFig] do
-          Glass[Fig[i, 1]+Y, Fig[i, 2]+X+1] := 15-CurFig mod 7;
-        Inc(Score, ((Size.Y-Y)*2+Level*6)*(10-3*byte(Preview)) div 10);
-          BB := False;
-        W := 0;
-        Bw := 0;
-        for i := 0 to Vis-1 do
-          begin
-            B := True;
-            BBW := True;
-            for j := 1 to Shi do
-              begin
-                B := B and (Glass[i, j] <> 0);
-                BBW := BBW and (Glass[i, j] = 0);
-              end;
-            Inc(Bw, byte(BBW));
-            if B then
-              begin
-                for k := i downto 1 do
-                  for j := 1 to Shi do
-                    begin
-                      Glass[k, j] := Glass[k-1, j];
-                      Glass[k-1, j] := 0;
-                    end;
-                Inc(Score, (W+Size.Y-i)*30);
-                Inc(Lines);
-                Inc(W);
-                BB := True;
-              end;
-          end;
-        if Bw = Vis then
-          Inc(Score, (Level*300*(10-3*byte(Preview))) div 10);
-        CurFig := NextFig;
-        ReadFig;
-        NextFig := Random(TMaxFig);
-        X := Shi shr 1-2;
-        Y := -Fig[1, 1];
-        if Lines > 90-(9-StartLevel)*10 then
-          begin
-            Level := 1+(Lines-(90-(9-StartLevel)*10)) div 20+
-              StartLevel;
-            if Level > 10 then
-              Level := 10;
-            if Level < StartLevel then
-              Level := StartLevel;
-            Delay := LevelDelay(Level);
-          end;
-        Info^.DrawView;
-        Stop := not ValidMove(0, 0);
-        if BB then
-          xTime.DelayTics(2)
-        else
-          xTime.DelayTics(1);
-        if Stop then
-          begin
-            for i := 1 to ColPo[CurFig] do
-              Glass[Fig[i, 1]+Y, Fig[i, 2]+X+1] := 15-CurFig mod 7;
-            Draw;
-            MessageBox(GetString(dlGameOver), @Score, mfInformation+
-              mfOKButton);
-            CheckHiScores;
-            Info^.Draw;
-          end;
-        DrawView;
-        MoveDown := False;
-        MakeTime;
-      end
+      B := True;
+      BBW := True;
+      for J := 1 to Shi do
+        begin
+        B := B and (Glass[I, J] <> 0);
+        BBW := BBW and (Glass[I, J] = 0);
+        end;
+      Inc(BW, Byte(BBW));
+      if B then
+        begin
+        for K := I downto 1 do
+          for J := 1 to Shi do
+            begin
+            Glass[K, J] := Glass[K-1, J];
+            Glass[K-1, J] := 0;
+            end;
+        Inc(Score, (W+Size.Y-I)*30);
+        Inc(Lines);
+        Inc(W);
+        BB := True;
+        end;
+      end;
+    if BW = Vis then
+      Inc(Score, (Level*300*(10-3*Byte(Preview))) div 10);
+    CurFig := NextFig;
+    ReadFig;
+    NextFig := Random(TMaxFig);
+    X := Shi shr 1-2;
+    Y := -Fig[1, 1];
+    if Lines > 90-(9-StartLevel)*10 then
+      begin
+      Level := 1+(Lines-(90-(9-StartLevel)*10)) div 20+StartLevel;
+      if Level > 10 then
+        Level := 10;
+      if Level < StartLevel then
+        Level := StartLevel;
+      Delay := LevelDelay(Level);
+      end;
+    Info^.DrawView;
+    Stop := not ValidMove(0, 0);
+    if BB then
+      xTime.DelayTics(2)
+    else
+      xTime.DelayTics(1);
+    if Stop then
+      begin
+      for I := 1 to ColPo[CurFig] do
+        Glass[Fig[I, 1]+Y, Fig[I, 2]+X+1] := 15-CurFig mod 7;
+      Draw;
+      MessageBox(GetString(dlGameOver), @Score, mfInformation+mfOKButton);
+      CheckHiScores;
+      Info^.Draw;
+      end;
+    DrawView;
+    MoveDown := False;
+    MakeTime;
+    end
 
-end { TGameView.MoveDown };
+  end { TGameView.MoveDown };
 
 procedure TGameView.Draw;
   var
     B: TDrawBuffer;
-    i, j, k: integer;
+    I, J, K: Integer;
   begin
-    if not ChPos then
-      for i := 0 to Vis do
-        begin
-          MoveChar(B, ' ', $0, Shi*2);
-          for j := 1 to Shi do
-            begin
-              k := (j-1)*2;
-              B[k] := (Glass[i, j] shl 8)+219;
-              B[k+1] := B[k];
-            end;
-          WriteLine(0, i, Shi*2, 1, B);
-        end;
-
-    if not Stop then
+  if not ChPos then
+    for I := 0 to Vis do
       begin
-        k := (((15-CurFig mod 7) shl 8)+219)*byte(not HideFig);
-        B[0] := k;
-        B[1] := k;
-        for i := 1 to ColPo[CurFig] do
-          WriteBuf((X+Fig[i, 2])*2, Y+Fig[i, 1], 2, 1, B);
-
+      MoveChar(B, ' ', $0, Shi*2);
+      for J := 1 to Shi do
+        begin
+        K := (J-1)*2;
+        B[K] := (Glass[I, J] shl 8)+219;
+        B[K+1] := B[K];
+        end;
+      WriteLine(0, I, Shi*2, 1, B);
       end;
-    ChPos := False;
-    HideFig := False;
+
+  if not Stop then
+    begin
+    K := (( (15-CurFig mod 7) shl 8)+219)*Byte(not HideFig);
+    B[0] := K;
+    B[1] := K;
+    for I := 1 to ColPo[CurFig] do
+      WriteBuf((X+Fig[I, 2])*2, Y+Fig[I, 1], 2, 1, B);
+
+    end;
+  ChPos := False;
+  HideFig := False;
   end { TGameView.Draw };
 
 procedure TGameView.MakeTime;
   var
-    A, B, C: byte;
+    A, B, C: Byte;
   begin
-    if Stop then
-      exit;
-    {$IFDEF OS_DOS}
-    asm
+  if Stop then
+    Exit;
+  {$IFDEF OS_DOS}
+  asm
   mov ah, 2Ch
   int 21h
   mov A, DH
   mov B, DL
   mov C, CL
  end;
-    LastT := longInt(A+longInt(C)*60)*100+B;
-    {$ELSE}
-    LastT := GetTimemSec*10;
-    {$ENDIF}
+  LastT := LongInt(A+LongInt(C)*60)*100+B;
+  {$ELSE}
+  LastT := GetTimemSec*10;
+  {$ENDIF}
   end;
 
-procedure TGameView.UpDate;
+procedure TGameView.Update;
   var
-    A, B, C: byte;
+    A, B, C: Byte;
   begin
-    if Stop then
-      exit;
-    {$IFDEF OS_DOS}
-    asm
+  if Stop then
+    Exit;
+  {$IFDEF OS_DOS}
+  asm
   mov ah, 2Ch
   int 21h
   mov A, DH
   mov B, DL
   mov C, CL
  end;
-    if longInt(longInt(C)*60+word(A))*100+B > LastT+Delay then
-      {$ELSE}
-      if GetTimemSec*10 > LastT+Delay then
-        {$ENDIF}
-        begin
-          MoveDown;
-          MakeTime
-        end;
-  end;
+  if LongInt(LongInt(C)*60+Word(A))*100+B > LastT+Delay then
+  {$ELSE}
+  if GetTimemSec*10 > LastT+Delay then
+    {$ENDIF}
+    begin
+    MoveDown;
+    MakeTime
+    end;
+  end { TGameView.Update };
 
 procedure TGameView.HandleEvent;
   procedure CE;
     begin
-      ClearEvent(Event)
+    ClearEvent(Event)
     end;
 
   procedure Setup;
     begin
-      Stop := True;
-      with TetrisRec do
-        begin
-          l := Level-1;
-          s := byte(Pentix);
-          P := byte(Preview);
-        end;
-      if ExecResource(dlgGameSetup, TetrisRec) <> cmOK then
-        exit;
-      with TetrisRec do
-        begin
-          StartLevel := l+1;
-          Pentix := (s = 1);
-          Preview := (P and 1 <> 0);
-        end;
-      HelpCtx := hcTetris+byte(Pentix);
-      NewGame;
-      Owner^.Redraw;
-      Message(Application, evCommand, cmUpdateConfig, nil);
-    end { Setup };
+    Stop := True;
+    with TetrisRec do
+      begin
+      l := Level-1;
+      S := Byte(Pentix);
+      P := Byte(Preview);
+      end;
+    if ExecResource(dlgGameSetup, TetrisRec) <> cmOK then
+      Exit;
+    with TetrisRec do
+      begin
+      StartLevel := l+1;
+      Pentix := (S = 1);
+      Preview := (P and 1 <> 0);
+      end;
+    HelpCtx := hcTetris+Byte(Pentix);
+    NewGame;
+    Owner^.Redraw;
+    Message(Application, evCommand, cmUpdateConfig, nil);
+    end;
 
   begin { TGameView.HandleEvent }
-    inherited HandleEvent(Event);
-    case Event.What of
-      evCommand:
-        case Event.Command of
-          cmGetName:
-            PString(Event.InfoPtr)^:= GetString(dlGameTitle);
-          cmStop:
-            begin
-              if ValidMove(0, 0) then
-                Stop := not Stop;
-              CE
-            end;
-          cmNewGame:
-            begin
-              NewGame;
-              Stop := False;
-              DrawView;
-              CE
-            end;
-          cmSetup:
-            begin
-              Setup;
-              CE
-            end;
-          cmShowHi:
-            begin
-              ShowScores(0);
-              CE
-            end;
-          cmTetrisIncLevel:
-            begin
-              if Level < 10 then
-                Inc(Level);
-              Delay := LevelDelay(Level);
-              Owner^.Redraw;
-              CE
-            end;
-          cmTetrisPreview:
-            begin
-              Preview := not Preview;
-              Owner^.Redraw;
-              CE
-            end;
-        end {case};
-      evKeyDown:
-        case Event.KeyCode of
-          kbESC:
-            begin
-              Message(Owner, evCommand, cmClose, nil);
-              CE
-            end;
-          else
-            if not Stop then
-              case Event.KeyCode and $FF00 of
-                kbLeft, kbHome:
+  inherited HandleEvent(Event);
+  case Event.What of
+    evCommand:
+      case Event.Command of
+        cmGetName:
+          PString(Event.InfoPtr)^:= GetString(dlGameTitle);
+        cmStop:
+          begin
+          if ValidMove(0, 0) then
+            Stop := not Stop;
+          CE
+          end;
+        cmNewGame:
+          begin
+          NewGame;
+          Stop := False;
+          DrawView;
+          CE
+          end;
+        cmSetup:
+          begin
+          Setup;
+          CE
+          end;
+        cmShowHi:
+          begin
+          ShowScores(0);
+          CE
+          end;
+        cmTetrisIncLevel:
+          begin
+          if Level < 10 then
+            Inc(Level);
+          Delay := LevelDelay(Level);
+          Owner^.Redraw;
+          CE
+          end;
+        cmTetrisPreview:
+          begin
+          Preview := not Preview;
+          Owner^.Redraw;
+          CE
+          end;
+      end {case};
+    evKeyDown:
+      case Event.KeyCode of
+        kbESC:
+          begin
+          Message(Owner, evCommand, cmClose, nil);
+          CE
+          end;
+        else {case}
+          if not Stop then
+            case Event.KeyCode and $FF00 of
+              kbLeft, kbHome:
+                begin
+                MoveFig(-1, 0);
+                CE
+                end;
+              kbRight, kbPgUp:
+                begin
+                MoveFig(1, 0);
+                CE
+                end;
+              kbDown, $3900
+              :
+                begin
+                if not Stop then
+                  while ValidMove(0, 1) do
+                    MoveDown;
+                MakeTime;
+                CE;
+                end;
+              kbUp:
+                begin
+                OldF := Fig;
+                Rotate;
+                if ValidMove(0, 0) then
                   begin
-                    MoveFig(-1, 0);
-                    CE
-                  end;
-                kbRight, kbPgUp:
-                  begin
-                    MoveFig(1, 0);
-                    CE
-                  end;
-                kbDown, $3900
-                :
-                  begin
-                    if not Stop then
-                      while ValidMove(0, 1) do
-                        MoveDown;
-                    MakeTime;
-                    CE;
-                  end;
-                kbUp:
-                  begin
-                    OldF := Fig;
-                    Rotate;
-                    if ValidMove(0, 0) then
-                      begin
-                        Fig := OldF;
-                        ChPos := True;
-                        HideFig := True;
-                        Draw;
-                        Rotate;
-                        MoveFig(0, 0)
-                      end
-                    else
-                      Fig := OldF;
-                    CE;
-                  end;
+                  Fig := OldF;
+                  ChPos := True;
+                  HideFig := True;
+                  Draw;
+                  Rotate;
+                  MoveFig(0, 0)
+                  end
                 else
-                  if (Event.CharCode > #0) and (CommandLine <> nil)
-                  then
-                    CommandLine^.HandleEvent(Event);
-              end
-            else if (Event.CharCode > #0) and (CommandLine <> nil)
-            then
-              CommandLine^.HandleEvent(Event);
-        end {case};
-    end {case};
+                  Fig := OldF;
+                CE;
+                end;
+              else {case}
+                if  (Event.CharCode > #0) and (CommandLine <> nil) then
+                  CommandLine^.HandleEvent(Event);
+            end
+          else if (Event.CharCode > #0) and (CommandLine <> nil) then
+            CommandLine^.HandleEvent(Event);
+      end {case};
+  end {case};
   end { TGameView.HandleEvent };
 
 procedure TGameView.Rotate;
   var
-    i: integer;
+    i: Integer;
   begin
-    for i := 1 to ColPo[CurFig] do
-      begin
-        Fig[i, 2] := OldF[i, 1];
-        Fig[i, 1] := CRot[CurFig]+1-OldF[i, 2];
-      end;
+  for i := 1 to ColPo[CurFig] do
+    begin
+    Fig[i, 2] := OldF[i, 1];
+    Fig[i, 1] := CRot[CurFig]+1-OldF[i, 2];
+    end;
   end;
 
 procedure TGameView.ReadFig;
   var
-    i: integer;
+    I: Integer;
   begin
-    for i := 1 to ColPo[CurFig] do
-      begin
-        Fig[i, 1] := Figures[CurFig*5+i, 1];
-        Fig[i, 2] := Figures[CurFig*5+i, 2];
-      end;
+  for I := 1 to ColPo[CurFig] do
+    begin
+    Fig[I, 1] := Figures[CurFig*5+I, 1];
+    Fig[I, 2] := Figures[CurFig*5+I, 2];
+    end;
   end;
 
 procedure TGameWindow.HandleEvent;
   begin
-    if (Event.What = evKeyDown) and (Event.CharCode = ' ') then
-      Event.KeyCode := kbDown;
-    inherited HandleEvent(Event);
+  if  (Event.What = evKeyDown) and (Event.CharCode = ' ') then
+    Event.KeyCode := kbDown;
+  inherited HandleEvent(Event);
   end;
 
 {$IFDEF PLUGIN1}
 const
   Reg1: TStreamRec =
-  (ObjType: $FFFF;
-  VmtLink: System.TypeOf(TGameWindow);
-  Load: @TGameWindow.Load;
-  Store: @TGameWindow.Store);
+    (ObjType: $FFFF;
+    VmtLink: System.TypeOf(TGameWindow);
+    Load: @TGameWindow.Load;
+    Store: @TGameWindow.Store);
   Reg2: TStreamRec =
-  (ObjType: $FFFF;
-  VmtLink: System.TypeOf(TGameView);
-  Load: @TGameView.Load;
-  Store: @TGameView.Store);
+    (ObjType: $FFFF;
+    VmtLink: System.TypeOf(TGameView);
+    Load: @TGameView.Load;
+    Store: @TGameView.Store);
   Reg3: TStreamRec =
-  (ObjType: $FFFF;
-  VmtLink: System.TypeOf(TGameInfo);
-  Load: @TGameInfo.Load;
-  Store: @TGameInfo.Store);
-  RegisterNeed: boolean = True;
+    (ObjType: $FFFF;
+    VmtLink: System.TypeOf(TGameInfo);
+    Load: @TGameInfo.Load;
+    Store: @TGameInfo.Store);
+  RegisterNeed: Boolean = True;
 
   {&Cdecl+}
   {procedure CatchCommand(Command, LngIndex, DlgIndex: SmallWord);}
-    {1.0}
-procedure CatchCommand(Command, ObjType: SmallWord; const PluginName:
-    ShortString);
+  {1.0}
+procedure CatchCommand(Command, ObjType: SmallWord;
+     const PluginName: ShortString);
   begin
-    if RegisterNeed then
-      begin
-        Reg1.ObjType := ObjType;
-        Reg2.ObjType := ObjType+1;
-        Reg3.ObjType := ObjType+2;
-        RegisterType(Reg1);
-        RegisterType(Reg2);
-        RegisterType(Reg3);
-        RegisterNeed := False;
-      end;
+  if RegisterNeed then
+    begin
+    Reg1.ObjType := ObjType;
+    Reg2.ObjType := ObjType+1;
+    Reg3.ObjType := ObjType+2;
+    RegisterType(Reg1);
+    RegisterType(Reg2);
+    RegisterType(Reg3);
+    RegisterNeed := False;
+    end;
 
-    if Command = 0 then
-      if Game = nil then
-        Application^.InsertWindow(New(PGameWindow, Init))
-      else
-        Game^.Owner^.Select;
+  if Command = 0 then
+    if Game = nil then
+      Application^.InsertWindow(New(PGameWindow, Init))
+    else
+      Game^.Owner^.Select;
   end;
 {&Cdecl-}
 

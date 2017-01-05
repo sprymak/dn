@@ -62,12 +62,13 @@ interface
 
 uses
   {SysUtils,}VpSysLow,
-  Lfn;
+  Lfn
+  ;
 
 { Common defines }
 
 type
-  CondInt = longInt;
+  CondInt = LongInt;
 
   Str2 = String[2];
   PStr2 = ^Str2;
@@ -102,37 +103,37 @@ type
   PLongString = ^LongString;
   {/Cat}
 
-  TCharSet = Set of Char;
+  TCharSet = set of Char;
   PCharSet = ^TCharSet;
 
   WordRec = record
-    Lo, Hi: byte;
+    Lo, Hi: Byte;
     end;
 
   LongRec = record
-    Lo, Hi: word;
+    Lo, Hi: Word;
     end;
 
   PtrRec = record
-    Ofs, Seg: word;
+    Ofs, Seg: Word;
     end;
 
 const
   MaxBytes = 128*1024*1024;
 
-  MaxWords = MaxBytes div SizeOf(word);
+  MaxWords = MaxBytes div SizeOf(Word);
   MaxPtrs = MaxBytes div SizeOf(Pointer);
 
 type
 
-  SW_Word = longInt;
-  Sw_Integer = longInt;
+  SW_Word = LongInt;
+  Sw_Integer = LongInt;
   AInt = SmallInt;
 
   AWord = SmallWord;
 
   PByteArray = ^TByteArray;
-  TByteArray = array[0..MaxBytes-1] of byte;
+  TByteArray = array[0..MaxBytes-1] of Byte;
 
   PWordArray = ^TWordArray;
   TWordArray = array[0..MaxWords-1] of AWord;
@@ -146,23 +147,23 @@ const
 
   stCreate = $FFFF { $DC0B }; { Create new file }
   stOpenRead = Open_Access_ReadOnly or open_share_DenyNone;
-    { Read access only }
+  { Read access only }
   stOpenWrite = Open_Access_WriteOnly or open_share_DenyNone;
-    { Write access only }
+  { Write access only }
   stOpen = Open_Access_ReadWrite or open_share_DenyNone;
-    { Read and write access }
+  { Read and write access }
   stOpenPacked = Open_Access_ReadWrite+1;
-    { Read access only, packed files too }
+  { Read access only, packed files too }
 
   { File share mode constants }
   fmClean = $FF00; { Mask to clean low byte of file mode constatns }
 
   fmOpenMode = $FFF0;
-    { Mask to apply fmReadOnly/fmWriteOnly/fmReadWrite }
+  { Mask to apply fmReadOnly/fmWriteOnly/fmReadWrite }
   fmReadOnly = Open_Access_ReadOnly; { Open read-only file }
   fmWriteOnly = Open_Access_WriteOnly; { Open file for write only }
   fmReadWrite = Open_Access_ReadWrite;
-    { Open file as for read, as for write }
+  { Open file as for read, as for write }
   fmPacked = Open_Access_ReadWrite+1; { Open a packed file, if can }
 
   fmDeny = $FF0F; { Mask to apply fmDenyXXX }
@@ -190,7 +191,7 @@ type
 
   PStreamRec = ^TStreamRec;
   TStreamRec = record
-    ObjType: word;
+    ObjType: Word;
     VmtLink: Pointer;
     {Cat}
     Load: Pointer;
@@ -203,7 +204,7 @@ type
   PEmptyObject = ^TEmptyObject;
   TEmptyObject = object
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
-    Constructor Init;
+    constructor Init;
     procedure Free;
     destructor Done; virtual;
     end;
@@ -211,8 +212,8 @@ type
   PObject = ^TObject;
   TObject = object(TEmptyObject)
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
-    ObjectIsInited: boolean;
-    Constructor Init;
+    ObjectIsInited: Boolean;
+    constructor Init;
     destructor Done; virtual;
     end;
 
@@ -221,38 +222,38 @@ type
   PStream = ^TStream;
   TStream = object(TObject)
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
-    Status: integer;
-    ErrorInfo: integer;
-    StreamSize: longInt; { Stream current size }
-    Position: longInt; { Current position }
-    procedure CopyFrom(var s: TStream; Count: longInt);
-    procedure Error(Code, Info: integer); virtual;
+    Status: Integer;
+    ErrorInfo: Integer;
+    StreamSize: LongInt; { Stream current size }
+    Position: LongInt; { Current position }
+    procedure CopyFrom(var S: TStream; Count: LongInt);
+    procedure Error(Code, Info: Integer); virtual;
     procedure Flush; virtual;
     function Get: PObject;
-    function GetPos: longInt; virtual;
-    function GetSize: longInt; virtual;
+    function GetPos: LongInt; virtual;
+    function GetSize: LongInt; virtual;
     procedure Put(P: PObject);
     procedure Read(var Buf; Count: SW_Word); virtual;
     function ReadStr: PString;
     function ReadLongStr: PLongString; {Cat}
-    procedure ReadStrV(var s: String); {Cat}
-    procedure ReadLongStrV(var s: LongString); {Cat}
+    procedure ReadStrV(var S: String); {Cat}
+    procedure ReadLongStrV(var S: LongString); {Cat}
     procedure Reset;
-    procedure Seek(Pos: longInt); virtual;
+    procedure Seek(Pos: LongInt); virtual;
     function StrRead: PChar;
     procedure StrWrite(P: PChar);
     procedure Truncate; virtual;
     procedure Write(const Buf; Count: SW_Word); virtual;
     procedure WriteStr(P: PString);
     procedure WriteLongStr(P: PLongString);
-    function Eof: boolean; {-$VOL}
-    procedure DoOpen(OpenMode: word); virtual;
+    function Eof: Boolean; {-$VOL}
+    procedure DoOpen(OpenMode: Word); virtual;
     procedure Close; virtual;
     end;
 
   FNameStr = String;
   AsciiZ = array[0..255] of Char;
-  THandle = integer;
+  THandle = Integer;
 
   { File name string }
 
@@ -263,19 +264,19 @@ type
   PDosStream = ^TDosStream;
   TDOSStream = object(TStream)
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
-    Handle: integer;
+    Handle: Integer;
     FName: AsciiZ;
-    FMode: word;
-    Constructor Init(FileName: FNameStr; Mode: word);
-    procedure Open(FileName: FNameStr; Mode: word);
+    FMode: Word;
+    constructor Init(FileName: FNameStr; Mode: Word);
+    procedure Open(FileName: FNameStr; Mode: Word);
     destructor Done; virtual;
     procedure Read(var Buf; Count: SW_Word); virtual;
-    procedure ReadBlock(var Buf; Count: SW_Word; var BytesRead: word);
-      virtual;
-    procedure Seek(Pos: longInt); virtual;
+    procedure ReadBlock(var Buf; Count: SW_Word; var BytesRead: Word);
+     virtual;
+    procedure Seek(Pos: LongInt); virtual;
     procedure Truncate; virtual;
     procedure Write(const Buf; Count: SW_Word); virtual;
-    procedure DoOpen(OpenMode: word); virtual;
+    procedure DoOpen(OpenMode: Word); virtual;
     procedure Close; virtual;
     end;
 
@@ -288,15 +289,15 @@ type
     BufSize: SW_Word;
     BufPtr: SW_Word; { Buffer start }
     BufEnd: SW_Word;
-    LastMode: byte; { Last buffer mode }
-    Constructor Init(FileName: FNameStr; Mode: word; Size: SW_Word);
+    LastMode: Byte; { Last buffer mode }
+    constructor Init(FileName: FNameStr; Mode: Word; Size: SW_Word);
     destructor Done; virtual;
     procedure Flush; virtual;
     procedure Read(var Buf; Count: SW_Word); virtual;
-    procedure Seek(Pos: longInt); virtual;
+    procedure Seek(Pos: LongInt); virtual;
     procedure Truncate; virtual;
     procedure Write(const Buf; Count: SW_Word); virtual;
-    procedure DoOpen(OpenMode: word); virtual;
+    procedure DoOpen(OpenMode: Word); virtual;
     procedure Close; virtual;
     end;
 
@@ -305,62 +306,62 @@ type
   PMemoryStream = ^TMemoryStream;
   TMemoryStream = object(TStream)
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
-    BlkCount: longInt; { Number of segments }
-    BlkSize: word; { Memory block size }
-    MemSize: longInt; { Memory alloc size }
+    BlkCount: LongInt; { Number of segments }
+    BlkSize: Word; { Memory block size }
+    MemSize: LongInt; { Memory alloc size }
     BlkList: PPointerArray; { Memory block list }
-    Constructor Init(ALimit: longInt; ABlockSize: word);
+    constructor Init(ALimit: LongInt; ABlockSize: Word);
     destructor Done; virtual;
     procedure Read(var Buf; Count: SW_Word); virtual;
     procedure Truncate; virtual;
     procedure Write(const Buf; Count: SW_Word); virtual;
-    private
-    function ChangeListSize(ALimit: longInt): boolean;
+  private
+    function ChangeListSize(ALimit: LongInt): Boolean;
     end;
 
   { TPoint object }
 
   PPoint = ^TPoint;
   TPoint = object
-    X, Y: longInt;
-    function Equals(P: TPoint): boolean;
-    function EqualsXY(AX, AY: longInt): boolean;
-    procedure Assign(AX, AY: longInt);
-    function isLE(P: TPoint): boolean; {less then or equal}
-    function isGE(P: TPoint): boolean; {great thean or equal}
+    X, Y: LongInt;
+    function Equals(P: TPoint): Boolean;
+    function EqualsXY(AX, AY: LongInt): Boolean;
+    procedure Assign(AX, AY: LongInt);
+    function isLE(P: TPoint): Boolean; {less then or equal}
+    function isGE(P: TPoint): Boolean; {great thean or equal}
     end;
 
   { Rectangle object }
 
   TRect = object
     A, B: TPoint;
-    procedure Assign(XA, YA, XB, YB: longInt);
+    procedure Assign(XA, YA, XB, YB: LongInt);
     procedure Copy(R: TRect);
-    procedure Move(ADX, ADY: longInt);
-    procedure Grow(ADX, ADY: longInt);
+    procedure Move(ADX, ADY: LongInt);
+    procedure Grow(ADX, ADY: LongInt);
     procedure Intersect(R: TRect);
     procedure Union(R: TRect);
-    function Contains(P: TPoint): boolean;
-    function Equals(R: TRect): boolean;
-    function Empty: boolean;
+    function Contains(P: TPoint): Boolean;
+    function Equals(R: TRect): Boolean;
+    function Empty: Boolean;
     end;
 
-procedure FreeObject(var o);
+procedure FreeObject(var O);
 
 { Longint routines }
 
-function longmul(X, Y: longInt): longInt;
-function LongDiv(X: longInt; Y: longInt): longInt;
+function longmul(X, Y: LongInt): LongInt;
+function LongDiv(X: LongInt; Y: LongInt): LongInt;
 
 { Stream routines }
 
-procedure RegisterType(var s: TStreamRec);
-procedure ReRegisterType(var s: TStreamRec);
+procedure RegisterType(var S: TStreamRec);
+procedure ReRegisterType(var S: TStreamRec);
 
 function GetAnyMemoryStream: PStream;
 procedure Abstract;
 
-procedure Beep(Freq, Dur: longInt); {JO}
+procedure Beep(Freq, Dur: LongInt); {JO}
 
 const
   { Stream error procedure }
@@ -373,11 +374,12 @@ uses
   {$IFDEF WIN32}Windows, {$ENDIF}
   {$IFDEF PACKFILE}PackF_RS, {$ENDIF}
   {$IFDEF PLUGIN}Plugin, {$ENDIF}
-  Commands {Cat}, advance;
+  Commands {Cat}, Advance
+  ;
 
 procedure Abstract;
   begin
-    {RunError(211);}
+  {RunError(211);}
   end;
 
 type
@@ -389,38 +391,38 @@ type
 const
   LinkSize = SizeOf(DummyObject);
 
-Constructor TEmptyObject.Init;
+constructor TEmptyObject.Init;
   {
 var
   LinkSize: LongInt;
   Dummy: DummyObject;
 }
   begin
-    //LinkSize := LongInt(@Dummy.Data)-LongInt(@Dummy); { VMT link size }
-    FillChar(Pointer(longInt(@Self)+LinkSize)^,
+  //LinkSize := LongInt(@Dummy.Data)-LongInt(@Dummy); { VMT link size }
+  FillChar(Pointer(LongInt(@Self)+LinkSize)^,
     SizeOf(Self)-LinkSize, #0); { Clear data fields }
   end;
 
 { Shorthand procedure for a done/dispose }
 procedure TEmptyObject.Free;
   begin
-    if @Self <> nil then
-      Dispose(PEmptyObject(@Self), Done);
+  if @Self <> nil then
+    Dispose(PEmptyObject(@Self), Done);
   end;
 
 destructor TEmptyObject.Done;
   begin
   end;
 
-Constructor TObject.Init;
+constructor TObject.Init;
   begin
-    inherited Init;
-    ObjectIsInited := True;
+  inherited Init;
+  ObjectIsInited := True;
   end;
 
 destructor TObject.Done;
   begin
-    ObjectIsInited := False;
+  ObjectIsInited := False;
   end;
 
 { TStream type registration routines }
@@ -430,57 +432,57 @@ const
 
 procedure RegisterError;
   begin
-    {RunError(212);}
+  {RunError(212);}
   end;
 
-procedure RegisterType(var s: TStreamRec);
+procedure RegisterType(var S: TStreamRec);
   var
     P: PStreamRec;
   begin
-    if s.ObjType = 0 then
-      begin
-        Writeln('RegisterError, ObjType=', s.ObjType);
-        RegisterError;
-      end;
-    P := StreamTypes;
-    while (P <> nil) and (P^.ObjType <> s.ObjType) do
-      P := P^.Next;
-    if P = nil then
-      begin
-        s.Next := StreamTypes;
-        StreamTypes := @S;
-      end
-    else if (P^.VmtLink <> s.VmtLink) or (P^.Load <> s.Load) or (P^.
-        Store <> s.Store)
-    then
-      begin
-        Writeln('RegisterError, ObjType=', s.ObjType);
-        RegisterError;
-      end;
+  if S.ObjType = 0 then
+    begin
+    Writeln('RegisterError, ObjType=', S.ObjType);
+    RegisterError;
+    end;
+  P := StreamTypes;
+  while (P <> nil) and (P^.ObjType <> S.ObjType) do
+    P := P^.Next;
+  if P = nil then
+    begin
+    S.Next := StreamTypes;
+    StreamTypes := @S;
+    end
+  else if (P^.VmtLink <> S.VmtLink) or (P^.Load <> S.Load)
+       or (P^.Store <> S.Store)
+  then
+    begin
+    Writeln('RegisterError, ObjType=', S.ObjType);
+    RegisterError;
+    end;
   end { RegisterType };
 
-procedure ReRegisterType(var s: TStreamRec);
+procedure ReRegisterType(var S: TStreamRec);
   var
-    P, l: PStreamRec;
+    P, L: PStreamRec;
   begin
-    if s.ObjType = 0 then
-      RegisterError;
-    P := StreamTypes;
-    l := nil;
-    while (P <> nil) and (P^.ObjType <> s.ObjType) do
-      begin
-        l := P;
-        P := P^.Next;
-      end;
-    if P <> nil then
-      begin
-        if l <> nil then
-          l^.Next := P^.Next
-        else
-          StreamTypes := P^.Next;
-      end;
-    s.Next := StreamTypes;
-    StreamTypes := @S;
+  if S.ObjType = 0 then
+    RegisterError;
+  P := StreamTypes;
+  L := nil;
+  while (P <> nil) and (P^.ObjType <> S.ObjType) do
+    begin
+    L := P;
+    P := P^.Next;
+    end;
+  if P <> nil then
+    begin
+    if L <> nil then
+      L^.Next := P^.Next
+    else
+      StreamTypes := P^.Next;
+    end;
+  S.Next := StreamTypes;
+  StreamTypes := @S;
   end { ReRegisterType };
 
 { TStream support routines } {JO - from VP TV objects}
@@ -500,7 +502,9 @@ const
   {       ecx   = Stream object pointer                   }
   { Uses  eax,edx                                         }
 
-procedure DoStreamError; assembler; {$USES ecx} {$FRAME-}
+procedure DoStreamError;
+  assembler; {$USES ecx}
+  {$FRAME-}
 asm
                 movsx   edx,dl
                 push    edx             { [1]:Integer = Code    }
@@ -508,60 +512,61 @@ asm
                 push    ecx             { [3]:Pointer = Self    }
                 mov     eax,[ecx]
                 Call    DWord Ptr [eax].TStream_Error
-end
-  ;
+end;
 
 {/JO}
 
-procedure TStream.CopyFrom(var s: TStream; Count: longInt);
+procedure TStream.CopyFrom(var S: TStream; Count: LongInt);
   var
-    n: word;
+    N: Word;
     Buffer: PByteArray;
-    BufSize: word;
-    Allocated: boolean;
-    TTempBuf: array[0..255] of byte;
+    BufSize: Word;
+    Allocated: Boolean;
+    TTempBuf: array[0..255] of Byte;
   begin
-    BufSize := 32768;
-    if BufSize > Count then
-      BufSize := Count;
-    GetMem(Buffer, BufSize);
-    if Buffer = nil then
-      begin
-        Allocated := False;
-        Buffer := PByteArray(@TTempBuf);
-        BufSize := 256;
-      end
+  BufSize := 32768;
+  if BufSize > Count then
+    BufSize := Count;
+  GetMem(Buffer, BufSize);
+  if Buffer = nil then
+    begin
+    Allocated := False;
+    Buffer := PByteArray(@TTempBuf);
+    BufSize := 256;
+    end
+  else
+    Allocated := True;
+  while Count > 0 do
+    begin
+    if Count > BufSize then
+      N := BufSize
     else
-      Allocated := True;
-    while Count > 0 do
-      begin
-        if Count > BufSize then
-          n := BufSize
-        else
-          n := Count;
-        s.Read(Buffer^, n);
-        Write(Buffer^, n);
-        Dec(Count, n);
-      end;
-    if Allocated then
-      FreeMem(Buffer, BufSize);
+      N := Count;
+    S.Read(Buffer^, N);
+    Write(Buffer^, N);
+    Dec(Count, N);
+    end;
+  if Allocated then
+    FreeMem(Buffer, BufSize);
   end { TStream.CopyFrom };
 
-procedure TStream.Error(Code, Info: integer);
+procedure TStream.Error(Code, Info: Integer);
   type
-    TErrorProc = procedure (var s: TStream);
+    TErrorProc = procedure (var S: TStream);
   begin
-    Status := Code;
-    ErrorInfo := Info;
-    if StreamError <> nil then
-      TErrorProc(StreamError)(Self);
+  Status := Code;
+  ErrorInfo := Info;
+  if StreamError <> nil then
+    TErrorProc(StreamError)(Self);
   end;
 
 procedure TStream.Flush;
   begin
   end;
 
-function TStream.Get: PObject; assembler; {$USES None} {$FRAME+}
+function TStream.Get: PObject;
+  assembler; {$USES None}
+  {$FRAME+}
 asm
 {Cat: добавил проверку StreamMagic}
                 push    eax
@@ -617,26 +622,27 @@ asm
                 push    0                       { [3]:Pointer = Self = nil: allocate in dynamic memory }
                 Call    [edx].TStreamRec.Load
               @@4:                              { Return Self or nil }
-  end
-  ;
-
-function TStream.GetPos: longInt;
-  begin
-    if (Status = stOK) then
-      GetPos := Position
-    else
-      GetPos := -1;
   end;
 
-function TStream.GetSize: longInt;
+function TStream.GetPos: LongInt;
   begin
-    if (Status = stOK) then
-      GetSize := StreamSize
-    else
-      GetSize := -1;
+  if  (Status = stOK) then
+    GetPos := Position
+  else
+    GetPos := -1;
   end;
 
-procedure TStream.Put(P: PObject); assembler; {$USES None} {$FRAME+}
+function TStream.GetSize: LongInt;
+  begin
+  if  (Status = stOK) then
+    GetSize := StreamSize
+  else
+    GetSize := -1;
+  end;
+
+procedure TStream.Put(P: PObject);
+  assembler; {$USES None}
+  {$FRAME+}
 asm
 {Cat: добавил запись StreamMagic}
                 push    StreamMagic
@@ -685,11 +691,10 @@ asm
                 push    P                       { [2]:Pointer = Self    }
                 Call    [edx].TStreamRec.Store
               @@5:
-  end
-  ;
+  end;
 procedure TStream.Read(var Buf; Count: SW_Word);
   begin
-    Abstract;
+  Abstract;
   end;
 
 {Cat: переписал ReadStr для совместимости с AnsiString
@@ -705,140 +710,140 @@ procedure TStream.Read(var Buf; Count: SW_Word);
         WinClpVP.Str2Collection}
 function TStream.ReadStr: PString;
   var
-    l: byte;
+    L: Byte;
     P: PString;
   begin
-    Read(l, SizeOf(l));
-    if l > 0 then
-      begin
-        GetMem(P, l+1);
-        SetLength(P^, l);
-        Read(P^[1], l);
-        ReadStr := P;
-      end
-    else
-      ReadStr := nil;
+  Read(L, SizeOf(L));
+  if L > 0 then
+    begin
+    GetMem(P, L+1);
+    SetLength(P^, L);
+    Read(P^[1], L);
+    ReadStr := P;
+    end
+  else
+    ReadStr := nil;
   end;
 
 function TStream.ReadLongStr: PLongString;
   var
-    l: longInt;
+    L: LongInt;
     P: PLongString;
   begin
-    Read(l, SizeOf(l));
-    if l > 0 then
-      if l > MaxLongStringLength then
-        begin
-          New(P);
-          SetLength(P^, MaxLongStringLength);
-          Read(P^[1], MaxLongStringLength);
-          Seek(Position-MaxLongStringLength+l);
-          ReadLongStr := P;
-        end
-      else
-        begin
-          New(P);
-          SetLength(P^, l);
-          Read(P^[1], l);
-          ReadLongStr := P;
-        end
-    else
-      ReadLongStr := nil;
-  end { TStream.ReadLongStr: };
-
-procedure TStream.ReadStrV(var s: String);
-  var
-    l: byte;
-  begin
-    Read(l, SizeOf(l));
-    if l > 0 then
+  Read(L, SizeOf(L));
+  if L > 0 then
+    if L > MaxLongStringLength then
       begin
-        SetLength(s, l);
-        Read(s[1], l);
+      New(P);
+      SetLength(P^, MaxLongStringLength);
+      Read(P^[1], MaxLongStringLength);
+      Seek(Position-MaxLongStringLength+L);
+      ReadLongStr := P;
       end
     else
-      s := '';
+      begin
+      New(P);
+      SetLength(P^, L);
+      Read(P^[1], L);
+      ReadLongStr := P;
+      end
+  else
+    ReadLongStr := nil;
+  end { TStream.ReadLongStr: };
+
+procedure TStream.ReadStrV(var S: String);
+  var
+    L: Byte;
+  begin
+  Read(L, SizeOf(L));
+  if L > 0 then
+    begin
+    SetLength(S, L);
+    Read(S[1], L);
+    end
+  else
+    S := '';
   end;
 
-procedure TStream.ReadLongStrV(var s: LongString);
+procedure TStream.ReadLongStrV(var S: LongString);
   var
-    l: longInt;
+    L: LongInt;
   begin
-    Read(l, SizeOf(l));
-    if l > 0 then
-      if l > MaxLongStringLength then
-        begin
-          SetLength(s, MaxLongStringLength);
-          Read(s[1], MaxLongStringLength);
-          Seek(Position-MaxLongStringLength+l);
-        end
-      else
-        begin
-          SetLength(s, l);
-          Read(s[1], l);
-        end
+  Read(L, SizeOf(L));
+  if L > 0 then
+    if L > MaxLongStringLength then
+      begin
+      SetLength(S, MaxLongStringLength);
+      Read(S[1], MaxLongStringLength);
+      Seek(Position-MaxLongStringLength+L);
+      end
     else
-      s := '';
+      begin
+      SetLength(S, L);
+      Read(S[1], L);
+      end
+  else
+    S := '';
   end;
 {/Cat}
 
 procedure TStream.Reset;
   begin
-    Status := 0;
-    ErrorInfo := 0;
+  Status := 0;
+  ErrorInfo := 0;
   end;
 
-procedure TStream.Seek(Pos: longInt);
+procedure TStream.Seek(Pos: LongInt);
   begin
-    if Status = stOK then
-      begin
-        if Pos < 0 then
-          Pos := 0
-        else if Pos <= StreamSize then
-          Position := Pos
-        else
-          Error(stSeekError, Pos);
-      end;
+  if Status = stOK then
+    begin
+    if Pos < 0 then
+      Pos := 0
+    else if Pos <= StreamSize then
+      Position := Pos
+    else
+      Error(stSeekError, Pos);
+    end;
   end;
 
 function TStream.StrRead: PChar;
   var
-    l: word;
+    L: Word;
     P: PChar;
   begin
-    Read(l, SizeOf(l));
-    if l = 0 then
-      StrRead := nil
-    else
-      begin
-        GetMem(P, l+1);
-        Read(P[0], l);
-        P[l] := #0;
-        StrRead := P;
-      end;
+  Read(L, SizeOf(L));
+  if L = 0 then
+    StrRead := nil
+  else
+    begin
+    GetMem(P, L+1);
+    Read(P[0], L);
+    P[L] := #0;
+    StrRead := P;
+    end;
   end;
 
 procedure TStream.StrWrite(P: PChar);
   var
-    l: word;
+    L: Word;
   begin
-    if P = nil then
-      l := 0
-    else
-      l := StrLen(P);
-    Write(l, SizeOf(l));
-    if P <> nil then
-      Write(P[0], l);
+  if P = nil then
+    L := 0
+  else
+    L := StrLen(P);
+  Write(L, SizeOf(L));
+  if P <> nil then
+    Write(P[0], L);
   end;
 
 procedure TStream.Truncate;
   begin
-    Abstract;
+  Abstract;
   end;
 
 procedure TStream.Write(const Buf; Count: SW_Word);
   begin
-    Abstract;
+  Abstract;
   end;
 
 {Cat: переписал WriteStr для совместимости с AnsiString
@@ -852,43 +857,43 @@ procedure TStream.Write(const Buf; Count: SW_Word);
         WinClpVP.Str2Collection}
 procedure TStream.WriteStr(P: PString);
   var
-    l: byte;
+    L: Byte;
   begin
-    if P <> nil then
-      begin
-        Write(P^[0], Length(P^)+1);
-      end
-    else
-      begin
-        l := 0;
-        Write(l, SizeOf(l));
-      end;
+  if P <> nil then
+    begin
+    Write(P^[0], Length(P^)+1);
+    end
+  else
+    begin
+    L := 0;
+    Write(L, SizeOf(L));
+    end;
   end;
 
 procedure TStream.WriteLongStr(P: PLongString);
   var
-    l: longInt;
+    L: LongInt;
   begin
-    if P <> nil then
-      begin
-        l := Length(P^);
-        Write(l, 4);
-        Write(P^[1], l);
-      end
-    else
-      begin
-        l := 0;
-        Write(l, SizeOf(l));
-      end
+  if P <> nil then
+    begin
+    L := Length(P^);
+    Write(L, 4);
+    Write(P^[1], L);
+    end
+  else
+    begin
+    L := 0;
+    Write(L, SizeOf(L));
+    end
   end;
 {/Cat}
 
-function TStream.Eof: boolean;
+function TStream.Eof: Boolean;
   begin
-    Eof := GetPos >= GetSize;
+  Eof := GetPos >= GetSize;
   end;
 
-procedure TStream.DoOpen(OpenMode: word);
+procedure TStream.DoOpen(OpenMode: Word);
   begin
   end;
 
@@ -899,568 +904,567 @@ procedure TStream.Close;
 { TDosStream }
 {$I FIO._VP}
 
-Constructor TDOSStream.Init(FileName: FNameStr; Mode: word);
+constructor TDOSStream.Init(FileName: FNameStr; Mode: Word);
   var
-    Success: integer;
+    Success: Integer;
     {$IFDEF PACKFILE}
   label 1;
   {$ENDIF}
   begin
-    inherited Init;
-    FileName := FileName+#0;
-    Move(FileName[1], FName, Length(FileName));
-    FMode := Mode;
-    {$IFDEF PACKFILE}
-    if (FMode and $000F) = fmPacked then
-      begin
-        Handle := pOpen(@FName, FMode and $FFF0);
-        Success := 0;
-        if Handle <> 0
-        then
-          StreamSize := pFileSize(Handle)
-        else
-          begin
-            FMode := FMode and $FFF0;
-            goto 1;
-          end
-      end
+  inherited Init;
+  FileName := FileName+#0;
+  Move(FileName[1], FName, Length(FileName));
+  FMode := Mode;
+  {$IFDEF PACKFILE}
+  if  (FMode and $000F) = fmPacked then
+    begin
+    Handle := pOpen(@FName, FMode and $FFF0);
+    Success := 0;
+    if Handle <> 0
+    then
+      StreamSize := pFileSize(Handle)
     else
-      {$ENDIF}
       begin
-        {$IFDEF PACKFILE}
+      FMode := FMode and $FFF0;
+      goto 1;
+      end
+    end
+  else
+    {$ENDIF}
+    begin
+    {$IFDEF PACKFILE}
 1:
-        {$ENDIF}
-        Success := AFileOpen(FName, FMode, Handle);
-        if Success = 0 then
-          begin
-            Success := ASetFilePos(Handle, 0, 2, StreamSize);
-            if Success = 0 then
-              Success := ASetFilePos(Handle, 0, 0, Position);
-          end;
-      end;
-    if (Handle = 0) or (Success <> 0) then
+    {$ENDIF}
+    Success := AFileOpen(FName, FMode, Handle);
+    if Success = 0 then
       begin
-        if Handle = 0 then
-          Handle := -1;
-        Error(stInitError, Success);
+      Success := ASetFilePos(Handle, 0, 2, StreamSize);
+      if Success = 0 then
+        Success := ASetFilePos(Handle, 0, 0, Position);
       end;
+    end;
+  if  (Handle = 0) or (Success <> 0) then
+    begin
+    if Handle = 0 then
+      Handle := -1;
+    Error(stInitError, Success);
+    end;
   end { TDOSStream.Init };
 
-procedure TDOSStream.Open(FileName: FNameStr; Mode: word);
+procedure TDOSStream.Open(FileName: FNameStr; Mode: Word);
   var
-    Success: integer;
+    Success: Integer;
   label 1;
   begin
-    if (Handle <> -1) then
-      begin
-        {$IFDEF PACKFILE}
-        if (FMode and $000F) = fmPacked
-        then
-          pClose(Handle)
-        else
-          {$ENDIF}
-          AFileClose(Handle);
-      end;
-    FileName := FileName+#0;
-    Move(FileName[1], FName, Length(FileName));
-    FMode := Mode;
+  if  (Handle <> -1) then
+    begin
     {$IFDEF PACKFILE}
-    if (FMode and $000F) = fmPacked then
-      begin
-        Handle := pOpen(@FName, FMode and $FFF0);
-        Success := 0;
-        if Handle <> 0
-        then
-          StreamSize := pFileSize(Handle)
-        else
-          begin
-            FMode := FMode and $FFF0;
-            goto 1;
-          end
-      end
+    if  (FMode and $000F) = fmPacked
+    then
+      pClose(Handle)
     else
       {$ENDIF}
+      AFileClose(Handle);
+    end;
+  FileName := FileName+#0;
+  Move(FileName[1], FName, Length(FileName));
+  FMode := Mode;
+  {$IFDEF PACKFILE}
+  if  (FMode and $000F) = fmPacked then
+    begin
+    Handle := pOpen(@FName, FMode and $FFF0);
+    Success := 0;
+    if Handle <> 0
+    then
+      StreamSize := pFileSize(Handle)
+    else
       begin
+      FMode := FMode and $FFF0;
+      goto 1;
+      end
+    end
+  else
+    {$ENDIF}
+    begin
 1:
-        Success := AFileOpen(FName, FMode, Handle);
-        if Success = 0 then
-          begin
-            Success := ASetFilePos(Handle, 0, 2, StreamSize);
-            if Success = 0 then
-              Success := ASetFilePos(Handle, 0, 0, Position);
-          end;
-      end;
-    if (Handle = 0) or (Success <> 0) then
+    Success := AFileOpen(FName, FMode, Handle);
+    if Success = 0 then
       begin
-        if Handle = 0 then
-          Handle := -1;
-        Error(stInitError, Success);
+      Success := ASetFilePos(Handle, 0, 2, StreamSize);
+      if Success = 0 then
+        Success := ASetFilePos(Handle, 0, 0, Position);
       end;
+    end;
+  if  (Handle = 0) or (Success <> 0) then
+    begin
+    if Handle = 0 then
+      Handle := -1;
+    Error(stInitError, Success);
+    end;
   end { TDOSStream.Open };
 
 destructor TDOSStream.Done;
   begin
-    if (Handle <> -1) then
-      begin
-        {$IFDEF PACKFILE}
-        if (FMode and $000F) = fmPacked
-        then
-          pClose(Handle)
-        else
-          {$ENDIF}
-          AFileClose(Handle);
-      end;
-    Handle := -1;
-    inherited Done;
+  if  (Handle <> -1) then
+    begin
+    {$IFDEF PACKFILE}
+    if  (FMode and $000F) = fmPacked
+    then
+      pClose(Handle)
+    else
+      {$ENDIF}
+      AFileClose(Handle);
+    end;
+  Handle := -1;
+  inherited Done;
   end;
 
 procedure TDOSStream.Read(var Buf; Count: SW_Word);
   var
-    Success: integer;
+    Success: Integer;
     W, BytesMoved: SW_Word;
     P: PByteArray;
   begin
-    P := @Buf;
-    if Handle = -1 then
-      Error(stReadError, 103)
-    else if Position+Count > StreamSize then
-      Error(stReadError, 0)
-    else
+  P := @Buf;
+  if Handle = -1 then
+    Error(stReadError, 103)
+  else if Position+Count > StreamSize then
+    Error(stReadError, 0)
+  else
+    begin
+    while (Count > 0) and (Status = stOK) do
       begin
-        while (Count > 0) and (Status = stOK) do
-          begin
-            W := Count;
-            {$IFDEF PACKFILE}
-            if (FMode and $000F) = fmPacked then
-              begin
-                BytesMoved := pRead(Handle, W, P);
-                Success := IOResult;
-              end
-            else
-              {$ENDIF}
-              Success := AFileRead(Handle, P^, W, BytesMoved);
-            if Success = 0 then
-              begin
-                Inc(Position, BytesMoved);
-                P := Pointer(longInt(P)+BytesMoved);
-                Dec(Count, BytesMoved);
-              end;
-            if (Success <> 0) or (BytesMoved <> W) then
-              begin
-                Error(stReadError, Success);
-                break;
-              end;
-          end;
+      W := Count;
+      {$IFDEF PACKFILE}
+      if  (FMode and $000F) = fmPacked then
+        begin
+        BytesMoved := pRead(Handle, W, P);
+        Success := IOResult;
+        end
+      else
+        {$ENDIF}
+        Success := AFileRead(Handle, P^, W, BytesMoved);
+      if Success = 0 then
+        begin
+        Inc(Position, BytesMoved);
+        P := Pointer(LongInt(P)+BytesMoved);
+        Dec(Count, BytesMoved);
+        end;
+      if  (Success <> 0) or (BytesMoved <> W) then
+        begin
+        Error(stReadError, Success);
+        Break;
+        end;
       end;
-    if Count <> 0 then
-      FillChar(P^, Count, #0); { Error clear buffer }
+    end;
+  if Count <> 0 then
+    FillChar(P^, Count, #0); { Error clear buffer }
   end { TDOSStream.Read };
 
-procedure TDOSStream.ReadBlock(var Buf; Count: SW_Word; var
-    BytesRead: word);
+procedure TDOSStream.ReadBlock(var Buf; Count: SW_Word;
+     var BytesRead: Word);
   var
-    Success: integer;
+    Success: Integer;
     W, BytesMoved: SW_Word;
     P: PByteArray;
   begin
-    P := @Buf;
-    Success := -1;
-    BytesRead := 0;
-    if Handle = -1 then
-      Success := 103;
-    if (Position+Count > StreamSize) or (Status <> 0) then
-      Success := 0;
-    if Success <> -1 then
-      Error(stReadError, Success)
-    else
+  P := @Buf;
+  Success := -1;
+  BytesRead := 0;
+  if Handle = -1 then
+    Success := 103;
+  if  (Position+Count > StreamSize) or (Status <> 0) then
+    Success := 0;
+  if Success <> -1 then
+    Error(stReadError, Success)
+  else
+    begin
+    while (Count > 0) and (Status = stOK) do
       begin
-        while (Count > 0) and (Status = stOK) do
-          begin
-            W := Count;
-            {$IFDEF PACKFILE}
-            if (FMode and $000F) = fmPacked then
-              begin
-                BytesMoved := pRead(Handle, W, P);
-                Success := IOResult;
-              end
-            else
-              {$ENDIF}
-              Success := AFileRead(Handle, P^, W, BytesMoved);
-            if Success = 0 then
-              begin
-                Inc(Position, BytesMoved);
-                P := Pointer(longInt(P)+BytesMoved);
-                Dec(Count, BytesMoved);
-                Inc(BytesRead, BytesMoved);
-              end;
-            if (Success <> 0) then
-              begin
-                Error(stReadError, Success);
-                break;
-              end;
-            if BytesMoved <> W then
-              break;
-          end;
+      W := Count;
+      {$IFDEF PACKFILE}
+      if  (FMode and $000F) = fmPacked then
+        begin
+        BytesMoved := pRead(Handle, W, P);
+        Success := IOResult;
+        end
+      else
+        {$ENDIF}
+        Success := AFileRead(Handle, P^, W, BytesMoved);
+      if Success = 0 then
+        begin
+        Inc(Position, BytesMoved);
+        P := Pointer(LongInt(P)+BytesMoved);
+        Dec(Count, BytesMoved);
+        Inc(BytesRead, BytesMoved);
+        end;
+      if  (Success <> 0) then
+        begin
+        Error(stReadError, Success);
+        Break;
+        end;
+      if BytesMoved <> W then
+        Break;
       end;
+    end;
   end { TDOSStream.ReadBlock };
 
-procedure TDOSStream.Seek(Pos: longInt);
+procedure TDOSStream.Seek(Pos: LongInt);
   var
-    Success: integer;
-    LI: longInt;
+    Success: Integer;
+    Li: LongInt;
   begin
-    if Status = stOK then
+  if Status = stOK then
+    begin
+    if Pos < 0 then
+      Pos := 0;
+    if Handle = -1
+    then
+      Success := 03
+    else
+      {$IFDEF PACKFILE}
+     if (FMode and $000F) = fmPacked then
       begin
-        if Pos < 0 then
-          Pos := 0;
-        if Handle = -1
-        then
-          Success := 03
-        else
-          {$IFDEF PACKFILE} if (FMode and $000F) = fmPacked then
-            begin
-            LI := pSeek(Handle, Pos);
-            Success := 0;
-            if IOResult <> 0 then
-              Success := -1;
-          end
-        else
-          {$ENDIF}
-          Success := ASetFilePos(Handle, Pos, 0, LI);
-        if (Success = -1) or (LI <> Pos) then
-          begin
-            if (Success = -1)
-            then
-              Error(stSeekError, 0)
-            else
-              Error(stSeekError, Success);
-          end
-        else
-          Position := LI;
-      end;
+      Li := pSeek(Handle, Pos);
+      Success := 0;
+      if IOResult <> 0 then
+        Success := -1;
+      end
+    else
+      {$ENDIF}
+      Success := ASetFilePos(Handle, Pos, 0, Li);
+    if  (Success = -1) or (Li <> Pos) then
+      begin
+      if  (Success = -1)
+      then
+        Error(stSeekError, 0)
+      else
+        Error(stSeekError, Success);
+      end
+    else
+      Position := Li;
+    end;
   end { TDOSStream.Seek };
 
 procedure TDOSStream.Truncate;
   var
-    Success: integer;
+    Success: Integer;
   begin
-    if Status = stOK then
-      begin
-        if {$IFDEF PACKFILE}((FMode and $000F) = fmPacked) or
-            {$ENDIF}
-          ((FMode and $000F) = fmReadOnly)
-        then
-          Success := 103
-        else
-          Success := ASetFileSize(Handle, Position);
-        if Success = 0 then
-          StreamSize := Position
-        else
-          Error(stError, Success);
-      end;
+  if Status = stOK then
+    begin
+    if {$IFDEF PACKFILE}((FMode and $000F) = fmPacked) or {$ENDIF}
+        ( (FMode and $000F) = fmReadOnly)
+    then
+      Success := 103
+    else
+      Success := ASetFileSize(Handle, Position);
+    if Success = 0 then
+      StreamSize := Position
+    else
+      Error(stError, Success);
+    end;
   end;
 
 procedure TDOSStream.Write(const Buf; Count: SW_Word);
   var
-    Success: integer;
+    Success: Integer;
     W, BytesMoved: SW_Word;
     P: PByteArray;
   begin
-    if Handle = -1
+  if Handle = -1
+  then
+    Error(stWriteError, 103)
+  else
+    begin
+    if {$IFDEF PACKFILE}((FMode and $000F) = fmPacked) or {$ENDIF}
+        ( (FMode and $000F) = fmReadOnly)
     then
-      Error(stWriteError, 103)
+      Error(stError, 103)
     else
       begin
-        if {$IFDEF PACKFILE}((FMode and $000F) = fmPacked) or
-            {$ENDIF}
-          ((FMode and $000F) = fmReadOnly)
-        then
-          Error(stError, 103)
-        else
+      P := @Buf;
+      while (Count > 0) and (Status = stOK) do
+        begin
+        W := Count;
+        {$IFNDEF OS2}
+        if Count > $FFFF then
+          W := $FFFF; { Cant read >64K bytes }
+        {$ENDIF}
+        Success := AFileWrite(Handle, P^, W, BytesMoved);
+        if Success = 0 then
           begin
-            P := @Buf;
-            while (Count > 0) and (Status = stOK) do
-              begin
-                W := Count;
-                {$IFNDEF OS2}
-                if Count > $FFFF then
-                  W := $FFFF; { Cant read >64K bytes }
-                {$ENDIF}
-                Success := AFileWrite(Handle, P^, W, BytesMoved);
-                if Success = 0 then
-                  begin
-                    Inc(Position, BytesMoved);
-                    P := Pointer(longInt(P)+BytesMoved);
-                    Dec(Count, BytesMoved);
-                    if (Position > StreamSize) then
-                      StreamSize := Position;
-                  end;
-                if Success <> 0 then
-                  begin
-                    Error(stWriteError, Success);
-                    break;
-                  end;
-              end;
+          Inc(Position, BytesMoved);
+          P := Pointer(LongInt(P)+BytesMoved);
+          Dec(Count, BytesMoved);
+          if  (Position > StreamSize) then
+            StreamSize := Position;
           end;
+        if Success <> 0 then
+          begin
+          Error(stWriteError, Success);
+          Break;
+          end;
+        end;
       end;
+    end;
   end { TDOSStream.Write };
 
 {Cat:warn правильно ли это работает?}
-procedure TDOSStream.DoOpen(OpenMode: word);
+procedure TDOSStream.DoOpen(OpenMode: Word);
   {$IFDEF PACKFILE}
   label 1;
   {$ENDIF}
   var
-    Success: integer;
+    Success: Integer;
   begin
-    if Status = stOK then
+  if Status = stOK then
+    begin
+    if Handle = -1 then
       begin
-        if Handle = -1 then
-          begin
-            {$IFDEF PACKFILE}
+      {$IFDEF PACKFILE}
 1:
-            {$ENDIF}
-            FMode := OpenMode;
-            {$IFDEF PACKFILE}
-            if (FMode and $000F) = fmPacked then
-              begin
-                Handle := pOpen(@FName, FMode and $FFF0);
-                if Handle = 0 then
-                  begin
-                    FMode := FMode and $FFF0;
-                    goto 1;
-                  end;
-              end
-            else
-              {$ENDIF}
-              Success := AFileOpen(FName, FMode, Handle);
-            Position := 0;
-            if Handle = 0 then
-              begin
-                Handle := -1;
-                Error(stOpenError, Success);
-              end;
-          end
-        else
-          Error(stOpenError, 104); { File already open }
-      end;
+      {$ENDIF}
+      FMode := OpenMode;
+      {$IFDEF PACKFILE}
+      if  (FMode and $000F) = fmPacked then
+        begin
+        Handle := pOpen(@FName, FMode and $FFF0);
+        if Handle = 0 then
+          begin
+          FMode := FMode and $FFF0;
+          goto 1;
+          end;
+        end
+      else
+        {$ENDIF}
+        Success := AFileOpen(FName, FMode, Handle);
+      Position := 0;
+      if Handle = 0 then
+        begin
+        Handle := -1;
+        Error(stOpenError, Success);
+        end;
+      end
+    else
+      Error(stOpenError, 104); { File already open }
+    end;
   end { TDOSStream.DoOpen };
 
 procedure TDOSStream.Close;
   begin
-    if Handle <> -1 then
-      begin
-        {$IFDEF PACKFILE}
-        if (FMode and $000F) = fmPacked then
-          pClose(Handle)
-        else
-          {$ENDIF}
-          AFileClose(Handle);
-      end;
-    Position := 0;
-    Handle := -1;
+  if Handle <> -1 then
+    begin
+    {$IFDEF PACKFILE}
+    if  (FMode and $000F) = fmPacked then
+      pClose(Handle)
+    else
+      {$ENDIF}
+      AFileClose(Handle);
+    end;
+  Position := 0;
+  Handle := -1;
   end;
 
 { TBufStream }
 
-Constructor TBufStream.Init(FileName: FNameStr; Mode: word; Size:
-    SW_Word);
+constructor TBufStream.Init(FileName: FNameStr; Mode: Word; Size: SW_Word);
   begin
-    inherited Init(FileName, Mode);
-    BufSize := Size;
-    if Size = 0 then
-      Error(stInitError, 0)
-    else
-      begin
-        GetMem(Buffer, Size);
-        if Buffer = nil then
-          Error(stInitError, 0);
-      end;
+  inherited Init(FileName, Mode);
+  BufSize := Size;
+  if Size = 0 then
+    Error(stInitError, 0)
+  else
+    begin
+    GetMem(Buffer, Size);
+    if Buffer = nil then
+      Error(stInitError, 0);
+    end;
   end;
 
 destructor TBufStream.Done;
   begin
-    Flush;
-    if Buffer <> nil then
-      begin
-        FreeMem(Buffer, BufSize);
-        Buffer := nil;
-      end;
-    inherited Done;
+  Flush;
+  if Buffer <> nil then
+    begin
+    FreeMem(Buffer, BufSize);
+    Buffer := nil;
+    end;
+  inherited Done;
   end;
 
 procedure TBufStream.Flush;
   var
-    Success: integer;
+    Success: Integer;
     W: SW_Word;
   begin
-    if (LastMode = 2) and (BufPtr <> 0) then
+  if  (LastMode = 2) and (BufPtr <> 0) then
+    begin
+    if Handle = -1 then
+      Error(stError, 103)
+    else
+      {$IFDEF PACKFILE}
+     if (FMode and $000F) = fmPacked then
+      Error(stError, 103)
+    else
+      {$ENDIF}
       begin
-        if Handle = -1 then
-          Error(stError, 103)
-        else
-          {$IFDEF PACKFILE} if (FMode and $000F) = fmPacked then
-          Error(stError, 103)
-        else
-          {$ENDIF}
-          begin
-            (* inherited Write(Buffer^, BufPtr); *)
-            Success := AFileWrite(Handle, Buffer^, BufPtr, W);
-            if (Success <> 0) or (W <> BufPtr) then
-              Error(stError, Success);
-          end;
+      (* inherited Write(Buffer^, BufPtr); *)
+      Success := AFileWrite(Handle, Buffer^, BufPtr, W);
+      if  (Success <> 0) or (W <> BufPtr) then
+        Error(stError, Success);
       end;
-    BufPtr := 0;
-    BufEnd := 0;
+    end;
+  BufPtr := 0;
+  BufEnd := 0;
   end { TBufStream.Flush };
 
 procedure TBufStream.Read(var Buf; Count: SW_Word);
   var
-    Success: integer;
+    Success: Integer;
     W, Bw: SW_Word;
     P: PByteArray;
   begin
-    P := @Buf;
-    if Handle = -1 then
-      Error(stReadError, 103)
-    else if Position+Count > StreamSize then
-      Error(stReadError, 0)
-    else
+  P := @Buf;
+  if Handle = -1 then
+    Error(stReadError, 103)
+  else if Position+Count > StreamSize then
+    Error(stReadError, 0)
+  else
+    begin
+    if LastMode = 2 then
+      Flush;
+    LastMode := 1;
+    while (Count > 0) and (Status = stOK) do
       begin
-        if LastMode = 2 then
-          Flush;
-        LastMode := 1;
-        while (Count > 0) and (Status = stOK) do
+      if BufPtr = BufEnd then
+        begin { Buffer is empty }
+        if Position+BufSize > StreamSize then
+          Bw := StreamSize-Position
+        else
+          Bw := BufSize;
+        {$IFDEF PACKFILE}
+        if  (FMode and $000F) = fmPacked then
           begin
-            if BufPtr = BufEnd then
-              begin{ Buffer is empty }
-                if Position+BufSize > StreamSize then
-                  Bw := StreamSize-Position
-                else
-                  Bw := BufSize;
-                {$IFDEF PACKFILE}
-                if (FMode and $000F) = fmPacked then
-                  begin
-                    W := pRead(Handle, Bw, Buffer);
-                    Success := IOResult;
-                  end
-                else
-                  {$ENDIF}
-                  Success := AFileRead(Handle, Buffer^, Bw, W);
-                if (Success <> 0) or (Bw <> W) then
-                  Error(stReadError, Success)
-                else
-                  begin
-                    BufPtr := 0;
-                    BufEnd := W;
-                  end;
-              end;
-            if Status = stOK then
-              begin
-                W := BufEnd-BufPtr;
-                if Count < W then
-                  W := Count;
-                Move(Buffer^[BufPtr], P^, W);
-                Dec(Count, W);
-                Inc(BufPtr, W);
-                P := Pointer(longInt(P)+W);
-                Inc(Position, W);
-              end;
+          W := pRead(Handle, Bw, Buffer);
+          Success := IOResult;
+          end
+        else
+          {$ENDIF}
+          Success := AFileRead(Handle, Buffer^, Bw, W);
+        if  (Success <> 0) or (Bw <> W) then
+          Error(stReadError, Success)
+        else
+          begin
+          BufPtr := 0;
+          BufEnd := W;
           end;
+        end;
+      if Status = stOK then
+        begin
+        W := BufEnd-BufPtr;
+        if Count < W then
+          W := Count;
+        Move(Buffer^[BufPtr], P^, W);
+        Dec(Count, W);
+        Inc(BufPtr, W);
+        P := Pointer(LongInt(P)+W);
+        Inc(Position, W);
+        end;
       end;
-    if (Status <> stOK) and (Count > 0) then
-      FillChar(P^, Count, #0);
+    end;
+  if  (Status <> stOK) and (Count > 0) then
+    FillChar(P^, Count, #0);
   end { TBufStream.Read };
 
-procedure TBufStream.Seek(Pos: longInt);
+procedure TBufStream.Seek(Pos: LongInt);
   begin
-    if (Status = stOK) and (Position <> Pos) then
-      begin
-        Flush;
-        inherited Seek(Pos);
-      end;
+  if  (Status = stOK) and (Position <> Pos) then
+    begin
+    Flush;
+    inherited Seek(Pos);
+    end;
   end;
 
 procedure TBufStream.Truncate;
   begin
-    Flush;
-    inherited Truncate;
+  Flush;
+  inherited Truncate;
   end;
 
 procedure TBufStream.Write(const Buf; Count: SW_Word);
   var
-    Success: integer;
+    Success: Integer;
     W: SW_Word;
     P: PByteArray;
   begin
-    if Handle = -1 then
-      Error(stWriteError, 103)
-    else
+  if Handle = -1 then
+    Error(stWriteError, 103)
+  else
+    begin
+    if LastMode = 1 then
+      Flush;
+    LastMode := 2;
+    P := @Buf;
+    while (Count > 0) and (Status = stOK) do
       begin
-        if LastMode = 1 then
-          Flush;
-        LastMode := 2;
-        P := @Buf;
-        while (Count > 0) and (Status = stOK) do
-          begin
-            if BufPtr = BufSize then
-              begin{ Buffer is full }
-                Success := AFileWrite(Handle, Buffer^, BufSize, W);
-                if (Success <> 0) or (W <> BufSize) then
-                  Error(stError, Success);
-                BufPtr := 0;
-              end;
-            if Status = stOK then
-              begin
-                W := BufSize-BufPtr;
-                if Count < W then
-                  W := Count;
-                Move(P^, Buffer^[BufPtr], W);
-                Dec(Count, W);
-                Inc(BufPtr, W);
-                P := Pointer(longInt(P)+W);
-                Inc(Position, W);
-                if Position > StreamSize then
-                  StreamSize := Position;
-              end;
-          end;
+      if BufPtr = BufSize then
+        begin { Buffer is full }
+        Success := AFileWrite(Handle, Buffer^, BufSize, W);
+        if  (Success <> 0) or (W <> BufSize) then
+          Error(stError, Success);
+        BufPtr := 0;
+        end;
+      if Status = stOK then
+        begin
+        W := BufSize-BufPtr;
+        if Count < W then
+          W := Count;
+        Move(P^, Buffer^[BufPtr], W);
+        Dec(Count, W);
+        Inc(BufPtr, W);
+        P := Pointer(LongInt(P)+W);
+        Inc(Position, W);
+        if Position > StreamSize then
+          StreamSize := Position;
+        end;
       end;
+    end;
   end { TBufStream.Write };
 
 procedure TBufStream.Close;
   begin
-    Flush;
-    inherited Close;
+  Flush;
+  inherited Close;
   end;
 
-procedure TBufStream.DoOpen(OpenMode: word);
+procedure TBufStream.DoOpen(OpenMode: Word);
   begin
-    if Status = stOK then
-      begin
-        BufPtr := 0;
-        BufEnd := 0;
-        inherited DoOpen(OpenMode);
-      end;
+  if Status = stOK then
+    begin
+    BufPtr := 0;
+    BufEnd := 0;
+    inherited DoOpen(OpenMode);
+    end;
   end;
 
 { TMemoryStream }
 
-Constructor TMemoryStream.Init(ALimit: longInt; ABlockSize: word);
+constructor TMemoryStream.Init(ALimit: LongInt; ABlockSize: Word);
   var
-    W: longInt;
+    W: LongInt;
   begin
-    inherited Init;
-    if ABlockSize = 0 then
-      BlkSize := 8192
-    else
-      BlkSize := ABlockSize;
-    if ALimit <= 0 then
-      W := 1
-    else
-      W := (ALimit+BlkSize-1) div BlkSize;
-    if not ChangeListSize(W) then
-      Error(stInitError, 0);
-    (*
+  inherited Init;
+  if ABlockSize = 0 then
+    BlkSize := 8192
+  else
+    BlkSize := ABlockSize;
+  if ALimit <= 0 then
+    W := 1
+  else
+    W := (ALimit+BlkSize-1) div BlkSize;
+  if not ChangeListSize(W) then
+    Error(stInitError, 0);
+  (*
   StreamSize:=MemSize;
 {AK155 2-03-2002
    При работе с Clipboard StreamSize используется в качестве укзателя
@@ -1473,328 +1477,328 @@ Constructor TMemoryStream.Init(ALimit: longInt; ABlockSize: word);
 коррекция. Других мест, где используется StreamSize для TMemoryStream,
 я не нашел.}
 *)
-  end;
+  end { TMemoryStream.Init };
 
 destructor TMemoryStream.Done;
   begin
-    ChangeListSize(0);
-    inherited Done;
+  ChangeListSize(0);
+  inherited Done;
   end;
 
-function TMemoryStream.ChangeListSize(ALimit: longInt): boolean;
+function TMemoryStream.ChangeListSize(ALimit: LongInt): Boolean;
   var
-    i, W: longInt;
-    LI: longInt;
+    I, W: LongInt;
+    Li: LongInt;
     P: PPointerArray;
   begin
-    if (ALimit <> BlkCount) then
+  if  (ALimit <> BlkCount) then
+    begin
+    ChangeListSize := False;
+    if ALimit > MaxPtrs then
+      Exit;
+    if ALimit > 0 then
       begin
-        ChangeListSize := False;
-        if ALimit > MaxPtrs then
-          exit;
-        if ALimit > 0 then
+      Li := ALimit*SizeOf(Pointer);
+      if not LowMemory and (MaxAvail > Li) then
+        begin
+        GetMem(P, Li);
+        FillChar(P^, Li, #0);
+        end
+      else
+        Exit;
+      if  (BlkCount <> 0) and (BlkList <> nil) then
+        if BlkCount <= ALimit then
+          Move(BlkList^, P^, BlkCount*SizeOf(Pointer))
+        else
+          Move(BlkList^, P^, Li);
+      end
+    else
+      begin
+      P := nil;
+      ALimit := 0;
+      end;
+    if ALimit < BlkCount then
+      for W := BlkCount-1 downto ALimit do
+        FreeMem(BlkList^[W], BlkSize);
+    if  (P <> nil) and (ALimit > BlkCount) then
+      begin
+      for W := BlkCount to ALimit-1 do
+        begin
+        if LowMemory or (MaxAvail < BlkSize) then
           begin
-            LI := ALimit*SizeOf(Pointer);
-            if not LowMemory and (MaxAvail > LI) then
-              begin
-                GetMem(P, LI);
-                FillChar(P^, LI, #0);
-              end
-            else
-              exit;
-            if (BlkCount <> 0) and (BlkList <> nil) then
-              if BlkCount <= ALimit then
-                Move(BlkList^, P^, BlkCount*SizeOf(Pointer))
-              else
-                Move(BlkList^, P^, LI);
+          for I := BlkCount to W-1 do
+            FreeMem(P^[I], BlkSize);
+          FreeMem(P, Li);
+          Exit;
           end
         else
-          begin
-            P := nil;
-            ALimit := 0;
-          end;
-        if ALimit < BlkCount then
-          for W := BlkCount-1 downto ALimit do
-            FreeMem(BlkList^[W], BlkSize);
-        if (P <> nil) and (ALimit > BlkCount) then
-          begin
-            for W := BlkCount to ALimit-1 do
-              begin
-                if LowMemory or (MaxAvail < BlkSize) then
-                  begin
-                    for i := BlkCount to W-1 do
-                      FreeMem(P^[i], BlkSize);
-                    FreeMem(P, LI);
-                    exit;
-                  end
-                else
-                  GetMem(P^[W], BlkSize);
-              end;
-          end;
-        if (BlkCount <> 0) and (BlkList <> nil) then
-          FreeMem(BlkList, BlkCount*SizeOf(Pointer));
-        BlkList := P;
-        BlkCount := ALimit;
-        { * REMARK * - Do not shorten this, result can be > 64K }
-        MemSize := BlkCount;
-        MemSize := MemSize*BlkSize;
-        { * REMARK END * - Leon de Boer }
+          GetMem(P^[W], BlkSize);
+        end;
       end;
-    ChangeListSize := True;
+    if  (BlkCount <> 0) and (BlkList <> nil) then
+      FreeMem(BlkList, BlkCount*SizeOf(Pointer));
+    BlkList := P;
+    BlkCount := ALimit;
+    { * REMARK * - Do not shorten this, result can be > 64K }
+    MemSize := BlkCount;
+    MemSize := MemSize*BlkSize;
+    { * REMARK END * - Leon de Boer }
+    end;
+  ChangeListSize := True;
   end { TMemoryStream.ChangeListSize };
 
 procedure TMemoryStream.Read(var Buf; Count: SW_Word);
   var
-    W, CurBlock, BlockPos: word;
-    LI: longInt;
+    W, CurBlock, BlockPos: Word;
+    Li: LongInt;
     P, Q: PByteArray;
   begin
-    P := @Buf;
-    if Position+Count > StreamSize then
-      Error(stReadError, 0)
-    else
+  P := @Buf;
+  if Position+Count > StreamSize then
+    Error(stReadError, 0)
+  else
+    begin
+    while (Count > 0) and (Status = stOK) do
       begin
-        while (Count > 0) and (Status = stOK) do
-          begin
-            CurBlock := Position div BlkSize;
-            { * REMARK * - Do not shorten this, result can be > 64K }
-            LI := CurBlock;
-            LI := LI*BlkSize;
-            { * REMARK END * - Leon de Boer }
-            BlockPos := Position-LI;
-            W := BlkSize-BlockPos;
-            if W > Count then
-              W := Count;
-            Q := Pointer(longInt(BlkList^[CurBlock])+BlockPos);
-            Move(Q^, P^, W);
-            Inc(Position, W);
-            P := Pointer(longInt(P)+W);
-            Dec(Count, W);
-          end;
+      CurBlock := Position div BlkSize;
+      { * REMARK * - Do not shorten this, result can be > 64K }
+      Li := CurBlock;
+      Li := Li*BlkSize;
+      { * REMARK END * - Leon de Boer }
+      BlockPos := Position-Li;
+      W := BlkSize-BlockPos;
+      if W > Count then
+        W := Count;
+      Q := Pointer(LongInt(BlkList^[CurBlock])+BlockPos);
+      Move(Q^, P^, W);
+      Inc(Position, W);
+      P := Pointer(LongInt(P)+W);
+      Dec(Count, W);
       end;
-    if Count <> 0 then
-      FillChar(P^, Count, #0);
+    end;
+  if Count <> 0 then
+    FillChar(P^, Count, #0);
   end { TMemoryStream.Read };
 
 procedure TMemoryStream.Truncate;
   var
-    W: word;
+    W: Word;
   begin
-    if Status = stOK then
-      begin
-        if Position = 0 then
-          W := 1
-        else
-          W := (Position+BlkSize-1) div BlkSize;
-        if ChangeListSize(W) then
-          StreamSize := Position
-        else
-          Error(stError, 0);
-      end;
+  if Status = stOK then
+    begin
+    if Position = 0 then
+      W := 1
+    else
+      W := (Position+BlkSize-1) div BlkSize;
+    if ChangeListSize(W) then
+      StreamSize := Position
+    else
+      Error(stError, 0);
+    end;
   end;
 
 procedure TMemoryStream.Write(const Buf; Count: SW_Word);
   var
-    W, CurBlock, BlockPos: word;
-    LI: longInt;
+    W, CurBlock, BlockPos: Word;
+    Li: LongInt;
     P, Q: PByteArray;
   begin
-    if Position+Count > MemSize then
+  if Position+Count > MemSize then
+    begin
+    if Position+Count = 0 then
+      W := 1
+    else
+      W := (Position+Count+BlkSize-1) div BlkSize;
+    if not ChangeListSize(W) then
       begin
-        if Position+Count = 0 then
-          W := 1
-        else
-          W := (Position+Count+BlkSize-1) div BlkSize;
-        if not ChangeListSize(W) then
-          begin
-            Error(stWriteError, 0);
-            exit;
-          end;
+      Error(stWriteError, 0);
+      Exit;
       end;
-    P := @Buf;
-    while (Count > 0) and (Status = stOK) do
-      begin
-        CurBlock := Position div BlkSize;
-        { * REMARK * - Do not shorten this, result can be > 64K }
-        LI := CurBlock;
-        LI := LI*BlkSize;
-        { * REMARK END * - Leon de Boer }
-        BlockPos := Position-LI;
-        W := BlkSize-BlockPos;
-        if W > Count then
-          W := Count;
-        Q := Pointer(longInt(BlkList^[CurBlock])+BlockPos);
-        Move(P^, Q^, W);
-        Inc(Position, W);
-        P := Pointer(longInt(P)+W);
-        Dec(Count, W);
-        if Position > StreamSize then
-          StreamSize := Position;
-      end;
+    end;
+  P := @Buf;
+  while (Count > 0) and (Status = stOK) do
+    begin
+    CurBlock := Position div BlkSize;
+    { * REMARK * - Do not shorten this, result can be > 64K }
+    Li := CurBlock;
+    Li := Li*BlkSize;
+    { * REMARK END * - Leon de Boer }
+    BlockPos := Position-Li;
+    W := BlkSize-BlockPos;
+    if W > Count then
+      W := Count;
+    Q := Pointer(LongInt(BlkList^[CurBlock])+BlockPos);
+    Move(P^, Q^, W);
+    Inc(Position, W);
+    P := Pointer(LongInt(P)+W);
+    Dec(Count, W);
+    if Position > StreamSize then
+      StreamSize := Position;
+    end;
   end { TMemoryStream.Write };
 
 function GetAnyMemoryStream: PStream;
   var
-    s: PStream;
+    S: PStream;
   begin
-    s := nil;
-    {$IFDEF OS_DOS}
-    {$ELSE}
-    if s = nil then
-      s := New(PMemoryStream, Init(2048, 2048));
-    {$ELSE}
-    if s = nil then
-      s := New(PMemoryStream, Init(MaxBytes, 2048));
-    {$ENDIF}
-    if (s <> nil) and (s^.Status <> stOK) then
-      FreeObject(s);
-    GetAnyMemoryStream := s;
+  S := nil;
+  {$IFDEF OS_DOS}
+  {$ELSE}
+  if S = nil then
+    S := New(PMemoryStream, Init(2048, 2048));
+  {$ELSE}
+  if S = nil then
+    S := New(PMemoryStream, Init(MaxBytes, 2048));
+  {$ENDIF}
+  if  (S <> nil) and (S^.Status <> stOK) then
+    FreeObject(S);
+  GetAnyMemoryStream := S;
   end;
 
 { TRect }
 
 procedure CheckEmpty(var Rect: TRect);
   begin
-    with Rect do
+  with Rect do
+    begin
+    if  (A.X >= B.X) or (A.Y >= B.Y) then
       begin
-        if (A.X >= B.X) or (A.Y >= B.Y) then
-          begin
-            A.X := 0;
-            A.Y := 0;
-            B.X := 0;
-            B.Y := 0;
-          end;
+      A.X := 0;
+      A.Y := 0;
+      B.X := 0;
+      B.Y := 0;
       end;
+    end;
   end;
 
-function TPoint.Equals(P: TPoint): boolean;
+function TPoint.Equals(P: TPoint): Boolean;
   begin
-    Equals := (X = P.X) and (Y = P.Y);
+  Equals := (X = P.X) and (Y = P.Y);
   end;
 
-function TPoint.EqualsXY(AX, AY: longInt): boolean;
+function TPoint.EqualsXY(AX, AY: LongInt): Boolean;
   begin
-    EqualsXY := (X = AX) and (Y = AY);
+  EqualsXY := (X = AX) and (Y = AY);
   end;
 
-procedure TPoint.Assign(AX, AY: longInt);
+procedure TPoint.Assign(AX, AY: LongInt);
   begin
-    X := AX;
-    Y := AY;
+  X := AX;
+  Y := AY;
   end;
 
-function TPoint.isLE(P: TPoint): boolean;
+function TPoint.isLE(P: TPoint): Boolean;
   begin
-    isLE := False;
-    if (Y = P.Y) and (X <= P.X) or (Y < P.Y) then
-      isLE := True;
+  isLE := False;
+  if  (Y = P.Y) and (X <= P.X) or (Y < P.Y) then
+    isLE := True;
   end;
 
-function TPoint.isGE(P: TPoint): boolean;
+function TPoint.isGE(P: TPoint): Boolean;
   begin
-    isGE := False;
-    if (Y = P.Y) and (X >= P.X) or (Y > P.Y) then
-      isGE := True;
+  isGE := False;
+  if  (Y = P.Y) and (X >= P.X) or (Y > P.Y) then
+    isGE := True;
   end;
 
-procedure TRect.Assign(XA, YA, XB, YB: longInt);
+procedure TRect.Assign(XA, YA, XB, YB: LongInt);
   begin
-    A.X := XA;
-    A.Y := YA;
-    B.X := XB;
-    B.Y := YB;
+  A.X := XA;
+  A.Y := YA;
+  B.X := XB;
+  B.Y := YB;
   end;
 
 procedure TRect.Copy(R: TRect);
   begin
-    A := R.A;
-    B := R.B;
+  A := R.A;
+  B := R.B;
   end;
 
-procedure TRect.Move(ADX, ADY: longInt);
+procedure TRect.Move(ADX, ADY: LongInt);
   begin
-    Inc(A.X, ADX);
-    Inc(A.Y, ADY);
-    Inc(B.X, ADX);
-    Inc(B.Y, ADY);
+  Inc(A.X, ADX);
+  Inc(A.Y, ADY);
+  Inc(B.X, ADX);
+  Inc(B.Y, ADY);
   end;
 
-procedure TRect.Grow(ADX, ADY: longInt);
+procedure TRect.Grow(ADX, ADY: LongInt);
   begin
-    Dec(A.X, ADX);
-    Dec(A.Y, ADY);
-    Inc(B.X, ADX);
-    Inc(B.Y, ADY);
-    CheckEmpty(Self);
+  Dec(A.X, ADX);
+  Dec(A.Y, ADY);
+  Inc(B.X, ADX);
+  Inc(B.Y, ADY);
+  CheckEmpty(Self);
   end;
 
 procedure TRect.Intersect(R: TRect);
   begin
-    if (R.A.X > A.X) then
-      A.X := R.A.X;
-    if (R.A.Y > A.Y) then
-      A.Y := R.A.Y;
-    if (R.B.X < B.X) then
-      B.X := R.B.X;
-    if (R.B.Y < B.Y) then
-      B.Y := R.B.Y;
-    CheckEmpty(Self);
+  if  (R.A.X > A.X) then
+    A.X := R.A.X;
+  if  (R.A.Y > A.Y) then
+    A.Y := R.A.Y;
+  if  (R.B.X < B.X) then
+    B.X := R.B.X;
+  if  (R.B.Y < B.Y) then
+    B.Y := R.B.Y;
+  CheckEmpty(Self);
   end;
 
 procedure TRect.Union(R: TRect);
   begin
-    if (R.A.X < A.X) then
-      A.X := R.A.X;
-    if (R.A.Y < A.Y) then
-      A.Y := R.A.Y;
-    if (R.B.X > B.X) then
-      B.X := R.B.X;
-    if (R.B.Y > B.Y) then
-      B.Y := R.B.Y;
+  if  (R.A.X < A.X) then
+    A.X := R.A.X;
+  if  (R.A.Y < A.Y) then
+    A.Y := R.A.Y;
+  if  (R.B.X > B.X) then
+    B.X := R.B.X;
+  if  (R.B.Y > B.Y) then
+    B.Y := R.B.Y;
   end;
 
-function TRect.Contains(P: TPoint): boolean;
+function TRect.Contains(P: TPoint): Boolean;
   begin
-    Contains := (P.X >= A.X) and (P.X < B.X) and
-    (P.Y >= A.Y) and (P.Y < B.Y);
+  Contains := (P.X >= A.X) and (P.X < B.X) and
+      (P.Y >= A.Y) and (P.Y < B.Y);
   end;
 
-function TRect.Equals(R: TRect): boolean;
+function TRect.Equals(R: TRect): Boolean;
   begin
-    Equals := (A.X = R.A.X) and (A.Y = R.A.Y) and
-    (B.X = R.B.X) and (B.Y = R.B.Y);
+  Equals := (A.X = R.A.X) and (A.Y = R.A.Y) and
+      (B.X = R.B.X) and (B.Y = R.B.Y);
   end;
 
-function TRect.Empty: boolean;
+function TRect.Empty: Boolean;
   begin
-    Empty := (A.X >= B.X) or (A.Y >= B.Y);
+  Empty := (A.X >= B.X) or (A.Y >= B.Y);
   end;
 
-function longmul(X, Y: longInt): longInt;
+function longmul(X, Y: LongInt): LongInt;
   begin
-    longmul := X*Y;
+  longmul := X*Y;
   end;
 
-function LongDiv(X: longInt; Y: longInt): longInt;
+function LongDiv(X: LongInt; Y: LongInt): LongInt;
   begin
-    LongDiv := X div Y;
+  LongDiv := X div Y;
   end;
 
-procedure FreeObject(var o);
+procedure FreeObject(var O);
   var
-    OO: PObject absolute o;
-    Op: Pointer absolute o;
+    OO: PObject absolute O;
+    OP: Pointer absolute O;
   begin
-    if Op <> nil then
-      begin
-        Dispose(OO, Done);
-        Op := nil
-      end;
+  if OP <> nil then
+    begin
+    Dispose(OO, Done);
+    OP := nil
+    end;
   end;
 
-procedure Beep(Freq, Dur: longInt); {JO}
+procedure Beep(Freq, Dur: LongInt); {JO}
   begin
-    SysBeepEx(Freq, Dur);
+  SysBeepEx(Freq, Dur);
   end;
 
 end.

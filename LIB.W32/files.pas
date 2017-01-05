@@ -3,7 +3,7 @@ unit Files;
 interface
 
 type
-  TUseLFN = boolean;
+  TUseLFN = Boolean;
 
 const
   uLfn: TUseLFN = True;

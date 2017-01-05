@@ -52,7 +52,8 @@ unit Messages;
 interface
 
 uses
-  Objects, Commands, RStrings, Dos, Drivers;
+  Objects, Commands, RStrings, Dos, Drivers
+  ;
 
 const
 
@@ -89,8 +90,7 @@ const
   { are passed to FormatStr.  The resulting string is displayed   }
   { as a TStaticText view in the dialog.                          }
 
-function MessageBox(Msg: String; Params: Pointer; AOptions: word):
-  word;
+function MessageBox(Msg: String; Params: Pointer; AOptions: Word): Word;
 
 (* function SysErrorMessageBox( Msg: String; {Params: Pointer;} AOptions: Word ): Word; *)
 
@@ -98,52 +98,51 @@ function MessageBox(Msg: String; Params: Pointer; AOptions: word):
 { message box to occupy.                                        }
 
 function MessageBox2(Msg1, Msg2: String; Params1, Params2: Pointer;
-    AOptions: word): word;
+     AOptions: Word): Word;
 
 function MessageBoxRect(var R: TRect; Msg: String; Params: Pointer;
-  AOptions: word): word;
+    AOptions: Word): Word;
 
 function MessageBox2Rect(var R: TRect;
-  Msg1, Msg2: String;
-  Lines1: word;
-  Params1, Params2: Pointer;
-  AOptions: word): word;
+    Msg1, Msg2: String;
+    Lines1: Word;
+    Params1, Params2: Pointer;
+    AOptions: Word): Word;
 
 { InputBox displays a simple dialog that allows the user to     }
 { type in a string.                                             }
 
-function InputBox(Title: String; ALabel: String; var s: String;
-  Limit: word; HistoryId: word): word;
+function InputBox(Title: String; ALabel: String; var S: String;
+    Limit: Word; HistoryId: Word): Word;
 
-function BigInputBox(Title: String; ALabel: String; var s: String;
-  Limit: word; HistoryId: word): word;
+function BigInputBox(Title: String; ALabel: String; var S: String;
+    Limit: Word; HistoryId: Word): Word;
 
 { InputBoxRect is like InputBox but allows the specification of }
 { a rectangle.                                                  }
 
-function InputBoxRect(var Bounds: TRect; Title: String; ALabel:
-    String;
-  var s: String; Limit: word; HistoryId: word): word;
+function InputBoxRect(var Bounds: TRect; Title: String; ALabel: String;
+    var S: String; Limit: Word; HistoryId: Word): Word;
 
-function Msg(Index: TStrIdx; Params: Pointer; AOptions: word): word;
+function Msg(Index: TStrIdx; Params: Pointer; AOptions: Word): Word;
 
 function Msg2(Index1, Index2: TStrIdx;
-  Params1, Params2: Pointer;
-  AOptions: word): word;
+    Params1, Params2: Pointer;
+    AOptions: Word): Word;
 
 procedure ErrMsg(Index: TStrIdx);
 
 procedure CantWrite(const FName: String);
 
-function FmtFile(const Fmt: String; const FName: String; len:
-    integer): String;
-function FmtStr(const Fmt: String; const s: String): String;
-function FmtStrId(Id: TStrIdx; const s: String): String;
+function FmtFile(const Fmt: String; const FName: String; len: Integer)
+  : String;
+function FmtStr(const Fmt: String; const S: String): String;
+function FmtStrId(Id: TStrIdx; const S: String): String;
 function FmtFileId(Id: TStrIdx; const FName: String): String;
 
 const
-  MsgActive: boolean = False;
-  MsgHelpCtx: word = 0; {AK155}
+  MsgActive: Boolean = False;
+  MsgHelpCtx: Word = 0; {AK155}
   {Это контекст хелпа, устанавливаемый заранее извне для
 использования вместо подразумеваемого контекста. 'Пустое'
 значение - нулевое. При выполнении MessageBoxRect (и,
@@ -153,127 +152,127 @@ const
 implementation
 
 uses
-  Views, Dialogs, DNApp, DNHelp, advance, advance1, advance2,
-  advance3, {Tree, }Drives, Startup;
+  Views, Dialogs, DNApp, DNHelp, Advance, Advance1, Advance2,
+  Advance3, {Tree, }Drives, Startup
+  ;
 
 procedure ErrMsg(Index: TStrIdx);
   begin
-    Msg(Index, nil, mfError+mfOKButton)
+  Msg(Index, nil, mfError+mfOKButton)
   end;
 
 procedure CantWrite(const FName: String);
   var
-    A: String[30];
+    a: String[30];
     PP: Pointer;
   begin
-    A := Cut(FName, 30);
-    PP := @A;
-    Msg(dlCanNotWrite, @PP, mfError+mfOKButton);
+  a := Cut(FName, 30);
+  PP := @A;
+  Msg(dlCanNotWrite, @PP, mfError+mfOKButton);
   end;
 
 function Msg;
   begin
-    if Desktop <> nil then
-        {Cat: здесь надо проверять, существует ли
+  if Desktop <> nil then
+    {Cat: здесь надо проверять, существует ли
                                уже к этому моменту Desktop}
-      Msg := MessageBox(GetString(Index), Params, AOptions);
+    Msg := MessageBox(GetString(Index), Params, AOptions);
   end;
 
 function Msg2;
   begin
-    if Desktop <> nil then
-        {Cat: здесь надо проверять, существует ли
+  if Desktop <> nil then
+    {Cat: здесь надо проверять, существует ли
                                уже к этому моменту Desktop}
-      Msg2 := MessageBox2(GetString(Index1),
-      GetString(Index2),
-      Params1,
-      Params2,
-      AOptions);
+    Msg2 := MessageBox2(GetString(Index1),
+        GetString(Index2),
+        Params1,
+        Params2,
+        AOptions);
   end;
 
 function MessageBox2;
   var
     R: TRect;
     i, j, k, l,
-    I1, j1, K1, l1: byte;
+    i1, j1, k1, l1: Byte;
   begin
 
-    i := 0;
-    l := 0;
-    k := 0;
-    for j := 1 to Length(Msg1) do
+  i := 0;
+  l := 0;
+  k := 0;
+  for j := 1 to Length(Msg1) do
+    begin
+    if Msg1[j] = #13 then
       begin
-        if Msg1[j] = #13 then
-          begin
-            Inc(i);
-            if k > l then
-              l := k;
-            k := 0;
-          end;
-        if Msg1[j] > #31 then
-          Inc(k);
-        if k > 70 then
-          k := 70;
+      Inc(i);
+      if k > l then
+        l := k;
+      k := 0;
       end;
-    if k > l then
-      l := k;
-    if l < 36 then
-      l := 36;
+    if Msg1[j] > #31 then
+      Inc(k);
+    if k > 70 then
+      k := 70;
+    end;
+  if k > l then
+    l := k;
+  if l < 36 then
+    l := 36;
 
-    I1 := 0;
-    l1 := 0;
-    K1 := 0;
-    for j1 := 1 to Length(Msg2) do
+  i1 := 0;
+  l1 := 0;
+  k1 := 0;
+  for j1 := 1 to Length(Msg2) do
+    begin
+    if Msg2[j1] = #13 then
       begin
-        if Msg2[j1] = #13 then
-          begin
-            Inc(I1);
-            if K1 > l then
-              l1 := K1;
-            K1 := 0;
-          end;
-        if Msg2[j1] > #31 then
-          Inc(K1);
-        if K1 > 70 then
-          K1 := 70;
+      Inc(i1);
+      if k1 > l then
+        l1 := k1;
+      k1 := 0;
       end;
-    if K1 > l then
-      l1 := K1;
-    if l1 < 36 then
-      l1 := 36;
+    if Msg2[j1] > #31 then
+      Inc(k1);
+    if k1 > 70 then
+      k1 := 70;
+    end;
+  if k1 > l then
+    l1 := k1;
+  if l1 < 36 then
+    l1 := 36;
 
-    if l1 > l then
-      l := l1;
-    K1 := i;
-    Inc(i, I1);
+  if l1 > l then
+    l := l1;
+  k1 := i;
+  Inc(i, i1);
 
-    k := 0;
-    for j := 0 to 7 do
-      if AOptions and ($0100 shl j) <> 0 then
-        Inc(k);
+  k := 0;
+  for j := 0 to 7 do
+    if AOptions and ($0100 shl j) <> 0 then
+      Inc(k);
 
-    if k*13 > l+6 then
-      l := k*13-6;
+  if k*13 > l+6 then
+    l := k*13-6;
 
-    R.Assign(0, 0, l+6, i+7);
-    R.Move((Desktop^.Size.X-R.B.X) div 2, (Desktop^.Size.Y-R.B.Y)
-      div 2);
+  R.Assign(0, 0, l+6, i+7);
+  R.Move((Desktop^.Size.X-R.B.X) div 2, (Desktop^.Size.Y-R.B.Y) div 2);
 
-    MessageBox2 := MessageBox2Rect(R, Msg1, Msg2, K1, Params1,
-      Params2, AOptions);
+  MessageBox2 := MessageBox2Rect(R, Msg1, Msg2, k1, Params1, Params2,
+       AOptions);
   end { MessageBox2 };
 
 function MessageBoxRect;
   const
-    Cmds: array[0..7] of word =
-    (cmYes, cmOK, cmNo, cmOK, cmOK, cmYes, cmOK, cmCancel);
+    Cmds: array[0..7] of Word =
+      (cmYes, cmOK, cmNo, cmOK, cmOK, cmYes, cmOK, cmCancel);
   var
-    i, X, ButtonCount: integer;
+    I, X, ButtonCount: Integer;
     Dialog: PDialog;
     Control: PView;
-    t: TRect;
+    T: TRect;
     ButtonList: array[0..4] of PView;
-    s: String;
+    S: String;
     PP: TPoint;
     Event: TEvent;
 
@@ -281,152 +280,153 @@ function MessageBoxRect;
     var
       s: String;
     begin
-      s := GetString(TStrIdx(integer(dlYesButton)+i));
-      R.Assign(0, 0, Max(10, CStrLen(s)+4), 2);
-      Control := New(PButton, Init(R, s, Cmds[i], bfNormal));
-      Inc(X, Control^.Size.X+2);
-      ButtonList[ButtonCount] := Control;
-      Inc(ButtonCount);
+    s := GetString(TStrIdx(Integer(dlYesButton)+i));
+    R.Assign(0, 0, Max(10, CStrLen(s)+4), 2);
+    Control := New(PButton, Init(R, s, Cmds[i], bfNormal));
+    Inc(X, Control^.Size.X+2);
+    ButtonList[ButtonCount] := Control;
+    Inc(ButtonCount);
     end;
 
 
   begin { MessageBoxRect }
-    Dialog := New(PDialog,
-    Init(R, GetString(TStrIdx(integer(dlMsgWarning)+AOptions and $7))));
-    if MsgHelpCtx <> 0 then
-      begin
-        Dialog^.HelpCtx := MsgHelpCtx;
-        MsgHelpCtx := 0;
-      end
+  Dialog := New(PDialog,
+      Init(R, GetString(TStrIdx(Integer(dlMsgWarning)+AOptions and $7))));
+  if MsgHelpCtx <> 0 then
+    begin
+    Dialog^.HelpCtx := MsgHelpCtx;
+    MsgHelpCtx := 0;
+    end
+  else
+    begin
+    if AOptions and $7 = mfAbout
+    then
+      Dialog^.HelpCtx := hcAboutDialog
+    else if AOptions and mfAllButton <> 0
+    then
+      Dialog^.HelpCtx := hcAllContainingDialog
+    else if AOptions and (mfYesButton+mf2YesButton) <> 0
+    then
+      Dialog^.HelpCtx := hcYesNoDialog+Byte(AOptions and mfCancelButton <>
+           0)
     else
+      Dialog^.HelpCtx := hcWarningDialog+(AOptions and $7);
+    end;
+  if AOptions and $7 = mfError then
+    Dialog^.Palette := dpRedDialog;
+  with Dialog^ do
+    begin
+    R.Assign(3, 2, Size.X-2, Size.Y-3);
+    FormatStr(S, Msg, Params^);
+    Control := New(PStaticText, Init(R, S));
+    Insert(Control);
+    X := -2;
+    ButtonCount := 0;
+    for I := 0 to 7 do
+      if AOptions and ($0100 shl I) <> 0 then
+        AddButton;
+    X := (Size.X-X) shr 1;
+    for I := 0 to ButtonCount-1 do
       begin
-        if AOptions and $7 = mfAbout
-        then
-          Dialog^.HelpCtx := hcAboutDialog
-        else if AOptions and mfAllButton <> 0
-        then
-          Dialog^.HelpCtx := hcAllContainingDialog
-        else if AOptions and (mfYesButton+mf2YesButton) <> 0
-        then
-          Dialog^.HelpCtx := hcYesNoDialog+byte(AOptions and
-            mfCancelButton <> 0)
-        else
-          Dialog^.HelpCtx := hcWarningDialog+(AOptions and $7);
+      Control := ButtonList[I];
+      Insert(Control);
+      Control^.MoveTo(X, Size.Y-3);
+      Inc(X, Control^.Size.X+2);
       end;
-    if AOptions and $7 = mfError then
-      Dialog^.Palette := dpRedDialog;
-    with Dialog^ do
-      begin
-        R.Assign(3, 2, Size.X-2, Size.Y-3);
-        FormatStr(s, Msg, Params^);
-        Control := New(PStaticText, Init(R, s));
-        Insert(Control);
-        X := -2;
-        ButtonCount := 0;
-        for i := 0 to 7 do
-          if AOptions and ($0100 shl i) <> 0 then
-            AddButton;
-        X := (Size.X-X) shr 1;
-        for i := 0 to ButtonCount-1 do
-          begin
-            Control := ButtonList[i];
-            Insert(Control);
-            Control^.MoveTo(X, Size.Y-3);
-            Inc(X, Control^.Size.X+2);
-          end;
-        SelectNext(False);
-        SelectNext(True);
-        SelectNext(False);
-      end;
-    MsgActive := True;
-    {PP.X := 0; PP.Y := 0;
+    SelectNext(False);
+    SelectNext(True);
+    SelectNext(False);
+    end;
+  MsgActive := True;
+  {PP.X := 0; PP.Y := 0;
   Dialog^.MakeGlobal(PP, PP);
   Event.What := evMouseDown; Event.Double := False;
   Event.Buttons := 1; Event.Where := PP;
   Application^.PutEvent(Event);}
-    MessageBoxRect := Desktop^.ExecView(Dialog);
-    Dispose(Dialog, Done);
-    MsgActive := False;
+  MessageBoxRect := Desktop^.ExecView(Dialog);
+  Dispose(Dialog, Done);
+  MsgActive := False;
   end { MessageBoxRect };
 
 function MessageBox2Rect;
   const
-    Cmds: array[0..7] of word =
-    (cmYes, cmOK, cmNo, cmOK, cmOK, cmYes, cmOK, cmCancel);
+    Cmds: array[0..7] of Word =
+      (cmYes, cmOK, cmNo, cmOK, cmOK, cmYes, cmOK, cmCancel);
   var
-    i, X, ButtonCount: integer;
+    I, X, ButtonCount: Integer;
     Dialog: PDialog;
     Control: PView;
-    t: TRect;
+    T: TRect;
     ButtonList: array[0..4] of PView;
-    s: String;
+    S: String;
     PP: TPoint;
     Event: TEvent;
   begin
-    Dialog := New(PDialog,
-    Init(R, GetString(TStrIdx(integer(dlMsgWarning)+AOptions and $7))));
-    if AOptions and $7 = mfAbout then
-      Dialog^.HelpCtx := hcAboutDialog;
-    with Dialog^ do
+  Dialog := New(PDialog,
+      Init(R, GetString(TStrIdx(Integer(dlMsgWarning)+AOptions and $7))));
+  if AOptions and $7 = mfAbout then
+    Dialog^.HelpCtx := hcAboutDialog;
+  with Dialog^ do
+    begin
+
+    R.Assign(3, 2, Size.X-2, 2+Lines1);
+    FormatStr(S, Msg1, Params1^);
+    Control := New(PStaticText, Init(R, S));
+    Insert(Control);
+
+    R.A.Y := R.B.Y;
+    R.B.Y := Size.Y-3;
+    FormatStr(S, Msg2, Params2^);
+    Control := New(PStaticText, Init(R, S));
+    Insert(Control);
+
+    X := -2;
+    ButtonCount := 0;
+    for I := 0 to 7 do
+      if AOptions and ($0100 shl I) <> 0 then
+        begin
+        R.Assign(0, 0, 10, 2);
+        Control := New(PButton, Init(R,
+                     GetString(TStrIdx(Integer(dlYesButton)+I)),
+               Cmds[I], bfNormal));
+        Inc(X, Control^.Size.X+2);
+        ButtonList[ButtonCount] := Control;
+        Inc(ButtonCount);
+        end;
+    X := (Size.X-X) shr 1;
+    for I := 0 to ButtonCount-1 do
       begin
-
-        R.Assign(3, 2, Size.X-2, 2+Lines1);
-        FormatStr(s, Msg1, Params1^);
-        Control := New(PStaticText, Init(R, s));
-        Insert(Control);
-
-        R.A.Y := R.B.Y;
-        R.B.Y := Size.Y-3;
-        FormatStr(s, Msg2, Params2^);
-        Control := New(PStaticText, Init(R, s));
-        Insert(Control);
-
-        X := -2;
-        ButtonCount := 0;
-        for i := 0 to 7 do
-          if AOptions and ($0100 shl i) <> 0 then
-            begin
-              R.Assign(0, 0, 10, 2);
-              Control := New(PButton, Init(R, GetString(TStrIdx(
-                integer(dlYesButton)+i)), Cmds[i], bfNormal));
-              Inc(X, Control^.Size.X+2);
-              ButtonList[ButtonCount] := Control;
-              Inc(ButtonCount);
-            end;
-        X := (Size.X-X) shr 1;
-        for i := 0 to ButtonCount-1 do
-          begin
-            Control := ButtonList[i];
-            Insert(Control);
-            Control^.MoveTo(X, Size.Y-3);
-            Inc(X, Control^.Size.X+2);
-          end;
-        SelectNext(False);
-        SelectNext(True);
-        SelectNext(False);
+      Control := ButtonList[I];
+      Insert(Control);
+      Control^.MoveTo(X, Size.Y-3);
+      Inc(X, Control^.Size.X+2);
       end;
-    MsgActive := True;
-    {PP.X := 0; PP.Y := 0;
+    SelectNext(False);
+    SelectNext(True);
+    SelectNext(False);
+    end;
+  MsgActive := True;
+  {PP.X := 0; PP.Y := 0;
   Dialog^.MakeGlobal(PP, PP);
   Event.What := evMouseDown; Event.Double := False;
   Event.Buttons := 1; Event.Where := PP;
   Application^.PutEvent(Event);}
-    MessageBox2Rect := Desktop^.ExecView(Dialog);
-    Dispose(Dialog, Done);
-    MsgActive := False;
+  MessageBox2Rect := Desktop^.ExecView(Dialog);
+  Dispose(Dialog, Done);
+  MsgActive := False;
   end { MessageBox2Rect };
 
 function SysErrorMessageBoxRect(var R: TRect; Msg: String;
     {Params: Pointer;}
-  AOptions: word): word;
+    AOptions: Word): Word;
   const
-    Cmds: array[0..2] of word =
-    (cmYes, cmOK, cmNo {, cmOk, cmOK, cmYes, cmOK, cmCancel});
+    Cmds: array[0..2] of Word =
+      (cmYes, cmOK, cmNo {, cmOk, cmOK, cmYes, cmOK, cmCancel});
   var
-    i, X, ButtonCount: integer;
+    I, X, ButtonCount: Integer;
     Dialog: PDialog;
     Control: PView;
-    t: TRect;
+    T: TRect;
     ButtonList: array[0..4] of PView;
     PP: TPoint;
     Event: TEvent;
@@ -435,113 +435,109 @@ function SysErrorMessageBoxRect(var R: TRect; Msg: String;
     var
       s: String;
     begin
-      case i of
-        0:
-          s := GetString(dlCE_ButRetry);
-        1:
-          s := GetString(dlCE_ButAbort);
-        2:
-          s := GetString(dlCE_ButIgnore);
-      end {case};
-      R.Assign(0, 0, Max(10, CStrLen(s)+4), 2);
-      Control := New(PButton, Init(R, s, Cmds[i], bfNormal));
-      Inc(X, Control^.Size.X+2);
-      ButtonList[ButtonCount] := Control;
-      Inc(ButtonCount);
+    case i of
+      0:
+        s := GetString(dlCE_ButRetry);
+      1:
+        s := GetString(dlCE_ButAbort);
+      2:
+        s := GetString(dlCE_ButIgnore);
+    end {case};
+    R.Assign(0, 0, Max(10, CStrLen(s)+4), 2);
+    Control := New(PButton, Init(R, s, Cmds[i], bfNormal));
+    Inc(X, Control^.Size.X+2);
+    ButtonList[ButtonCount] := Control;
+    Inc(ButtonCount);
     end;
 
   begin { SysErrorMessageBoxRect }
-    Dialog := New(PDialog, Init(R, GetString(dlCE_ErrWndTitle)));
-    Dialog^.HelpCtx := hcNoContext;
-    Dialog^.Palette := dpRedDialog;
-    with Dialog^ do
+  Dialog := New(PDialog, Init(R, GetString(dlCE_ErrWndTitle)));
+  Dialog^.HelpCtx := hcNoContext;
+  Dialog^.Palette := dpRedDialog;
+  with Dialog^ do
+    begin
+    R.Assign(3, 2, Size.X-2, Size.Y-3);
+    Control := New(PStaticText, Init(R, Msg));
+    Insert(Control);
+    X := -2;
+    ButtonCount := 0;
+    for I := 0 to 2 do
+      if AOptions and ($0100 shl I) <> 0 then
+        AddButton;
+    X := (Size.X-X) shr 1;
+    for I := 0 to ButtonCount-1 do
       begin
-        R.Assign(3, 2, Size.X-2, Size.Y-3);
-        Control := New(PStaticText, Init(R, Msg));
-        Insert(Control);
-        X := -2;
-        ButtonCount := 0;
-        for i := 0 to 2 do
-          if AOptions and ($0100 shl i) <> 0 then
-            AddButton;
-        X := (Size.X-X) shr 1;
-        for i := 0 to ButtonCount-1 do
-          begin
-            Control := ButtonList[i];
-            Insert(Control);
-            Control^.MoveTo(X, Size.Y-3);
-            Inc(X, Control^.Size.X+2);
-          end;
-        SelectNext(False);
-        SelectNext(True);
-        SelectNext(False);
+      Control := ButtonList[I];
+      Insert(Control);
+      Control^.MoveTo(X, Size.Y-3);
+      Inc(X, Control^.Size.X+2);
       end;
-    MsgActive := True;
-    SysErrorMessageBoxRect := Desktop^.ExecView(Dialog);
-    Dispose(Dialog, Done);
-    MsgActive := False;
+    SelectNext(False);
+    SelectNext(True);
+    SelectNext(False);
+    end;
+  MsgActive := True;
+  SysErrorMessageBoxRect := Desktop^.ExecView(Dialog);
+  Dispose(Dialog, Done);
+  MsgActive := False;
   end { SysErrorMessageBoxRect };
 
 function MessageBox;
   var
     R: TRect;
-    i, j, k, l: byte;
+    i, j, k, l: Byte;
   begin
-    i := 0;
-    l := 0;
-    k := 0;
-    for j := 1 to Length(Msg) do
+  i := 0;
+  l := 0;
+  k := 0;
+  for j := 1 to Length(Msg) do
+    begin
+    if Msg[j] = #13 then
       begin
-        if Msg[j] = #13 then
-          begin
-            Inc(i);
-            if k > l then
-              l := k;
-            k := 0;
-          end;
-        if Msg[j] > #31 then
-          Inc(k);
-        if k > 70 then
-          k := 70;
+      Inc(i);
+      if k > l then
+        l := k;
+      k := 0;
       end;
-    if k > l then
-      l := k;
-    if l < 36 then
-      l := 36;
-    k := 0;
-    for j := 0 to 7 do
-      if AOptions and ($0100 shl j) <> 0 then
-        Inc(k);
-    if k*13 > l+6 then
-      l := k*13-6;
-    R.Assign(0, 0, l+6, i+7);
-    R.Move((Desktop^.Size.X-R.B.X) div 2, (Desktop^.Size.Y-R.B.Y)
-      div 2);
-    if (AOptions and $7) = mfSysError then
-      MessageBox := SysErrorMessageBoxRect(R, Msg, AOptions)
-    else
-      MessageBox := MessageBoxRect(R, Msg, Params, AOptions);
+    if Msg[j] > #31 then
+      Inc(k);
+    if k > 70 then
+      k := 70;
+    end;
+  if k > l then
+    l := k;
+  if l < 36 then
+    l := 36;
+  k := 0;
+  for j := 0 to 7 do
+    if AOptions and ($0100 shl j) <> 0 then
+      Inc(k);
+  if k*13 > l+6 then
+    l := k*13-6;
+  R.Assign(0, 0, l+6, i+7);
+  R.Move((Desktop^.Size.X-R.B.X) div 2, (Desktop^.Size.Y-R.B.Y) div 2);
+  if  (AOptions and $7) = mfSysError then
+    MessageBox := SysErrorMessageBoxRect(R, Msg, AOptions)
+  else
+    MessageBox := MessageBoxRect(R, Msg, Params, AOptions);
   end { MessageBox };
 
 function InputBox;
   var
     R: TRect;
   begin
-    R.Assign(0, 0, 60, 7);
-    R.Move((Desktop^.Size.X-R.B.X) div 2, (Desktop^.Size.Y-R.B.Y)
-      div 2);
-    InputBox := InputBoxRect(R, Title, ALabel, s, Limit, HistoryId);
+  R.Assign(0, 0, 60, 7);
+  R.Move((Desktop^.Size.X-R.B.X) div 2, (Desktop^.Size.Y-R.B.Y) div 2);
+  InputBox := InputBoxRect(R, Title, ALabel, S, Limit, HistoryId);
   end;
 
 function BigInputBox;
   var
     R: TRect;
   begin
-    R.Assign(0, 0, 76, 7);
-    R.Move((Desktop^.Size.X-R.B.X) div 2, (Desktop^.Size.Y-R.B.Y)
-      div 2);
-    BigInputBox := InputBoxRect(R, Title, ALabel, s, Limit,
-      HistoryId);
+  R.Assign(0, 0, 76, 7);
+  R.Move((Desktop^.Size.X-R.B.X) div 2, (Desktop^.Size.Y-R.B.Y) div 2);
+  BigInputBox := InputBoxRect(R, Title, ALabel, S, Limit, HistoryId);
   end;
 
 function InputBoxRect;
@@ -549,76 +545,73 @@ function InputBoxRect;
     Dialog: PDialog;
     Control: PView;
     R: TRect;
-    C: word;
+    C: Word;
   begin
-    Dialog := New(PDialog, Init(Bounds, Title));
-    with Dialog^ do
+  Dialog := New(PDialog, Init(Bounds, Title));
+  with Dialog^ do
+    begin
+    R.Assign(4+CStrLen(ALabel), 2, Size.X-2-4*Byte(HistoryId <> 0), 3);
+    Control := New(PInputline, Init(R, Limit));
+    Insert(Control);
+    if HistoryId <> 0 then
       begin
-        R.Assign(4+CStrLen(ALabel), 2, Size.X-2-4*byte(HistoryId <> 0),
-          3);
-        Control := New(PInputline, Init(R, Limit));
-        Insert(Control);
-        if HistoryId <> 0 then
-          begin
-            R.Assign(Size.X-6, 2, Size.X-3, 3);
-            Insert(New(PHistory, Init(R, PInputline(Control),
-              HistoryId)));
-          end;
-        R.Assign(2, 2, 3+CStrLen(ALabel), 3);
-        Insert(New(PLabel, Init(R, ALabel, Control)));
-        R.Assign(Size.X-45, Size.Y-3, Size.X-35, Size.Y-1);
-        Insert(New(PButton, Init(R, GetString(dlOKButton), cmOK,
-          bfDefault)));
-        Inc(R.A.X, 10);
-        Inc(R.B.X, 10);
-        {Insert(New(PButton, Init(R, '~T~ree', cmTree, 0)));
-    Inc(R.A.X, 10); Inc(R.B.X, 10);}
-        Insert(New(PButton, Init(R, GetString(dlCancelButton),
-          cmCancel, bfNormal)));
-        Inc(R.A.X, 10);
-        Inc(R.B.X, 10);
-        Insert(New(PButton, Init(R, GetString(dlHelpButton), cmHelp,
-          bfNormal)));
-        Inc(R.A.X, 10);
-        Inc(R.B.X, 10);
-        SelectNext(False);
+      R.Assign(Size.X-6, 2, Size.X-3, 3);
+      Insert(New(PHistory, Init(R, PInputline(Control), HistoryId)));
       end;
-    Dialog^.SetData(s);
-    Dialog^.HelpCtx := hcInputBox;
-    C := Desktop^.ExecView(Dialog);
-    if C <> cmCancel then
-      Dialog^.GetData(s);
-    Dispose(Dialog, Done);
-    InputBoxRect := C;
+    R.Assign(2, 2, 3+CStrLen(ALabel), 3);
+    Insert(New(PLabel, Init(R, ALabel, Control)));
+    R.Assign(Size.X-45, Size.Y-3, Size.X-35, Size.Y-1);
+    Insert(New(PButton, Init(R, GetString(dlOKButton), cmOK, bfDefault)));
+    Inc(R.A.X, 10);
+    Inc(R.B.X, 10);
+    {Insert(New(PButton, Init(R, '~T~ree', cmTree, 0)));
+    Inc(R.A.X, 10); Inc(R.B.X, 10);}
+    Insert(New(PButton, Init(R, GetString(dlCancelButton), cmCancel,
+           bfNormal)));
+    Inc(R.A.X, 10);
+    Inc(R.B.X, 10);
+    Insert(New(PButton, Init(R, GetString(dlHelpButton), cmHelp,
+         bfNormal)));
+    Inc(R.A.X, 10);
+    Inc(R.B.X, 10);
+    SelectNext(False);
+    end;
+  Dialog^.SetData(S);
+  Dialog^.HelpCtx := hcInputBox;
+  C := Desktop^.ExecView(Dialog);
+  if C <> cmCancel then
+    Dialog^.GetData(S);
+  Dispose(Dialog, Done);
+  InputBoxRect := C;
   end { InputBoxRect };
 
 function FmtFile;
   var
-    s, F: String;
+    s, f: String;
     P: PString;
   begin
-    if len = MaxInt then
-      F := FName
-    else
-      F := Cut(FName, len);
-    P := @f;
-    FormatStr(s, Fmt, P);
-    FmtFile := s;
+  if len = MaxInt then
+    f := FName
+  else
+    f := Cut(FName, len);
+  P := @f;
+  FormatStr(s, Fmt, P);
+  FmtFile := s;
   end;
 
-function FmtStr(const Fmt: String; const s: String): String;
+function FmtStr(const Fmt: String; const S: String): String;
   begin
-    FmtStr := FmtFile(Fmt, s, MaxInt);
+  FmtStr := FmtFile(Fmt, S, MaxInt);
   end;
 
-function FmtStrId(Id: TStrIdx; const s: String): String;
+function FmtStrId(Id: TStrIdx; const S: String): String;
   begin
-    FmtStrId := FmtStr(GetString(Id), s);
+  FmtStrId := FmtStr(GetString(Id), S);
   end;
 
 function FmtFileId;
   begin
-    FmtFileId := FmtFile(GetString(Id), FName, 40);
+  FmtFileId := FmtFile(GetString(Id), FName, 40);
   end;
 
 end.

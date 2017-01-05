@@ -45,32 +45,33 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
-unit Arc_LHA; {LHA}
+unit arc_LHA; {LHA}
 
 interface
 
 uses
-  Archiver, advance, advance1, Objects, Dos, xTime;
+  Archiver, Advance, Advance1, Objects, Dos, xTime
+  ;
 
 type
   PLHAArchive = ^TLHAArchive;
   TLHAArchive = object(TARJArchive)
-    Constructor Init;
+    constructor Init;
     procedure GetFile; virtual;
-    function GetID: byte; virtual;
+    function GetID: Byte; virtual;
     function GetSign: TStr4; virtual;
     end;
 
 type
   LHAHdr = record
-    Size: byte;
-    SUM: byte;
+    Size: Byte;
+    Sum: Byte;
     MethodID: array[1..5] of Char;
-    PackedSize: longInt;
-    OriginSize: longInt;
-    Date: longInt;
-    Attr: byte;
-    Level: byte;
+    PackedSize: LongInt;
+    OriginSize: LongInt;
+    Date: LongInt;
+    Attr: Byte;
+    Level: Byte;
     Name: array[0..255] of Char;
     end;
 
@@ -78,193 +79,176 @@ implementation
 
 { ----------------------------- LHA ------------------------------------}
 
-Constructor TLHAArchive.Init;
+constructor TLHAArchive.Init;
   var
     Sign: TStr5;
-    Q: String;
+    q: String;
   begin
-    Sign := GetSign;
-    SetLength(Sign, Length(Sign)-1);
-    Sign := Sign+#0;
-    FreeStr := SourceDir+DNARC;
-    TObject.Init;
-    {$IFNDEF OS2}
-    Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,
-      'LHA.EXE'));
-    UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,
-      'LHA.EXE'));
-    Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'e -a'));
-    ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,
-      'x -a'));
-    Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'a -a'));
-    Move := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove, 'm -a'));
-    Delete := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete, 'd -a'));
-    Garble := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble, ''));
-    Test := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest, '-t'));
-    IncludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PIncludePaths, '-d'));
-    ExcludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PExcludePaths, ''));
-    ForceMode := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode,
-      '-m'));
-    RecoveryRec := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec, ''
-      ));
-    SelfExtract := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract,
-      '-s'));
-    Solid := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid, ''));
-    RecurseSubDirs := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PRecurseSubDirs, ''));
-    SetPathInside := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PSetPathInside, ''));
-    StoreCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PStoreCompression, '-z'));
-    FastestCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PFastestCompression, ''));
-    FastCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PFastCompression, ''));
-    NormalCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PNormalCompression, ''));
-    GoodCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PGoodCompression, ''));
-    UltraCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PUltraCompression, ''));
-    ComprListChar := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PComprListChar, '@'));
-    ExtrListChar := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PExtrListChar, ''));
-    {$ELSE}
-    Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker,
-      'LH32.EXE'));
-    UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker,
-      'LH32.EXE'));
-    Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'e -a'));
-    ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP,
-      'x -a'));
-    Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'a -a -e'));
-    Move := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove, 'm -a -e'));
-    Delete := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete, 'd -a'));
-    Garble := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble, ''));
-    Test := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest, '-t'));
-    IncludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PIncludePaths, ''));
-    ExcludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PExcludePaths, ''));
-    ForceMode := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode,
-      '-m'));
-    RecoveryRec := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec, ''
-      ));
-    SelfExtract := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract, ''
-      ));
-    Solid := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid, ''));
-    RecurseSubDirs := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PRecurseSubDirs, '-s'));
-    StoreCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PStoreCompression, ''));
-    FastestCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PFastestCompression, ''));
-    FastCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PFastCompression, ''));
-    NormalCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PNormalCompression, ''));
-    GoodCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PGoodCompression, ''));
-    UltraCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PUltraCompression, ''));
-    ComprListChar := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PComprListChar, ''));
-    ExtrListChar := NewStr(GetVal(@Sign[1], @FreeStr[1],
-      PExtrListChar, ''));
-    {$ENDIF}
+  Sign := GetSign;
+  SetLength(Sign, Length(Sign)-1);
+  Sign := Sign+#0;
+  FreeStr := SourceDir+DNARC;
+  TObject.Init;
+  {$IFNDEF OS2}
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'LHA.EXE'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'LHA.EXE'));
+  Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'e -a'));
+  ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, 'x -a'));
+  Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'a -a'));
+  Move := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove, 'm -a'));
+  Delete := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete, 'd -a'));
+  Garble := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble, ''));
+  Test := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest, '-t'));
+  IncludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths,
+         '-d'));
+  ExcludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths, ''));
+  ForceMode := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode, '-m'));
+  RecoveryRec := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec, ''));
+  SelfExtract := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract, '-s'));
+  Solid := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid, ''));
+  RecurseSubDirs := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecurseSubDirs,
+         ''));
+  SetPathInside := NewStr(GetVal(@Sign[1], @FreeStr[1], PSetPathInside,
+         ''));
+  StoreCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PStoreCompression, '-z'));
+  FastestCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PFastestCompression, ''));
+  FastCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PFastCompression, ''));
+  NormalCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PNormalCompression, ''));
+  GoodCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PGoodCompression, ''));
+  UltraCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PUltraCompression, ''));
+  ComprListChar := NewStr(GetVal(@Sign[1], @FreeStr[1], PComprListChar,
+         '@'));
+  ExtrListChar := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtrListChar, ''));
+  {$ELSE}
+  Packer := NewStr(GetVal(@Sign[1], @FreeStr[1], PPacker, 'LH32.EXE'));
+  UnPacker := NewStr(GetVal(@Sign[1], @FreeStr[1], PUnPacker, 'LH32.EXE'));
+  Extract := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtract, 'e -a'));
+  ExtractWP := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtractWP, 'x -a'));
+  Add := NewStr(GetVal(@Sign[1], @FreeStr[1], PAdd, 'a -a -e'));
+  Move := NewStr(GetVal(@Sign[1], @FreeStr[1], PMove, 'm -a -e'));
+  Delete := NewStr(GetVal(@Sign[1], @FreeStr[1], PDelete, 'd -a'));
+  Garble := NewStr(GetVal(@Sign[1], @FreeStr[1], PGarble, ''));
+  Test := NewStr(GetVal(@Sign[1], @FreeStr[1], PTest, '-t'));
+  IncludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1], PIncludePaths, ''));
+  ExcludePaths := NewStr(GetVal(@Sign[1], @FreeStr[1], PExcludePaths, ''));
+  ForceMode := NewStr(GetVal(@Sign[1], @FreeStr[1], PForceMode, '-m'));
+  RecoveryRec := NewStr(GetVal(@Sign[1], @FreeStr[1], PRecoveryRec, ''));
+  SelfExtract := NewStr(GetVal(@Sign[1], @FreeStr[1], PSelfExtract, ''));
+  Solid := NewStr(GetVal(@Sign[1], @FreeStr[1], PSolid, ''));
+  RecurseSubDirs := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PRecurseSubDirs, '-s'));
+  StoreCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PStoreCompression, ''));
+  FastestCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PFastestCompression, ''));
+  FastCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PFastCompression, ''));
+  NormalCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PNormalCompression, ''));
+  GoodCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PGoodCompression, ''));
+  UltraCompression := NewStr(GetVal(@Sign[1], @FreeStr[1],
+         PUltraCompression, ''));
+  ComprListChar := NewStr(GetVal(@Sign[1], @FreeStr[1], PComprListChar,
+         ''));
+  ExtrListChar := NewStr(GetVal(@Sign[1], @FreeStr[1], PExtrListChar, ''));
+  {$ENDIF}
 
-    Q := GetVal(@Sign[1], @FreeStr[1], PAllVersion, '0');
-    AllVersion := Q <> '0';
-    Q := GetVal(@Sign[1], @FreeStr[1], PPutDirs, '0');
-    PutDirs := Q <> '0';
-    {$IFDEF OS_DOS}
-    Q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
-    Swap := Q <> '0';
-    {$ELSE}
-    {$IFDEF OS2}
-    Q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '0');
-    {$ELSE}
-    Q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '1');
-    {$ENDIF}
-    ShortCmdLine := Q <> '0';
-    {$ENDIF}
-    {$IFNDEF OS2}
-    Q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
-    UseLFN := Q <> '0';
-    {$ENDIF}
+  q := GetVal(@Sign[1], @FreeStr[1], PAllVersion, '0');
+  AllVersion := q <> '0';
+  q := GetVal(@Sign[1], @FreeStr[1], PPutDirs, '0');
+  PutDirs := q <> '0';
+  {$IFDEF OS_DOS}
+  q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
+  Swap := q <> '0';
+  {$ELSE}
+  {$IFDEF OS2}
+  q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '0');
+  {$ELSE}
+  q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '1');
+  {$ENDIF}
+  ShortCmdLine := q <> '0';
+  {$ENDIF}
+  {$IFNDEF OS2}
+  q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '0');
+  UseLFN := q <> '0';
+  {$ENDIF}
   end { TLHAArchive.Init };
 
 function TLHAArchive.GetID;
   begin
-    GetID := arcLHA;
+  GetID := arcLHA;
   end;
 
 function TLHAArchive.GetSign;
   begin
-    GetSign := sigLHA;
+  GetSign := sigLHA;
   end;
 
 procedure TLHAArchive.GetFile;
   var
     HS, i: AWord;
-    fp: longInt;
+    FP: LongInt;
     P: LHAHdr;
     s: String;
     DT: DateTime;
   begin
-    ArcFile^.Read(P.Size, SizeOf(P.Size));
-    if (P.Size = 0) then
+  ArcFile^.Read(P.Size, SizeOf(P.Size));
+  if  (P.Size = 0) then
+    begin
+    FileInfo.Last := 1;
+    Exit;
+    end;
+  ArcFile^.Read(P.Sum, P.Size-SizeOf(P.Size));
+  if  (ArcFile^.Status <> stOK) or (P.MethodID[1] <> '-')
+       or (P.MethodID[2] <> 'l')
+  then
+    begin
+    FileInfo.Last := 2;
+    Exit;
+    end;
+  FP := ArcFile^.GetPos+2;
+  if P.Level = 2 then
+    begin
+    P.Name[0] := Chr(Byte(P.Name[3])-3);
+    System.Move(P.Name[6], P.Name[1], Byte(P.Name[0]));
+    FP := FP-2;
+    GetUNIXDate(P.Date, DT.Year, DT.Month, DT.Day, DT.Hour, DT.Min,
+       DT.Sec);
+    PackTime(DT, P.Date);
+    ArcFile^.Seek(FP+Byte(P.Name[0])+$1b-P.Size);
+    end;
+  ArcFile^.Read(HS, 2);
+  System.Move(P.Name, FileInfo.FName, Byte(P.Name[0])+1);
+  FileInfo.Last := 0;
+  FileInfo.Attr := P.Attr and not Hidden;
+  FileInfo.USize := P.OriginSize;
+  FileInfo.PSize := P.PackedSize;
+  FileInfo.Date := P.Date;
+  if  (HS <> 0) and (P.Level <> 0) then
+    begin
+    HS := HS-2;
+    ArcFile^.Read(P.Name, Min(255, HS));
+    if  (P.Name[0] = #2) then
       begin
-        FileInfo.Last := 1;
-        exit;
+      i := 1;
+      s := '';
+      while (i < Min(255, HS)) and (P.Name[i] > #31) do
+        begin
+        AddStr(s, P.Name[i]);
+        Inc(i)
+        end;
+      Replace(#255, '\', s);
+      System.Insert(s, FileInfo.FName, 1);
       end;
-    ArcFile^.Read(P.SUM, P.Size-SizeOf(P.Size));
-    if (ArcFile^.Status <> stOK) or (P.MethodID[1] <> '-') or (P.
-        MethodID[2] <> 'l')
-    then
-      begin
-        FileInfo.Last := 2;
-        exit;
-      end;
-    fp := ArcFile^.GetPos+2;
-    if P.Level = 2 then
-      begin
-        P.Name[0] := Chr(byte(P.Name[3])-3);
-        System.Move(P.Name[6], P.Name[1], byte(P.Name[0]));
-        fp := fp-2;
-        GetUNIXDate(P.Date, DT.Year, DT.Month, DT.Day, DT.Hour, DT.
-          Min, DT.Sec);
-        PackTime(DT, P.Date);
-        ArcFile^.Seek(fp+byte(P.Name[0])+$1b-P.Size);
-      end;
-    ArcFile^.Read(HS, 2);
-    System.Move(P.Name, FileInfo.FName, byte(P.Name[0])+1);
-    FileInfo.Last := 0;
-    FileInfo.Attr := P.Attr and not Hidden;
-    FileInfo.USize := P.OriginSize;
-    FileInfo.PSize := P.PackedSize;
-    FileInfo.Date := P.Date;
-    if (HS <> 0) and (P.Level <> 0) then
-      begin
-        HS := HS-2;
-        ArcFile^.Read(P.Name, Min(255, HS));
-        if (P.Name[0] = #2) then
-          begin
-            i := 1;
-            s := '';
-            while (i < Min(255, HS)) and (P.Name[i] > #31) do
-              begin
-                AddStr(s, P.Name[i]);
-                Inc(i)
-              end;
-            Replace(#255, '\', s);
-            System.Insert(s, FileInfo.FName, 1);
-          end;
-      end;
-    ArcFile^.Seek(fp+P.PackedSize);
+    end;
+  ArcFile^.Seek(FP+P.PackedSize);
   end { TLHAArchive.GetFile };
 
 end.

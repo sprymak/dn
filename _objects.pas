@@ -13,36 +13,38 @@ Copyright (C) 2002 Aleksej Kozlov (Cat)
 interface
 
 uses
-  _Defines;
+  _Defines
+  ;
 
 type
   PEmptyObject = ^TEmptyObject;
   TEmptyObject = object
-    Constructor Init;
+    constructor Init;
     procedure Free;
     destructor Done; virtual;
     end;
 
   PObject = ^TObject;
   TObject = object(TEmptyObject)
-    ObjectIsInited: boolean;
-    Constructor Init;
+    ObjectIsInited: Boolean;
+    constructor Init;
     {destructor Done; virtual;}
     end;
 
 implementation
 
 uses
-  _DNFuncs;
+  _DNFuncs
+  ;
 
-Constructor TEmptyObject.Init;
+constructor TEmptyObject.Init;
   begin
-    _TEmptyObject^.Init(nil, @Self);
+  _TEmptyObject^.Init(nil, @Self);
   end;
 
 procedure TEmptyObject.Free;
   begin
-    _TEmptyObject^.Free(@Self);
+  _TEmptyObject^.Free(@Self);
   end;
 
 destructor TEmptyObject.Done;
@@ -50,9 +52,9 @@ destructor TEmptyObject.Done;
 asm
 end;
 
-Constructor TObject.Init;
+constructor TObject.Init;
   begin
-    _TObject^.Init(nil, @Self);
+  _TObject^.Init(nil, @Self);
   end;
 
 end.

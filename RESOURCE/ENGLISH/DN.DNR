@@ -369,7 +369,7 @@ MENU dlgEditorMenu
       MenuItem '~S~ort', 'Alt-T', kbAltT, cmSortBlock, hcedParagraph,
       MenuItem 'Calc~u~late sum', 'Alt-Ins', kbAltIns, cmCalcBlock, hcedParagraph,
 ;{-$VIV 20.05.99--}
-      MenuItem '~R~us/Eng Convert Line', 'Alt+F12', kbAltF12, cmRusEngConv, 0,
+      MenuItem '~R~us/Eng Convert Line', 'Alt-F12', kbAltF12, cmRusEngConv, 0,
     END
  SubMenu '~M~isc', hcEditMiscMenu,
       MenuItem 'Insert ~d~ate   ', 'Ctrl-Q D', kbNoKey, cmInsertDate, hcedParagraph,
@@ -382,7 +382,7 @@ MENU dlgEditorMenu
      MenuLine
      SubMenu '~U~ppercase', hcMiscUpper,
       MenuItem '~W~ord', 'Ctrl-[', kbNoKey, cmUpWord, hcMiscUpper,
-      MenuItem '~L~ine', 'Ctrl+Shift-[', kbNoKey, cmUpString, hcMiscUpper,
+      MenuItem '~L~ine', 'Ctrl-Shift-[', kbNoKey, cmUpString, hcMiscUpper,
       MenuItem '~B~lock', 'Ctrl-K [', kbNoKey, cmUpcaseBlock, hcMiscUpper,
      END
      SubMenu '~L~owercase', hcMiscLower,
@@ -400,7 +400,7 @@ MENU dlgEditorMenu
       MenuItem '~L~F',    '', kbNoKey, cmEditLfMode,   0,
       MenuItem '~C~R',    '', kbNoKey, cmEditCrMode,   0,
      END
-     MenuItem 'C~h~ange char case', 'Ctrl+/', kbCtrlSlash, cmChangeCharCase, 0,
+     MenuItem 'C~h~ange char case', 'Ctrl-/', kbCtrlSlash, cmChangeCharCase, 0,
    END
  SubMenu '~O~ptions', hcedOptions,
       MenuItem '~B~ackspace indents', 'Off', kbNoKey, cmSwitchBack, hcedOptions,
@@ -433,7 +433,7 @@ MENU dlgFixerMenu
       MenuItem 'E~x~it', 'Alt-F3', kbAltF3, cmClose, hcDiskEditor,
     END
  SubMenu '~E~dit', hcDiskEditor,
-      MenuItem '~U~ndo', 'Alt+BkSp', kbAltBack, cmUndo, hcDiskEditor,
+      MenuItem '~U~ndo', 'Alt-BkSp', kbAltBack, cmUndo, hcDiskEditor,
       MenuLine
       MenuItem '~C~opy', 'Ctrl-Ins', kbCtrlIns, cmCopy, hcDiskEditor,
       MenuItem '~P~aste over', 'Shift-Ins', kbShiftIns, cmPaste, hcDiskEditor,
@@ -1724,8 +1724,8 @@ DIALOG dlgInterfaceSetup, 68, 22, 'Interface Setup'
       ITEM 'Hide Command ~L~ine'
       ITEM '~A~uto hide Command Line'
       ITEM '~B~lock Insert Cursor'
-      ITEM 'Store edi~t~or window position'
-      ITEM 'Store vie~w~er window position'
+      ITEM 'Store edi~t~or position'
+      ITEM 'Store vie~w~er position'
       ITEM 'Track ~e~diting history'
       ITEM 'Track ~v~iewing history'
       ITEM 'Track ~d~irectories'

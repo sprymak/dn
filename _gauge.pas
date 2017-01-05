@@ -13,20 +13,21 @@ Copyright (C) 2002 Aleksej Kozlov (Cat)
 interface
 
 uses
-  _Defines, _Collect, _Views, _Dialogs;
+  _Defines, _Collect, _Views, _Dialogs
+  ;
 
 type
   PPercentGauge = ^TPercentGauge;
   TPercentGauge = object(TView)
-    MaxValue: longInt;
-    CurValue: longInt;
-    Constructor Init(var Bounds: TRect; AMaxValue: longInt);
+    MaxValue: LongInt;
+    CurValue: LongInt;
+    constructor Init(var Bounds: TRect; AMaxValue: LongInt);
     {procedure Draw; virtual;}
-    procedure UpdateView(Progress: longInt); virtual;
-    procedure AddProgress(Progress: longInt);
+    procedure UpdateView(Progress: LongInt); virtual;
+    procedure AddProgress(Progress: LongInt);
     {procedure HandleEvent(var Event: TEvent); virtual;}
-    function SolveForX(Y, Z: longInt): integer;
-    function SolveForY(X, Z: longInt): integer;
+    function SolveForX(Y, Z: LongInt): Integer;
+    function SolveForY(X, Z: LongInt): Integer;
     end;
 
   PBarGauge = ^TBarGauge;
@@ -38,10 +39,10 @@ type
   TWhileView = object(TGroup)
     Lines: PCollection;
     But: PButton;
-    QuitNormal: boolean;
+    QuitNormal: Boolean;
     Top, Bottom: String;
-    Constructor Init(Bounds: TRect);
-    procedure Write(n: integer; s: String);
+    constructor Init(Bounds: TRect);
+    procedure Write(N: Integer; S: String);
     {function GetPalette: PPalette; virtual;}
     {function Valid(C: Word): Boolean; virtual;}
     {procedure SetState(AState: Word; Enable: Boolean); virtual;}
@@ -49,53 +50,54 @@ type
     {procedure HandleEvent(var Event: TEvent); virtual;}
     {destructor Done; virtual;}
     procedure ClearInterior;
-    private
+  private
     Side: (sdLeft, sdRight);
     end;
 
 implementation
 
 uses
-  _DNFuncs;
+  _DNFuncs
+  ;
 
-Constructor TPercentGauge.Init(var Bounds: TRect; AMaxValue: longInt);
+constructor TPercentGauge.Init(var Bounds: TRect; AMaxValue: LongInt);
   begin
-    _TPercentGauge^.Init(Bounds, AMaxValue, nil, @Self);
+  _TPercentGauge^.Init(Bounds, AMaxValue, nil, @Self);
   end;
 
-procedure TPercentGauge.UpdateView(Progress: longInt);
+procedure TPercentGauge.UpdateView(Progress: LongInt);
   assembler; {&Frame-}
 asm
 end;
 
-procedure TPercentGauge.AddProgress(Progress: longInt);
+procedure TPercentGauge.AddProgress(Progress: LongInt);
   begin
-    _TPercentGauge^.AddProgress(Progress, @Self);
+  _TPercentGauge^.AddProgress(Progress, @Self);
   end;
 
-function TPercentGauge.SolveForX(Y, Z: longInt): integer;
+function TPercentGauge.SolveForX(Y, Z: LongInt): Integer;
   begin
-    Result := _TPercentGauge^.SolveForX(Y, Z, @Self);
+  Result := _TPercentGauge^.SolveForX(Y, Z, @Self);
   end;
 
-function TPercentGauge.SolveForY(X, Z: longInt): integer;
+function TPercentGauge.SolveForY(X, Z: LongInt): Integer;
   begin
-    Result := _TPercentGauge^.SolveForY(X, Z, @Self);
+  Result := _TPercentGauge^.SolveForY(X, Z, @Self);
   end;
 
-Constructor TWhileView.Init(Bounds: TRect);
+constructor TWhileView.Init(Bounds: TRect);
   begin
-    _TWhileView^.Init(Bounds, nil, @Self);
+  _TWhileView^.Init(Bounds, nil, @Self);
   end;
 
-procedure TWhileView.Write(n: integer; s: String);
+procedure TWhileView.Write(N: Integer; S: String);
   begin
-    _TWhileView^.Write(n, s, @Self);
+  _TWhileView^.Write(N, S, @Self);
   end;
 
 procedure TWhileView.ClearInterior;
   begin
-    _TWhileView^.ClearInterior(@Self);
+  _TWhileView^.ClearInterior(@Self);
   end;
 
 end.

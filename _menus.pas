@@ -13,7 +13,8 @@ Copyright (C) 2002 Aleksej Kozlov (Cat)
 interface
 
 uses
-  _Defines, _Streams, _Views;
+  _Defines, _Streams, _Views
+  ;
 
 type
   PMenuView = ^TMenuView;
@@ -21,23 +22,23 @@ type
     ParentMenu: PMenuView;
     Menu: PMenu;
     Current: PMenuItem;
-    Constructor Init(var Bounds: TRect);
-    Constructor Load(var s: TStream);
+    constructor Init(var Bounds: TRect);
+    constructor Load(var S: TStream);
     {function Execute: Word; virtual;}
     function FindItem(Ch: Char): PMenuItem;
     procedure GetItemRect(Item: PMenuItem; var R: TRect); virtual;
     {function GetHelpCtx: Word; virtual;}
     {function GetPalette: PPalette; virtual;}
     {procedure HandleEvent(var Event: TEvent); virtual;}
-    function HotKey(KeyCode: word): PMenuItem;
-    function NewSubView(var Bounds: TRect; AMenu: PMenu; AParentMenu:
-      PMenuView): PMenuView; virtual;
-    procedure Store(var s: TStream);
+    function HotKey(KeyCode: Word): PMenuItem;
+    function NewSubView(var Bounds: TRect; AMenu: PMenu;
+         AParentMenu: PMenuView): PMenuView; virtual;
+    procedure Store(var S: TStream);
     end;
 
   PMenuBar = ^TMenuBar;
   TMenuBar = object(TMenuView)
-    Constructor Init(var Bounds: TRect; AMenu: PMenu);
+    constructor Init(var Bounds: TRect; AMenu: PMenu);
     {destructor Done; virtual;}
     {procedure Draw; virtual;}
     {procedure GetItemRect(Item: PMenuItem; var R: TRect); virtual;}
@@ -46,15 +47,15 @@ type
   PMenuBox = ^TMenuBox;
   TMenuBox = object(TMenuView)
     TopItem: PMenuItem;
-    Constructor Init(var Bounds: TRect; AMenu: PMenu; AParentMenu:
-      PMenuView);
+    constructor Init(var Bounds: TRect; AMenu: PMenu;
+         AParentMenu: PMenuView);
     {procedure Draw; virtual;}
     {procedure GetItemRect(Item: PMenuItem; var R: TRect); virtual;}
     end;
 
   PMenuPopup = ^TMenuPopup;
   TMenuPopup = object(TMenuBox)
-    Constructor Init(var Bounds: TRect; AMenu: PMenu);
+    constructor Init(var Bounds: TRect; AMenu: PMenu);
     {procedure HandleEvent(var Event: TEvent); virtual;}
     end;
 
@@ -62,35 +63,36 @@ type
   TStatusLine = object(TView)
     Items: PStatusItem;
     Defs: PStatusDef;
-    Constructor Init(var Bounds: TRect; ADefs: PStatusDef);
-    Constructor Load(var s: TStream);
+    constructor Init(var Bounds: TRect; ADefs: PStatusDef);
+    constructor Load(var S: TStream);
     {destructor Done; virtual;}
     {procedure Draw; virtual;}
     {function GetPalette: PPalette; virtual;}
     {procedure HandleEvent(var Event: TEvent); virtual;}
-    function Hint(AHelpCtx: word): String; virtual;
-    procedure Store(var s: TStream);
+    function Hint(AHelpCtx: Word): String; virtual;
+    procedure Store(var S: TStream);
     {procedure Update; virtual;}
     end;
 
 implementation
 
 uses
-  _DNFuncs;
+  _DNFuncs
+  ;
 
-Constructor TMenuView.Init(var Bounds: TRect);
+constructor TMenuView.Init(var Bounds: TRect);
   begin
-    _TMenuView^.Init(Bounds, nil, @Self);
+  _TMenuView^.Init(Bounds, nil, @Self);
   end;
 
-Constructor TMenuView.Load(var s: TStream);
+constructor TMenuView.Load(var S: TStream);
   begin
-    _TMenuView^.Load(_Model1.TStream(s), nil, @Self);
+  _TMenuView^.Load(_Model1.TStream(S), nil, @Self);
   end;
 
 function TMenuView.FindItem(Ch: Char): PMenuItem;
   begin
-    Result := _TMenuView^.FindItem(Ch, @Self);
+  Result := _TMenuView^.FindItem(Ch, @Self);
   end;
 
 procedure TMenuView.GetItemRect(Item: PMenuItem; var R: TRect);
@@ -98,57 +100,57 @@ procedure TMenuView.GetItemRect(Item: PMenuItem; var R: TRect);
 asm
 end;
 
-function TMenuView.HotKey(KeyCode: word): PMenuItem;
+function TMenuView.HotKey(KeyCode: Word): PMenuItem;
   begin
-    Result := _TMenuView^.HotKey(KeyCode, @Self);
+  Result := _TMenuView^.HotKey(KeyCode, @Self);
   end;
 
 function TMenuView.NewSubView(var Bounds: TRect; AMenu: PMenu;
-    AParentMenu: PMenuView): PMenuView;
+     AParentMenu: PMenuView): PMenuView;
   assembler; {&Frame-}
 asm
 end;
 
-procedure TMenuView.Store(var s: TStream);
+procedure TMenuView.Store(var S: TStream);
   begin
-    _TMenuView^.Store(_Model1.TStream(s), @Self);
+  _TMenuView^.Store(_Model1.TStream(S), @Self);
   end;
 
-Constructor TMenuBar.Init(var Bounds: TRect; AMenu: PMenu);
+constructor TMenuBar.Init(var Bounds: TRect; AMenu: PMenu);
   begin
-    _TMenuBar^.Init(Bounds, AMenu, nil, @Self);
+  _TMenuBar^.Init(Bounds, AMenu, nil, @Self);
   end;
 
-Constructor TMenuBox.Init(var Bounds: TRect; AMenu: PMenu;
-    AParentMenu: PMenuView);
+constructor TMenuBox.Init(var Bounds: TRect; AMenu: PMenu;
+     AParentMenu: PMenuView);
   begin
-    _TMenuBox^.Init(Bounds, AMenu, _Model1.PMenuView(AParentMenu),
-      nil, @Self);
+  _TMenuBox^.Init(Bounds, AMenu, _Model1.PMenuView(AParentMenu), nil,
+     @Self);
   end;
 
-Constructor TMenuPopup.Init(var Bounds: TRect; AMenu: PMenu);
+constructor TMenuPopup.Init(var Bounds: TRect; AMenu: PMenu);
   begin
-    _TMenuPopup^.Init(Bounds, AMenu, nil, @Self);
+  _TMenuPopup^.Init(Bounds, AMenu, nil, @Self);
   end;
 
-Constructor TStatusLine.Init(var Bounds: TRect; ADefs: PStatusDef);
+constructor TStatusLine.Init(var Bounds: TRect; ADefs: PStatusDef);
   begin
-    _TStatusLine^.Init(Bounds, ADefs, nil, @Self);
+  _TStatusLine^.Init(Bounds, ADefs, nil, @Self);
   end;
 
-Constructor TStatusLine.Load(var s: TStream);
+constructor TStatusLine.Load(var S: TStream);
   begin
-    _TStatusLine^.Load(_Model1.TStream(s), nil, @Self);
+  _TStatusLine^.Load(_Model1.TStream(S), nil, @Self);
   end;
 
-function TStatusLine.Hint(AHelpCtx: word): String;
+function TStatusLine.Hint(AHelpCtx: Word): String;
   assembler; {&Frame-}
 asm
 end;
 
-procedure TStatusLine.Store(var s: TStream);
+procedure TStatusLine.Store(var S: TStream);
   begin
-    _TStatusLine^.Store(_Model1.TStream(s), @Self);
+  _TStatusLine^.Store(_Model1.TStream(S), @Self);
   end;
 
 end.

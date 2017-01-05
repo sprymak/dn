@@ -60,13 +60,12 @@ uses
   Drivers, Lfn, Files,
   DN1, Dos, DNApp,
   Menus, FlPanelX, FlPanel, FileCopy, Filediz, Filelst, Eraser,
-  DiskInfo, advance, advance1, advance2, advance3, advance4,
-    highlite,
+  DiskInfo, Advance, Advance1, Advance2, Advance3, Advance4, highlite,
   Startup, Dialogs, Gauges, Memory, DblWnd, Messages, HistList,
   FileFind, Commands, Tree, FViewer, CmdLine, FBB, DNStdDlg,
   FilesCol, UserMenu, RStrings, Colors, Microed, Editor, Macro,
   ArcView, HelpFile, Validate, ASCIITab, xTime, Drives, Archiver,
-  Archset, ArchDet, Setups, DNUtil, XDblWnd, Histries, CCalc,
+  ArchSet, ArchDet, Setups, DNUtil, XDblWnd, Histries, CCalc,
   DnIni, Collect, UFNMatch, Objects, Views, Scroller, Calculat,
   HelpKern, VideoMan
   {$IFDEF SpreadSheet}, Calc, CellsCol {$ENDIF}
@@ -82,7 +81,7 @@ uses
   {$IFDEF SS}, Idlers {$ENDIF}
   , ColorSel, ColorVGA
   {$IFDEF NETINFO}, Novell {$ENDIF}
-  {$IFDEF LINEPOSIT}, sysutils, VPUtils {$ENDIF}
+  {$IFDEF LINEPOSIT}, SysUtils, VPUtils {$ENDIF}
   {$IFDEF OS2}, EAOper {$ENDIF}
   , VpSysLow
   ;
@@ -93,69 +92,69 @@ uses
 var
   E: Exception;
   FileName: ShortString;
-  LineNo: longInt;
-  DNErrFile: text;
+  LineNo: LongInt;
+  DNErrFile: Text;
 
   {$ENDIF}
 
 begin
-  SysDisableHardErrors;
+SysDisableHardErrors;
 
-  {CtrlBreakHandler := TVCtrlBreak;
+{CtrlBreakHandler := TVCtrlBreak;
 SysCtrlSetCBreakHandler;}
-  {$IFDEF LINEPOSIT}
-  try
-    {Init09Handler;}
-    {Cat: проверяем на выходе, сколько памяти скушалось
+{$IFDEF LINEPOSIT}
+try
+  {Init09Handler;}
+  {Cat: проверяем на выходе, сколько памяти скушалось
       создаём лог, куда будут записываться все вызовы методов Load и Store}
+  begin
+  RUN_IT;
+  end
+  {/Cat}
+except
+  on E: EControlC do
     begin
-      RUN_IT;
-    end
-    {/Cat}
-  except
-    on E: EControlC do
-      begin
-          {Фактически это никакой не Ctrl-C, а Close через кнопку,
+    {Фактически это никакой не Ctrl-C, а Close через кнопку,
        или системное меню, или системный список задач. А Ctrl-Crek, Ctrl-C
        обрабатываются в killer и сюда не попадают.}
-      end;
-    on E: Exception do
-      begin
-        ClearScreen;
-        SysTvShowBuf(0, ScreenWidth*ScreenHeight);
-        SourceDir := SourceDir+'DN.ERR';
-        Writeln('Fatal Error'^M^J'-----------'^M^J^M^J+
-        'Exception 0', Hex2(ExitCode), 'h at address ', Hex8(longInt(
-          ExceptAddr)));
-        Writeln(E.Message);
-        if GetLocationInfo(ExceptAddr, FileName, LineNo) <> nil then
-          Writeln('Source location: '+FileName+' line ', LineNo);
-        Writeln('Please report to RU.SHELL.DN'^M^J+
-        '( file '+SourceDir+' )'^M^J^M^J+
-        'Press any key...');
-        if IOResult <> 0 then
-          ;
-        Assign(DNErrFile, SourceDir);
-        rewrite(DNErrFile);
-        Writeln(DNErrFile, '');
-        Writeln(DNErrFile, 'Exception at addr '+Ptr2Hex(ExceptAddr));
-        Writeln(DNErrFile, E.Message);
-        if GetLocationInfo(ExceptAddr, FileName, LineNo) <> nil then
-          Writeln(DNErrFile, 'Source location: '+FileName+' line ',
-            LineNo);
-        Close(DNErrFile);
-        repeat
-          SysCtrlSleep(1); {JO}
-        until SysKeyPressed;
-        while SysKeyPressed do
-          SysReadKey;
-        SysTVInitCursor;
-      end;
-  end;
-  {$ELSE}
-  RUN_IT;
-  {$ENDIF}
+    end;
+  on E: Exception do
+    begin
+    ClearScreen;
+    SysTvShowBuf(0, ScreenWidth*ScreenHeight);
+    SourceDir := SourceDir+'DN.ERR';
+    Writeln('Fatal Error'^M^J'-----------'^M^J^M^J+
+      'Exception 0', Hex2(ExitCode), 'h at address ',
+           Hex8(LongInt(ExceptAddr)));
+    Writeln(E.Message);
+    if GetLocationInfo(ExceptAddr, FileName, LineNo) <> nil then
+      Writeln('Source location: '+FileName+' line ', LineNo);
+    Writeln('Please report to RU.SHELL.DN'^M^J+
+      '( file '+SourceDir+' )'^M^J^M^J+
+      'Press any key...');
+    if IOResult <> 0 then
+      ;
+    Assign(DNErrFile, SourceDir);
+    Rewrite(DNErrFile);
+    Writeln(DNErrFile, '');
+    Writeln(DNErrFile, 'Exception at addr '+Ptr2Hex(ExceptAddr));
+    Writeln(DNErrFile, E.Message);
+    if GetLocationInfo(ExceptAddr, FileName, LineNo) <> nil then
+      Writeln(DNErrFile, 'Source location: '+FileName+' line ', LineNo);
+    Close(DNErrFile);
+    repeat
+      SysCtrlSleep(1); {JO}
 
-  (*{$ENDIF PLUGIN}*)
+    until SysKeyPressed;
+    while SysKeyPressed do
+      SysReadKey;
+    SysTVInitCursor;
+    end;
+end;
+{$ELSE}
+RUN_IT;
+{$ENDIF}
+
+(*{$ENDIF PLUGIN}*)
 
 end.

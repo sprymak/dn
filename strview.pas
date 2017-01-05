@@ -51,12 +51,13 @@ unit StrView;
 interface
 
 uses
-  Views, Drivers, xTime;
+  Views, Drivers, xTime
+  ;
 
 type
   PDStringView = ^TDStringView;
   TDStringView = object(TView)
-    s1, s2: String[50];
+    S1, S2: String[50];
     function GetPalette: PPalette; virtual;
     procedure Draw; virtual;
     end;
@@ -66,22 +67,22 @@ implementation
 procedure TDStringView.Draw;
   var
     B: TDrawBuffer;
-    C: word;
+    C: Word;
   begin
-    C := GetColor(1);
-    MoveChar(B, ' ', C, Size.X);
-    MoveStr(B, s1, C);
-    WriteLine(0, 0, Size.X, Size.Y, B);
-    MoveChar(B, ' ', C, Size.X);
-    MoveStr(B, s2, C);
-    WriteLine(0, 1, Size.X, Size.Y, B);
+  C := GetColor(1);
+  MoveChar(B, ' ', C, Size.X);
+  MoveStr(B, S1, C);
+  WriteLine(0, 0, Size.X, Size.Y, B);
+  MoveChar(B, ' ', C, Size.X);
+  MoveStr(B, S2, C);
+  WriteLine(0, 1, Size.X, Size.Y, B);
   end;
 
 function TDStringView.GetPalette;
   const
-    s: String[1] = #30;
+    S: String[1] = #30;
   begin
-    GetPalette := @S;
+  GetPalette := @S;
   end;
 
 end.

@@ -61,7 +61,7 @@ procedure DoDump;
 implementation
 
 uses
-  Dos, advance, Lfn, advance1, Drivers
+  Dos, Advance, Lfn, Advance1, Drivers
   {, SysUtils}, VpSysLow
   ;
 
@@ -70,65 +70,65 @@ procedure DoDump;
   {$IFDEF DNPRG}
   type
     PByteArray = ^TByteArray;
-    TByteArray = array[0..65528] of byte;
+    TByteArray = array[0..65528] of Byte;
   var
-    C, AC, PP, FH: word;
+    C, AC, PP, FH: Word;
     PPP: TByteArray absolute FreeStr;
     PhysAddr: Pointer;
-    i: byte;
-    PExit, ActiveButton: byte;
-    Temp: longInt;
+    I: Byte;
+    PExit, ActiveButton: Byte;
+    Temp: LongInt;
     {FileName: String;}
 
-  function StoreBuffer(var Buf; Size: word; FH: word): word;
+  function StoreBuffer(var Buf; Size: Word; FH: Word): Word;
     begin
-      StoreBuffer := SysFileWrite(FH, Buf, Size, Size);
+    StoreBuffer := SysFileWrite(FH, Buf, Size, Size);
     end;
 
   {$ENDIF DNPRG}
   begin
-    {$IFDEF DNPRG}
-    { Create Report File. DRIVERS.PAS contains full dupe of this routine }
+  {$IFDEF DNPRG}
+  { Create Report File. DRIVERS.PAS contains full dupe of this routine }
 
-    i := Length(SourceDir);
-    SourceDir := SourceDir+'DN.ERR'#0;
+  I := Length(SourceDir);
+  SourceDir := SourceDir+'DN.ERR'#0;
 
-    if SysFileOpen(@SourceDir[1], Open_Access_ReadWrite or
-        open_share_DenyNone, FH) <> 0
+  if SysFileOpen(@SourceDir[1], Open_Access_ReadWrite or
+       open_share_DenyNone, FH) <> 0
+  then
+    if SysFileCreate(@SourceDir[1], Open_Access_ReadWrite or
+         open_share_DenyNone, $20 {Archive}, FH) <> 0
     then
-      if SysFileCreate(@SourceDir[1], Open_Access_ReadWrite or
-          open_share_DenyNone, $20 {Archive}, FH) <> 0
-      then
-        FH := word(-1);
-    SysFileSeek(FH, 0, 2, Temp);
+      FH := Word(-1);
+  SysFileSeek(FH, 0, 2, Temp);
 
-    if FH <> word(-1) then
-      begin
-        (*
+  if FH <> Word(-1) then
+    begin
+    (*
      {$IFNDEF NONBP}
      AssignOutput(FH);
      {$ENDIF}
 *)
-        FreeStr :=
-        ^M^J+
-        '----<'+GetDateTime(False)+' '+GetDateTime(True)+'>'^M^J+
-        'VER :'+versionName+^M^J+
-        'DATE:'+versionDate+^M^J+
-        'ERR :'+Hex2(ExitCode)+^M^J+
-        'ADDR:'+Hex8(longInt(ErrorAddr))+^M^J;
-        StoreBuffer(FreeStr[1], Length(FreeStr), FH);
+    FreeStr :=
+      ^M^J+
+      '----<'+GetDateTime(False)+' '+GetDateTime(True)+'>'^M^J+
+      'VER :'+VersionName+^M^J+
+      'DATE:'+VersionDate+^M^J+
+      'ERR :'+Hex2(ExitCode)+^M^J+
+      'ADDR:'+Hex8(LongInt(ErrorAddr))+^M^J;
+    StoreBuffer(FreeStr[1], Length(FreeStr), FH);
 
-        FreeStr :=
-        'CS  :'+Hex4(CSeg)+^M^J+
-        'DS  :'+Hex4(DSeg)+^M^J+
-        'SS  :'+Hex4(SSeg)+^M^J+
-        'SP  :'+Hex4(SPtr)+^M^J+
-        'MEMm:'+Hex8(MaxAvail)+^M^J+
-        'MEMa:'+Hex8(MemAvail)+^M^J+
-        '';
-        StoreBuffer(FreeStr[1], Length(FreeStr), FH);
-        {Cat}
-        {
+    FreeStr :=
+      'CS  :'+Hex4(CSeg)+^M^J+
+      'DS  :'+Hex4(DSeg)+^M^J+
+      'SS  :'+Hex4(SSeg)+^M^J+
+      'SP  :'+Hex4(SPtr)+^M^J+
+      'MEMm:'+Hex8(MaxAvail)+^M^J+
+      'MEMa:'+Hex8(MemAvail)+^M^J+
+      '';
+    StoreBuffer(FreeStr[1], Length(FreeStr), FH);
+    {Cat}
+    {
      if GetLocationInfo(ErrorAddr, FileName, Temp) <> nil then
        begin
          Str(Temp, FreeStr);
@@ -136,21 +136,20 @@ procedure DoDump;
          StoreBuffer(FreeStr[1] , length(FreeStr), FH);
        end;
 }
-        {$IFDEF LINEPOSIT}
-        if (SourceLineNo <> 0) and (SourceFileName <> nil) then
-          begin
-            Str(SourceLineNo, FreeStr);
-            FreeStr := 'Source location: '+SourceFileName^+' line '+
-              FreeStr+^M^J;
-            StoreBuffer(FreeStr[1], Length(FreeStr), FH);
-          end;
-        {$ENDIF}
-        {/Cat}
-        FreeStr :=
-        'SCR :'+Hex8(longInt(ScreenBuffer))+^M^J;
-        StoreBuffer(FreeStr[1], Length(FreeStr), FH);
+    {$IFDEF LINEPOSIT}
+    if  (SourceLineNo <> 0) and (SourceFileName <> nil) then
+      begin
+      Str(SourceLineNo, FreeStr);
+      FreeStr := 'Source location: '+SourceFileName^+' line '+FreeStr+^M^J;
+      StoreBuffer(FreeStr[1], Length(FreeStr), FH);
+      end;
+    {$ENDIF}
+    {/Cat}
+    FreeStr :=
+      'SCR :'+Hex8(LongInt(ScreenBuffer))+^M^J;
+    StoreBuffer(FreeStr[1], Length(FreeStr), FH);
 
-        {    for C:=0 to Pred(ScreenHeight) do
+    {    for C:=0 to Pred(ScreenHeight) do
       begin
           TempFile:='';
           PP := (ScreenWidth*C) shl 1;
@@ -161,13 +160,12 @@ procedure DoDump;
           TempFile := TempFile+#13#10 ;
           if StoreBuffer(PPP,         ScreenWidth,      FH) <> 0 then Break;
           if StoreBuffer(TempFile[1], Length(TempFile), FH) <> 0 then Break;
-      end;}
-          { for lines }
-        SysFileClose(FH);
-      end; { file write ok }
+      end;} { for lines }
+    SysFileClose(FH);
+    end; { file write ok }
 
-    SetLength(SourceDir, i);
-    {$ENDIF DNPRG}
+  SetLength(SourceDir, I);
+  {$ENDIF DNPRG}
   end { DoDump };
 {$S+}
 

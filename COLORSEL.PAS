@@ -57,7 +57,8 @@ interface
 
 uses
   Objects, Views, Dialogs, Scroller, ColorVGA, Messages, Memory,
-  advance, advance1, advance2, advance3, Drivers;
+  Advance, Advance1, Advance2, Advance3, Drivers
+  ;
 
 const
   cmColorForegroundChanged = 71;
@@ -74,7 +75,7 @@ type
   PColorItem = ^TColorItem;
   TColorItem = record
     Name: PString;
-    Index: byte;
+    Index: Byte;
     Next: PColorItem;
     end;
 
@@ -83,7 +84,7 @@ type
   PColorGroup = ^TColorGroup;
   TColorGroup = record
     Name: PString;
-    Index: byte;
+    Index: Byte;
     Items: PColorItem;
     Next: PColorGroup;
     end;
@@ -94,33 +95,33 @@ type
 
   PColorSelector = ^TColorSelector;
   TColorSelector = object(TView)
-    Color: byte;
+    Color: Byte;
     SelType: TColorSel;
-    Constructor Init(var Bounds: TRect; ASelType: TColorSel);
-    Constructor Load(var s: TStream);
+    constructor Init(var Bounds: TRect; ASelType: TColorSel);
+    constructor Load(var S: TStream);
     procedure Draw; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-    procedure Store(var s: TStream);
+    procedure Store(var S: TStream);
     end;
 
   { TMonoSelector }
   PMonoSelector = ^TMonoSelector;
   TMonoSelector = object(TCluster)
-    Constructor Init(var Bounds: TRect; AStrings: PSItem);
+    constructor Init(var Bounds: TRect; AStrings: PSItem);
     procedure Draw; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-    function Mark(Item: integer): boolean; virtual;
+    function Mark(Item: Integer): Boolean; virtual;
     procedure NewColor; virtual;
-    procedure Press(Item: integer); virtual;
-    procedure MovedTo(Item: integer); virtual;
+    procedure Press(Item: Integer); virtual;
+    procedure MovedTo(Item: Integer); virtual;
     end;
 
   { T_BWSelector }
   P_BWSelector = ^T_BWSelector;
   T_BWSelector = object(TMonoSelector)
     SelType: TColorSel; {Is't a selector of Foreground color ? }
-    Constructor Init(var Bounds: TRect; ASelType: TColorSel;
-      AStrings: PSItem);
+    constructor Init(var Bounds: TRect; ASelType: TColorSel;
+         AStrings: PSItem);
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure NewColor; virtual;
     end;
@@ -130,14 +131,14 @@ type
   PColorDisplay = ^TColorDisplay;
   TColorDisplay = object(TView)
     Color: ^Byte;
-    text: PString;
-    Constructor Init(var Bounds: TRect; AText: PString);
-    Constructor Load(var s: TStream);
+    Text: PString;
+    constructor Init(var Bounds: TRect; AText: PString);
+    constructor Load(var S: TStream);
     destructor Done; virtual;
     procedure Draw; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-    procedure SetColor(var AColor: byte); virtual;
-    procedure Store(var s: TStream);
+    procedure SetColor(var AColor: Byte); virtual;
+    procedure Store(var S: TStream);
     end;
 
   { TColorGroupList }
@@ -145,19 +146,18 @@ type
   PColorGroupList = ^TColorGroupList;
   TColorGroupList = object(TListViewer)
     Groups: PColorGroup;
-    Constructor Init(var Bounds: TRect; AScrollBar: PScrollBar;
-    AGroups: PColorGroup);
-    Constructor Load(var s: TStream);
+    constructor Init(var Bounds: TRect; AScrollBar: PScrollBar;
+        AGroups: PColorGroup);
+    constructor Load(var S: TStream);
     destructor Done; virtual;
-    procedure FocusItem(Item: longInt); virtual;
-    function GetText(Item: longInt; MaxLen: integer): String;
-      virtual;
+    procedure FocusItem(Item: LongInt); virtual;
+    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
-    procedure Store(var s: TStream);
-    procedure SetGroupIndex(GroupNum, ItemNum: byte);
-    function GetGroup(GroupNum: byte): PColorGroup;
-    function GetGroupIndex(GroupNum: byte): byte;
-    function GetNumGroups: byte;
+    procedure Store(var S: TStream);
+    procedure SetGroupIndex(GroupNum, ItemNum: Byte);
+    function GetGroup(GroupNum: Byte): PColorGroup;
+    function GetGroupIndex(GroupNum: Byte): Byte;
+    function GetNumGroups: Byte;
     end;
 
   { TColorItemList }
@@ -165,11 +165,10 @@ type
   PColorItemList = ^TColorItemList;
   TColorItemList = object(TListViewer)
     Items: PColorItem;
-    Constructor Init(var Bounds: TRect; AScrollBar: PScrollBar;
-    AItems: PColorItem);
-    procedure FocusItem(Item: longInt); virtual;
-    function GetText(Item: longInt; MaxLen: integer): String;
-      virtual;
+    constructor Init(var Bounds: TRect; AScrollBar: PScrollBar;
+        AItems: PColorItem);
+    procedure FocusItem(Item: LongInt); virtual;
+    function GetText(Item: LongInt; MaxLen: Integer): String; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     end;
 
@@ -177,7 +176,7 @@ type
 
   PColorDialog = ^TColorDialog;
   TColorDialog = object(TDialog)
-    GroupIndex: byte;
+    GroupIndex: Byte;
     Display: PColorDisplay;
     Groups: PColorGroupList;
     ForLabel: PLabel;
@@ -191,28 +190,28 @@ type
     BWSelBack: P_BWSelector;
     DefaultColors: PCheckBoxes;
     Pal: TPalette;
-    DefaultColorsFlag: boolean;
-    Constructor Init( {APalette: TPalette;}AGroups: PColorGroup);
+    DefaultColorsFlag: Boolean;
+    constructor Init( {APalette: TPalette;}AGroups: PColorGroup);
     destructor Done; virtual;
-    Constructor Load(var s: TStream);
-    function DataSize: word; virtual;
+    constructor Load(var S: TStream);
+    function DataSize: Word; virtual;
     procedure GetData(var Rec); virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure GetEvent(var Event: TEvent); virtual;
     procedure SetData(var Rec); virtual;
-    procedure Store(var s: TStream);
+    procedure Store(var S: TStream);
     procedure GetIndexes(var Colors: PColorIndex);
     procedure SetIndexes(var Colors: PColorIndex);
     procedure SwitchTypeSelector;
-    procedure SetappColor;
+    procedure SetAppColor;
     end;
 
   { Color list building routines }
 
-function ColorItem(const Name: String; Index: byte;
-  Next: PColorItem): PColorItem;
+function ColorItem(const Name: String; Index: Byte;
+    Next: PColorItem): PColorItem;
 function ColorGroup(const Name: String; Items: PColorItem;
-  Next: PColorGroup): PColorGroup;
+    Next: PColorGroup): PColorGroup;
 
 (*
 { Standard color items functions }
@@ -225,10 +224,11 @@ function WindowColorItems(const Next: PColorItem): PColorItem;
 
 implementation
 uses
-  Startup, DNApp, RStrings, Commands, DNUtil, VideoMan;
+  Startup, DNApp, RStrings, Commands, DNUtil, VideoMan
+  ;
 
 type
-  ColorArray = array[0..4] of byte;
+  ColorArray = array[0..4] of Byte;
 
 var
   OldColors: array[apColor..apMonochrome] of PString;
@@ -246,422 +246,414 @@ const
 
   { TColorSelector }
 
-Constructor TColorSelector.Init(var Bounds: TRect; ASelType:
-    TColorSel);
+constructor TColorSelector.Init(var Bounds: TRect; ASelType: TColorSel);
   begin
-    TView.Init(Bounds);
-    Options := Options or (ofSelectable+ofFirstClick+ofFramed);
-    EventMask := EventMask or evBroadcast;
-    SelType := ASelType;
-    Color := 0;
+  TView.Init(Bounds);
+  Options := Options or (ofSelectable+ofFirstClick+ofFramed);
+  EventMask := EventMask or evBroadcast;
+  SelType := ASelType;
+  Color := 0;
   end;
 
-Constructor TColorSelector.Load(var s: TStream);
+constructor TColorSelector.Load(var S: TStream);
   begin
-    TView.Load(s);
-    s.Read(Color, SizeOf(byte)+SizeOf(TColorSel));
+  TView.Load(S);
+  S.Read(Color, SizeOf(Byte)+SizeOf(TColorSel));
   end;
 
 procedure TColorSelector.Draw;
   var
     B: TDrawBuffer;
-    C, i, j: integer;
-    A: boolean;
+    C, I, J: Integer;
+    a: Boolean;
   begin
-    A := PColorDialog(Owner)^.BakSel = @Self;
+  a := PColorDialog(Owner)^.BakSel = @Self;
 
-    MoveChar(B, ' ', $70, Size.X);
-    for i := 0 to Size.Y do
-      begin
-        if i < 4 then
-          for j := 0 to 3 do
-            begin
-              C := i*4+j;
-              if A then
-                MoveChar(B[j*3], #219, C shl 4+C, 3)
-              else
-                MoveChar(B[j*3], #219, C, 3);
-              if C = byte(Color) then
-                begin
-                  WordRec(B[j*3+1]).Lo := 8;
-                  if C = 0 then
-                    WordRec(B[j*3+1]).Hi := $70
-                  else if A then
-                    WordRec(B[j*3+1]).Hi := C;
-                end;
-            end;
-        WriteLine(0, i, Size.X, 1, B);
-      end;
+  MoveChar(B, ' ', $70, Size.X);
+  for I := 0 to Size.Y do
+    begin
+    if I < 4 then
+      for J := 0 to 3 do
+        begin
+        C := I*4+J;
+        if a then
+          MoveChar(B[J*3], #219, C shl 4+C, 3)
+        else
+          MoveChar(B[J*3], #219, C, 3);
+        if C = Byte(Color) then
+          begin
+          WordRec(B[J*3+1]).Lo := 8;
+          if C = 0 then
+            WordRec(B[J*3+1]).Hi := $70
+          else if a then
+            WordRec(B[J*3+1]).Hi := C;
+          end;
+        end;
+    WriteLine(0, I, Size.X, 1, B);
+    end;
   end { TColorSelector.Draw };
 
 procedure TColorSelector.HandleEvent(var Event: TEvent);
   const
     Width = 4;
   var
-    MaxCol: byte;
+    MaxCol: Byte;
     Mouse: TPoint;
-    OldColor: longInt;
+    OldColor: LongInt;
 
   procedure ColorChanged;
     var
-      Msg: integer;
+      Msg: Integer;
     begin
-      if SelType = csForeground then
-        Msg := cmColorForegroundChanged
-      else
-        Msg := cmColorBackgroundChanged;
-      MessageL(Owner, evBroadcast, Msg, Color);
+    if SelType = csForeground then
+      Msg := cmColorForegroundChanged
+    else
+      Msg := cmColorBackgroundChanged;
+    MessageL(Owner, evBroadcast, Msg, Color);
     end;
 
   begin
-    TView.HandleEvent(Event);
-    case Event.What of
-      evMouseDown:
-        begin
-          OldColor := Color;
-          repeat
-            if MouseInView(Event.Where) then
-              begin
-                MakeLocal(Event.Where, Mouse);
-                Color := Mouse.Y*4+Mouse.X div 3;
-              end
-            else
-              Color := OldColor;
-            ColorChanged;
-            DrawView;
-          until not MouseEvent(Event, evMouseMove);
-        end;
-      evKeyDown:
-        begin
-          if SelType = csBackground then
-            MaxCol := 15
-          else
-            MaxCol := 15;
-          case {CtrlToArrow}(Event.KeyCode) of
-            kbLeft:
-              if Color > 0 then
-                Dec(Color)
-              else
-                Color := MaxCol;
-            kbRight:
-              if Color < MaxCol then
-                Inc(Color)
-              else
-                Color := 0;
-            kbUp:
-              if Color > Width-1 then
-                Dec(Color, Width)
-              else if Color = 0 then
-                Color := MaxCol
-              else
-                Inc(Color, MaxCol-Width);
-            kbDown:
-              if Color < MaxCol-(Width-1) then
-                Inc(Color, Width)
-              else if Color = MaxCol then
-                Color := 0
-              else
-                Dec(Color, MaxCol-Width);
-            else
-              exit;
-          end {case};
-        end;
-      evBroadcast:
-        if Event.Command = cmColorSet then
+  TView.HandleEvent(Event);
+  case Event.What of
+    evMouseDown:
+      begin
+      OldColor := Color;
+      repeat
+        if MouseInView(Event.Where) then
           begin
-            if SelType = csBackground then
-              Color := Event.InfoByte shr 4
-            else
-              Color := Event.InfoByte and $0F;
-            DrawView;
-            exit;
+          MakeLocal(Event.Where, Mouse);
+          Color := Mouse.Y*4+Mouse.X div 3;
           end
         else
-          exit;
+          Color := OldColor;
+        ColorChanged;
+        DrawView;
+      until not MouseEvent(Event, evMouseMove);
+      end;
+    evKeyDown:
+      begin
+      if SelType = csBackground then
+        MaxCol := 15
       else
-        exit;
-    end {case};
-    DrawView;
-    ColorChanged;
-    ClearEvent(Event);
+        MaxCol := 15;
+      case {CtrlToArrow}(Event.KeyCode) of
+        kbLeft:
+          if Color > 0 then
+            Dec(Color)
+          else
+            Color := MaxCol;
+        kbRight:
+          if Color < MaxCol then
+            Inc(Color)
+          else
+            Color := 0;
+        kbUp:
+          if Color > Width-1 then
+            Dec(Color, Width)
+          else if Color = 0 then
+            Color := MaxCol
+          else
+            Inc(Color, MaxCol-Width);
+        kbDown:
+          if Color < MaxCol-(Width-1) then
+            Inc(Color, Width)
+          else if Color = MaxCol then
+            Color := 0
+          else
+            Dec(Color, MaxCol-Width);
+        else {case}
+          Exit;
+      end {case};
+      end;
+    evBroadcast:
+      if Event.Command = cmColorSet then
+        begin
+        if SelType = csBackground then
+          Color := Event.InfoByte shr 4
+        else
+          Color := Event.InfoByte and $0F;
+        DrawView;
+        Exit;
+        end
+      else
+        Exit;
+    else {case}
+      Exit;
+  end {case};
+  DrawView;
+  ColorChanged;
+  ClearEvent(Event);
   end { TColorSelector.HandleEvent };
 
-procedure TColorSelector.Store(var s: TStream);
+procedure TColorSelector.Store(var S: TStream);
   begin
-    TView.Store(s);
-    s.Write(Color, SizeOf(byte)+SizeOf(TColorSel));
+  TView.Store(S);
+  S.Write(Color, SizeOf(Byte)+SizeOf(TColorSel));
   end;
 
 { TMonoSelector }
 
-Constructor TMonoSelector.Init(var Bounds: TRect; AStrings: PSItem);
+constructor TMonoSelector.Init(var Bounds: TRect; AStrings: PSItem);
   begin
-    Options := Options or (ofSelectable+ofFirstClick+ofFramed);
-    inherited Init(Bounds, AStrings);
-    { NewSItem('Normal',
+  Options := Options or (ofSelectable+ofFirstClick+ofFramed);
+  inherited Init(Bounds, AStrings);
+  { NewSItem('Normal',
     NewSItem('Bright',
     NewSItem('Underlined',
     NewSItem('Reverse', nil)))));}
-    { HelpCtx:=hcMonoList;}
-    EventMask := EventMask or evBroadcast;
+  { HelpCtx:=hcMonoList;}
+  EventMask := EventMask or evBroadcast;
   end;
 
 procedure TMonoSelector.Draw;
   const
     Button = ' ( ) ';
   begin
-    DrawBox(Button, #7);
+  DrawBox(Button, #7);
   end;
 
 procedure TMonoSelector.HandleEvent(var Event: TEvent);
   var
-    i: byte;
+    i: Byte;
   begin
-    inherited HandleEvent(Event);
-    if GetState(sfVisible) then
-      if (Event.What = evBroadcast) and (Event.Command = cmColorSet)
-      then
-        begin
-          Value := Event.InfoByte;
-          for i := 0 to 3 do
-            if MonoColors[i] = Value then
-              begin
-                MovedTo(i);
-                DrawView;
-                exit
-              end;
-          MovedTo(-1);
-        end;
+  inherited HandleEvent(Event);
+  if GetState(sfVisible) then
+    if  (Event.What = evBroadcast) and (Event.Command = cmColorSet) then
+      begin
+      Value := Event.InfoByte;
+      for i := 0 to 3 do
+        if MonoColors[i] = Value then
+          begin
+          MovedTo(i);
+          DrawView;
+          Exit
+          end;
+      MovedTo(-1);
+      end;
   end;
 
 
-function TMonoSelector.Mark(Item: integer): boolean;
+function TMonoSelector.Mark(Item: Integer): Boolean;
   begin
-    Mark := MonoColors[Item] = Value;
+  Mark := MonoColors[Item] = Value;
   end;
 
 procedure TMonoSelector.NewColor;
   begin
-    MessageL(Owner, evBroadcast, cmColorForegroundChanged, Value and
-      $0F);
-    MessageL(Owner, evBroadcast, cmColorBackgroundChanged, (Value
-      shr 4) and $0F);
+  MessageL(Owner, evBroadcast, cmColorForegroundChanged, Value and $0F);
+  MessageL(Owner, evBroadcast, cmColorBackgroundChanged, (Value shr 4)
+     and $0F);
   end;
 
-procedure TMonoSelector.Press(Item: integer);
+procedure TMonoSelector.Press(Item: Integer);
   begin
-    Value := MonoColors[Item];
-    NewColor;
+  Value := MonoColors[Item];
+  NewColor;
   end;
 
-procedure TMonoSelector.MovedTo(Item: integer);
+procedure TMonoSelector.MovedTo(Item: Integer);
   const
     Button = ' ( ) ';
   begin
-    if Item = -1 then
-      begin
-        DrawBox(Button, ' ');
-        exit;
-      end;
-    Value := MonoColors[Item];
-    NewColor;
+  if Item = -1 then
+    begin
+    DrawBox(Button, ' ');
+    Exit;
+    end;
+  Value := MonoColors[Item];
+  NewColor;
   end;
 
 { T_BWSelector }
 
-Constructor T_BWSelector.Init(var Bounds: TRect; ASelType: TColorSel;
-  AStrings: PSItem);
+constructor T_BWSelector.Init(var Bounds: TRect; ASelType: TColorSel;
+    AStrings: PSItem);
   begin
-    SelType := ASelType;
-    TCluster.Init(Bounds, AStrings);
-    EventMask := EventMask or evBroadcast;
-    Options := Options or (ofSelectable+ofFirstClick+ofFramed);
+  SelType := ASelType;
+  TCluster.Init(Bounds, AStrings);
+  EventMask := EventMask or evBroadcast;
+  Options := Options or (ofSelectable+ofFirstClick+ofFramed);
   end;
 
 procedure T_BWSelector.HandleEvent(var Event: TEvent);
   var
-    i: byte;
+    i: Byte;
 
   begin
-    inherited HandleEvent(Event);
-    if GetState(sfVisible) then
-      if (Event.What = evBroadcast) and (Event.Command = cmColorSet)
-      then
-        begin
-          Value := Event.InfoByte;
-          case SelType of
-            csForeground:
-              for i := 0 to 3 do
-                if MonoColors[i] = (Value and $0F) then
-                  begin
-                    MovedTo(i);
-                    DrawView;
-                    exit
-                  end;
-            csBackground:
-              for i := 0 to 3 do
-                if MonoColors[i] = (Value shr 4) then
-                  begin
-                    MovedTo(i);
-                    DrawView;
-                    exit
-                  end;
-          end {case};
-          MovedTo(-1);
-        end;
+  inherited HandleEvent(Event);
+  if GetState(sfVisible) then
+    if  (Event.What = evBroadcast) and (Event.Command = cmColorSet) then
+      begin
+      Value := Event.InfoByte;
+      case SelType of
+        csForeground:
+          for i := 0 to 3 do
+            if MonoColors[i] = (Value and $0F) then
+              begin
+              MovedTo(i);
+              DrawView;
+              Exit
+              end;
+        csBackground:
+          for i := 0 to 3 do
+            if MonoColors[i] = (Value shr 4) then
+              begin
+              MovedTo(i);
+              DrawView;
+              Exit
+              end;
+      end {case};
+      MovedTo(-1);
+      end;
   end { T_BWSelector.HandleEvent };
 
 procedure T_BWSelector.NewColor;
   begin
-    if SelType = csForeground
-    then
-      MessageL(Owner, evBroadcast, cmColorForegroundChanged, Value
-        and $0F)
-    else
-      MessageL(Owner, evBroadcast, cmColorBackgroundChanged, Value
-        and $0F);
+  if SelType = csForeground
+  then
+    MessageL(Owner, evBroadcast, cmColorForegroundChanged, Value and $0F)
+  else
+    MessageL(Owner, evBroadcast, cmColorBackgroundChanged, Value and $0F);
   end;
 
 { TColorDisplay }
 
-Constructor TColorDisplay.Init(var Bounds: TRect; AText: PString);
+constructor TColorDisplay.Init(var Bounds: TRect; AText: PString);
   begin
-    TView.Init(Bounds);
-    EventMask := EventMask or evBroadcast;
-    text := AText;
-    Color := nil;
+  TView.Init(Bounds);
+  EventMask := EventMask or evBroadcast;
+  Text := AText;
+  Color := nil;
   end;
 
-Constructor TColorDisplay.Load(var s: TStream);
+constructor TColorDisplay.Load(var S: TStream);
   begin
-    TView.Load(s);
-    text := s.ReadStr;
+  TView.Load(S);
+  Text := S.ReadStr;
   end;
 
 destructor TColorDisplay.Done;
   begin
-    DisposeStr(text);
-    TView.Done;
+  DisposeStr(Text);
+  TView.Done;
   end;
 
 procedure TColorDisplay.Draw;
   var
     B: TDrawBuffer;
-    i: integer;
-    C: byte;
+    I: Integer;
+    C: Byte;
   begin
-    C := Color^;
+  C := Color^;
 
-    for i := 0 to Size.X div Length(text^) do
-      MoveStr(B[i*Length(text^)], text^, C);
-    WriteLine(0, 0, Size.X, Size.Y, B);
+  for I := 0 to Size.X div Length(Text^) do
+    MoveStr(B[I*Length(Text^)], Text^, C);
+  WriteLine(0, 0, Size.X, Size.Y, B);
   end;
 
 procedure TColorDisplay.HandleEvent(var Event: TEvent);
   begin
-    TView.HandleEvent(Event);
-    case Event.What of
-      evBroadcast:
-        case Event.Command of
-          cmColorBackgroundChanged:
-            begin
-              Color^:= (Color^ and $0F) or (Event.InfoByte shl 4 and
-                $F0);
-              DrawView;
-            end;
-          cmColorForegroundChanged:
-            begin
-              Color^:= (Color^ and $F0) or (Event.InfoByte and $0F);
-              DrawView;
-            end;
-        end {case};
-    end {case};
+  TView.HandleEvent(Event);
+  case Event.What of
+    evBroadcast:
+      case Event.Command of
+        cmColorBackgroundChanged:
+          begin
+          Color^:= (Color^ and $0F) or (Event.InfoByte shl 4 and $F0);
+          DrawView;
+          end;
+        cmColorForegroundChanged:
+          begin
+          Color^:= (Color^ and $F0) or (Event.InfoByte and $0F);
+          DrawView;
+          end;
+      end {case};
+  end {case};
   end;
 
-procedure TColorDisplay.SetColor(var AColor: byte);
+procedure TColorDisplay.SetColor(var AColor: Byte);
   begin
-    Color := @AColor;
-    MessageL(Owner, evBroadcast, cmColorSet, Color^);
-    DrawView;
+  Color := @AColor;
+  MessageL(Owner, evBroadcast, cmColorSet, Color^);
+  DrawView;
   end;
 
-procedure TColorDisplay.Store(var s: TStream);
+procedure TColorDisplay.Store(var S: TStream);
   begin
-    TView.Store(s);
-    s.WriteStr(text);
+  TView.Store(S);
+  S.WriteStr(Text);
   end;
 
 { TColorGroupList }
 
-Constructor TColorGroupList.Init(var Bounds: TRect; AScrollBar:
-    PScrollBar;
-  AGroups: PColorGroup);
+constructor TColorGroupList.Init(var Bounds: TRect; AScrollBar: PScrollBar;
+    AGroups: PColorGroup);
   var
-    i: integer;
+    I: Integer;
   begin
-    TListViewer.Init(Bounds, 1, nil, AScrollBar);
-    Groups := AGroups;
-    i := 0;
-    while AGroups <> nil do
-      begin
-        AGroups := AGroups^.Next;
-        Inc(i);
-      end;
-    SetRange(i);
+  TListViewer.Init(Bounds, 1, nil, AScrollBar);
+  Groups := AGroups;
+  I := 0;
+  while AGroups <> nil do
+    begin
+    AGroups := AGroups^.Next;
+    Inc(I);
+    end;
+  SetRange(I);
   end;
 
-Constructor TColorGroupList.Load(var s: TStream);
+constructor TColorGroupList.Load(var S: TStream);
 
   function ReadItems: PColorItem;
     var
       Itms: PColorItem;
       CurItm: ^PColorItem;
-      Count: integer;
-      i: integer;
+      Count: Integer;
+      I: Integer;
     begin
-      s.Read(Count, SizeOf(integer));
-      Itms := nil;
-      CurItm := @Itms;
-      for i := 1 to Count do
+    S.Read(Count, SizeOf(Integer));
+    Itms := nil;
+    CurItm := @Itms;
+    for I := 1 to Count do
+      begin
+      New(CurItm^);
+      with CurItm^^ do
         begin
-          New(CurItm^);
-          with CurItm^^ do
-            begin
-              Name := s.ReadStr;
-              s.Read(Index, SizeOf(byte));
-            end;
-          CurItm := @CurItm^^.Next;
+        Name := S.ReadStr;
+        S.Read(Index, SizeOf(Byte));
         end;
-      CurItm^:= nil;
-      ReadItems := Itms;
+      CurItm := @CurItm^^.Next;
+      end;
+    CurItm^:= nil;
+    ReadItems := Itms;
     end { ReadItems: };
 
   function ReadGroups: PColorGroup;
     var
       Grps: PColorGroup;
       CurGrp: ^PColorGroup;
-      Count, i: integer;
+      Count, I: Integer;
     begin
-      s.Read(Count, SizeOf(integer));
-      Grps := nil;
-      CurGrp := @Grps;
-      for i := 1 to Count do
+    S.Read(Count, SizeOf(Integer));
+    Grps := nil;
+    CurGrp := @Grps;
+    for I := 1 to Count do
+      begin
+      New(CurGrp^);
+      with CurGrp^^ do
         begin
-          New(CurGrp^);
-          with CurGrp^^ do
-            begin
-              Name := s.ReadStr;
-              Items := ReadItems;
-            end;
-          CurGrp := @CurGrp^^.Next;
+        Name := S.ReadStr;
+        Items := ReadItems;
         end;
-      CurGrp^:= nil;
-      ReadGroups := Grps;
-    end { ReadGroups: };
+      CurGrp := @CurGrp^^.Next;
+      end;
+    CurGrp^:= nil;
+    ReadGroups := Grps;
+    end;
 
   begin { TColorGroupList.Load }
-    TListViewer.Load(s);
-    Groups := ReadGroups;
+  TListViewer.Load(S);
+  Groups := ReadGroups;
   end { TColorGroupList.Load };
 
 destructor TColorGroupList.Done;
@@ -670,680 +662,674 @@ destructor TColorGroupList.Done;
     var
       P: PColorItem;
     begin
-      while CurITem <> nil do
-        begin
-          P := CurITem;
-          DisposeStr(CurITem^.Name);
-          CurITem := CurITem^.Next;
-          Dispose(P);
-        end;
+    while CurITem <> nil do
+      begin
+      P := CurITem;
+      DisposeStr(CurITem^.Name);
+      CurITem := CurITem^.Next;
+      Dispose(P);
+      end;
     end;
 
   procedure FreeGroups(CurGroup: PColorGroup);
     var
       P: PColorGroup;
     begin
-      while CurGroup <> nil do
-        begin
-          P := CurGroup;
-          FreeItems(CurGroup^.Items);
-          DisposeStr(CurGroup^.Name);
-          CurGroup := CurGroup^.Next;
-          Dispose(P);
-        end
+    while CurGroup <> nil do
+      begin
+      P := CurGroup;
+      FreeItems(CurGroup^.Items);
+      DisposeStr(CurGroup^.Name);
+      CurGroup := CurGroup^.Next;
+      Dispose(P);
+      end
     end;
 
   begin { TColorGroupList.Done }
-    TListViewer.Done;
-    FreeGroups(Groups);
+  TListViewer.Done;
+  FreeGroups(Groups);
   end { TColorGroupList.Done };
 
-procedure TColorGroupList.FocusItem(Item: longInt);
+procedure TColorGroupList.FocusItem(Item: LongInt);
   var
     CurGroup: PColorGroup;
   begin
-    TListViewer.FocusItem(Item);
-    Item := Focused; {PZ 2000.06.10}
-    CurGroup := Groups;
-    while Item > 0 do
-      begin
-        CurGroup := CurGroup^.Next;
-        Dec(Item);
-      end;
-    Message(Owner, evBroadcast, cmNewColorItem, CurGroup);
+  TListViewer.FocusItem(Item);
+  Item := Focused; {PZ 2000.06.10}
+  CurGroup := Groups;
+  while Item > 0 do
+    begin
+    CurGroup := CurGroup^.Next;
+    Dec(Item);
+    end;
+  Message(Owner, evBroadcast, cmNewColorItem, CurGroup);
   end;
 
-function TColorGroupList.GetText(Item: longInt; MaxLen: integer):
-    String;
+function TColorGroupList.GetText(Item: LongInt; MaxLen: Integer): String;
   var
     CurGroup: PColorGroup;
-    i: integer;
+    I: Integer;
   begin
-    CurGroup := Groups;
-    while Item > 0 do
-      begin
-        CurGroup := CurGroup^.Next;
-        Dec(Item);
-      end;
-    GetText := CurGroup^.Name^;
+  CurGroup := Groups;
+  while Item > 0 do
+    begin
+    CurGroup := CurGroup^.Next;
+    Dec(Item);
+    end;
+  GetText := CurGroup^.Name^;
   end;
 
-procedure TColorGroupList.Store(var s: TStream);
+procedure TColorGroupList.Store(var S: TStream);
 
   procedure WriteItems(Items: PColorItem);
     var
       CurItm: PColorItem;
-      Count: integer;
+      Count: Integer;
     begin
-      Count := 0;
-      CurItm := Items;
-      while CurItm <> nil do
+    Count := 0;
+    CurItm := Items;
+    while CurItm <> nil do
+      begin
+      CurItm := CurItm^.Next;
+      Inc(Count);
+      end;
+    S.Write(Count, SizeOf(Integer));
+    CurItm := Items;
+    while CurItm <> nil do
+      begin
+      with CurItm^ do
         begin
-          CurItm := CurItm^.Next;
-          Inc(Count);
+        S.WriteStr(Name);
+        S.Write(Index, SizeOf(Byte));
         end;
-      s.Write(Count, SizeOf(integer));
-      CurItm := Items;
-      while CurItm <> nil do
-        begin
-          with CurItm^ do
-            begin
-              s.WriteStr(Name);
-              s.Write(Index, SizeOf(byte));
-            end;
-          CurItm := CurItm^.Next;
-        end;
+      CurItm := CurItm^.Next;
+      end;
     end { WriteItems };
 
   procedure WriteGroups(Groups: PColorGroup);
     var
       CurGrp: PColorGroup;
-      Count: integer;
+      Count: Integer;
     begin
-      Count := 0;
-      CurGrp := Groups;
-      while CurGrp <> nil do
+    Count := 0;
+    CurGrp := Groups;
+    while CurGrp <> nil do
+      begin
+      CurGrp := CurGrp^.Next;
+      Inc(Count);
+      end;
+    S.Write(Count, SizeOf(Integer));
+    CurGrp := Groups;
+    while CurGrp <> nil do
+      begin
+      with CurGrp^ do
         begin
-          CurGrp := CurGrp^.Next;
-          Inc(Count);
+        S.WriteStr(Name);
+        WriteItems(Items);
         end;
-      s.Write(Count, SizeOf(integer));
-      CurGrp := Groups;
-      while CurGrp <> nil do
-        begin
-          with CurGrp^ do
-            begin
-              s.WriteStr(Name);
-              WriteItems(Items);
-            end;
-          CurGrp := CurGrp^.Next;
-        end;
+      CurGrp := CurGrp^.Next;
+      end;
     end { WriteGroups };
 
   begin { TColorGroupList.Store }
-    TListViewer.Store(s);
-    WriteGroups(Groups);
+  TListViewer.Store(S);
+  WriteGroups(Groups);
   end { TColorGroupList.Store };
 
 procedure TColorGroupList.HandleEvent(var Event: TEvent);
   begin
-    TListViewer.HandleEvent(Event);
-    if Event.What = evBroadcast then
-      if Event.Command = cmSaveColorIndex then
-        SetGroupIndex(Focused, Event.InfoByte);
+  TListViewer.HandleEvent(Event);
+  if Event.What = evBroadcast then
+    if Event.Command = cmSaveColorIndex then
+      SetGroupIndex(Focused, Event.InfoByte);
   end;
 
-procedure TColorGroupList.SetGroupIndex(GroupNum, ItemNum: byte);
+procedure TColorGroupList.SetGroupIndex(GroupNum, ItemNum: Byte);
   var
     Group: PColorGroup;
   begin
-    Group := GetGroup(GroupNum);
-    if Group <> nil then
-      Group^.Index := ItemNum;
+  Group := GetGroup(GroupNum);
+  if Group <> nil then
+    Group^.Index := ItemNum;
   end;
 
-function TColorGroupList.GetGroupIndex(GroupNum: byte): byte;
+function TColorGroupList.GetGroupIndex(GroupNum: Byte): Byte;
   var
     Group: PColorGroup;
   begin
-    Group := GetGroup(GroupNum);
-    if Group <> nil then
-      GetGroupIndex := Group^.Index
-    else
-      GetGroupIndex := 0;
+  Group := GetGroup(GroupNum);
+  if Group <> nil then
+    GetGroupIndex := Group^.Index
+  else
+    GetGroupIndex := 0;
   end;
 
-function TColorGroupList.GetGroup(GroupNum: byte): PColorGroup;
+function TColorGroupList.GetGroup(GroupNum: Byte): PColorGroup;
   var
     Group: PColorGroup;
   begin
-    Group := Groups;
-    while GroupNum > 0 do
-      begin
-        Group := Group^.Next;
-        Dec(GroupNum);
-      end;
-    GetGroup := Group;
+  Group := Groups;
+  while GroupNum > 0 do
+    begin
+    Group := Group^.Next;
+    Dec(GroupNum);
+    end;
+  GetGroup := Group;
   end;
 
-function TColorGroupList.GetNumGroups: byte;
+function TColorGroupList.GetNumGroups: Byte;
   var
-    Index: byte;
+    Index: Byte;
     Group: PColorGroup;
   begin
-    Index := 0;
-    Group := Groups;
-    while Group <> nil do
-      begin
-        Inc(Index);
-        Group := Group^.Next;
-      end;
-    GetNumGroups := Index;
+  Index := 0;
+  Group := Groups;
+  while Group <> nil do
+    begin
+    Inc(Index);
+    Group := Group^.Next;
+    end;
+  GetNumGroups := Index;
   end;
 
 { TColorItemList }
 
-Constructor TColorItemList.Init(var Bounds: TRect; AScrollBar:
-    PScrollBar;
-  AItems: PColorItem);
+constructor TColorItemList.Init(var Bounds: TRect; AScrollBar: PScrollBar;
+    AItems: PColorItem);
   var
-    i: integer;
+    I: Integer;
   begin
-    TListViewer.Init(Bounds, 1, nil, AScrollBar);
-    EventMask := EventMask or evBroadcast;
-    Items := AItems;
-    i := 0;
-    while AItems <> nil do
-      begin
-        AItems := AItems^.Next;
-        Inc(i);
-      end;
-    SetRange(i);
+  TListViewer.Init(Bounds, 1, nil, AScrollBar);
+  EventMask := EventMask or evBroadcast;
+  Items := AItems;
+  I := 0;
+  while AItems <> nil do
+    begin
+    AItems := AItems^.Next;
+    Inc(I);
+    end;
+  SetRange(I);
   end;
 
-procedure TColorItemList.FocusItem(Item: longInt);
+procedure TColorItemList.FocusItem(Item: LongInt);
   var
-    CurITem: PColorItem;
+    CurItem: PColorItem;
   begin
-    TListViewer.FocusItem(Item);
-    Item := Focused; {PZ 2000.06.10}
-    MessageL(Owner, evBroadcast, cmSaveColorIndex, Item);
-    CurITem := Items;
-    while Item > 0 do
-      begin
-        if CurITem <> nil then
-          CurITem := CurITem^.Next;
-        Dec(Item);
-      end;
-    if CurITem <> nil then
-      MessageL(Owner, evBroadcast, cmNewColorIndex, CurITem^.Index);
+  TListViewer.FocusItem(Item);
+  Item := Focused; {PZ 2000.06.10}
+  MessageL(Owner, evBroadcast, cmSaveColorIndex, Item);
+  CurItem := Items;
+  while Item > 0 do
+    begin
+    if CurItem <> nil then
+      CurItem := CurItem^.Next;
+    Dec(Item);
+    end;
+  if CurItem <> nil then
+    MessageL(Owner, evBroadcast, cmNewColorIndex, CurItem^.Index);
   end;
 
-function TColorItemList.GetText(Item: longInt; MaxLen: integer):
-    String;
+function TColorItemList.GetText(Item: LongInt; MaxLen: Integer): String;
   var
-    CurITem: PColorItem;
+    CurItem: PColorItem;
   begin
-    CurITem := Items;
-    while Item > 0 do
-      begin
-        CurITem := CurITem^.Next;
-        Dec(Item);
-      end;
-    GetText := CurITem^.Name^;
+  CurItem := Items;
+  while Item > 0 do
+    begin
+    CurItem := CurItem^.Next;
+    Dec(Item);
+    end;
+  GetText := CurItem^.Name^;
   end;
 
 procedure TColorItemList.HandleEvent(var Event: TEvent);
   var
-    CurITem: PColorItem;
+    CurItem: PColorItem;
     Group: PColorGroup;
-    i: integer;
+    I: Integer;
   begin
-    TListViewer.HandleEvent(Event);
-    if Event.What = evBroadcast then
-      case Event.Command of
-        cmNewColorItem:
+  TListViewer.HandleEvent(Event);
+  if Event.What = evBroadcast then
+    case Event.Command of
+      cmNewColorItem:
+        begin
+        Group := Event.InfoPtr;
+        Items := Group^.Items;
+        CurItem := Items;
+        I := 0;
+        while CurItem <> nil do
           begin
-            Group := Event.InfoPtr;
-            Items := Group^.Items;
-            CurITem := Items;
-            i := 0;
-            while CurITem <> nil do
-              begin
-                CurITem := CurITem^.Next;
-                Inc(i);
-              end;
-            SetRange(i);
-            FocusItem(Group^.Index);
-            DrawView;
+          CurItem := CurItem^.Next;
+          Inc(I);
           end;
-      end {case};
+        SetRange(I);
+        FocusItem(Group^.Index);
+        DrawView;
+        end;
+    end {case};
   end { TColorItemList.HandleEvent };
 
 { TColorDialog }
 
-Constructor TColorDialog.Init(AGroups: PColorGroup);
+constructor TColorDialog.Init(AGroups: PColorGroup);
   var
     R: TRect;
     P: PView;
-    GroupWidth, ItemsWidth: integer;
+    GroupWidth, ItemsWidth: Integer;
     G: PColorGroup;
-    i: PColorItem;
-    IX, IW: integer;
+    I: PColorItem;
+    IX, IW: Integer;
 
   begin
-    GroupWidth := 0;
-    ItemsWidth := 0;
-    G := AGroups;
-    while G <> nil do
+  GroupWidth := 0;
+  ItemsWidth := 0;
+  G := AGroups;
+  while G <> nil do
+    begin
+    GroupWidth := Max(GroupWidth, Length(CnvString(G^.Name)));
+    I := G^.Items;
+    while I <> nil do
       begin
-        GroupWidth := Max(GroupWidth, Length(CnvString(G^.Name)));
-        i := G^.Items;
-        while i <> nil do
-          begin
-            ItemsWidth := Max(ItemsWidth, Length(CnvString(i^.Name)));
-            i := i^.Next
-          end;
-        G := G^.Next
+      ItemsWidth := Max(ItemsWidth, Length(CnvString(I^.Name)));
+      I := I^.Next
       end;
-    R.Assign(0, 0, 30+GroupWidth+ItemsWidth, 22);
-    TDialog.Init(R, GetString(dlColorsTitle));
-    Options := Options or ofCentered;
-    {  Pal := '';}
+    G := G^.Next
+    end;
+  R.Assign(0, 0, 30+GroupWidth+ItemsWidth, 22);
+  TDialog.Init(R, GetString(dlColorsTitle));
+  Options := Options or ofCentered;
+  {  Pal := '';}
 
-    IW := 5+GroupWidth;
+  IW := 5+GroupWidth;
 
-    R.Assign(IW, 3, IW+1, 16);
-    P := New(PScrollBar, Init(R));
-    Insert(P);
-    R.Assign(3, 3, IW, 16);
-    Groups := New(PColorGroupList, Init(R, PScrollBar(P), AGroups));
-    Insert(Groups);
+  R.Assign(IW, 3, IW+1, 16);
+  P := New(PScrollBar, Init(R));
+  Insert(P);
+  R.Assign(3, 3, IW, 16);
+  Groups := New(PColorGroupList, Init(R, PScrollBar(P), AGroups));
+  Insert(Groups);
 
-    FreeStr := GetString(dl_G_roup);
-    R.Assign(2, 2, 4+Length(FreeStr), 3);
-    Insert(New(PLabel, Init(R, FreeStr, Groups)));
+  FreeStr := GetString(dl_G_roup);
+  R.Assign(2, 2, 4+Length(FreeStr), 3);
+  Insert(New(PLabel, Init(R, FreeStr, Groups)));
 
-    IX := IW+3;
-    IW := IX+ItemsWidth+2;
+  IX := IW+3;
+  IW := IX+ItemsWidth+2;
 
-    R.Assign(IW, 3, IW+1, 16);
-    P := New(PScrollBar, Init(R));
-    Insert(P);
-    R.Assign(IX, 3, IW, 16);
-    P := New(PColorItemList, Init(R, PScrollBar(P), AGroups^.Items));
-    Insert(P);
+  R.Assign(IW, 3, IW+1, 16);
+  P := New(PScrollBar, Init(R));
+  Insert(P);
+  R.Assign(IX, 3, IW, 16);
+  P := New(PColorItemList, Init(R, PScrollBar(P), AGroups^.Items));
+  Insert(P);
 
-    FreeStr := GetString(dl_I_tem);
-    R.Assign(IX-1, 2, IX+Length(FreeStr), 3);
-    Insert(New(PLabel, Init(R, FreeStr, P)));
+  FreeStr := GetString(dl_I_tem);
+  R.Assign(IX-1, 2, IX+Length(FreeStr), 3);
+  Insert(New(PLabel, Init(R, FreeStr, P)));
 
-    IX := IW+4;
-    IW := IX+12;
-    R.Assign(IX, 3, IW, 7);
-    ForSel := New(PColorSelector, Init(R, csForeground));
-    Insert(ForSel);
+  IX := IW+4;
+  IW := IX+12;
+  R.Assign(IX, 3, IW, 7);
+  ForSel := New(PColorSelector, Init(R, csForeground));
+  Insert(ForSel);
 
-    Dec(R.A.X);
-    Inc(R.B.X);
-    BWSel := New(P_BWSelector, Init(R, csForeground,
-    NewSItem(GetString(dlColorsBlack),
-    NewSItem(GetString(dlColorsDark),
-    NewSItem(GetString(dlColorsGray),
-    NewSItem(GetString(dlColorsWhite), nil))))));
-    BWSel^.Hide;
-    Insert(BWSel);
+  Dec(R.A.X);
+  Inc(R.B.X);
+  BWSel := New(P_BWSelector, Init(R, csForeground,
+        NewSItem(GetString(dlColorsBlack),
+          NewSItem(GetString(dlColorsDark),
+            NewSItem(GetString(dlColorsGray),
+              NewSItem(GetString(dlColorsWhite), nil))))));
+  BWSel^.Hide;
+  Insert(BWSel);
 
-    Inc(R.A.X);
+  Inc(R.A.X);
+  Dec(R.B.X);
+  Dec(R.A.X, 2);
+  Inc(R.B.X, 2);
+  MonoSel := New(PMonoSelector, Init(R,
+        NewSItem(GetString(dlColorsNormal),
+          NewSItem(GetString(dlColorsHighlight),
+            NewSItem(GetString(dlColorsUnderline),
+              NewSItem(GetString(dlColorsInverse), nil))))));
+
+  MonoSel^.Hide;
+  Insert(MonoSel);
+
+  FreeStr := GetString(dl_F_oreground);
+  IX := Length(FreeStr);
+  if Pos('~', FreeStr) > 0 then
+    Dec(IX, 2);
+  Inc(R.A.X, 2+((10-IX) div 2));
+  Dec(R.B.X, 2+((10-IX) div 2));
+  if  (IX and 1) > 0 then
     Dec(R.B.X);
-    Dec(R.A.X, 2);
-    Inc(R.B.X, 2);
-    MonoSel := New(PMonoSelector, Init(R,
-    NewSItem(GetString(dlColorsNormal),
-    NewSItem(GetString(dlColorsHighlight),
-    NewSItem(GetString(dlColorsUnderline),
-    NewSItem(GetString(dlColorsInverse), nil))))));
-
-    MonoSel^.Hide;
-    Insert(MonoSel);
-
-    FreeStr := GetString(dl_F_oreground);
-    IX := Length(FreeStr);
-    if Pos('~', FreeStr) > 0 then
-      Dec(IX, 2);
-    Inc(R.A.X, 2+((10-IX) div 2));
-    Dec(R.B.X, 2+((10-IX) div 2));
-    if (IX and 1) > 0 then
-      Dec(R.B.X);
-    Dec(R.A.Y);
-    R.B.Y := R.A.Y+1;
-    ForLabel := New(PLabel, Init(R, FreeStr, ForSel));
-    Insert(ForLabel);
-    if (IX and 1) > 0 then
-      Inc(R.B.X);
-
-    Dec(R.A.X, ((10-IX) div 2));
-    Inc(R.B.X, ((10-IX) div 2));
-    FreeStr := GetString(dlColorsColors);
-    MonoLabel := New(PLabel, Init(R, FreeStr, MonoSel));
-    MonoLabel^.Hide;
-    Insert(MonoLabel);
-
-    Inc(R.A.Y, 7);
-    Inc(R.B.Y, 10);
-    BakSel := New(PColorSelector, Init(R, csBackground));
-    Insert(BakSel);
-
-    Dec(R.A.X);
+  Dec(R.A.Y);
+  R.B.Y := R.A.Y+1;
+  ForLabel := New(PLabel, Init(R, FreeStr, ForSel));
+  Insert(ForLabel);
+  if  (IX and 1) > 0 then
     Inc(R.B.X);
-    BWSelBack := New(P_BWSelector, Init(R, csBackground,
-    NewSItem(GetString(dlColorsBlack),
-    NewSItem(GetString(dlColorsDark),
-    NewSItem(GetString(dlColorsGray),
-    NewSItem(GetString(dlColorsWhite), nil))))));
 
-    BWSelBack^.Hide;
-    Insert(BWSelBack);
+  Dec(R.A.X, ((10-IX) div 2));
+  Inc(R.B.X, ((10-IX) div 2));
+  FreeStr := GetString(dlColorsColors);
+  MonoLabel := New(PLabel, Init(R, FreeStr, MonoSel));
+  MonoLabel^.Hide;
+  Insert(MonoLabel);
 
-    FreeStr := GetString(dl_B_ackground);
-    IX := Length(FreeStr);
-    if Pos('~', FreeStr) > 0 then
-      Dec(IX, 2);
+  Inc(R.A.Y, 7);
+  Inc(R.B.Y, 10);
+  BakSel := New(PColorSelector, Init(R, csBackground));
+  Insert(BakSel);
 
-    Inc(R.A.X, 1+((10-IX) div 2));
-    Dec(R.B.X, 1+((10-IX) div 2));
-    if (IX and 1) > 0 then
-      Dec(R.B.X);
-    Dec(R.A.Y);
-    R.B.Y := R.A.Y+1;
-    BakLabel := New(PLabel, Init(R, FreeStr, BakSel));
-    Insert(BakLabel);
-    Dec(R.A.X, 2+((10-IX) div 2));
-    Inc(R.B.X, 2+((10-IX) div 2));
-    if (IX and 1) > 0 then
-      Inc(R.B.X);
+  Dec(R.A.X);
+  Inc(R.B.X);
+  BWSelBack := New(P_BWSelector, Init(R, csBackground,
+        NewSItem(GetString(dlColorsBlack),
+          NewSItem(GetString(dlColorsDark),
+            NewSItem(GetString(dlColorsGray),
+              NewSItem(GetString(dlColorsWhite), nil))))));
 
-    Inc(R.A.Y, 7);
-    Inc(R.B.Y, 9);
-    FreeStr := GetString(dlColorsText);
-    Display := New(PColorDisplay, Init(R, NewStr(' '+FreeStr)));
-    Insert(Display);
+  BWSelBack^.Hide;
+  Insert(BWSelBack);
 
-    if (Display <> nil) and (AGroups <> nil) and (AGroups^.Items <>
-        nil)
-    then
-      Display^.SetColor(byte(Pal[AGroups^.Items^.Index]));
+  FreeStr := GetString(dl_B_ackground);
+  IX := Length(FreeStr);
+  if Pos('~', FreeStr) > 0 then
+    Dec(IX, 2);
 
-    IX := GroupWidth+ItemsWidth-39;
+  Inc(R.A.X, 1+((10-IX) div 2));
+  Dec(R.B.X, 1+((10-IX) div 2));
+  if  (IX and 1) > 0 then
+    Dec(R.B.X);
+  Dec(R.A.Y);
+  R.B.Y := R.A.Y+1;
+  BakLabel := New(PLabel, Init(R, FreeStr, BakSel));
+  Insert(BakLabel);
+  Dec(R.A.X, 2+((10-IX) div 2));
+  Inc(R.B.X, 2+((10-IX) div 2));
+  if  (IX and 1) > 0 then
+    Inc(R.B.X);
 
-    FreeStr := GetString(dlColorsDefault);
-    if Pos('~', FreeStr) = 0 then
-      IW := 14
-    else
-      IW := 12; {!! IB}
-    R.Assign(4, 17, Length(FreeStr)+IW+Length(GetString(
-      dlColorsBlinking)), 18);
-    DefaultColors := New(PCheckBoxes, Init(R,
-    NewSItem(FreeStr,
-    NewSItem(GetString(dlColorsBlinking),
-    nil))));
-    Insert(DefaultColors);
-    IW := byte(CurrentBlink)*2;
-    DefaultColors^.SetData(IW);
+  Inc(R.A.Y, 7);
+  Inc(R.B.Y, 9);
+  FreeStr := GetString(dlColorsText);
+  Display := New(PColorDisplay, Init(R, NewStr(' '+FreeStr)));
+  Insert(Display);
 
-    R.Assign(2 {+IX}, 19, 13 {+IX}, 21);
-    FreeStr := GetString(dl_C_olor);
-    P := New(PButton, Init(R, FreeStr, cmPalColor, bfNormal or
-      bfBroadcast));
-    Insert(P);
+  if  (Display <> nil) and (AGroups <> nil) and (AGroups^.Items <> nil)
+  then
+    Display^.SetColor(Byte(Pal[AGroups^.Items^.Index]));
 
-    R.Assign(13 {+IX}, 19, 22 {+IX}, 21);
-    FreeStr := GetString(dlColorsB_W_);
-    P := New(PButton, Init(R, FreeStr, cmPalBlackWhite, bfNormal or
-      bfBroadcast));
-    Insert(P);
+  IX := GroupWidth+ItemsWidth-39;
 
-    R.Assign(22 {+IX}, 19, 32 {+IX}, 21);
-    FreeStr := GetString(dlColorsMono);
-    P := New(PButton, Init(R, FreeStr, cmPalMonochrome, bfNormal or
-      bfBroadcast));
-    Insert(P);
+  FreeStr := GetString(dlColorsDefault);
+  if Pos('~', FreeStr) = 0 then
+    IW := 14
+  else
+    IW := 12; {!! IB}
+  R.Assign(4, 17, Length(FreeStr)+IW+Length(GetString(dlColorsBlinking)),
+     18);
+  DefaultColors := New(PCheckBoxes, Init(R,
+        NewSItem(FreeStr,
+          NewSItem(GetString(dlColorsBlinking),
+            nil))));
+  Insert(DefaultColors);
+  IW := Byte(CurrentBlink)*2;
+  DefaultColors^.SetData(IW);
 
-    R.Assign(32+(IX div 2), 19, 47+(IX div 2), 21);
-    FreeStr := GetString(dlColorsVGA);
-    P := New(PButton, Init(R, FreeStr, cmPalVGA, bfNormal or
-      bfBroadcast));
-    Insert(P);
+  R.Assign(2 {+IX}, 19, 13 {+IX}, 21);
+  FreeStr := GetString(dl_C_olor);
+  P := New(PButton, Init(R, FreeStr, cmPalColor, bfNormal or bfBroadcast));
+  Insert(P);
 
-    R.Assign(47+IX, 19, 57+IX, 21);
-    FreeStr := GetString(dlOKButton);
-    Insert(New(PButton, Init(R, FreeStr, cmOK, bfDefault)));
+  R.Assign(13 {+IX}, 19, 22 {+IX}, 21);
+  FreeStr := GetString(dlColorsB_W_);
+  P := New(PButton, Init(R, FreeStr, cmPalBlackWhite, bfNormal or
+         bfBroadcast));
+  Insert(P);
 
-    R.Assign(57+IX, 19, 67+IX, 21);
-    FreeStr := GetString(dlCancelButton);
-    Insert(New(PButton, Init(R, FreeStr, cmCancel, bfNormal)));
+  R.Assign(22 {+IX}, 19, 32 {+IX}, 21);
+  FreeStr := GetString(dlColorsMono);
+  P := New(PButton, Init(R, FreeStr, cmPalMonochrome, bfNormal or
+         bfBroadcast));
+  Insert(P);
 
-    SelectNext(False);
+  R.Assign(32+(IX div 2), 19, 47+(IX div 2), 21);
+  FreeStr := GetString(dlColorsVGA);
+  P := New(PButton, Init(R, FreeStr, cmPalVGA, bfNormal or bfBroadcast));
+  Insert(P);
+
+  R.Assign(47+IX, 19, 57+IX, 21);
+  FreeStr := GetString(dlOKButton);
+  Insert(New(PButton, Init(R, FreeStr, cmOK, bfDefault)));
+
+  R.Assign(57+IX, 19, 67+IX, 21);
+  FreeStr := GetString(dlCancelButton);
+  Insert(New(PButton, Init(R, FreeStr, cmCancel, bfNormal)));
+
+  SelectNext(False);
   end { TColorDialog.Init };
 
 destructor TColorDialog.Done;
   var
-    i: byte;
+    i: Byte;
   begin
-    for i := apColor to apMonochrome do
-      DisposeStr(OldColors[i]);
-    inherited Done;
+  for i := apColor to apMonochrome do
+    DisposeStr(OldColors[i]);
+  inherited Done;
   end;
 
-Constructor TColorDialog.Load(var s: TStream);
+constructor TColorDialog.Load(var S: TStream);
   var
-    len: byte;
+    Len: Byte;
     R: TRect;
     P: PView;
 
   begin
-    TDialog.Load(s);
-    GetSubViewPtr(s, Display);
-    GetSubViewPtr(s, Groups);
-    GetSubViewPtr(s, ForLabel);
-    GetSubViewPtr(s, ForSel);
-    GetSubViewPtr(s, BakLabel);
-    GetSubViewPtr(s, BakSel);
-    GetSubViewPtr(s, MonoSel);
-    GetSubViewPtr(s, MonoLabel);
-    GetSubViewPtr(s, BWSel);
-    GetSubViewPtr(s, BWSelBack);
-    GetSubViewPtr(s, DefaultColors);
-    {Cat}
-    if (Display = nil) or (Groups = nil) or (ForLabel = nil)
-      or (ForSel = nil) or (BakLabel = nil) or (BakSel = nil)
-      or (MonoSel = nil) or (MonoLabel = nil) or (BWSel = nil)
-      or (BWSelBack = nil) or (DefaultColors = nil)
-    then
-      Fail;
-    {/Cat}
-    s.ReadStrV(Pal);
-      {S.Read(Len, SizeOf(Byte)); S.Read(Pal[1], Len); SetLength(Pal, Len);}
-    if VGASystem {$IFDEF OS2} and not PMWindowed {$ENDIF} then
-        EnableCommands([cmPalVGA])
-    else
-      DisableCommands([cmPalVGA]);
-    {!! IB}
-    for len := apColor to apMonochrome do
-      OldColors[len] := NewStr(SystemColors[len]);
-    DefaultColorsFlag := False;
-    len := byte(CurrentBlink)*2;
-    if DefaultColors <> nil then
-      DefaultColors^.SetData(len);
+  TDialog.Load(S);
+  GetSubViewPtr(S, Display);
+  GetSubViewPtr(S, Groups);
+  GetSubViewPtr(S, ForLabel);
+  GetSubViewPtr(S, ForSel);
+  GetSubViewPtr(S, BakLabel);
+  GetSubViewPtr(S, BakSel);
+  GetSubViewPtr(S, MonoSel);
+  GetSubViewPtr(S, MonoLabel);
+  GetSubViewPtr(S, BWSel);
+  GetSubViewPtr(S, BWSelBack);
+  GetSubViewPtr(S, DefaultColors);
+  {Cat}
+  if  (Display = nil) or (Groups = nil) or (ForLabel = nil)
+    or (ForSel = nil) or (BakLabel = nil) or (BakSel = nil)
+    or (MonoSel = nil) or (MonoLabel = nil) or (BWSel = nil)
+    or (BWSelBack = nil) or (DefaultColors = nil)
+  then
+    Fail;
+  {/Cat}
+  S.ReadStrV(Pal);
+  {S.Read(Len, SizeOf(Byte)); S.Read(Pal[1], Len); SetLength(Pal, Len);}
+  if VGASystem {$IFDEF OS2} and not PMWindowed {$ENDIF} then
+    EnableCommands([cmPalVGA])
+  else
+    DisableCommands([cmPalVGA]);
+  {!! IB}
+  for Len := apColor to apMonochrome do
+    OldColors[Len] := NewStr(SystemColors[Len]);
+  DefaultColorsFlag := False;
+  Len := Byte(CurrentBlink)*2;
+  if DefaultColors <> nil then
+    DefaultColors^.SetData(Len);
   end { TColorDialog.Load };
 
-procedure TColorDialog.SetappColor;
+procedure TColorDialog.SetAppColor;
   begin
-    if DefaultColorsFlag then
-      case appPalette of
-        apColor:
-          SystemColors[apColor] := CColor;
-        apBlackWhite:
-          SystemColors[apBlackWhite] := CBlackWhite;
-        apMonochrome:
-          SystemColors[apMonochrome] := CMonochrome;
-      end
-    else
-      SystemColors[appPalette] := OldColors[appPalette]^;
-    SetSysColors(SystemColors[appPalette]);
+  if DefaultColorsFlag then
+    case appPalette of
+      apColor:
+        SystemColors[apColor] := CColor;
+      apBlackWhite:
+        SystemColors[apBlackWhite] := CBlackWhite;
+      apMonochrome:
+        SystemColors[apMonochrome] := CMonochrome;
+    end
+  else
+    SystemColors[appPalette] := OldColors[appPalette]^;
+  SetSysColors(SystemColors[appPalette]);
   end;
 
 procedure TColorDialog.GetEvent(var Event: TEvent);
   begin
-    if DefaultColors^.Mark(1) <> CurrentBlink then
-      begin
-        CurrentBlink := not CurrentBlink;
-        SetBlink(CurrentBlink);
-        ConfigModified := True;
-      end;
+  if DefaultColors^.Mark(1) <> CurrentBlink then
+    begin
+    CurrentBlink := not CurrentBlink;
+    SetBlink(CurrentBlink);
+    ConfigModified := True;
+    end;
 
-    if DefaultColors^.Mark(0) <> DefaultColorsFlag then
-      begin
-        DefaultColorsFlag := not DefaultColorsFlag;
-        SetappColor;
+  if DefaultColors^.Mark(0) <> DefaultColorsFlag then
+    begin
+    DefaultColorsFlag := not DefaultColorsFlag;
+    SetAppColor;
 
-        DoneMemory;
-        Pal := Application^.GetPalette^;
-        Application^.Redraw;
-      end;
+    DoneMemory;
+    Pal := Application^.GetPalette^;
+    Application^.Redraw;
+    end;
 
-    inherited GetEvent(Event);
-  end { TColorDialog.GetEvent };
+  inherited GetEvent(Event);
+  end;
 
 procedure TColorDialog.HandleEvent(var Event: TEvent);
 
   var
-    C: byte;
+    C: Byte;
     ItemList: PColorItemList;
   begin
-    if Event.What = evBroadcast then
-      case Event.Command of
-        cmNewColorItem:
-          GroupIndex := Groups^.Focused;
-        cmPalMonochrome:
-          begin
-            ShowMarkers := True;
-            appPalette := apMonochrome;
-            SetappColor;
-            SwitchTypeSelector;
-          end;
-        cmPalBlackWhite:
-          begin
-            ShowMarkers := False;
-            appPalette := apBlackWhite;
-            SetappColor;
-            SwitchTypeSelector;
-          end;
-        cmPalColor:
-          begin
-            ShowMarkers := False;
-            appPalette := apColor;
-            SetappColor;
-            SwitchTypeSelector;
-          end;
-        cmPalVGA:
-          VGAColorRegister;
-      end {case};
+  if Event.What = evBroadcast then
+    case Event.Command of
+      cmNewColorItem:
+        GroupIndex := Groups^.Focused;
+      cmPalMonochrome:
+        begin
+        ShowMarkers := True;
+        appPalette := apMonochrome;
+        SetAppColor;
+        SwitchTypeSelector;
+        end;
+      cmPalBlackWhite:
+        begin
+        ShowMarkers := False;
+        appPalette := apBlackWhite;
+        SetAppColor;
+        SwitchTypeSelector;
+        end;
+      cmPalColor:
+        begin
+        ShowMarkers := False;
+        appPalette := apColor;
+        SetAppColor;
+        SwitchTypeSelector;
+        end;
+      cmPalVGA:
+        VGAColorRegister;
+    end {case};
 
-    inherited HandleEvent(Event);
-    if Event.What = evBroadcast then
-      if Event.Command = cmNewColorIndex then
-        Display^.SetColor(byte(Pal[Event.InfoByte]));
+  inherited HandleEvent(Event);
+  if Event.What = evBroadcast then
+    if Event.Command = cmNewColorIndex then
+      Display^.SetColor(Byte(Pal[Event.InfoByte]));
   end { TColorDialog.HandleEvent };
 
-procedure TColorDialog.Store(var s: TStream);
+procedure TColorDialog.Store(var S: TStream);
   begin
-    TDialog.Store(s);
-    PutSubViewPtr(s, Display);
-    PutSubViewPtr(s, Groups);
-    PutSubViewPtr(s, ForLabel);
-    PutSubViewPtr(s, ForSel);
-    PutSubViewPtr(s, BakLabel);
-    PutSubViewPtr(s, BakSel);
-    PutSubViewPtr(s, MonoSel);
-    PutSubViewPtr(s, MonoLabel);
-    PutSubViewPtr(s, BWSel);
-    PutSubViewPtr(s, BWSelBack);
-    PutSubViewPtr(s, DefaultColors);
-    s.WriteStr(@Pal) {S.Write(Pal, Length(Pal)+1);}
+  TDialog.Store(S);
+  PutSubViewPtr(S, Display);
+  PutSubViewPtr(S, Groups);
+  PutSubViewPtr(S, ForLabel);
+  PutSubViewPtr(S, ForSel);
+  PutSubViewPtr(S, BakLabel);
+  PutSubViewPtr(S, BakSel);
+  PutSubViewPtr(S, MonoSel);
+  PutSubViewPtr(S, MonoLabel);
+  PutSubViewPtr(S, BWSel);
+  PutSubViewPtr(S, BWSelBack);
+  PutSubViewPtr(S, DefaultColors);
+  S.WriteStr(@Pal) {S.Write(Pal, Length(Pal)+1);}
   end;
 
-function TColorDialog.DataSize: word;
+function TColorDialog.DataSize: Word;
   begin
-    DataSize := SizeOf(TPalette);
+  DataSize := SizeOf(TPalette);
   end;
 
 procedure TColorDialog.GetData(var Rec);
   begin
-    GetIndexes(ColorIndexes);
-    String(Rec) := Pal;
+  GetIndexes(ColorIndexes);
+  String(Rec) := Pal;
   end;
 
 procedure TColorDialog.SwitchTypeSelector;
   var
     ViewTop: PGroup;
   begin
-    ViewTop := PGroup(Application^.TopView);
-    ViewTop := PGroup(ViewTop^.Current);
-    case appPalette of
-      apMonochrome:
-        begin
-          MonoColors := MonoColorsSet;
-          ForLabel^.Hide;
-          ForSel^.Hide;
-          BakLabel^.Hide;
-          BakSel^.Hide;
-          MonoLabel^.Show;
-          MonoSel^.Show;
-          BWSel^.Hide;
-          BWSelBack^.Hide;
-          {     BWSel^.SelType:=csForeground;
+  ViewTop := PGroup(Application^.TopView);
+  ViewTop := PGroup(ViewTop^.Current);
+  case appPalette of
+    apMonochrome:
+      begin
+      MonoColors := MonoColorsSet;
+      ForLabel^.Hide;
+      ForSel^.Hide;
+      BakLabel^.Hide;
+      BakSel^.Hide;
+      MonoLabel^.Show;
+      MonoSel^.Show;
+      BWSel^.Hide;
+      BWSelBack^.Hide;
+      {     BWSel^.SelType:=csForeground;
      ForLabel^.Link:=BWSel;
      BakLabel^.Link:=BWSelBack;    }
-        end;
-      apColor:
-        begin
-          MonoSel^.Hide;
-          BWSelBack^.Hide;
-          MonoLabel^.Hide;
-          BWSel^.Hide;
-          ForLabel^.Show;
-          ForSel^.Show;
-          BakLabel^.Show;
-          BakSel^.Show;
-          ForLabel^.Link := ForSel;
-          BakLabel^.Link := BakSel;
-        end;
-      apBlackWhite:
-        begin
-          MonoSel^.Hide;
-          MonoColors := BWColorsSet;
-          MonoLabel^.Hide;
-          BakSel^.Hide;
-          ForSel^.Hide;
-          ForLabel^.Show;
-          BakLabel^.Show;
-          BWSel^.Show;
-          BWSelBack^.Show;
-          BWSel^.SelType := csForeground;
-          ForLabel^.Link := BWSel;
-          BakLabel^.Link := BWSelBack;
-        end
-    end {case};
-    DoneMemory;
-    Pal := Application^.GetPalette^;
-    Application^.Redraw;
-    with Groups^ do
-      FocusItem(Focused);
-    if (ViewTop^.State and sfVisible) <> 0 then
-      ViewTop^.Select
-    else
-      Groups^.Select;
+      end;
+    apColor:
+      begin
+      MonoSel^.Hide;
+      BWSelBack^.Hide;
+      MonoLabel^.Hide;
+      BWSel^.Hide;
+      ForLabel^.Show;
+      ForSel^.Show;
+      BakLabel^.Show;
+      BakSel^.Show;
+      ForLabel^.Link := ForSel;
+      BakLabel^.Link := BakSel;
+      end;
+    apBlackWhite:
+      begin
+      MonoSel^.Hide;
+      MonoColors := BWColorsSet;
+      MonoLabel^.Hide;
+      BakSel^.Hide;
+      ForSel^.Hide;
+      ForLabel^.Show;
+      BakLabel^.Show;
+      BWSel^.Show;
+      BWSelBack^.Show;
+      BWSel^.SelType := csForeground;
+      ForLabel^.Link := BWSel;
+      BakLabel^.Link := BWSelBack;
+      end
+  end {case};
+  DoneMemory;
+  Pal := Application^.GetPalette^;
+  Application^.Redraw;
+  with Groups^ do
+    FocusItem(Focused);
+  if  (ViewTop^.State and sfVisible) <> 0 then
+    ViewTop^.Select
+  else
+    Groups^.Select;
   end { TColorDialog.SwitchTypeSelector };
 
 procedure TColorDialog.SetData(var Rec);
@@ -1351,110 +1337,110 @@ procedure TColorDialog.SetData(var Rec);
   Item: PColorItem;
   Index: byte;}
   begin
-    Pal := String(Rec);
+  Pal := String(Rec);
 
-    SetIndexes(ColorIndexes);
-    {  Display^.SetColor(Byte(Pal[Groups^.GetGroupIndex(GroupIndex)]));}
-    {  Groups^.FocusItem(GroupIndex); } {PZ 2000.06.10}
-    SwitchTypeSelector;
+  SetIndexes(ColorIndexes);
+  {  Display^.SetColor(Byte(Pal[Groups^.GetGroupIndex(GroupIndex)]));}
+  {  Groups^.FocusItem(GroupIndex); } {PZ 2000.06.10}
+  SwitchTypeSelector;
   end;
 
 procedure TColorDialog.SetIndexes(var Colors: PColorIndex);
   var
-    NumGroups, Index: byte;
+    NumGroups, Index: Byte;
   begin
-    NumGroups := Groups^.GetNumGroups;
-    if (Colors <> nil) and (Colors^.ColorSize <> NumGroups) then
-      begin
-        FreeMem(Colors, 2+Colors^.ColorSize);
-        Colors := nil;
-      end;
-    if Colors = nil then
-      begin
-        GetMem(Colors, 2+NumGroups);
-        FillChar(Colors^, 2+NumGroups, 0);
-        Colors^.ColorSize := NumGroups;
-      end;
-    for Index := 0 to NumGroups-1 do
-      Groups^.SetGroupIndex(Index, Colors^.ColorIndex[Index]);
-    GroupIndex := Colors^.GroupIndex;
+  NumGroups := Groups^.GetNumGroups;
+  if  (Colors <> nil) and (Colors^.ColorSize <> NumGroups) then
+    begin
+    FreeMem(Colors, 2+Colors^.ColorSize);
+    Colors := nil;
+    end;
+  if Colors = nil then
+    begin
+    GetMem(Colors, 2+NumGroups);
+    FillChar(Colors^, 2+NumGroups, 0);
+    Colors^.ColorSize := NumGroups;
+    end;
+  for Index := 0 to NumGroups-1 do
+    Groups^.SetGroupIndex(Index, Colors^.ColorIndex[Index]);
+  GroupIndex := Colors^.GroupIndex;
   end;
 
 procedure TColorDialog.GetIndexes(var Colors: PColorIndex);
   var
-    NumGroups, Index: byte;
+    NumGroups, Index: Byte;
   begin
-    NumGroups := Groups^.GetNumGroups;
-    if (Colors <> nil) and (Colors^.ColorSize <> NumGroups) then
-      begin
-        FreeMem(Colors, 2+Colors^.ColorSize);
-        Colors := nil;
-      end;
-    if Colors = nil then
-      begin
-        GetMem(Colors, 2+NumGroups);
-        FillChar(Colors^, 2+NumGroups, 0);
-        Colors^.ColorSize := NumGroups;
-      end;
-    Colors^.GroupIndex := GroupIndex;
-    for Index := 0 to NumGroups-1 do
-      Colors^.ColorIndex[Index] := Groups^.GetGroupIndex(Index);
+  NumGroups := Groups^.GetNumGroups;
+  if  (Colors <> nil) and (Colors^.ColorSize <> NumGroups) then
+    begin
+    FreeMem(Colors, 2+Colors^.ColorSize);
+    Colors := nil;
+    end;
+  if Colors = nil then
+    begin
+    GetMem(Colors, 2+NumGroups);
+    FillChar(Colors^, 2+NumGroups, 0);
+    Colors^.ColorSize := NumGroups;
+    end;
+  Colors^.GroupIndex := GroupIndex;
+  for Index := 0 to NumGroups-1 do
+    Colors^.ColorIndex[Index] := Groups^.GetGroupIndex(Index);
   end;
 
 { Load and Store Palette routines }
 
-procedure LoadIndexes(var s: TStream);
+procedure LoadIndexes(var S: TStream);
   var
-    ColorSize: byte;
+    ColorSize: Byte;
   begin
-    s.Read(ColorSize, SizeOf(ColorSize));
-    if ColorSize > 0 then
-      begin
-        if ColorIndexes <> nil then
-          FreeMem(ColorIndexes, 2+ColorIndexes^.ColorSize);
-        GetMem(ColorIndexes, ColorSize);
-        s.Read(ColorIndexes^, ColorSize);
-        ColorIndexes^.ColorSize := (ColorSize-2);
-      end;
+  S.Read(ColorSize, SizeOf(ColorSize));
+  if ColorSize > 0 then
+    begin
+    if ColorIndexes <> nil then
+      FreeMem(ColorIndexes, 2+ColorIndexes^.ColorSize);
+    GetMem(ColorIndexes, ColorSize);
+    S.Read(ColorIndexes^, ColorSize);
+    ColorIndexes^.ColorSize := (ColorSize-2);
+    end;
   end;
 
-procedure StoreIndexes(var s: TStream);
+procedure StoreIndexes(var S: TStream);
   var
-    ColorSize: byte;
+    ColorSize: Byte;
   begin
-    if ColorIndexes <> nil then
-      ColorSize := 2+ColorIndexes^.ColorSize
-    else
-      ColorSize := 0;
-    s.Write(ColorSize, SizeOf(ColorSize));
-    if ColorSize > 0 then
-      s.Write(ColorIndexes^, ColorSize);
+  if ColorIndexes <> nil then
+    ColorSize := 2+ColorIndexes^.ColorSize
+  else
+    ColorSize := 0;
+  S.Write(ColorSize, SizeOf(ColorSize));
+  if ColorSize > 0 then
+    S.Write(ColorIndexes^, ColorSize);
   end;
 
 { -- Color list building routines -- }
 
-function ColorItem(const Name: String; Index: byte;
-  Next: PColorItem): PColorItem;
+function ColorItem(const Name: String; Index: Byte;
+    Next: PColorItem): PColorItem;
   var
     Item: PColorItem;
   begin
-    New(Item);
-    Item^.Name := NewStr(Name);
-    Item^.Index := Index;
-    Item^.Next := Next;
-    ColorItem := Item;
+  New(Item);
+  Item^.Name := NewStr(Name);
+  Item^.Index := Index;
+  Item^.Next := Next;
+  ColorItem := Item;
   end;
 
 function ColorGroup(const Name: String; Items: PColorItem;
-  Next: PColorGroup): PColorGroup;
+    Next: PColorGroup): PColorGroup;
   var
     Group: PColorGroup;
   begin
-    New(Group);
-    Group^.Name := NewStr(Name);
-    Group^.Items := Items;
-    Group^.Next := Next;
-    ColorGroup := Group;
+  New(Group);
+  Group^.Name := NewStr(Name);
+  Group^.Items := Items;
+  Group^.Next := Next;
+  ColorGroup := Group;
   end;
 
 (*

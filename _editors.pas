@@ -13,13 +13,14 @@ Copyright (C) 2002 Aleksej Kozlov (Cat)
 interface
 
 uses
-  _Defines, _Streams, _Collect, _Views, _Menus;
+  _Defines, _Streams, _Collect, _Views, _Menus
+  ;
 
 type
   PUniWindow = ^TUniWindow;
   TUniWindow = object(TWindow)
     {function GetPalette: PPalette; virtual;}
-    function MakeScrollBar(AOptions: word): PScrollBar;
+    function MakeScrollBar(AOptions: Word): PScrollBar;
     {procedure InitFrame; virtual;}
     {function ReactOnCmd: Boolean; virtual;}
     end;
@@ -27,73 +28,71 @@ type
   PXFileEditor = ^TXFileEditor;
   TXFileEditor = object(TView)
     HScroll, VScroll: PScrollBar;
-    ReplaceAll: boolean;
+    ReplaceAll: Boolean;
     Delta: TPoint;
     EditName: String;
     FileLines: PLineCollection;
-    isValid: boolean;
-    Marking: boolean;
-    SmartPad: boolean;
-    ClipBrd: boolean;
+    isValid: Boolean;
+    Marking: Boolean;
+    SmartPad: Boolean;
+    ClipBrd: Boolean;
     OptMenu: PMenu;
     Mark, Sel: TRect;
     Pos, LastPos: TPoint;
     MarkPos: TPosArray;
-    WorkLine: longInt;
-    DrawMode: integer;
+    WorkLine: LongInt;
+    DrawMode: Integer;
     WorkString, LastShape: LongString;
     OldBlockValid, SearchOnDisplay,
     InsertMode, VertBlock, Modified,
     WorkModified, JustSaved, BlockVisible,
     SpecChar, WasDelete, MouseMark, UnMark,
     LineMarking, OptimalFill, RulerVisible,
-    EnableMarking, TabReplace, SearchActive: boolean;
+    EnableMarking, TabReplace, SearchActive: Boolean;
     UndoInfo: PCollection;
     RedoInfo: PCollection;
-    UndoTimes, LastSaveUndoTimes: longInt;
-    ChPosition: boolean;
+    UndoTimes, LastSaveUndoTimes: LongInt;
+    ChPosition: Boolean;
     Macros: PCollection;
     Locker: PStream;
-    LastDir: integer;
-    MemEnough: boolean;
+    LastDir: Integer;
+    MemEnough: Boolean;
     KeyMap: TKeyMap;
     EdOpt: TEditOptions;
     HiLitePar: THighliteParams;
     InfoL, BMrk: PView;
-    MenuItemStr: array[boolean] of PString;
+    MenuItemStr: array[Boolean] of PString;
     RegExp: Pointer {PRegExp};
-    Constructor Init(var Bounds: TRect; AHScrollBar, AVScrollBar:
-      PScrollBar; var FileName: String);
-    Constructor Load(var s: TStream);
+    constructor Init(var Bounds: TRect;
+         AHScrollBar, AVScrollBar: PScrollBar; var FileName: String);
+    constructor Load(var S: TStream);
     {destructor Done; virtual;}
-    procedure Store(var s: TStream);
+    procedure Store(var S: TStream);
     {procedure Awaken; virtual;}
-    procedure DoHighlite(var B; const s: LongString; const Attr:
-      String);
+    procedure DoHighlite(var B; const S: LongString; const Attr: String);
     {procedure HandleEvent(var Event: TEvent); virtual;}
     {procedure Draw; virtual;}
     {function Valid(Command: Word): Boolean; virtual;}
     {function GetPalette: PPalette; virtual;}
-    function GetLine(Index: longInt): LongString;
+    function GetLine(Index: LongInt): LongString;
     function GetSelection: PCollection;
     {procedure SetState(AState: Word; Enable: Boolean); virtual;}
-    function ValidBlock: boolean;
+    function ValidBlock: Boolean;
     procedure CalcMenu;
-    function Search(StartX, StartY: word): boolean;
-    procedure InsertBlock(ABlock: PCollection; SaveUndo: boolean);
-    procedure ModifyLine(Index: longInt; s: LongString; DelSpaces:
-      boolean);
+    function Search(StartX, StartY: Word): Boolean;
+    procedure InsertBlock(ABlock: PCollection; SaveUndo: Boolean);
+    procedure ModifyLine(Index: LongInt; S: LongString;
+         DelSpaces: Boolean);
     procedure SetLimits;
     {procedure ChangeBounds(var R: TRect); virtual;}
-    procedure ScrollTo(DeltaX, DeltaY: longInt);
-    function LimitX: longInt;
-    function LimitY: longInt;
-    procedure StoreUndoInfo(What: word; Where: TPoint; var Info);
-    function HandleCommand(var Event: TEvent): boolean; virtual;
-    function KeyMapConvertStr(s: LongString; toAscii: boolean):
-      LongString;
-    procedure KeyMapAtInsert(n: longInt; P: PLongString);
-    procedure KeyMapAtReplace(n: longInt; P: PLongString);
+    procedure ScrollTo(DeltaX, DeltaY: LongInt);
+    function LimitX: LongInt;
+    function LimitY: LongInt;
+    procedure StoreUndoInfo(What: Word; Where: TPoint; var Info);
+    function HandleCommand(var Event: TEvent): Boolean; virtual;
+    function KeyMapConvertStr(S: LongString; toAscii: Boolean): LongString;
+    procedure KeyMapAtInsert(N: LongInt; P: PLongString);
+    procedure KeyMapAtReplace(N: LongInt; P: PLongString);
     end;
 
   PEditWindow = ^TEditWindow;
@@ -103,10 +102,10 @@ type
     Intern: PXFileEditor;
     MenuBar: PMenuBar;
     UpMenu: PMenu;
-    ModalEnd: boolean;
-    Constructor Init(R: TRect; FileName: String);
-    Constructor Load(var s: TStream);
-    procedure Store(var s: TStream);
+    ModalEnd: Boolean;
+    constructor Init(R: TRect; FileName: String);
+    constructor Load(var S: TStream);
+    procedure Store(var S: TStream);
     {function Execute: Word; virtual;}
     {procedure SetState(AState: Word; Enable: Boolean); virtual;}
     end;
@@ -114,134 +113,132 @@ type
 implementation
 
 uses
-  _DNFuncs;
+  _DNFuncs
+  ;
 
-function TUniWindow.MakeScrollBar(AOptions: word): PScrollBar;
+function TUniWindow.MakeScrollBar(AOptions: Word): PScrollBar;
   begin
-    Result := PScrollBar(_TUniWindow^.MakeScrollBar(AOptions, @Self));
+  Result := PScrollBar(_TUniWindow^.MakeScrollBar(AOptions, @Self));
   end;
 
-Constructor TXFileEditor.Init(var Bounds: TRect; AHScrollBar,
-    AVScrollBar: PScrollBar; var FileName: String);
+constructor TXFileEditor.Init(var Bounds: TRect;
+     AHScrollBar, AVScrollBar: PScrollBar; var FileName: String);
   begin
-    _TXFileEditor^.Init(Bounds, _Model1.PScrollBar(AHScrollBar),
-      _Model1.PScrollBar(AVScrollBar), FileName, nil, @Self);
+  _TXFileEditor^.Init(Bounds, _Model1.PScrollBar(AHScrollBar),
+     _Model1.PScrollBar(AVScrollBar), FileName, nil, @Self);
   end;
 
-Constructor TXFileEditor.Load(var s: TStream);
+constructor TXFileEditor.Load(var S: TStream);
   begin
-    _TXFileEditor^.Load(_Model1.TStream(s), nil, @Self);
+  _TXFileEditor^.Load(_Model1.TStream(S), nil, @Self);
   end;
 
-procedure TXFileEditor.Store(var s: TStream);
+procedure TXFileEditor.Store(var S: TStream);
   begin
-    _TXFileEditor^.Store(_Model1.TStream(s), @Self);
+  _TXFileEditor^.Store(_Model1.TStream(S), @Self);
   end;
 
-procedure TXFileEditor.DoHighlite(var B; const s: LongString; const
-    Attr: String);
+procedure TXFileEditor.DoHighlite(var B; const S: LongString;
+     const Attr: String);
   begin
-    _TXFileEditor^.DoHighlite(B, s, Attr, @Self);
+  _TXFileEditor^.DoHighlite(B, S, Attr, @Self);
   end;
 
-function TXFileEditor.GetLine(Index: longInt): LongString;
+function TXFileEditor.GetLine(Index: LongInt): LongString;
   begin
-    Result := _TXFileEditor^.GetLine(Index, @Self);
+  Result := _TXFileEditor^.GetLine(Index, @Self);
   end;
 
 function TXFileEditor.GetSelection: PCollection;
   begin
-    Result := PCollection(_TXFileEditor^.GetSelection(@Self));
+  Result := PCollection(_TXFileEditor^.GetSelection(@Self));
   end;
 
-function TXFileEditor.ValidBlock: boolean;
+function TXFileEditor.ValidBlock: Boolean;
   begin
-    Result := _TXFileEditor^.ValidBlock(@Self);
+  Result := _TXFileEditor^.ValidBlock(@Self);
   end;
 
 procedure TXFileEditor.CalcMenu;
   begin
-    _TXFileEditor^.CalcMenu(@Self);
+  _TXFileEditor^.CalcMenu(@Self);
   end;
 
-function TXFileEditor.Search(StartX, StartY: word): boolean;
+function TXFileEditor.Search(StartX, StartY: Word): Boolean;
   begin
-    Result := _TXFileEditor^.Search(StartX, StartY, @Self);
+  Result := _TXFileEditor^.Search(StartX, StartY, @Self);
   end;
 
-procedure TXFileEditor.InsertBlock(ABlock: PCollection; SaveUndo:
-    boolean);
+procedure TXFileEditor.InsertBlock(ABlock: PCollection; SaveUndo: Boolean);
   begin
-    _TXFileEditor^.InsertBlock(_Model1.PCollection(ABlock), SaveUndo,
-      @Self);
+  _TXFileEditor^.InsertBlock(_Model1.PCollection(ABlock), SaveUndo, @Self);
   end;
 
-procedure TXFileEditor.ModifyLine(Index: longInt; s: LongString;
-    DelSpaces: boolean);
+procedure TXFileEditor.ModifyLine(Index: LongInt; S: LongString;
+     DelSpaces: Boolean);
   begin
-    _TXFileEditor^.ModifyLine(Index, s, DelSpaces, @Self);
+  _TXFileEditor^.ModifyLine(Index, S, DelSpaces, @Self);
   end;
 
 procedure TXFileEditor.SetLimits;
   begin
-    _TXFileEditor^.SetLimits(@Self);
+  _TXFileEditor^.SetLimits(@Self);
   end;
 
-procedure TXFileEditor.ScrollTo(DeltaX, DeltaY: longInt);
+procedure TXFileEditor.ScrollTo(DeltaX, DeltaY: LongInt);
   begin
-    _TXFileEditor^.ScrollTo(DeltaX, DeltaY, @Self);
+  _TXFileEditor^.ScrollTo(DeltaX, DeltaY, @Self);
   end;
 
-function TXFileEditor.LimitX: longInt;
+function TXFileEditor.LimitX: LongInt;
   begin
-    Result := _TXFileEditor^.LimitX(@Self);
+  Result := _TXFileEditor^.LimitX(@Self);
   end;
 
-function TXFileEditor.LimitY: longInt;
+function TXFileEditor.LimitY: LongInt;
   begin
-    Result := _TXFileEditor^.LimitY(@Self);
+  Result := _TXFileEditor^.LimitY(@Self);
   end;
 
-procedure TXFileEditor.StoreUndoInfo(What: word; Where: TPoint; var
-    Info);
+procedure TXFileEditor.StoreUndoInfo(What: Word; Where: TPoint; var Info);
   begin
-    _TXFileEditor^.StoreUndoInfo(What, Where, Info, @Self);
+  _TXFileEditor^.StoreUndoInfo(What, Where, Info, @Self);
   end;
 
-function TXFileEditor.HandleCommand(var Event: TEvent): boolean;
+function TXFileEditor.HandleCommand(var Event: TEvent): Boolean;
   assembler; {&Frame-}
 asm
 end;
 
-function TXFileEditor.KeyMapConvertStr(s: LongString; toAscii:
-    boolean): LongString;
+function TXFileEditor.KeyMapConvertStr(S: LongString; toAscii: Boolean)
+  : LongString;
   begin
-    Result := _TXFileEditor^.KeyMapConvertStr(s, toAscii, @Self);
+  Result := _TXFileEditor^.KeyMapConvertStr(S, toAscii, @Self);
   end;
 
-procedure TXFileEditor.KeyMapAtInsert(n: longInt; P: PLongString);
+procedure TXFileEditor.KeyMapAtInsert(N: LongInt; P: PLongString);
   begin
-    _TXFileEditor^.KeyMapAtInsert(n, P, @Self);
+  _TXFileEditor^.KeyMapAtInsert(N, P, @Self);
   end;
 
-procedure TXFileEditor.KeyMapAtReplace(n: longInt; P: PLongString);
+procedure TXFileEditor.KeyMapAtReplace(N: LongInt; P: PLongString);
   begin
-    _TXFileEditor^.KeyMapAtReplace(n, P, @Self);
+  _TXFileEditor^.KeyMapAtReplace(N, P, @Self);
   end;
 
-Constructor TEditWindow.Init(R: TRect; FileName: String);
+constructor TEditWindow.Init(R: TRect; FileName: String);
   begin
-    _TEditWindow^.Init(R, FileName, nil, @Self);
+  _TEditWindow^.Init(R, FileName, nil, @Self);
   end;
 
-Constructor TEditWindow.Load(var s: TStream);
+constructor TEditWindow.Load(var S: TStream);
   begin
-    _TEditWindow^.Load(_Model1.TStream(s), nil, @Self);
+  _TEditWindow^.Load(_Model1.TStream(S), nil, @Self);
   end;
 
-procedure TEditWindow.Store(var s: TStream);
+procedure TEditWindow.Store(var S: TStream);
   begin
-    _TEditWindow^.Store(_Model1.TStream(s), @Self);
+  _TEditWindow^.Store(_Model1.TStream(S), @Self);
   end;
 
 end.

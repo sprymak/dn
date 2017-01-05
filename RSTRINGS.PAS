@@ -53,22 +53,22 @@ interface
 
 uses
   Objects,
-  advance6,
-  Commands;
+  Advance6,
+  Commands
+  ;
 
 type
-  TOffsetType = longInt;
+  TOffsetType = LongInt;
 
   PIndexArray = ^TIndexArray;
-  TIndexArray = array[0..65520 div SizeOf(TOffsetType)-1] of
-    TOffsetType;
+  TIndexArray = array[0..65520 div SizeOf(TOffsetType)-1] of TOffsetType;
 
   PIdxResource = ^TIdxResource;
   TIdxResource = object(TObject)
     Stream: PStream;
     Index: PIndexArray;
     Count: AInt;
-    Constructor Init(AStream: PStream);
+    constructor Init(AStream: PStream);
     destructor Done; virtual;
     function Get(Key: TDlgIdx): PObject;
     end;
@@ -79,104 +79,106 @@ type
     TempStream: PBufStream;
     Index: PIndexArray;
     Count: AInt;
-    Constructor Init(AStream: PStream);
+    constructor Init(AStream: PStream);
     destructor Done; virtual;
     procedure Put(Item: PObject; Key: TDlgIdx);
-    function Empty(Key: TDlgIdx): boolean;
+    function Empty(Key: TDlgIdx): Boolean;
     end;
 
   {----------------------------------------------------------------------------}
-implementation uses
-  advance3, DNUtil;
+implementation
+uses
+  Advance3, DNUtil
+  ;
 {----------------------------------------------------------------------------}
 const
   TempStreamName = '$MAKERES.TMP';
 
-Constructor TIdxResource.Init;
+constructor TIdxResource.Init;
   begin
-    Stream := AStream;
-    AStream^.Read(Count, SizeOf(Count));
-    GetMem(Index, Count*SizeOf(TOffsetType));
-    AStream^.Read(Index^, Count*SizeOf(TOffsetType));
+  Stream := AStream;
+  AStream^.Read(Count, SizeOf(Count));
+  GetMem(Index, Count*SizeOf(TOffsetType));
+  AStream^.Read(Index^, Count*SizeOf(TOffsetType));
   end;
 
 destructor TIdxResource.Done;
   begin
-    FreeMem(Index, Count*SizeOf(TOffsetType));
-    Dispose(Stream, Done);
+  FreeMem(Index, Count*SizeOf(TOffsetType));
+  Dispose(Stream, Done);
   end;
 
 function TIdxResource.Get;
 
   procedure Chk;
     begin
-      if Stream^.Status <> stOK then
-        ResourceAccessError
+    if Stream^.Status <> stOK then
+      ResourceAccessError
     end;
 
   begin
-    Chk;
-    Stream^.Seek(Index^[integer(Key)]);
-    Chk;
-    Get := Stream^.Get;
-    Chk;
+  Chk;
+  Stream^.Seek(Index^[Integer(Key)]);
+  Chk;
+  Get := Stream^.Get;
+  Chk;
   end;
 
-Constructor TIdxMaker.Init;
+constructor TIdxMaker.Init;
   begin
-    New(TempStream, Init(TempStreamName, stCreate, 1024));
-    Stream := AStream;
-    Count := 0;
-    GetMem(Index, 65520);
-    FillChar(Index^, 65520, $FF);
+  New(TempStream, Init(TempStreamName, stCreate, 1024));
+  Stream := AStream;
+  Count := 0;
+  GetMem(Index, 65520);
+  FillChar(Index^, 65520, $FF);
   end;
 
 procedure TIdxMaker.Put;
   begin
-    if Count <= integer(Key) then
-      Count := integer(Key)+1;
-    Index^[integer(Key)] := TempStream^.GetPos;
-    TempStream^.Put(Item);
-    if TempStream^.Status <> stOK then
-      begin
-        Writeln('Cannot write object #', integer(Key));
-        Halt(2);
-      end;
+  if Count <= Integer(Key) then
+    Count := Integer(Key)+1;
+  Index^[Integer(Key)] := TempStream^.GetPos;
+  TempStream^.Put(Item);
+  if TempStream^.Status <> stOK then
+    begin
+    Writeln('Cannot write object #', Integer(Key));
+    Halt(2);
+    end;
   end;
 
 function TIdxMaker.Empty;
   begin
-    Empty := Index^[integer(Key)] = -1
+  Empty := Index^[Integer(Key)] = -1
   end;
 
 destructor TIdxMaker.Done;
   var
-    i: longInt;
-    IdxSize: longInt;
-    MaxPos: longInt;
-    B: byte;
+    I: LongInt;
+    IdxSize: LongInt;
+    MaxPos: LongInt;
+    B: Byte;
     F: file;
   begin
-    IdxSize := Count*SizeOf(TOffsetType);
-    for i := 0 to Count-1 do
-      Inc(Index^[i], IdxSize+SizeOf(Count));
-    Stream^.Write(Count, SizeOf(Count));
-    Stream^.Write(Index^, Count*SizeOf(TOffsetType));
-    MaxPos := TempStream^.GetPos;
-    TempStream^.Seek(0);
-    for i := 0 to MaxPos do
-      begin
-        TempStream^.Read(B, 1);
-        Stream^.Write(B, 1);
-      end;
-    if Stream^.Status <> stOK then
-      Writeln('Status is invalid');
-    Dispose(Stream, Done);
-    Dispose(TempStream, Done);
-    FreeMem(Index, 65520);
-    Assign(F, TempStreamName);
-    Erase(F);
-    inherited Done;
+  IdxSize := Count*SizeOf(TOffsetType);
+  for I := 0 to Count-1 do
+    Inc(Index^[I], IdxSize+SizeOf(Count));
+  Stream^.Write(Count, SizeOf(Count));
+  Stream^.Write(Index^, Count*SizeOf(TOffsetType));
+  MaxPos := TempStream^.GetPos;
+  TempStream^.Seek(0);
+  for I := 0 to MaxPos do
+    begin
+    TempStream^.Read(B, 1);
+    Stream^.Write(B, 1);
+    end;
+  if Stream^.Status <> stOK then
+    Writeln('Status is invalid');
+  Dispose(Stream, Done);
+  Dispose(TempStream, Done);
+  FreeMem(Index, 65520);
+  Assign(F, TempStreamName);
+  Erase(F);
+  inherited Done;
   end { TIdxMaker.Done };
 
 end.

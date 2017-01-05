@@ -47,27 +47,29 @@
 {$I STDEFINE.INC}
 {Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
 
-unit advance6;
+unit Advance6;
 
 interface
 
 uses
-  Objects;
+  Objects
+  ;
 
 procedure InitUpcase;
 procedure MakeCRCTable;
-function GetLineNumberForOffset(const FName: String; Offset: longInt):
-  longInt;
-function GetOffsetForLineNumber(const FName: String; LineNm: longInt):
-  longInt;
+function GetLineNumberForOffset(const FName: String; Offset: LongInt)
+  : LongInt;
+function GetOffsetForLineNumber(const FName: String; LineNm: LongInt)
+  : LongInt;
 procedure ResourceAccessError;
-function HotKey(const s: String): Char;
+function HotKey(const S: String): Char;
 
 implementation
 uses
   {Cat}U_KeyMap, {/Cat}
   VpSysLow,
-  advance, Lfn, VideoMan;
+  Advance, Lfn, VideoMan
+  ;
 
 procedure InitUpcase;
   var
@@ -77,161 +79,159 @@ procedure InitUpcase;
     AnsiDecodeChars: array[Char] of Char;
     {/Cat}
   begin
-    Move(CountryInfo.UpperTable, UpCaseArray[#128], 128);
-    Move(CountryInfo.UpperTable, LowCaseArray[#128], 128);
-    for C := #128 to#255 do
+  Move(CountryInfo.UpperTable, UpCaseArray[#128], 128);
+  Move(CountryInfo.UpperTable, LowCaseArray[#128], 128);
+  for C := #128 to #255 do
+    begin
+    if  (UpCaseArray[C] <> C) and (UpCaseArray[C] > #127) then
       begin
-        if (UpCaseArray[C] <> C) and (UpCaseArray[C] > #127) then
-          begin
-            LowCaseArray[UpCaseArray[C]] := C;
-            LowCaseArray[C] := C;
-          end;
+      LowCaseArray[UpCaseArray[C]] := C;
+      LowCaseArray[C] := C;
       end;
-    {Cat}
-    for C := #0 to#255 do
-      begin
-        Koi8rDecodeChars[Koi8rAllChars[byte(C)]] := C;
-        AnsiDecodeChars[AnsiAllChars[byte(C)]] := C;
-      end;
-    for C := #0 to#255 do
-      begin
-        UpCaseArray_Ascii_Koi8r[Koi8rAllChars[byte(C)]] :=
-          Koi8rAllChars[byte(UpCaseArray[C])];
-        UpCaseArray_Ascii_Ansi[AnsiAllChars[byte(C)]] :=
-          AnsiAllChars[byte(UpCaseArray[C])];
-        UpCaseArray_Koi8r_Ascii[Koi8rDecodeChars[C]] :=
-          Koi8rDecodeChars[UpCaseArray[C]];
-        UpCaseArray_Ansi_Ascii[AnsiDecodeChars[C]] :=
-          AnsiDecodeChars[UpCaseArray[C]];
-        UpCaseArray_Ascii_Koi8r_Ansi_Ascii[AnsiDecodeChars[
-          Koi8rAllChars[byte(C)]]] := AnsiDecodeChars[Koi8rAllChars[
-          byte(UpCaseArray[C])]];
-        UpCaseArray_Ascii_Ansi_Koi8r_Ascii[Koi8rDecodeChars[
-          AnsiAllChars[byte(C)]]] := Koi8rDecodeChars[AnsiAllChars[
-          byte(UpCaseArray[C])]];
-      end;
-    {/Cat}
+    end;
+  {Cat}
+  for C := #0 to #255 do
+    begin
+    Koi8rDecodeChars[Koi8rAllChars[Byte(C)]] := C;
+    AnsiDecodeChars[AnsiAllChars[Byte(C)]] := C;
+    end;
+  for C := #0 to #255 do
+    begin
+    UpCaseArray_Ascii_Koi8r[Koi8rAllChars[Byte(C)
+        ]] := Koi8rAllChars[Byte(UpCaseArray[C])];
+    UpCaseArray_Ascii_Ansi[AnsiAllChars[Byte(C)
+        ]] := AnsiAllChars[Byte(UpCaseArray[C])];
+    UpCaseArray_Koi8r_Ascii[Koi8rDecodeChars[C]] :=
+       Koi8rDecodeChars[UpCaseArray[C]];
+    UpCaseArray_Ansi_Ascii[AnsiDecodeChars[C]] :=
+       AnsiDecodeChars[UpCaseArray[C]];
+    UpCaseArray_Ascii_Koi8r_Ansi_Ascii[AnsiDecodeChars[Koi8rAllChars[Byte
+      (C)]]] := AnsiDecodeChars[Koi8rAllChars[Byte(UpCaseArray[C])]];
+    UpCaseArray_Ascii_Ansi_Koi8r_Ascii[Koi8rDecodeChars[AnsiAllChars[Byte
+      (C)]]] := Koi8rDecodeChars[AnsiAllChars[Byte(UpCaseArray[C])]];
+    end;
+  {/Cat}
   end { InitUpcase };
 
-function GetLineNumberForOffset(const FName: String; Offset: longInt):
-    longInt;
+function GetLineNumberForOffset(const FName: String; Offset: LongInt)
+  : LongInt;
   var
     F: lFile;
-    Q: PByteArray;
-    bl: integer;
-    ln: longInt;
-    fp: longInt;
-    bp: longInt;
+    q: PByteArray;
+    bl: Integer;
+    ln: LongInt;
+    fp: LongInt;
+    bp: LongInt;
   begin
-    GetMem(Q, 4096);
-    lAssignFile(F, FName);
-    ln := 1;
-    fp := 0;
-    lResetFileReadOnly(F, 1);
+  GetMem(q, 4096);
+  lAssignFile(F, FName);
+  ln := 1;
+  fp := 0;
+  lResetFileReadOnly(F, 1);
+  repeat
+    BlockRead(F.F, q^, 4096, bl);
+    bp := 0;
     repeat
-      BlockRead(F.F, Q^, 4096, bl);
-      bp := 0;
-      repeat
-        if Q^[bp] = 10 then
-          Inc(ln);
-        Inc(bp);
-        Inc(fp);
-      until (bp >= bl) or (fp >= Offset)
-    until fp >= Offset;
-    GetLineNumberForOffset := ln;
-    Close(F.F);
-    FreeMem(Q, 4096);
+      if q^[bp] = 10 then
+        Inc(ln);
+      Inc(bp);
+      Inc(fp);
+    until (bp >= bl) or (fp >= Offset)
+  until fp >= Offset;
+  GetLineNumberForOffset := ln;
+  Close(F.F);
+  FreeMem(q, 4096);
   end { GetLineNumberForOffset };
 
-function GetOffsetForLineNumber(const FName: String; LineNm: longInt):
-    longInt;
+function GetOffsetForLineNumber(const FName: String; LineNm: LongInt)
+  : LongInt;
   var
     F: lFile;
-    Q: PByteArray;
-    bl: integer;
-    ln: longInt;
-    fp: longInt;
-    bp: longInt;
+    q: PByteArray;
+    bl: Integer;
+    ln: LongInt;
+    fp: LongInt;
+    bp: LongInt;
   begin
-    GetMem(Q, 4096);
-    lAssignFile(F, FName);
-    ln := 1;
-    fp := 0;
-    lResetFileReadOnly(F, 1);
+  GetMem(q, 4096);
+  lAssignFile(F, FName);
+  ln := 1;
+  fp := 0;
+  lResetFileReadOnly(F, 1);
+  repeat
+    BlockRead(F.F, q^, 4096, bl);
+    bp := 0;
     repeat
-      BlockRead(F.F, Q^, 4096, bl);
-      bp := 0;
-      repeat
-        if Q^[bp] = 10 then
-          Inc(ln);
-        Inc(bp);
-        Inc(fp);
-      until (bp >= bl) or (ln >= LineNm);
-    until (ln >= LineNm) or Eof(F.F);
-    if ln >= LineNm
-    then
-      GetOffsetForLineNumber := fp
-    else
-      GetOffsetForLineNumber := -1;
-    Close(F.F);
-    FreeMem(Q, 4096);
+      if q^[bp] = 10 then
+        Inc(ln);
+      Inc(bp);
+      Inc(fp);
+    until (bp >= bl) or (ln >= LineNm);
+  until (ln >= LineNm) or Eof(F.F);
+  if ln >= LineNm
+  then
+    GetOffsetForLineNumber := fp
+  else
+    GetOffsetForLineNumber := -1;
+  Close(F.F);
+  FreeMem(q, 4096);
   end { GetOffsetForLineNumber };
 
 procedure ResourceAccessError;
   begin
-    {Cat}
-    if IOResult <> 0 then
-      ;
-    ClearScreen;
-    Writeln('Resource access error');
-    SysTVInitCursor;
-    Halt(219);
-    {/Cat}
-    {RunError(219);}
+  {Cat}
+  if IOResult <> 0 then
+    ;
+  ClearScreen;
+  Writeln('Resource access error');
+  SysTVInitCursor;
+  Halt(219);
+  {/Cat}
+  {RunError(219);}
   end;
 
-function HotKey(const s: String): Char;
+function HotKey(const S: String): Char;
   var
-    P: word;
+    P: Word;
   begin
-    P := Pos('~', s);
-    if P <> 0 then
-      HotKey := UpCaseArray[s[P+1]]
-    else
-      HotKey := #0;
+  P := Pos('~', S);
+  if P <> 0 then
+    HotKey := UpCaseArray[S[P+1]]
+  else
+    HotKey := #0;
   end;
 
 procedure MakeCRCTable;
   var
-    C: longInt;
-    n, k: integer;
-    poly: longInt; { polynomial exclusive-or pattern }
+    c: LongInt;
+    n, k: Integer;
+    poly: LongInt; { polynomial exclusive-or pattern }
 
   const
     { terms of polynomial defining this crc (except x^32): }
-    P: array[0..13] of byte = (0, 1, 2, 4, 5, 7, 8, 10, 11, 12, 16, 22,
-      23, 26);
+    p: array[0..13] of Byte = (0, 1, 2, 4, 5, 7, 8, 10, 11, 12, 16, 22,
+       23, 26);
 
   begin
-    New(Crc_Table);
-    { make exclusive-or pattern from polynomial ($EDB88320) }
-    poly := 0;
-    for n := 0 to(SizeOf(P) div SizeOf(byte))-1 do
-      poly := poly or (longInt(1) shl (31-P[n]));
+  New(Crc_Table);
+  { make exclusive-or pattern from polynomial ($EDB88320) }
+  poly := 0;
+  for n := 0 to (SizeOf(p) div SizeOf(Byte))-1 do
+    poly := poly or (LongInt(1) shl (31-p[n]));
 
-    for n := 0 to 255 do
+  for n := 0 to 255 do
+    begin
+    c := n;
+    for k := 0 to 7 do
       begin
-        C := n;
-        for k := 0 to 7 do
-          begin
-            if (C and 1) <> 0 then
-              C := poly xor (C shr 1)
-            else
-              C := (C shr 1);
-          end;
-        Crc_Table^[n] := C;
+      if  (c and 1) <> 0 then
+        c := poly xor (c shr 1)
+      else
+        c := (c shr 1);
       end;
-    crc_table_empty := False;
+    Crc_Table^[n] := c;
+    end;
+  Crc_Table_Empty := False;
   end { MakeCRCTable };
 
 end.

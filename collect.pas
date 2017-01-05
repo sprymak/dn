@@ -65,7 +65,8 @@ unit Collect;
 interface
 
 uses
-  Objects;
+  Objects
+  ;
 
 const
   MaxCollectionSize = MaxBytes div SizeOf(Pointer);
@@ -85,35 +86,35 @@ type
   TCollection = object(TObject)
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Items: PItemList;
-    Count: longInt;
-    Limit: longInt;
-    Delta: longInt;
-    Status, ErrorInfo: integer; {!!! в OldColection}
-    Constructor Init(ALimit, ADelta: longInt);
-    Constructor Load(var s: TStream);
+    Count: LongInt;
+    Limit: LongInt;
+    Delta: LongInt;
+    Status, ErrorInfo: Integer; {!!! в OldColection}
+    constructor Init(ALimit, ADelta: LongInt);
+    constructor Load(var S: TStream);
     destructor Done; virtual;
-    function At(Index: longInt): Pointer;
-    procedure AtDelete(Index: longInt);
-    procedure AtFree(Index: longInt);
-    procedure AtInsert(Index: longInt; Item: Pointer);
-    procedure AtPut(Index: longInt; Item: Pointer);
-    procedure AtReplace(Index: longInt; Item: Pointer);
+    function At(Index: LongInt): Pointer;
+    procedure AtDelete(Index: LongInt);
+    procedure AtFree(Index: LongInt);
+    procedure AtInsert(Index: LongInt; Item: Pointer);
+    procedure AtPut(Index: LongInt; Item: Pointer);
+    procedure AtReplace(Index: LongInt; Item: Pointer);
     procedure Delete(Item: Pointer);
     procedure DeleteAll;
-    procedure Error(Code, Info: integer); virtual;
+    procedure Error(Code, Info: Integer); virtual;
     function FirstThat(Test: Pointer): Pointer;
     procedure ForEach(Action: Pointer);
     procedure Free(Item: Pointer);
     procedure FreeAll;
     procedure FreeItem(Item: Pointer); virtual;
-    function GetItem(var s: TStream): Pointer; virtual;
-    function IndexOf(Item: Pointer): longInt; virtual;
+    function GetItem(var S: TStream): Pointer; virtual;
+    function IndexOf(Item: Pointer): LongInt; virtual;
     procedure Insert(Item: Pointer); virtual;
     function LastThat(Test: Pointer): Pointer;
     procedure Pack;
-    procedure PutItem(var s: TStream; Item: Pointer); virtual;
-    procedure SetLimit(ALimit: longInt); virtual;
-    procedure Store(var s: TStream);
+    procedure PutItem(var S: TStream; Item: Pointer); virtual;
+    procedure SetLimit(ALimit: LongInt); virtual;
+    procedure Store(var S: TStream);
     end;
 
   { TSortedCollection object }
@@ -121,19 +122,18 @@ type
   PSortedCollection = ^TSortedCollection;
   TSortedCollection = object(TCollection)
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
-    Duplicates: boolean;
-    Constructor Init(ALimit, ADelta: longInt);
-    Constructor Load(var s: TStream);
-    function Compare(Key1, Key2: Pointer): integer; virtual;
-    function IndexOf(Item: Pointer): longInt; virtual;
+    Duplicates: Boolean;
+    constructor Init(ALimit, ADelta: LongInt);
+    constructor Load(var S: TStream);
+    function Compare(Key1, Key2: Pointer): Integer; virtual;
+    function IndexOf(Item: Pointer): LongInt; virtual;
     procedure Insert(Item: Pointer); virtual;
     function KeyOf(Item: Pointer): Pointer; virtual;
-    function Search(Key: Pointer; var Index: longInt): boolean;
-      virtual;
-    procedure Store(var s: TStream);
+    function Search(Key: Pointer; var Index: LongInt): Boolean; virtual;
+    procedure Store(var S: TStream);
     procedure Sort;
     procedure QSort;
-    procedure QuickSort(l, R: longInt);
+    procedure QuickSort(L, R: LongInt);
     end;
 
   { TLineCollection }
@@ -141,12 +141,12 @@ type
   PLineCollection = ^TLineCollection;
   TLineCollection = object(TCollection)
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
-    LongStrings: boolean; {Cat}
-    Constructor Init(ALimit, ADelta: longInt; ALongStrings: boolean);
-      {Cat}
+    LongStrings: Boolean; {Cat}
+    constructor Init(ALimit, ADelta: LongInt; ALongStrings: Boolean);
+    {Cat}
     procedure FreeItem(P: Pointer); virtual;
-    procedure PutItem(var s: TStream; Item: Pointer); virtual;
-    function GetItem(var s: TStream): Pointer; virtual;
+    procedure PutItem(var S: TStream; Item: Pointer); virtual;
+    function GetItem(var S: TStream): Pointer; virtual;
     end;
 
   { TStringCollection object }
@@ -154,13 +154,13 @@ type
   PStringCollection = ^TStringCollection;
   TStringCollection = object(TSortedCollection)
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
-    LongStrings: boolean; {Cat}
-    Constructor Init(ALimit, ADelta: longInt; ALongStrings: boolean);
-      {Cat}
-    function Compare(Key1, Key2: Pointer): integer; virtual;
+    LongStrings: Boolean; {Cat}
+    constructor Init(ALimit, ADelta: LongInt; ALongStrings: Boolean);
+    {Cat}
+    function Compare(Key1, Key2: Pointer): Integer; virtual;
     procedure FreeItem(Item: Pointer); virtual;
-    function GetItem(var s: TStream): Pointer; virtual;
-    procedure PutItem(var s: TStream; Item: Pointer); virtual;
+    function GetItem(var S: TStream): Pointer; virtual;
+    procedure PutItem(var S: TStream; Item: Pointer); virtual;
     end;
 
   { TStrCollection object }
@@ -168,10 +168,10 @@ type
   PStrCollection = ^TStrCollection;
   TStrCollection = object(TSortedCollection)
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
-    function Compare(Key1, Key2: Pointer): integer; virtual;
+    function Compare(Key1, Key2: Pointer): Integer; virtual;
     procedure FreeItem(Item: Pointer); virtual;
-    function GetItem(var s: TStream): Pointer; virtual;
-    procedure PutItem(var s: TStream; Item: Pointer); virtual;
+    function GetItem(var S: TStream): Pointer; virtual;
+    procedure PutItem(var S: TStream; Item: Pointer); virtual;
     end;
 
   { TUnSortedStrCollection - UNSORTED STRING COLLECTION OBJECT }
@@ -227,22 +227,22 @@ type
 
   PStringList = ^TStringList;
   TStringList = object(TObject)
-    Constructor Load(var s: TStream);
+    constructor Load(var S: TStream);
     destructor Done; virtual;
     function Get(Key: AWord): String;
-    private
+  private
     Stream: PStream;
-    BasePos: longInt;
+    BasePos: LongInt;
     IndexSize: AWord;
     Index: PStrIndex;
-    procedure ReadStr(var s: String; Offset, Skip: AWord);
+    procedure ReadStr(var S: String; Offset, Skip: AWord);
     end;
 
   {-DataCompBoy-}
 type
   PDirCol = ^TDirCol;
   TDirCol = object(TStringCollection)
-    function Compare(Key1, Key2: Pointer): integer; virtual;
+    function Compare(Key1, Key2: Pointer): Integer; virtual;
     end;
   {-DataCompBoy-}
 
@@ -250,180 +250,179 @@ implementation
 uses
   Memory,
   Strings,
-  advance1
+  Advance1
   ;
 
-Constructor TCollection.Init(ALimit, ADelta: longInt);
+constructor TCollection.Init(ALimit, ADelta: LongInt);
   begin
-    inherited Init;
-    Delta := ADelta;
-    SetLimit(ALimit);
+  inherited Init;
+  Delta := ADelta;
+  SetLimit(ALimit);
   end;
 
-Constructor TCollection.Load(var s: TStream);
+constructor TCollection.Load(var S: TStream);
   var
-    C, i: longInt;
+    C, I: LongInt;
   begin
-    TObject.Init;
-    s.Read(Count, SizeOf(Count));
-    s.Read(Limit, SizeOf(Limit));
-    s.Read(Delta, SizeOf(Delta));
-    if (Count > Limit) or (Delta < 0) then
-      Fail;
-    C := Count;
-    i := Limit;
-    Count := 0;
-    Limit := 0;
-    SetLimit(i);
-    for i := 0 to C-1 do
+  TObject.Init;
+  S.Read(Count, SizeOf(Count));
+  S.Read(Limit, SizeOf(Limit));
+  S.Read(Delta, SizeOf(Delta));
+  if  (Count > Limit) or (Delta < 0) then
+    Fail;
+  C := Count;
+  I := Limit;
+  Count := 0;
+  Limit := 0;
+  SetLimit(I);
+  for I := 0 to C-1 do
+    begin
+    AtInsert(I, GetItem(S));
+    if  (S.Status <> stOK) then
       begin
-        AtInsert(i, GetItem(s));
-        if (s.Status <> stOK) then
-          begin
-            SetLimit(0);
-            Fail;
-          end;
+      SetLimit(0);
+      Fail;
       end;
+    end;
   end { TCollection.Load };
 
-function TCollection.At(Index: longInt): Pointer;
+function TCollection.At(Index: LongInt): Pointer;
   begin
-    if (Index < 0) or (Index >= Count) or (Items = nil)
-    then
-      begin
-        Error(coIndexError, Index);
-        At := nil;
-      end
-    else
-      At := Items^[Index];
+  if  (Index < 0) or (Index >= Count) or (Items = nil)
+  then
+    begin
+    Error(coIndexError, Index);
+    At := nil;
+    end
+  else
+    At := Items^[Index];
   end;
 
-procedure TCollection.AtDelete(Index: longInt);
+procedure TCollection.AtDelete(Index: LongInt);
   begin
-    if (Index >= 0) and (Index < Count) and (Items <> nil) then
-      begin
-        Dec(Count);
-        if Count > Index then
-          Move(Items^[Index+1], Items^[Index], (Count-Index)*SizeOf(
-            Pointer));
-      end
-    else
-      Error(coIndexError, Index);
+  if  (Index >= 0) and (Index < Count) and (Items <> nil) then
+    begin
+    Dec(Count);
+    if Count > Index then
+      Move(Items^[Index+1], Items^[Index], (Count-Index)*SizeOf(Pointer));
+    end
+  else
+    Error(coIndexError, Index);
   end;
 
-procedure TCollection.AtInsert(Index: longInt; Item: Pointer);
+procedure TCollection.AtInsert(Index: LongInt; Item: Pointer);
   var
-    i: longInt;
+    I: LongInt;
   begin
-    if (Index >= 0) and (Index <= Count) then
+  if  (Index >= 0) and (Index <= Count) then
+    begin
+    if Count = Limit then
+      SetLimit(Limit+Delta);
+    if Limit > Count then
       begin
-        if Count = Limit then
-          SetLimit(Limit+Delta);
-        if Limit > Count then
-          begin
-            if Index < Count then
-              for i := Count-1 downto Index do
-                Items^[i+1] := Items^[i];
-            Items^[Index] := Item;
-            Inc(Count);
-          end
-        else
-          Error(coOverflow, Index);
+      if Index < Count then
+        for I := Count-1 downto Index do
+          Items^[I+1] := Items^[I];
+      Items^[Index] := Item;
+      Inc(Count);
       end
     else
-      Error(coIndexError, Index);
-  end { TCollection.AtInsert };
-
-procedure TCollection.AtPut(Index: longInt; Item: Pointer);
-  begin
-    if (Index >= 0) and (Index < Count) and (Items <> nil)
-    then
-      Items^[Index] := Item
-    else
-      Error(coIndexError, Index);
+      Error(coOverflow, Index);
+    end
+  else
+    Error(coIndexError, Index);
   end;
 
-procedure TCollection.SetLimit(ALimit: longInt);
+procedure TCollection.AtPut(Index: LongInt; Item: Pointer);
+  begin
+  if  (Index >= 0) and (Index < Count) and (Items <> nil)
+  then
+    Items^[Index] := Item
+  else
+    Error(coIndexError, Index);
+  end;
+
+procedure TCollection.SetLimit(ALimit: LongInt);
   var
     AItems: PItemList;
   begin
-    if ALimit < Count then
-      ALimit := Count;
-    if ALimit > MaxCollectionSize then
-      ALimit := MaxCollectionSize;
-    if ALimit <> Limit then
+  if ALimit < Count then
+    ALimit := Count;
+  if ALimit > MaxCollectionSize then
+    ALimit := MaxCollectionSize;
+  if ALimit <> Limit then
+    begin
+    if ALimit = 0 then
+      AItems := nil
+    else
       begin
-        if ALimit = 0 then
-          AItems := nil
-        else
-          begin
-            GetMem(AItems, ALimit*SizeOf(Pointer));
-            if (AItems <> nil) then
-              FillChar(AItems^, ALimit*SizeOf(Pointer), #0);
-          end;
-        if (AItems <> nil) or (ALimit = 0) then
-          begin
-            if (AItems <> nil) and (Items <> nil) and (Count <> 0)
-            then
-              Move(Items^, AItems^, Count*SizeOf(Pointer));
-            if (Limit <> 0) and (Items <> nil) then
-              FreeMem(Items, Limit*SizeOf(Pointer));
-          end;
-        Items := AItems;
-        Limit := ALimit;
+      GetMem(AItems, ALimit*SizeOf(Pointer));
+      if  (AItems <> nil) then
+        FillChar(AItems^, ALimit*SizeOf(Pointer), #0);
       end;
+    if  (AItems <> nil) or (ALimit = 0) then
+      begin
+      if  (AItems <> nil) and (Items <> nil) and (Count <> 0) then
+        Move(Items^, AItems^, Count*SizeOf(Pointer));
+      if  (Limit <> 0) and (Items <> nil) then
+        FreeMem(Items, Limit*SizeOf(Pointer));
+      end;
+    Items := AItems;
+    Limit := ALimit;
+    end;
   end { TCollection.SetLimit };
 
 destructor TCollection.Done;
   begin
-    FreeAll;
-    SetLimit(0);
+  FreeAll;
+  SetLimit(0);
   end;
 
-procedure TCollection.AtFree(Index: longInt);
+procedure TCollection.AtFree(Index: LongInt);
   var
     Item: Pointer;
   begin
-    Item := At(Index);
-    AtDelete(Index);
-    FreeItem(Item);
+  Item := At(Index);
+  AtDelete(Index);
+  FreeItem(Item);
   end;
 
 procedure TCollection.AtReplace;
   var
     P: Pointer;
   begin
-    if (Limit < Index) and (Delta > 0) then
-      SetLimit(Index+1);
-    while Count < (Index+1) do
-      Insert(nil);
-    P := At(Index);
-    AtPut(Index, Item);
-    if P <> nil then
-      FreeItem(P);
+  if  (Limit < Index) and (Delta > 0) then
+    SetLimit(Index+1);
+  while Count < (Index+1) do
+    Insert(nil);
+  P := At(Index);
+  AtPut(Index, Item);
+  if P <> nil then
+    FreeItem(P);
   end;
 
 procedure TCollection.Delete(Item: Pointer);
   begin
-    AtDelete(IndexOf(Item));
+  AtDelete(IndexOf(Item));
   end;
 
 procedure TCollection.DeleteAll;
   begin
-    if @Self <> nil then
-      Count := 0;
+  if @Self <> nil then
+    Count := 0;
   end;
 
-procedure TCollection.Error(Code, Info: integer);
+procedure TCollection.Error(Code, Info: Integer);
   begin
-    Status := Code;
-    ErrorInfo := Info;
-    {RunError(212 - Code);}
+  Status := Code;
+  ErrorInfo := Info;
+  {RunError(212 - Code);}
   end;
 
 {AK155: replace with TCollection.FirstThat from VP2.1 Objects.pas }
-function TCollection.FirstThat(Test: Pointer): Pointer; assembler;
-    {$USES ebx} {$FRAME-}
+function TCollection.FirstThat(Test: Pointer): Pointer;
+  assembler; {$USES ebx}
+  {$FRAME-}
 asm
                 mov     edx,Self
                 mov     ecx,[edx].TCollection.Count
@@ -446,12 +445,12 @@ asm
                 mov     ecx,[edx]
               @@3:
                 mov     eax,ecx
-end
-  ; {/AK155}
+end; {/AK155}
 
 {AK155: pick ForEach from VP 2.1.231 RTL source}
-procedure TCollection.ForEach(Action: Pointer); assembler;
-    {$USES ebx} {$FRAME-}
+procedure TCollection.ForEach(Action: Pointer);
+  assembler; {$USES ebx}
+  {$FRAME-}
 asm
                 mov     edx,Self
                 mov     ecx,[edx].TCollection.Count
@@ -468,54 +467,54 @@ asm
                 add     edx,4
                 loop    @@1
               @@2:
-end
-  ; {/AK155}
+end; {/AK155}
 
 procedure TCollection.Free(Item: Pointer);
   begin
-    Delete(Item);
-    FreeItem(Item);
+  Delete(Item);
+  FreeItem(Item);
   end;
 
 procedure TCollection.FreeAll;
   var
-    i: longInt;
+    I: LongInt;
   begin
-    for i := Count-1 downto 0 do
-      FreeItem(At(i));
-    Count := 0;
+  for I := Count-1 downto 0 do
+    FreeItem(At(I));
+  Count := 0;
   end;
 
 procedure TCollection.FreeItem(Item: Pointer);
   begin
-    FreeObject(Item);
+  FreeObject(Item);
   end;
 
-function TCollection.GetItem(var s: TStream): Pointer;
+function TCollection.GetItem(var S: TStream): Pointer;
   begin
-    GetItem := s.Get;
+  GetItem := S.Get;
   end;
 
-function TCollection.IndexOf(Item: Pointer): longInt;
+function TCollection.IndexOf(Item: Pointer): LongInt;
   var
-    i: longInt;
+    I: LongInt;
   begin
-    IndexOf := -1;
-    for i := 0 to Count-1 do
-      if At(i) = Item then
-        begin
-          IndexOf := i;
-          break;
-        end;
+  IndexOf := -1;
+  for I := 0 to Count-1 do
+    if At(I) = Item then
+      begin
+      IndexOf := I;
+      Break;
+      end;
   end;
 
 procedure TCollection.Insert(Item: Pointer);
   begin
-    AtInsert(Count, Item);
+  AtInsert(Count, Item);
   end;
 
-function TCollection.LastThat(Test: Pointer): Pointer; assembler;
-    {$USES ebx} {$FRAME-} {AK155}
+function TCollection.LastThat(Test: Pointer): Pointer;
+  assembler; {$USES ebx}
+  {$FRAME-} {AK155}
 asm
                 mov     edx,Self
                 mov     ecx,[edx].TCollection.Count
@@ -540,277 +539,276 @@ asm
               @@3:
                 mov     eax,ecx
 
-end
-  ; {/AK155}
+end; {/AK155}
 
 procedure TCollection.Pack;
   var
-    i: longInt;
+    I: LongInt;
   begin
-    for i := Count-1 downto 0 do
-      if At(i) = nil then
-        AtDelete(i);
+  for I := Count-1 downto 0 do
+    if At(I) = nil then
+      AtDelete(I);
   end;
 
-procedure TCollection.PutItem(var s: TStream; Item: Pointer);
+procedure TCollection.PutItem(var S: TStream; Item: Pointer);
   begin
-    s.Put(Item);
+  S.Put(Item);
   end;
 
-procedure TCollection.Store(var s: TStream);
+procedure TCollection.Store(var S: TStream);
   procedure DoPutItem(P: Pointer);
     begin
-      PutItem(s, P);
+    PutItem(S, P);
     end;
   begin
-    s.Write(Count, SizeOf(Count));
-    s.Write(Limit, SizeOf(Limit));
-    s.Write(Delta, SizeOf(Delta));
-    ForEach(@DoPutItem);
+  S.Write(Count, SizeOf(Count));
+  S.Write(Limit, SizeOf(Limit));
+  S.Write(Delta, SizeOf(Delta));
+  ForEach(@DoPutItem);
   end;
 
 { TSortedCollection }
 
-Constructor TSortedCollection.Init(ALimit, ADelta: longInt);
+constructor TSortedCollection.Init(ALimit, ADelta: LongInt);
   begin
-    TCollection.Init(ALimit, ADelta);
-    Duplicates := False;
+  TCollection.Init(ALimit, ADelta);
+  Duplicates := False;
   end;
 
-Constructor TSortedCollection.Load(var s: TStream);
+constructor TSortedCollection.Load(var S: TStream);
   begin
-    inherited Load(s);
-    s.Read(Duplicates, SizeOf(Duplicates));
+  inherited Load(S);
+  S.Read(Duplicates, SizeOf(Duplicates));
   end;
 
-function TSortedCollection.Compare(Key1, Key2: Pointer): integer;
+function TSortedCollection.Compare(Key1, Key2: Pointer): Integer;
   begin
-    Abstract;
+  Abstract;
   end;
 
-function TSortedCollection.IndexOf(Item: Pointer): longInt;
+function TSortedCollection.IndexOf(Item: Pointer): LongInt;
   var
-    i: longInt;
+    I: LongInt;
   begin
-    IndexOf := -1;
-    if Search(KeyOf(Item), i) then
-      begin
-        if Duplicates then
-          while (i < Count) and (Item <> At(i)) do
-            Inc(i);
-        if i < Count then
-          IndexOf := i;
-      end;
+  IndexOf := -1;
+  if Search(KeyOf(Item), I) then
+    begin
+    if Duplicates then
+      while (I < Count) and (Item <> At(I)) do
+        Inc(I);
+    if I < Count then
+      IndexOf := I;
+    end;
   end;
 
 procedure TSortedCollection.Insert(Item: Pointer);
   var
-    i: longInt;
+    I: LongInt;
   begin
-    if not Search(KeyOf(Item), i) or Duplicates then
-      AtInsert(i, Item);
+  if not Search(KeyOf(Item), I) or Duplicates then
+    AtInsert(I, Item);
   end;
 
 function TSortedCollection.KeyOf(Item: Pointer): Pointer;
   begin
-    KeyOf := Item;
+  KeyOf := Item;
   end;
 
 function TSortedCollection.Search
-  (Key: Pointer; var Index: longInt): boolean;
+    (Key: Pointer; var Index: LongInt): Boolean;
   var
-    l, H, i, C: longInt;
+    L, H, I, C: LongInt;
   begin
-    Search := False;
-    l := 0;
-    H := Count-1;
-    while l <= H do
+  Search := False;
+  L := 0;
+  H := Count-1;
+  while L <= H do
+    begin
+    I := (L+H) shr 1;
+    C := Compare(KeyOf(At(I)), Key);
+    if C < 0
+    then
+      L := I+1
+    else
       begin
-        i := (l+H) shr 1;
-        C := Compare(KeyOf(At(i)), Key);
-        if C < 0
-        then
-          l := i+1
-        else
-          begin
-            if C = 0 then
-              begin
-                Search := True;
-                if not Duplicates then
-                  l := i;
-                break;
-              end;
-            H := i-1;
-          end;
+      if C = 0 then
+        begin
+        Search := True;
+        if not Duplicates then
+          L := I;
+        Break;
+        end;
+      H := I-1;
       end;
-    Index := l;
+    end;
+  Index := L;
   end { TSortedCollection.Search };
 
-procedure TSortedCollection.Store(var s: TStream);
+procedure TSortedCollection.Store(var S: TStream);
   begin
-    TCollection.Store(s);
-    s.Write(Duplicates, SizeOf(Duplicates));
+  TCollection.Store(S);
+  S.Write(Duplicates, SizeOf(Duplicates));
   end;
 
 { TStringCollection }
 
 {Cat: добавил возможность хранить в коллекции длинные строки}
-Constructor TStringCollection.Init(ALimit, ADelta: longInt;
-    ALongStrings: boolean);
+constructor TStringCollection.Init(ALimit, ADelta: LongInt;
+     ALongStrings: Boolean);
   begin
-    inherited Init(ALimit, ADelta);
-    LongStrings := ALongStrings;
+  inherited Init(ALimit, ADelta);
+  LongStrings := ALongStrings;
   end;
 
-function TStringCollection.Compare(Key1, Key2: Pointer): integer;
+function TStringCollection.Compare(Key1, Key2: Pointer): Integer;
   var
-    i, j: longInt;
+    I, J: LongInt;
     P1, P2: PString;
     PL1, PL2: PLongString;
   begin
-    if LongStrings then
-      begin
-        PL1 := PLongString(Key1);
-        PL2 := PLongString(Key2);
-        if Length(PL1^) < Length(PL2^) then
-          j := Length(PL1^)
-        else
-          j := Length(PL2^);
-        i := 1;
-        while (i < j) and (PL1^[i] = PL2^[i]) do
-          Inc(i);
-        if (i = j) then
-          begin
-            if (PL1^[i] < PL2^[i]) then
-              Compare := -1
-            else if (PL1^[i] > PL2^[i]) then
-              Compare := 1
-            else if Length(PL1^) > Length(PL2^) then
-              Compare := 1
-            else if Length(PL1^) < Length(PL2^) then
-              Compare := -1
-            else
-              Compare := 0;
-          end
-        else if (PL1^[i] < PL2^[i]) then
-          Compare := -1
-        else
-          Compare := 1;
-      end
+  if LongStrings then
+    begin
+    PL1 := PLongString(Key1);
+    PL2 := PLongString(Key2);
+    if Length(PL1^) < Length(PL2^) then
+      J := Length(PL1^)
     else
+      J := Length(PL2^);
+    I := 1;
+    while (I < J) and (PL1^[I] = PL2^[I]) do
+      Inc(I);
+    if  (I = J) then
       begin
-        P1 := PString(Key1);
-        P2 := PString(Key2);
-        if Length(P1^) < Length(P2^) then
-          j := Length(P1^)
-        else
-          j := Length(P2^);
-        i := 1;
-        while (i < j) and (P1^[i] = P2^[i]) do
-          Inc(i);
-        if (i = j) then
-          begin
-            if (P1^[i] < P2^[i]) then
-              Compare := -1
-            else if (P1^[i] > P2^[i]) then
-              Compare := 1
-            else if Length(P1^) > Length(P2^) then
-              Compare := 1
-            else if Length(P1^) < Length(P2^) then
-              Compare := -1
-            else
-              Compare := 0;
-          end
-        else if (P1^[i] < P2^[i]) then
-          Compare := -1
-        else
-          Compare := 1;
-      end;
+      if  (PL1^[I] < PL2^[I]) then
+        Compare := -1
+      else if (PL1^[I] > PL2^[I]) then
+        Compare := 1
+      else if Length(PL1^) > Length(PL2^) then
+        Compare := 1
+      else if Length(PL1^) < Length(PL2^) then
+        Compare := -1
+      else
+        Compare := 0;
+      end
+    else if (PL1^[I] < PL2^[I]) then
+      Compare := -1
+    else
+      Compare := 1;
+    end
+  else
+    begin
+    P1 := PString(Key1);
+    P2 := PString(Key2);
+    if Length(P1^) < Length(P2^) then
+      J := Length(P1^)
+    else
+      J := Length(P2^);
+    I := 1;
+    while (I < J) and (P1^[I] = P2^[I]) do
+      Inc(I);
+    if  (I = J) then
+      begin
+      if  (P1^[I] < P2^[I]) then
+        Compare := -1
+      else if (P1^[I] > P2^[I]) then
+        Compare := 1
+      else if Length(P1^) > Length(P2^) then
+        Compare := 1
+      else if Length(P1^) < Length(P2^) then
+        Compare := -1
+      else
+        Compare := 0;
+      end
+    else if (P1^[I] < P2^[I]) then
+      Compare := -1
+    else
+      Compare := 1;
+    end;
   end { TStringCollection.Compare };
 
 procedure TStringCollection.FreeItem(Item: Pointer);
   begin
-    if LongStrings then
-      DisposeLongStr(PLongString(Item))
-    else
-      DisposeStr(PString(Item));
+  if LongStrings then
+    DisposeLongStr(PLongString(Item))
+  else
+    DisposeStr(PString(Item));
   end;
 
-function TStringCollection.GetItem(var s: TStream): Pointer;
+function TStringCollection.GetItem(var S: TStream): Pointer;
   begin
-    if LongStrings then
-      GetItem := s.ReadLongStr
-    else
-      GetItem := s.ReadStr;
+  if LongStrings then
+    GetItem := S.ReadLongStr
+  else
+    GetItem := S.ReadStr;
   end;
 
-procedure TStringCollection.PutItem(var s: TStream; Item: Pointer);
+procedure TStringCollection.PutItem(var S: TStream; Item: Pointer);
   begin
-    if LongStrings then
-      s.WriteLongStr(Item)
-    else
-      s.WriteStr(Item);
+  if LongStrings then
+    S.WriteLongStr(Item)
+  else
+    S.WriteStr(Item);
   end;
 {/Cat}
 
 { TLineCollection }
 {Cat: добавил возможность хранить в коллекции длинные строки}
-Constructor TLineCollection.Init(ALimit, ADelta: longInt;
-    ALongStrings: boolean);
+constructor TLineCollection.Init(ALimit, ADelta: LongInt;
+     ALongStrings: Boolean);
   begin
-    inherited Init(ALimit, ADelta);
-    LongStrings := ALongStrings;
+  inherited Init(ALimit, ADelta);
+  LongStrings := ALongStrings;
   end;
 
 procedure TLineCollection.FreeItem(P: Pointer);
   begin
-    if LongStrings then
-      DisposeLongStr(PLongString(P))
-    else
-      DisposeStr(PString(P));
+  if LongStrings then
+    DisposeLongStr(PLongString(P))
+  else
+    DisposeStr(PString(P));
   end;
 
 procedure TLineCollection.PutItem;
   begin
-    if LongStrings then
-      s.WriteLongStr(Item)
-    else
-      s.WriteStr(Item);
+  if LongStrings then
+    S.WriteLongStr(Item)
+  else
+    S.WriteStr(Item);
   end;
 
 function TLineCollection.GetItem;
   begin
-    if LongStrings then
-      GetItem := s.ReadLongStr
-    else
-      GetItem := s.ReadStr;
+  if LongStrings then
+    GetItem := S.ReadLongStr
+  else
+    GetItem := S.ReadStr;
   end;
 
 { TStrCollection }
 
-function TStrCollection.Compare(Key1, Key2: Pointer): integer;
+function TStrCollection.Compare(Key1, Key2: Pointer): Integer;
   begin
-    Compare := StrComp(Key1, Key2);
+  Compare := StrComp(Key1, Key2);
   end;
 
 procedure TStrCollection.FreeItem(Item: Pointer);
   begin
-    StrDispose(PChar(Item));
+  StrDispose(PChar(Item));
   end;
 
-function TStrCollection.GetItem(var s: TStream): Pointer;
+function TStrCollection.GetItem(var S: TStream): Pointer;
   begin
-    GetItem := s.StrRead;
+  GetItem := S.StrRead;
   end;
 
-procedure TStrCollection.PutItem(var s: TStream; Item: Pointer);
+procedure TStrCollection.PutItem(var S: TStream; Item: Pointer);
   begin
-    s.StrWrite(Item);
+  S.StrWrite(Item);
   end;
 
 procedure TUnSortedStrCollection.Insert(Item: Pointer);
   begin
-    AtInsert(Count, Item);
+  AtInsert(Count, Item);
   end;
 (*
 { Private resource manager types }
@@ -1106,107 +1104,107 @@ end;
 *)
 { TStringList }
 
-Constructor TStringList.Load(var s: TStream);
+constructor TStringList.Load(var S: TStream);
   var
     Size: AWord;
   begin
-    TObject.Init;
-    Stream := @S;
-    s.Read(Size, SizeOf(Size));
-    BasePos := s.GetPos;
-    s.Seek(BasePos+Size);
-    s.Read(IndexSize, SizeOf(IndexSize));
-    GetMem(Index, IndexSize*SizeOf(TStrIndexRec));
-    s.Read(Index^, IndexSize*SizeOf(TStrIndexRec));
+  TObject.Init;
+  Stream := @S;
+  S.Read(Size, SizeOf(Size));
+  BasePos := S.GetPos;
+  S.Seek(BasePos+Size);
+  S.Read(IndexSize, SizeOf(IndexSize));
+  GetMem(Index, IndexSize*SizeOf(TStrIndexRec));
+  S.Read(Index^, IndexSize*SizeOf(TStrIndexRec));
   end;
 
 destructor TStringList.Done;
   begin
-    FreeMem(Index, IndexSize*SizeOf(TStrIndexRec));
+  FreeMem(Index, IndexSize*SizeOf(TStrIndexRec));
   end;
 
 function TStringList.Get(Key: AWord): String;
   var
-    i: AWord;
-    s: String;
+    I: AWord;
+    S: String;
   begin
-    s := '';
-    if (IndexSize > 0) then
+  S := '';
+  if  (IndexSize > 0) then
+    begin
+    I := 0;
+    while (I < IndexSize) and (S = '') do
       begin
-        i := 0;
-        while (i < IndexSize) and (s = '') do
-          begin
-            if ((Key-Index^[i].Key) < Index^[i].Count) then
-              ReadStr(s, Index^[i].Offset, Key-Index^[i].Key);
-            Inc(i);
-          end;
+      if  ( (Key-Index^[I].Key) < Index^[I].Count) then
+        ReadStr(S, Index^[I].Offset, Key-Index^[I].Key);
+      Inc(I);
       end;
-    Get := s;
+    end;
+  Get := S;
   end;
 
-procedure TStringList.ReadStr(var s: String; Offset, Skip: AWord);
+procedure TStringList.ReadStr(var S: String; Offset, Skip: AWord);
   {
 var
   B: Byte; }
   begin
-    Stream^.Seek(BasePos+Offset);
-    Stream^.Status := 0;
-    Inc(Skip);
-    repeat
-      {Cat}
-      (*
+  Stream^.Seek(BasePos+Offset);
+  Stream^.Status := 0;
+  Inc(Skip);
+  repeat
+    {Cat}
+    (*
     Stream^.Read(B, 1);
     SetLength(S, B);
     Stream^.Read(S[1],B);
 *)
-      Stream^.ReadStrV(s);
-      {/Cat}
-      Dec(Skip);
-    until Skip = 0;
+    Stream^.ReadStrV(S);
+    {/Cat}
+    Dec(Skip);
+  until Skip = 0;
   end;
 
 procedure TSortedCollection.Sort;
   begin
-    if Count <= 0 then
-      exit; {JO не удалять! иначе падаем по Ctrl-H и т.п.}
-    QSort;
+  if Count <= 0 then
+    Exit; {JO не удалять! иначе падаем по Ctrl-H и т.п.}
+  QSort;
   end;
 
 var
-  P, t: Pointer;
+  P, T: Pointer;
 
-procedure TSortedCollection.QuickSort(l, R: longInt);
+procedure TSortedCollection.QuickSort(L, R: LongInt);
   var
-    i, j: longInt;
+    I, J: LongInt;
   begin
+  repeat
+    I := L;
+    J := R;
+    P := At((L+R) shr 1);
     repeat
-      i := l;
-      j := R;
-      P := At((l+R) shr 1);
-      repeat
-        while Compare(At(i), P) < 0 do
-          Inc(i);
-        while Compare(At(j), P) > 0 do
-          Dec(j);
-        if i <= j then
-          begin
-            t := At(i);
-            AtPut(i, At(j));
-            AtPut(j, t);
-            Inc(i);
-            Dec(j);
-          end;
-      until i > j;
-      if l < j then
-        QuickSort(l, j);
-      l := i;
-    until i >= R;
+      while Compare(At(I), P) < 0 do
+        Inc(I);
+      while Compare(At(J), P) > 0 do
+        Dec(J);
+      if I <= J then
+        begin
+        T := At(I);
+        AtPut(I, At(J));
+        AtPut(J, T);
+        Inc(I);
+        Dec(J);
+        end;
+    until I > J;
+    if L < J then
+      QuickSort(L, J);
+    L := I;
+  until I >= R;
   end { TSortedCollection.QuickSort };
 
 procedure TSortedCollection.QSort;
   begin
-    if Count > 0 then
-      QuickSort(0, Count-1);
+  if Count > 0 then
+    QuickSort(0, Count-1);
   end;
 
 {NOT QSort}
@@ -1214,21 +1212,21 @@ procedure TSortedCollection.QSort;
 {-DataCompBoy-}
 function TDirCol.Compare;
   var
-    A, B, C: byte;
+    a, b, c: Byte;
   begin
-    Compare := 0;
-    A := 0;
-    for C := 1 to Length(PString(Key1)^) do
-      if PString(Key1)^[C] in ['/', '\'] then
-        Inc(A);
-    B := 0;
-    for C := 1 to Length(PString(Key2)^) do
-      if PString(Key2)^[C] in ['/', '\'] then
-        Inc(B);
-    if A > B then
-      Compare := -1
-    else
-      Compare := +1
+  Compare := 0;
+  a := 0;
+  for c := 1 to Length(PString(Key1)^) do
+    if PString(Key1)^[c] in ['/', '\'] then
+      Inc(a);
+  b := 0;
+  for c := 1 to Length(PString(Key2)^) do
+    if PString(Key2)^[c] in ['/', '\'] then
+      Inc(b);
+  if a > b then
+    Compare := -1
+  else
+    Compare := +1
   end;
 {-DataCompBoy-}
 

@@ -70,7 +70,7 @@ unit DBWatch;
 interface
 
 uses
-  Lfn, Collect, Objects, Dos, advance, advance1, advance2, advance3
+  Lfn, Collect, Objects, Dos, Advance, Advance1, Advance2, Advance3
   , use16
   ;
 
@@ -80,7 +80,7 @@ type
     Name: String[10];
     Who: Char;
     ln: AWord; { Kirill }
-      { For Compatible Virtual Pascal Word -> AWord }
+    { For Compatible Virtual Pascal Word -> AWord }
     len, Dec: AWord;
     Pos: AWord;
     end;
@@ -92,289 +92,290 @@ type
 
   PDBFile = ^TDBFile;
   TDBFile = object(TObject)
-    WriteMode: byte;
+    WriteMode: Byte;
     BaseName: String; {DataCompBoy}
     BaseFile: TBufStream;
-    Date, NumRec: longInt;
+    Date, NumRec: LongInt;
     HeaderLen, RecLen: AWord;
-    Unused: array[0..31] of byte;
-    NumFields: integer;
-    Loc: longInt;
+    Unused: array[0..31] of Byte;
+    NumFields: Integer;
+    Loc: LongInt;
     Fields: PCollection;
-    Constructor Init(FileName: String); {DataCompBoy}
+    constructor Init(FileName: String); {DataCompBoy}
     destructor Done; virtual;
-    procedure Read(var Buf; Num: word);
-    procedure Seek(NewLoc: longInt);
+    procedure Read(var Buf; Num: Word);
+    procedure Seek(NewLoc: LongInt);
     function GetField(Name: String; var Buf): String;
-    function GetNField(n: word; var Buf): String;
-    function GetFieldRec(n: integer): PFieldRec;
-    procedure OpenMode(Mode: word);
+    function GetNField(N: Word; var Buf): String;
+    function GetFieldRec(N: Integer): PFieldRec;
+    procedure OpenMode(Mode: Word);
     end;
 
 implementation
 
 uses
-  Messages, Commands, DNApp;
+  Messages, Commands, DNApp
+  ;
 
 procedure TFieldCollection.FreeItem;
   begin
-    Dispose(PFieldRec(P));
+  Dispose(PFieldRec(P));
   end;
 
-function NewField(Name: String; Who: Char; len: word; Dec: byte; Pos:
-    word): PFieldRec; { Kirill }
+function NewField(Name: String; Who: Char; len: Word; Dec: Byte;
+     Pos: Word): PFieldRec; { Kirill }
   var
     P: PFieldRec;
   begin
-    New(P);
-    P^.Name := Name;
-    while Name[Length(Name)] = ' ' do
-      System.Dec(Name[0]);
-    P^.Who := Who;
-    if len = 0
-    then
-      P^.len := 1
-    else
-      P^.len := len;
-    P^.Dec := Dec;
-    P^.Pos := Pos;
-    NewField := P;
-    if P^.Who = 'D'
-    then
-      if Length(Name) > 10 then
-        P^.ln := Length(Name)
-      else
-        P^.ln := 10
-    else if Length(Name) > len then
+  New(P);
+  P^.Name := Name;
+  while Name[Length(Name)] = ' ' do
+    System.Dec(Name[0]);
+  P^.Who := Who;
+  if len = 0
+  then
+    P^.len := 1
+  else
+    P^.len := len;
+  P^.Dec := Dec;
+  P^.Pos := Pos;
+  NewField := P;
+  if P^.Who = 'D'
+  then
+    if Length(Name) > 10 then
       P^.ln := Length(Name)
     else
-      P^.ln := len;
-    if P^.ln > 255 then
-      P^.ln := 255; { Kirill }
+      P^.ln := 10
+  else if Length(Name) > len then
+    P^.ln := Length(Name)
+  else
+    P^.ln := len;
+  if P^.ln > 255 then
+    P^.ln := 255; { Kirill }
   end { NewField };
 
-procedure TDBFile.OpenMode(Mode: word);
+procedure TDBFile.OpenMode(Mode: Word);
   begin
-    BaseFile.Init(BaseName, Mode, 16384);
+  BaseFile.Init(BaseName, Mode, 16384);
   end;
 
-Constructor TDBFile.Init;
+constructor TDBFile.Init;
 
   {--- start -------- Eugeny Zvyagintzev ---- 17-06-2002 ----}
   type
     TParams = record
-      InHeader: longInt;
-      Actually: longInt;
+      InHeader: LongInt;
+      Actually: LongInt;
       end;
     {--- finish -------- Eugeny Zvyagintzev ---- 17-06-2002 ----}
   type
-    TFldLenRec = record{ Kirill }
-      case integer of
-        0: (len, Dec: byte);
+    TFldLenRec = record
+      { Kirill }
+      case Integer of
+        0: (len, Dec: Byte);
         1: (CharFieldLen: AWord);
-    end;
-  frec = record
-    Name: array[0..10] of Char;
-    Who: Char;
-    Info1: array[0..3] of Char;
-    FldLen: TFldLenRec; { Kirill }
-    Info2: array[0..13] of Char;
-    end;
+      end;
+    frec = record
+      Name: array[0..10] of Char;
+      Who: Char;
+      Info1: array[0..3] of Char;
+      FldLen: TFldLenRec; { Kirill }
+      Info2: array[0..13] of Char;
+      end;
 
   var
     FBuf: frec;
-    RL: integer;
+    RL: Integer;
     Par: TParams; {JOHN_SW}
 
-  function ReadFldStru(CharSizeWord: boolean): boolean;
+  function ReadFldStru(CharSizeWord: Boolean): Boolean;
     var
-      i, j: integer;
-      s: String;
+      I, J: Integer;
+      S: String;
       FieldLen: AWord;
-      FieldDec: byte;
+      FieldDec: Byte;
     begin
-      ReadFldStru := True;
-      BaseFile.Seek(32);
-      if Fields <> nil then
-        Dispose(Fields, Done);
-      {piwamoto.src.end}
-      Fields := New(PFieldCollection, Init(NumFields, NumFields));
-      RL := 1;
-      for i := 1 to NumFields do
+    ReadFldStru := True;
+    BaseFile.Seek(32);
+    if Fields <> nil then
+      Dispose(Fields, Done);
+    {piwamoto.src.end}
+    Fields := New(PFieldCollection, Init(NumFields, NumFields));
+    RL := 1;
+    for I := 1 to NumFields do
+      begin
+      BaseFile.Read(FBuf, 32);
+      if  (FBuf.Who = 'C') and (CharSizeWord) then
+        begin { Kirill }
+        FieldLen := FBuf.FldLen.CharFieldLen; { Kirill }
+        FieldDec := 0; { Kirill }
+        end
+      else
         begin
-          BaseFile.Read(FBuf, 32);
-          if (FBuf.Who = 'C') and (CharSizeWord) then
-            begin{ Kirill }
-              FieldLen := FBuf.FldLen.CharFieldLen; { Kirill }
-              FieldDec := 0; { Kirill }
-            end
-          else
-            begin
-              FieldLen := FBuf.FldLen.len; { Kirill }
-              FieldDec := FBuf.FldLen.Dec; { Kirill }
-            end;
-          Inc(RL, FieldLen); { Kirill }
-          s := '';
-          j := 0;
-          while FBuf.Name[j] >= #32 do
-            begin
-              s := s+FBuf.Name[j];
-              Inc(j);
-            end;
-          s[0] := Char(j);
-          if (j = 0) or (BaseFile.Status <> stOK) then
-            begin
-              ReadFldStru := False;
-              exit;
-            end;
-          with FBuf do
-            Fields^.Insert(NewField(s, Who, FieldLen, FieldDec, RL-
-              FieldLen));
+        FieldLen := FBuf.FldLen.len; { Kirill }
+        FieldDec := FBuf.FldLen.Dec; { Kirill }
         end;
+      Inc(RL, FieldLen); { Kirill }
+      S := '';
+      J := 0;
+      while FBuf.Name[J] >= #32 do
+        begin
+        S := S+FBuf.Name[J];
+        Inc(J);
+        end;
+      S[0] := Char(J);
+      if  (J = 0) or (BaseFile.Status <> stOK) then
+        begin
+        ReadFldStru := False;
+        Exit;
+        end;
+      with FBuf do
+        Fields^.Insert(NewField(S, Who, FieldLen, FieldDec, RL-FieldLen));
+      end;
     end { ReadFldStru };
 
   begin { TDBFile.Init }
-    inherited Init;
-    BaseName := lFExpand(FileName); {DataCompBoy}
-    OpenMode(stOpenRead);
-    if BaseFile.Status <> stOK then
-      begin
-        BaseFile.Done;
-        Fail;
-      end;
-    BaseFile.Read(Date, 32);
-    if BaseFile.Status <> stOK then
-      begin
-        BaseFile.Done;
-        Fail;
-      end;
-    if BaseFile.GetSize-HeaderLen < 0 then
-      begin
-        BaseFile.Done;
-        Fail;
-      end; {JOHN_SW}
-    {piwamoto.src.begin} {bugfixed .DBF detection}
-    NumFields := -1;
-    repeat
-      BaseFile.Read(FBuf, 1);
-      BaseFile.Seek(BaseFile.GetPos+31);
-      Inc(NumFields);
-    until (FBuf.Name[0] < #32) or
+  inherited Init;
+  BaseName := lFExpand(FileName); {DataCompBoy}
+  OpenMode(stOpenRead);
+  if BaseFile.Status <> stOK then
+    begin
+    BaseFile.Done;
+    Fail;
+    end;
+  BaseFile.Read(Date, 32);
+  if BaseFile.Status <> stOK then
+    begin
+    BaseFile.Done;
+    Fail;
+    end;
+  if BaseFile.GetSize-HeaderLen < 0 then
+    begin
+    BaseFile.Done;
+    Fail;
+    end; {JOHN_SW}
+  {piwamoto.src.begin} {bugfixed .DBF detection}
+  NumFields := -1;
+  repeat
+    BaseFile.Read(FBuf, 1);
+    BaseFile.Seek(BaseFile.GetPos+31);
+    Inc(NumFields);
+  until (FBuf.Name[0] < #32) or
     (BaseFile.Eof) or
     (HeaderLen < BaseFile.GetPos);
-    if (NumFields < 1) or
+  if  (NumFields < 1) or
       (FBuf.Name[0] <> #13)
+  then
+    begin
+    BaseFile.Done;
+    Fail;
+    end;
+  if not ReadFldStru(True) then
+    begin
+    Dispose(Fields, Done);
+    Fields := nil;
+    BaseFile.Done;
+    Fail;
+    end;
+  {--- start -------- Eugeny Zvyagintzev ---- 17-06-2002 ----}
+  {Check for correct header}
+  if  (RL <> RecLen) then
+    if not ReadFldStru(False) then
+      begin
+      Dispose(Fields, Done);
+      Fields := nil;
+      BaseFile.Done;
+      Fail;
+      end
+    else if (RL <> RecLen) then
+      begin
+      Par.InHeader := RecLen;
+      Par.Actually := RL;
+      MessageBox(GetString(dlInvalidDBFHeader)+GetString(dlInvalidRecSize),
+        @Par, mfError+mfOKButton);
+      end
+    else
+      RL := RecLen;
+  if NumRec <> ((BaseFile.GetSize-HeaderLen) div RL) then
+    begin
+    if MessageBox
+          (GetString(dlInvalidDBFHeader)+GetString(dlInvalidRecNumber)+
+        ItoS(NumRec)+
+        GetString(dlInvalidRecNumber1)+ItoS(((BaseFile.GetSize-HeaderLen
+              ) div RL))+GetString(dlUseCalcRecNumber),
+        nil, mfError+mfYesNoConfirm) = cmNo
     then
-      begin
-        BaseFile.Done;
-        Fail;
-      end;
-    if not ReadFldStru(True) then
-      begin
-        Dispose(Fields, Done);
-        Fields := nil;
-        BaseFile.Done;
-        Fail;
-      end;
-    {--- start -------- Eugeny Zvyagintzev ---- 17-06-2002 ----}
-    {Check for correct header}
-    if (RL <> RecLen) then
-      if not ReadFldStru(False) then
-        begin
-          Dispose(Fields, Done);
-          Fields := nil;
-          BaseFile.Done;
-          Fail;
-        end
-      else if (RL <> RecLen) then
-        begin
-          Par.InHeader := RecLen;
-          Par.Actually := RL;
-          MessageBox(GetString(dlInvalidDBFHeader)+GetString(
-            dlInvalidRecSize),
-          @Par, mfError+mfOKButton);
-        end
-      else
-        RL := RecLen;
-    if NumRec <> ((BaseFile.GetSize-HeaderLen) div RL) then
-      begin
-        if MessageBox(GetString(dlInvalidDBFHeader)+GetString(
-            dlInvalidRecNumber)+ItoS(NumRec)+
-          GetString(dlInvalidRecNumber1)+ItoS(((BaseFile.GetSize-
-            HeaderLen) div RL))+GetString(dlUseCalcRecNumber),
-          nil, mfError+mfYesNoConfirm) = cmNo
-        then
-          NumRec := (BaseFile.GetSize-HeaderLen) div RL;
-      end;
-    {--- finish -------- Eugeny Zvyagintzev ---- 17-06-2002 ----}
-    Loc := 0;
-    BaseFile.Seek(HeaderLen);
+      NumRec := (BaseFile.GetSize-HeaderLen) div RL;
+    end;
+  {--- finish -------- Eugeny Zvyagintzev ---- 17-06-2002 ----}
+  Loc := 0;
+  BaseFile.Seek(HeaderLen);
   end { TDBFile.Init };
 
 procedure TDBFile.Read;
   var
-    i: longInt;
+    I: LongInt;
   begin
-    if Loc+Num >= NumRec then
-      Num := NumRec-Loc;
-    i := longInt(RecLen)*longInt(Num);
-    if i > 65520 then
-      i := 65520;
-    BaseFile.Read(Buf, i);
-    Inc(Loc, Num);
+  if Loc+Num >= NumRec then
+    Num := NumRec-Loc;
+  I := LongInt(RecLen)*LongInt(Num);
+  if I > 65520 then
+    I := 65520;
+  BaseFile.Read(Buf, I);
+  Inc(Loc, Num);
   end;
 
 procedure TDBFile.Seek;
   begin
-    BaseFile.Seek(NewLoc*RecLen+HeaderLen);
-    Loc := NewLoc;
+  BaseFile.Seek(NewLoc*RecLen+HeaderLen);
+  Loc := NewLoc;
   end;
 
 function TDBFile.GetFieldRec;
   begin
-    GetFieldRec := Fields^.At(n);
+  GetFieldRec := Fields^.At(N);
   end;
 
 function TDBFile.GetField;
   var
-    i, k, n: integer;
+    I, K, N: Integer;
     B: array[0..65000] of Char absolute Buf;
-    s: String;
-    l: word;
+    S: String;
+    L: Word;
   begin
-    i := 0;
-    k := 1;
-    while (i < NumFields) and (GetFieldRec(i)^.Name <> Name) do
-      Inc(i);
-    k := GetFieldRec(i)^.Pos;
-    s := '';
-    n := i;
-    for i := k to k+GetFieldRec(n)^.len-1 do
-      s[i-k] := B[i];
-    s[0] := Char(GetFieldRec(n)^.len);
-    GetField := s;
+  I := 0;
+  K := 1;
+  while (I < NumFields) and (GetFieldRec(I)^.Name <> Name) do
+    Inc(I);
+  K := GetFieldRec(I)^.Pos;
+  S := '';
+  N := I;
+  for I := K to K+GetFieldRec(N)^.len-1 do
+    S[I-K] := B[I];
+  S[0] := Char(GetFieldRec(N)^.len);
+  GetField := S;
   end;
 
 function TDBFile.GetNField;
   var
-    i, k, j: integer;
+    I, K, J: Integer;
     B: array[0..65000] of Char absolute Buf;
-    s: String;
-    l: word;
+    S: String;
+    L: Word;
   begin
-    k := GetFieldRec(n)^.Pos;
-    s := '';
-    for i := k to k+GetFieldRec(n)^.len-1 do
-      s[i-k+1] := B[i];
-    s[0] := Char(GetFieldRec(n)^.len);
-    GetNField := s;
+  K := GetFieldRec(N)^.Pos;
+  S := '';
+  for I := K to K+GetFieldRec(N)^.len-1 do
+    S[I-K+1] := B[I];
+  S[0] := Char(GetFieldRec(N)^.len);
+  GetNField := S;
   end;
 
 destructor TDBFile.Done;
   begin
-    Dispose(Fields, Done);
-    Fields := nil;
-    BaseFile.Done;
+  Dispose(Fields, Done);
+  Fields := nil;
+  BaseFile.Done;
   end;
 
 end.

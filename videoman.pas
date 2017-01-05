@@ -50,38 +50,37 @@ unit VideoMan;
 interface
 
 var
-  ScreenMirror: array[0..16383] of byte;
+  ScreenMirror: array[0..16383] of Byte;
 procedure DetectVideo;
 
-procedure SetScrMode(Mode: word);
-procedure SetBlink(Mode: boolean);
+procedure SetScrMode(Mode: Word);
+procedure SetBlink(Mode: Boolean);
 
 { ******** SCREEN MANAGER ******** }
 
 type
 
-  vga_pal = array[1..3, 0..15] of byte;
+  vga_pal = array[1..3, 0..15] of Byte;
 
 const
 
   { VGA palette }
 
   VGA_palette: vga_pal = (
-  { red   }(0, 0, 0, 7, 42, 42, 42, 42, 19, 21, 0, 19, 63, 63, 53, 63),
-  { green }(0, 21, 42, 42, 7, 7, 28, 42, 19, 21, 63, 55, 21, 21, 57, 63)
-    ,
-  { blue  }(0, 42, 21, 42, 7, 42, 0, 42, 19, 63, 32, 55, 21, 63, 18, 63)
-  );
+    { red   }(0, 0, 0, 7, 42, 42, 42, 42, 19, 21, 0, 19, 63, 63, 53, 63),
+    { green }(0, 21, 42, 42, 7, 7, 28, 42, 19, 21, 63, 55, 21, 21, 57, 63),
+    { blue  }(0, 42, 21, 42, 7, 42, 0, 42, 19, 63, 32, 55, 21, 63, 18, 63)
+    );
   { default values }
 
   vga_default: vga_pal = (
-  { red   }(0, 0, 0, 0, 42, 42, 42, 42, 21, 21, 21, 21, 63, 63, 63, 63),
-  { green }(0, 0, 42, 42, 0, 0, 21, 42, 21, 21, 63, 63, 21, 21, 63, 63),
-  { blue  }(0, 42, 0, 42, 0, 42, 0, 42, 21, 63, 21, 63, 21, 63, 21, 63)
-  );
+    { red   }(0, 0, 0, 0, 42, 42, 42, 42, 21, 21, 21, 21, 63, 63, 63, 63),
+    { green }(0, 0, 42, 42, 0, 0, 21, 42, 21, 21, 63, 63, 21, 21, 63, 63),
+    { blue  }(0, 42, 0, 42, 0, 42, 0, 42, 21, 63, 21, 63, 21, 63, 21, 63)
+    );
   { palette slot }
-  SL: array[0..15] of byte = (0, 1, 2, 3, 4, 5, 20, 7, 56, 57, 58, 59,
-    60, 61, 62, 63);
+  SL: array[0..15] of Byte = (0, 1, 2, 3, 4, 5, 20, 7, 56, 57, 58, 59,
+     60, 61, 62, 63);
 
   (*****************************************************************
  *
@@ -92,15 +91,15 @@ const
 type
 
   TVideoType = (
-  vtUnknown,
-  vtMONO,
-  vtCGA,
-  vtEGA,
-  vtVGA,
-  vtXGA,
-  vtSVGA,
-  vtVBE2
-  );
+    vtUnknown,
+    vtMONO,
+    vtCGA,
+    vtEGA,
+    vtVGA,
+    vtXGA,
+    vtSVGA,
+    vtVBE2
+    );
 
 var
 
@@ -152,25 +151,24 @@ const
 
 const
 
-  smSVGALo: word = $109;
-  smSVGAHi: word = $10C;
+  smSVGALo: Word = $109;
+  smSVGAHi: Word = $10C;
 
   { Screen manager routines }
 
 procedure InitVideo;
 procedure DoneVideo;
-function SetVideoMode(Mode: word): boolean;
+function SetVideoMode(Mode: Word): Boolean;
 procedure ClearScreen;
 
-procedure ResetVGApalette(UpDate: boolean);
-  { reset palette to default}
+procedure ResetVGApalette(Update: Boolean); { reset palette to default}
 procedure GetPalette(var Buf); { fill buff with palette 64 bytes   }
 procedure SetPalette(var Buf); { set palette using buf 64 bytes    }
-function VGASystem: boolean;
+function VGASystem: Boolean;
 {Knave begin}
 
-procedure Set_palette(Color, R, G, B: byte);
-procedure Get_palette(Color: byte; var R, G, B: byte);
+procedure Set_palette(color, r, g, b: Byte);
+procedure Get_palette(color: Byte; var R, G, B: Byte);
 {Knave end}
 
 const
@@ -182,15 +180,16 @@ const
   CrtPSizOfs = $004C; { Word }
 
 implementation
-uses{$IFDEF WIN32}
-  Windows, {$ENDIF}Dos, VpSysLow, Drivers, Objects, DNApp, DnIni,
-    Startup,
-  Commands, VPUtils {$IFDEF OS2}, Os2Base {$ENDIF}, Messages;
+uses
+  {$IFDEF WIN32}Windows, {$ENDIF}Dos, VpSysLow, Drivers, Objects, DNApp,
+   DnIni, Startup,
+  Commands, VPUtils {$IFDEF OS2}, Os2Base {$ENDIF}, Messages
+  ;
 
 var
-  StrtCurY1: integer;
-  StrtCurY2: integer;
-  StrtCurVisible: boolean;
+  StrtCurY1: Integer;
+  StrtCurY2: Integer;
+  StrtCurVisible: Boolean;
 
   { ******** SCREEN MANAGER ******** }
 
@@ -199,32 +198,32 @@ procedure DetectVideoType; {JO}
   var
     VideoConfig: VioConfigInfo;
   begin
-    VideoConfig.cb := SizeOf(VideoConfig); {AK155}
-    if VioGetConfig(0, VideoConfig, 0) = 0 then
-      begin
-        case VideoConfig.Adapter of
-          0:
-            VideoType := vtMONO;
-          1:
-            VideoType := vtCGA;
-          2:
-            VideoType := vtEGA;
-          3:
-            VideoType := vtVGA;
-          4..8:
-            VideoType := vtUnknown;
-          9:
-            VideoType := vtXGA;
-          else
-            VideoType := vtSVGA; {???}
-        end {case};
-      end
-    else
-      VideoType := vtUnknown;
-  end { DetectVideoType }; {/JO}
-  {$ELSE}
-  begin { DetectVideoType }
+  VideoConfig.cb := SizeOf(VideoConfig); {AK155}
+  if VioGetConfig(0, VideoConfig, 0) = 0 then
+    begin
+    case VideoConfig.Adapter of
+      0:
+        VideoType := vtMONO;
+      1:
+        VideoType := vtCGA;
+      2:
+        VideoType := vtEGA;
+      3:
+        VideoType := vtVGA;
+      4..8:
+        VideoType := vtUnknown;
+      9:
+        VideoType := vtXGA;
+      else {case}
+        VideoType := vtSVGA; {???}
+    end {case};
+    end
+  else
     VideoType := vtUnknown;
+  end { DetectVideoType }; {/JO}
+{$ELSE}
+  begin { DetectVideoType }
+  VideoType := vtUnknown;
   end { DetectVideoType };
 {$ENDIF}
 
@@ -232,19 +231,19 @@ procedure DetectVideoType; {JO}
 
 // Fixes the CRT mode if required
 
-function FixCrtMode(Mode: word): word;
+function FixCrtMode(Mode: Word): Word;
   begin
-    case Lo(Mode) of
-      smMono, smCO80, smBW80:
-        FixCrtMode := Mode;
-      smNonStandard:
-        if NonStandardModes then
-          FixCrtMode := Mode
-        else
-          FixCrtMode := smCO80;
+  case Lo(Mode) of
+    smMono, smCO80, smBW80:
+      FixCrtMode := Mode;
+    smNonStandard:
+      if NonStandardModes then
+        FixCrtMode := Mode
       else
         FixCrtMode := smCO80;
-    end {case};
+    else {case}
+      FixCrtMode := smCO80;
+  end {case};
   end;
 
 // Updates the CRT-related variables
@@ -252,55 +251,55 @@ function FixCrtMode(Mode: word): word;
 procedure SetCrtData;
   var
     BufSize: SmallWord;
-    Y1, Y2: integer;
-    Visible: boolean;
+    Y1, Y2: Integer;
+    Visible: Boolean;
     SrcSize: TSysPoint;
   begin
+  SysTvGetScrMode(@SrcSize, True);
+  {AK155 при SrcSize.Y=300 (w2k, wXP) DN падает}
+  if  (SrcSize.Y > 100) or (SrcSize.X*SrcSize.Y*2 > 32768) then
+    begin
+    SysTVSetScrMode(3);
     SysTvGetScrMode(@SrcSize, True);
-    {AK155 при SrcSize.Y=300 (w2k, wXP) DN падает}
-    if (SrcSize.Y > 100) or (SrcSize.X*SrcSize.Y*2 > 32768) then
-      begin
-        SysTVSetScrMode(3);
-        SysTvGetScrMode(@SrcSize, True);
-      end;
-    {/AK155}
-    ScreenHeight := SrcSize.Y;
-    ScreenWidth := SrcSize.X;
-    {JO}
-    if SrcSize.X = 80 then
-      case SrcSize.Y of
-        25:
-          ScreenMode := sm80x25;
-        43:
-          ScreenMode := sm80x43;
-        50:
-          ScreenMode := sm80x50;
-        30:
-          ScreenMode := sm80x30;
-        34:
-          ScreenMode := sm80x34;
-        60:
-          ScreenMode := sm80x60;
-        else
-          ScreenMode := SrcSize.X*256+SrcSize.Y;
-      end
-    else
-      ScreenMode := SrcSize.X*256+SrcSize.Y;
-    {/JO}
-    ShowMouse;
-    HiResScreen := True;
-    ScreenBuffer := SysTVGetSrcBuf;
-    SysTVGetCurType(Y1, Y2, Visible);
-    WordRec(CursorLines).Hi := Y1;
-    WordRec(CursorLines).Lo := Y2;
-    SysTVSetCurType(Y1, Y2, False); // Hide cursor
+    end;
+  {/AK155}
+  ScreenHeight := SrcSize.Y;
+  ScreenWidth := SrcSize.X;
+  {JO}
+  if SrcSize.X = 80 then
+    case SrcSize.Y of
+      25:
+        ScreenMode := sm80x25;
+      43:
+        ScreenMode := sm80x43;
+      50:
+        ScreenMode := sm80x50;
+      30:
+        ScreenMode := sm80x30;
+      34:
+        ScreenMode := sm80x34;
+      60:
+        ScreenMode := sm80x60;
+      else {case}
+        ScreenMode := SrcSize.X*256+SrcSize.Y;
+    end
+  else
+    ScreenMode := SrcSize.X*256+SrcSize.Y;
+  {/JO}
+  ShowMouse;
+  HiResScreen := True;
+  ScreenBuffer := SysTVGetSrcBuf;
+  SysTVGetCurType(Y1, Y2, Visible);
+  WordRec(CursorLines).Hi := Y1;
+  WordRec(CursorLines).Lo := Y2;
+  SysTVSetCurType(Y1, Y2, False); // Hide cursor
   end { SetCrtData };
 
 // Detects video modes
 
 procedure DetectVideo;
   begin
-    ScreenMode := FixCrtMode(SysTvGetScrMode(nil, True));
+  ScreenMode := FixCrtMode(SysTvGetScrMode(nil, True));
   end;
 
 // Sets the video mode. Mode is one of the constants smCO80, smBW80, or smMono,
@@ -308,54 +307,53 @@ procedure DetectVideo;
 // VGA. SetVideoMode initializes the same variables as InitVideo (except for
 // the StartupMode variable, which isn't affected).
 
-function SetVideoMode(Mode: word): boolean;
+function SetVideoMode(Mode: Word): Boolean;
   var
-    Cols, Rows: word;
-    CursorSize: word;
+    Cols, Rows: Word;
+    CursorSize: Word;
   begin
-    Result := False;
-    {$IFDEF OS2}
-    if VideoType < vtEGA then
-      exit;
-    {$ENDIF}
-    Cols := 80;
-    Rows := 0;
-    case Mode of
-      sm80x25:
-        Rows := 25;
-      sm80x43:
-        Rows := 43;
-      sm80x50:
-        Rows := 50;
-      sm80x30:
-        Rows := 30;
-      sm80x34:
-        Rows := 34;
-      sm80x60:
-        Rows := 60;
-      $140A..$FFFE:
-        begin
-            {минимальный размер окна 20x10, меньше просто нет смысла}
-          Rows := Lo(Mode);
-          Cols := Hi(Mode);
-          if Rows < 10 then
-            Rows := 10;
-        end;
-    end {case};
-    if Rows <> 0 then
-      if SysSetVideoMode(Cols, Rows) then
-        begin
-          Result := True;
-          ScreenHeight := Rows;
-          ScreenWidth := Cols;
-          ScreenMode := Mode;
-          {AK155 Число видеострок курсора зависит от видеорежима, а в окне - еще и
+  Result := False;
+  {$IFDEF OS2}
+  if VideoType < vtEGA then
+    Exit;
+  {$ENDIF}
+  Cols := 80;
+  Rows := 0;
+  case Mode of
+    sm80x25:
+      Rows := 25;
+    sm80x43:
+      Rows := 43;
+    sm80x50:
+      Rows := 50;
+    sm80x30:
+      Rows := 30;
+    sm80x34:
+      Rows := 34;
+    sm80x60:
+      Rows := 60;
+    $140A..$FFFE:
+      begin {минимальный размер окна 20x10, меньше просто нет смысла}
+      Rows := Lo(Mode);
+      Cols := Hi(Mode);
+      if Rows < 10 then
+        Rows := 10;
+      end;
+  end {case};
+  if Rows <> 0 then
+    if SysSetVideoMode(Cols, Rows) then
+      begin
+      Result := True;
+      ScreenHeight := Rows;
+      ScreenWidth := Cols;
+      ScreenMode := Mode;
+      {AK155 Число видеострок курсора зависит от видеорежима, а в окне - еще и
 от операционки. Но сразу после установки режима курсор прижат к нижнему
 краю знакоместа, так что lo(Drivers.CursorLines) равно максимальному
 номеру видеостроки знака. Это используется при изменениях вида курсора.}
-          Drivers.CursorLines := GetCursorSize;
-          {/AK155}
-        end;
+      Drivers.CursorLines := GetCursorSize;
+      {/AK155}
+      end;
   end { SetVideoMode };
 
 // Initializes Turbo Vision's video manager. Saves the current screen
@@ -367,11 +365,12 @@ function SetVideoMode(Mode: word): boolean;
 procedure InitVideo;
   var
     X, Y: SmallWord; {KV}
-    {$IFDEF WIN32}s, C: TCOORD;
-    R: TSMALLRECT;
+    {$IFDEF WIN32}s, c: TCOORD;
+    r: TSMALLRECT;
     Bf: Pointer;
 
-  procedure Rebuf(Bf: Pointer); assembler; {$USES ESI, EDI, ECX}
+  procedure Rebuf(Bf: Pointer);
+    assembler; {$USES ESI, EDI, ECX}
   asm
    cld
    mov esi,Bf
@@ -392,62 +391,61 @@ procedure InitVideo;
    stosb
 
    loop @@1
-  end
-    ;
+  end;
   {$ENDIF}
-  begin
-    SysTVGetCurType(StrtCurY1, StrtCurY2, StrtCurVisible);
-    SysTVInitCursor; {KV}
-    SysGetCurPos(X, Y); {KV}
-    WordRec(OldCursorPos).Lo := X; {KV}
-    WordRec(OldCursorPos).Hi := Y; {KV}
-    {JO}
-    DetectVideoType;
-    if (StartupData.Load and osuRestoreScrMode <> 0) then
+  begin { InitVideo }
+  SysTVGetCurType(StrtCurY1, StrtCurY2, StrtCurVisible);
+  SysTVInitCursor; {KV}
+  SysGetCurPos(X, Y); {KV}
+  WordRec(OldCursorPos).Lo := X; {KV}
+  WordRec(OldCursorPos).Hi := Y; {KV}
+  {JO}
+  DetectVideoType;
+  if  (StartupData.Load and osuRestoreScrMode <> 0) then
+    begin
+    {$IFDEF OS2}
+    if not PMWindowed then
       begin
-        {$IFDEF OS2}
-        if not PMWindowed then
-          begin
-            {$ENDIF}
-            ScreenMode := NonVIOScreenMode;
-            {$IFDEF OS2}
-          end
-        else
-          ScreenMode := VIOScreenMode;
-        {$ENDIF}
-        SetVideoMode(ScreenMode);
-      end;
-    {/JO}
-    SetCrtData;
-    if not ScreenSaved then
-      begin
-        if UserScreen <> nil then
-          FreeMem(UserScreen, UserScreenSize);
-        UserScreenSize := ScreenWidth*ScreenHeight*2;
-        UserScreenWidth := ScreenWidth;
-        GetMem(UserScreen, UserScreenSize);
-        {$IFDEF WIN32} {?} {DataCompBoy: how to do this in OS/2 ???}
-        GetMem(Bf, UserScreenSize shl 1);
-        s.X := ScreenWidth;
-        s.Y := ScreenHeight;
-        C.X := 0;
-        C.Y := 0;
-        R.Left := 0;
-        R.Right := ScreenWidth;
-        R.Top := 0;
-        R.Bottom := ScreenHeight;
-        ReadConsoleOutput(SysFileStdOut, Bf, s, C, R);
-        Rebuf(Bf);
-        FreeMem(Bf, UserScreenSize shl 1);
-        {$ELSE}
-        Move(ScreenBuffer^, UserScreen^, UserScreenSize); {JO}
-        {$ENDIF}
-        ScreenSaved := True;
-      end;
-    if (StartupData.Load and osuResetPalette <> 0) and VGASystem
-    then
-      SetPalette(VGA_palette);
-    SetBlink(CurrentBlink);
+      {$ENDIF}
+      ScreenMode := NonVIOScreenMode;
+      {$IFDEF OS2}
+      end
+    else
+      ScreenMode := VIOScreenMode;
+    {$ENDIF}
+    SetVideoMode(ScreenMode);
+    end;
+  {/JO}
+  SetCrtData;
+  if not ScreenSaved then
+    begin
+    if UserScreen <> nil then
+      FreeMem(UserScreen, UserScreenSize);
+    UserScreenSize := ScreenWidth*ScreenHeight*2;
+    UserScreenWidth := ScreenWidth;
+    GetMem(UserScreen, UserScreenSize);
+    {$IFDEF WIN32} {?} {DataCompBoy: how to do this in OS/2 ???}
+    GetMem(Bf, UserScreenSize shl 1);
+    s.X := ScreenWidth;
+    s.Y := ScreenHeight;
+    c.X := 0;
+    c.Y := 0;
+    r.Left := 0;
+    r.Right := ScreenWidth;
+    r.Top := 0;
+    r.Bottom := ScreenHeight;
+    ReadConsoleOutput(SysFileStdOut, Bf, s, c, r);
+    Rebuf(Bf);
+    FreeMem(Bf, UserScreenSize shl 1);
+    {$ELSE}
+    Move(ScreenBuffer^, UserScreen^, UserScreenSize); {JO}
+    {$ENDIF}
+    ScreenSaved := True;
+    end;
+  if  (StartupData.Load and osuResetPalette <> 0) and VGASystem
+  then
+    SetPalette(VGA_palette);
+  SetBlink(CurrentBlink);
   end { InitVideo };
 
 // Terminates Turbo Vision's video manager by restoring the initial
@@ -456,177 +454,177 @@ procedure InitVideo;
 
 procedure DoneVideo;
   begin
-    FillChar(ScreenBuffer^, ScreenWidth*ScreenHeight*2, 0);
-      {JO: нужно, чтобы куски панелей не "линяли" в UserScreen}
-    if UserScreen <> nil then
-      Move(UserScreen^, ScreenBuffer^, UserScreenSize);
-    FreeMem(UserScreen, UserScreenSize); {Cat}
-    UserScreen := nil; {Cat}
-    ScreenSaved := False; {Cat}
-    {$IFDEF Win32}
-    Sleep(1); {AK155}
-    { Без этого под Win9x что-то куда-то не успевает переписаться и при
+  FillChar(ScreenBuffer^, ScreenWidth*ScreenHeight*2, 0);
+  {JO: нужно, чтобы куски панелей не "линяли" в UserScreen}
+  if UserScreen <> nil then
+    Move(UserScreen^, ScreenBuffer^, UserScreenSize);
+  FreeMem(UserScreen, UserScreenSize); {Cat}
+  UserScreen := nil; {Cat}
+  ScreenSaved := False; {Cat}
+  {$IFDEF Win32}
+  Sleep(1); {AK155}
+  { Без этого под Win9x что-то куда-то не успевает переписаться и при
      уменьшении высоты окна в пользовательский экран попадают клочья
      от нижней части старого (бОльшего) окна}
-    {$ENDIF}
-    SysTvShowBuf(0, UserScreenSize);
-    SysTVSetCurType(StrtCurY1, StrtCurY2, StrtCurVisible);
-    if WordRec(OldCursorPos).Hi > ScreenHeight-1 then
-      WordRec(OldCursorPos).Hi := ScreenHeight-1; {KV}
-    if WordRec(OldCursorPos).Lo > ScreenWidth-1 then
-      WordRec(OldCursorPos).Lo := ScreenWidth-1; {KV}
-    {JO: под OS/2 после смены видеорежима SysGetCurPos даёт нулевые координаты}
-    {    как с этим бороться - пока не знаю                                   }
-    if OldCursorPos <> 0 then
-      SysTVSetCurPos(WordRec(OldCursorPos).Lo, WordRec(OldCursorPos).Hi)
-        ; {KV}
-    {$IFDEF Win32}
-    SysCtrlSleep(1); {KV}
-    {$ENDIF}
-    FillChar(ScreenMirror, SizeOf(ScreenMirror), 0);
-    {$IFDEF OS2}
-    {JO: это работает действеннее, чем SysTVSetCurPos, который }
-    {перестаёт нормально работать после смены видеорежима      }
-    if OldCursorPos = 0 then
-      Writeln;
-    {$ENDIF}
+  {$ENDIF}
+  SysTvShowBuf(0, UserScreenSize);
+  SysTVSetCurType(StrtCurY1, StrtCurY2, StrtCurVisible);
+  if WordRec(OldCursorPos).Hi > ScreenHeight-1 then
+    WordRec(OldCursorPos).Hi := ScreenHeight-1; {KV}
+  if WordRec(OldCursorPos).Lo > ScreenWidth-1 then
+    WordRec(OldCursorPos).Lo := ScreenWidth-1; {KV}
+  {JO: под OS/2 после смены видеорежима SysGetCurPos даёт нулевые координаты}
+  {    как с этим бороться - пока не знаю                                   }
+  if OldCursorPos <> 0 then
+    SysTVSetCurPos(WordRec(OldCursorPos).Lo, WordRec(OldCursorPos).Hi);
+  {KV}
+  {$IFDEF Win32}
+  SysCtrlSleep(1); {KV}
+  {$ENDIF}
+  FillChar(ScreenMirror, SizeOf(ScreenMirror), 0);
+  {$IFDEF OS2}
+  {JO: это работает действеннее, чем SysTVSetCurPos, который }
+  {перестаёт нормально работать после смены видеорежима      }
+  if OldCursorPos = 0 then
+    Writeln;
+  {$ENDIF}
   end { DoneVideo };
 
 // Clears the screen, moves cursor to the top left corner
 
 procedure ClearScreen;
   begin
-    SysTVClrScr;
-    {$IFDEF Win32}
-    SysCtrlSleep(50);
-      {Cat: даём время курсорной нитке установить курсор в угол}
-    {$ENDIF}
+  SysTVClrScr;
+  {$IFDEF Win32}
+  SysCtrlSleep(50);
+  {Cat: даём время курсорной нитке установить курсор в угол}
+  {$ENDIF}
   end;
 
 {$IFDEF OS2} {JO} {установка VGA-палитры в окне}
 
-procedure ResetVGApalette(UpDate: boolean);
+procedure ResetVGApalette(Update: Boolean);
   begin
-    if UpDate then
-      VGA_palette := vga_default;
-    SetPalette(vga_default);
+  if Update then
+    VGA_palette := vga_default;
+  SetPalette(vga_default);
   end;
 
-function VGASystem: boolean;
+function VGASystem: Boolean;
   begin
-    VGASystem := VideoType >= vtVGA; { PZ 2000.06.14 }
+  VGASystem := VideoType >= vtVGA; { PZ 2000.06.14 }
   end;
 
 type
   RGB = record
-    ReD, green, blue: byte
+    Red, green, Blue: Byte
     end;
-  VGAPalette = array[byte] of RGB;
+  VGAPalette = array[Byte] of RGB;
 
-procedure SetGetVGAPal(var P: VGAPalette; Get: boolean);
+procedure SetGetVGAPal(var p: VGAPalette; Get: Boolean);
   const
     ColorReg: VioColorReg = (
-    cb: SizeOf(VioColorReg); // Size of this structure
-    RType: 3; // 3 = Color registers
-    FirstColorReg: 0; // Specifies the first color registers
-    NumColorRegs: 256; // Number of color registers
-    ColorRegAddr: nil // Pointer to array with color values
-    );
+      cb: SizeOf(VioColorReg); // Size of this structure
+      RType: 3; // 3 = Color registers
+      FirstColorReg: 0; // Specifies the first color registers
+      NumColorRegs: 256; // Number of color registers
+      ColorRegAddr: nil // Pointer to array with color values
+      );
   begin
-    with ColorReg do
-      begin
-        ColorRegAddr := @p;
-        FLatToSel(ColorRegAddr);
-      end;
-    if Get then
-      VioGetState(ColorReg, 0)
-    else
-      VioSetState(ColorReg, 0)
+  with ColorReg do
+    begin
+    ColorRegAddr := @p;
+    FLatToSel(ColorRegAddr);
+    end;
+  if Get then
+    VioGetState(ColorReg, 0)
+  else
+    VioSetState(ColorReg, 0)
   end;
 
-procedure Set_palette(Color, R, G, B: byte);
+procedure Set_palette(color, r, g, b: Byte);
   var
     curpal: VGAPalette;
   begin
-    SetGetVGAPal(curpal, True);
-    with curpal[Color] do
-      begin
-        ReD := R;
-        green := G;
-        blue := B;
-      end;
-    SetGetVGAPal(curpal, False);
+  SetGetVGAPal(curpal, True);
+  with curpal[color] do
+    begin
+    Red := r;
+    green := g;
+    Blue := b;
+    end;
+  SetGetVGAPal(curpal, False);
   end;
 
-procedure Get_palette(Color: byte; var R, G, B: byte);
+procedure Get_palette(color: Byte; var R, G, B: Byte);
   var
     curpal: VGAPalette;
   begin
-    SetGetVGAPal(curpal, True);
-    with curpal[Color] do
-      begin
-        R := ReD;
-        G := green;
-        B := blue;
-      end;
+  SetGetVGAPal(curpal, True);
+  with curpal[color] do
+    begin
+    R := Red;
+    G := green;
+    B := Blue;
+    end;
   end;
 
 procedure GetPalette(var Buf);
   var
-    Pal: vga_pal absolute Buf;
+    PAL: vga_pal absolute Buf;
     curpal: VGAPalette;
-    i: byte;
+    I: Byte;
   begin
-    if not (VGASystem and not PMWindowed) then
-      exit;
-    Pal := vga_default;
-    SetGetVGAPal(curpal, True);
-    for i := 0 to 15 do
-      with curpal[SL[i]] do
-        begin
-          Pal[1, i] := ReD;
-          Pal[2, i] := green;
-          Pal[3, i] := blue;
-        end;
+  if not (VGASystem and not PMWindowed) then
+    Exit;
+  PAL := vga_default;
+  SetGetVGAPal(curpal, True);
+  for I := 0 to 15 do
+    with curpal[SL[I]] do
+      begin
+      PAL[1, I] := Red;
+      PAL[2, I] := green;
+      PAL[3, I] := Blue;
+      end;
   end;
 
 procedure SetPalette(var Buf);
   var
-    Pal: vga_pal absolute Buf;
+    PAL: vga_pal absolute Buf;
     curpal: VGAPalette;
-    i: byte;
+    I: Byte;
   begin
-    if not (VGASystem and not PMWindowed) then
-      exit;
-    SetGetVGAPal(curpal, True);
-    for i := 0 to 15 do
-      with curpal[SL[i]] do
-        begin
-          ReD := Pal[1, i];
-          green := Pal[2, i];
-          blue := Pal[3, i];
-        end;
-    SetGetVGAPal(curpal, False);
+  if not (VGASystem and not PMWindowed) then
+    Exit;
+  SetGetVGAPal(curpal, True);
+  for I := 0 to 15 do
+    with curpal[SL[I]] do
+      begin
+      Red := PAL[1, I];
+      green := PAL[2, I];
+      Blue := PAL[3, I];
+      end;
+  SetGetVGAPal(curpal, False);
   end;
 
-procedure SetBlink(Mode: boolean); {JO}
+procedure SetBlink(Mode: Boolean); {JO}
   var
-    i: VioIntensity;
+    I: VioIntensity;
   begin
-    with i do
-      begin
-        cb := SizeOf(VioIntensity);
-        RType := 2;
-        if Mode then
-          fs := 0
-        else
-          fs := 1;
-      end;
-    VioSetState(i, TVVioHandle);
+  with I do
+    begin
+    cb := SizeOf(VioIntensity);
+    RType := 2;
+    if Mode then
+      fs := 0
+    else
+      fs := 1;
+    end;
+  VioSetState(I, TVVioHandle);
   end;
 
 {$ELSE}
-procedure ResetVGApalette(UpDate: boolean);
+procedure ResetVGApalette(Update: Boolean);
   begin
   end;
 procedure GetPalette(var Buf);
@@ -635,79 +633,78 @@ procedure GetPalette(var Buf);
 procedure SetPalette(var Buf);
   begin
   end;
-function VGASystem: boolean;
+function VGASystem: Boolean;
   begin
   end;
-procedure Set_palette(Color, R, G, B: byte);
+procedure Set_palette(color, r, g, b: Byte);
   begin
   end;
-procedure Get_palette(Color: byte; var R, G, B: byte);
+procedure Get_palette(color: Byte; var R, G, B: Byte);
   begin
   end;
-procedure SetBlink(Mode: boolean);
+procedure SetBlink(Mode: Boolean);
   begin
   end;
 {$ENDIF}
 
 {Procedure GetCrtMode;                                begin end;}
 
-procedure SetScrMode(Mode: word);
+procedure SetScrMode(Mode: Word);
   var
     R, R1, A: TRect;
-  label ex;
+  label Ex;
   begin
-    with PApplication(Application)^ do
+  with PApplication(Application)^ do
+    begin
+    if Mode = ScreenMode then
+      goto Ex;
+    GetExtent(R1);
+    Clock^.GetBounds(A);
+    if not SetScreenMode(Mode) then
       begin
-        if Mode = ScreenMode then
-          goto ex;
-        GetExtent(R1);
-        Clock^.GetBounds(A);
-        if not SetScreenMode(Mode) then
-          begin
-            SetBlink(CurrentBlink);
-            if (StartupData.Load and osuResetPalette <> 0) and
-                VGASystem
-            then
-              SetPalette(VGA_palette);
-            Redraw;
-            MessageBox(GetString(dlNotValidForCurSession), nil,
-              mfError+mfOKButton);
-            exit;
-          end;
-        GetExtent(R);
-        A.A.X := Round(A.A.X*R.B.X/R1.B.X);
-        if A.B.Y = R1.B.Y then
-          A.A.Y := R.B.Y-1
-        else
-          A.A.Y := Round(A.A.Y*R.B.Y/R1.B.Y);
-        if ShowSeconds then
-          A.B.X := A.A.X+10
-        else
-          A.B.X := A.A.X+7;
-        A.B.Y := A.A.Y+1;
-        Clock^.Locate(A);
-        SetBlink(CurrentBlink);
-        if (StartupData.Load and osuResetPalette <> 0) and VGASystem
-        then
-          SetPalette(VGA_palette);
-        Redraw;
+      SetBlink(CurrentBlink);
+      if  (StartupData.Load and osuResetPalette <> 0) and VGASystem
+      then
+        SetPalette(VGA_palette);
+      Redraw;
+      MessageBox(GetString(dlNotValidForCurSession), nil,
+         mfError+mfOKButton);
+      Exit;
       end;
-ex:
-    {$IFDEF OS2}
-    if not PMWindowed then
-      begin
-        {$ENDIF}
-        NonVIOScreenMode := ScreenMode;
-        SaveDnIniSettings(@NonVIOScreenMode)
-        {$IFDEF OS2}
-      end
+    GetExtent(R);
+    A.A.X := Round(A.A.X*R.B.X/R1.B.X);
+    if A.B.Y = R1.B.Y then
+      A.A.Y := R.B.Y-1
     else
-      begin
-        VIOScreenMode := ScreenMode;
-        SaveDnIniSettings(@VIOScreenMode);
-      end
-      {$ENDIF};
-    DoneIniEngine;
+      A.A.Y := Round(A.A.Y*R.B.Y/R1.B.Y);
+    if ShowSeconds then
+      A.B.X := A.A.X+10
+    else
+      A.B.X := A.A.X+7;
+    A.B.Y := A.A.Y+1;
+    Clock^.Locate(A);
+    SetBlink(CurrentBlink);
+    if  (StartupData.Load and osuResetPalette <> 0) and VGASystem
+    then
+      SetPalette(VGA_palette);
+    Redraw;
+    end;
+Ex:
+  {$IFDEF OS2}
+  if not PMWindowed then
+    begin
+    {$ENDIF}
+    NonVIOScreenMode := ScreenMode;
+    SaveDnIniSettings(@NonVIOScreenMode)
+    {$IFDEF OS2}
+    end
+  else
+    begin
+    VIOScreenMode := ScreenMode;
+    SaveDnIniSettings(@VIOScreenMode);
+    end
+    {$ENDIF};
+  DoneIniEngine;
   end { SetScrMode };
 
 end.

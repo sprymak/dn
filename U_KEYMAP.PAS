@@ -61,7 +61,8 @@ unit U_KeyMap;
 interface
 
 uses
-  Objects {Cat};
+  Objects {Cat}
+  ;
 
 type
   TKeyMap = (kmNone, kmAscii, kmAnsi, kmKoi8r); {-$VIV}
@@ -71,20 +72,20 @@ type
 const
   RollKeyMap: array[TKeyMap] of TKeyMap =
   {index: kmNone, kmAscii, kmAnsi,  kmKoi8r}
-  (kmAnsi, kmAnsi, kmKoi8r, kmAscii);
+    (kmAnsi, kmAnsi, kmKoi8r, kmAscii);
 
   KeyMapDescriptor: array[TKeyMap] of string3 =
   {index: kmNone, kmAscii, kmAnsi,  kmKoi8r}
-  ('XXX', 'DOS', 'WIN', 'KOI');
+    ('XXX', 'DOS', 'WIN', 'KOI');
 type
   {(c) SeYKo}
   TCodePageDetector = object
-    Constructor Init;
+    constructor Init;
     destructor Done; virtual;
-    procedure CheckString(const s: String);
+    procedure CheckString(const S: String);
     function DetectedCodePage: TKeyMap;
-    private
-    Koi, KoiA, Win, WinA, Win2: longInt;
+  private
+    Koi, KoiA, Win, WinA, Win2: LongInt;
     end;
   {(c) SeYKo}
 
@@ -92,23 +93,22 @@ type
 
 procedure NullXLAT(var X: TXlat);
 
-function ascii_ansi(const s: LongString): LongString;
-function ansi_ascii(const s: LongString): LongString;
-procedure Ascii_Ansi_Buf(var Buf; l: word);
-procedure Ansi_Ascii_Buf(var Buf; l: word);
+function Ascii_Ansi(const S: LongString): LongString;
+function Ansi_Ascii(const S: LongString): LongString;
+procedure Ascii_Ansi_Buf(var Buf; L: Word);
+procedure Ansi_Ascii_Buf(var Buf; L: Word);
 
-function ascii_koi8r(const s: LongString): LongString;
-function koi8r_ascii(const s: LongString): LongString;
-procedure Ascii_Koi8r_Buf(var Buf; l: word);
-procedure Koi8r_Ascii_Buf(var Buf; l: word);
+function Ascii_Koi8r(const S: LongString): LongString;
+function koi8r_ascii(const S: LongString): LongString;
+procedure Ascii_Koi8r_Buf(var Buf; L: Word);
+procedure Koi8r_Ascii_Buf(var Buf; L: Word);
 
-function RusEngConv(const s: LongString): LongString;
-function GetToAsciiRecodeTable(k: TKeyMap; var Buf): boolean;
+function RusEngConv(const S: LongString): LongString;
+function GetToAsciiRecodeTable(K: TKeyMap; var Buf): Boolean;
 
-procedure CharsConvertBuf(var Buf; len: word; const AllChars: String);
-procedure CharsConvertBufBack(var Buf; len: word; const AllChars:
-    String);
-procedure XLatBuf(var B; len: integer; var XTable);
+procedure CharsConvertBuf(var Buf; Len: Word; const AllChars: String);
+procedure CharsConvertBufBack(var Buf; Len: Word; const AllChars: String);
+procedure XLatBuf(var B; Len: Integer; var XTable);
 
 {Cat: раньше: function ***AllChars:string в implementation
       теперь: const ***AllChars:string в interface}
@@ -191,7 +191,7 @@ const
 
 implementation
 
-procedure XLatBuf(var B; len: integer; var XTable);
+procedure XLatBuf(var B; Len: Integer; var XTable);
   assembler;
   {&Frame-} {$USES ESI, EBX, ECX, EDI}
 asm
@@ -209,71 +209,70 @@ asm
     mov  [ESI-1], AL
     loop @@Loop
  @@1:
-  end
-  ;
+  end;
 
 {(c) SeYKo}
-Constructor TCodePageDetector.Init;
+constructor TCodePageDetector.Init;
   begin
-    (* inherited Init; *)
-    Koi := 0;
-    KoiA := 0;
-    Win := 0;
-    WinA := 0;
-    Win2 := 0;
+  (* inherited Init; *)
+  Koi := 0;
+  KoiA := 0;
+  Win := 0;
+  WinA := 0;
+  Win2 := 0;
   end;
 
 destructor TCodePageDetector.Done;
   begin
-    (* inherited Done; *)
+  (* inherited Done; *)
   end;
 
 const
   WinSetA = [#224, #229, #232, #238, #243];
   KoiSetA = [#193, #197, #201, #207, #213];
 
-procedure TCodePageDetector.CheckString(const s: String);
+procedure TCodePageDetector.CheckString(const S: String);
   var
     C: Char;
     P1, P2: PChar;
   begin
-    P1 := @S[1];
-    P2 := P1+Length(s);
-    while P1 < P2 do
-      begin
-        C := P1^;
-        Inc(P1);
-        if C >= #$C0 then
-          if C <= #$DF then
-            begin
-              Inc(Koi);
-              if C in KoiSetA then
-                Inc(KoiA);
-            end
-          else
-            begin
-              Inc(Win);
-              if C in WinSetA then
-                Inc(WinA);
-              if C >= #$F0 then
-                Inc(Win2);
-            end;
-      end;
+  P1 := @S[1];
+  P2 := P1+Length(S);
+  while P1 < P2 do
+    begin
+    C := P1^;
+    Inc(P1);
+    if C >= #$C0 then
+      if C <= #$DF then
+        begin
+        Inc(Koi);
+        if C in KoiSetA then
+          Inc(KoiA);
+        end
+      else
+        begin
+        Inc(Win);
+        if C in WinSetA then
+          Inc(WinA);
+        if C >= #$F0 then
+          Inc(Win2);
+        end;
+    end;
   end { TCodePageDetector.CheckString };
 
 function TCodePageDetector.DetectedCodePage: TKeyMap;
   begin
-    DetectedCodePage := kmAscii;
-    if (Koi <> 0) and (KoiA <> 0) and (Win <> 0) and
+  DetectedCodePage := kmAscii;
+  if  (Koi <> 0) and (KoiA <> 0) and (Win <> 0) and
       (Win >= Koi div 500) and (Win <= Koi div 5) and
       (KoiA >= Koi div 5)
-    then
-      DetectedCodePage := kmKoi8r
-    else if (Win <> 0) and (WinA <> 0) and (Koi <> 0) and
+  then
+    DetectedCodePage := kmKoi8r
+  else if (Win <> 0) and (WinA <> 0) and (Koi <> 0) and
       (Koi >= Win div 500) and (Koi <= Win div 5) and
       (WinA >= Win div 5) and (Win2 >= Win div 5)
-    then
-      DetectedCodePage := kmAnsi;
+  then
+    DetectedCodePage := kmAnsi;
   end;
 {(c) SeYKo}
 
@@ -281,39 +280,39 @@ procedure NullXLAT;
   var
     C: Char;
   begin
-    for C := #0 to#255 do
-      X[C] := C;
+  for C := #0 to #255 do
+    X[C] := C;
   end;
 
 type
-  TConvertTable = array[0..255] of byte;
+  TConvertTable = array[0..255] of Byte;
 
-procedure CharsToTable(var ConvertTable: TConvertTable; const
-    AllChars: String);
+procedure CharsToTable(var ConvertTable: TConvertTable;
+     const AllChars: String);
   begin
-    FillChar(ConvertTable, SizeOf(ConvertTable), #$00);
-    Move(AllChars[1], ConvertTable[1], Length(AllChars));
+  FillChar(ConvertTable, SizeOf(ConvertTable), #$00);
+  Move(AllChars[1], ConvertTable[1], Length(AllChars));
   end;
 
-procedure CharsToBackTable(var ConvertTable: TConvertTable; const
-    AllChars: String);
+procedure CharsToBackTable(var ConvertTable: TConvertTable;
+     const AllChars: String);
   var
-    i: integer;
+    i: Integer;
   begin
-    FillChar(ConvertTable, SizeOf(ConvertTable), #$00);
-    for i := Low(ConvertTable)+1 to High(ConvertTable) do
-      ConvertTable[Ord(AllChars[i-Low(ConvertTable)])] := i;
+  FillChar(ConvertTable, SizeOf(ConvertTable), #$00);
+  for i := Low(ConvertTable)+1 to High(ConvertTable) do
+    ConvertTable[Ord(AllChars[i-Low(ConvertTable)])] := i;
   end;
 
-procedure ConvertBuf(var Buf; len: word; const ConvertTable:
-    TConvertTable);
+procedure ConvertBuf(var Buf; Len: Word;
+     const ConvertTable: TConvertTable);
   {$IFDEF  NOASM}
   var
-    i: integer;
-    P: array[0..0] of byte absolute Buf;
+    i: Integer;
+    p: array[0..0] of Byte absolute Buf;
   begin
-    for i := 0 to len-1 do
-      P[i] := ConvertTable[P[i]];
+  for i := 0 to Len-1 do
+    p[i] := ConvertTable[p[i]];
   end;
   {$ELSE  !NOASM}
   assembler;
@@ -329,89 +328,87 @@ asm
          STOSB
          LOOP    @@1
  @@2:
- end
-  ;
+ end;
 {$ENDIF !NOASM}
 
-procedure CharsConvertBuf(var Buf; len: word; const AllChars: String);
+procedure CharsConvertBuf(var Buf; Len: Word; const AllChars: String);
   var
     ConvertTable: TConvertTable;
   begin
-    CharsToTable(ConvertTable, AllChars);
-    ConvertBuf(Buf, len, ConvertTable);
+  CharsToTable(ConvertTable, AllChars);
+  ConvertBuf(Buf, Len, ConvertTable);
   end;
 
-procedure CharsConvertBufBack(var Buf; len: word; const AllChars:
-    String);
+procedure CharsConvertBufBack(var Buf; Len: Word; const AllChars: String);
   var
     ConvertTable: TConvertTable;
   begin
-    CharsToBackTable(ConvertTable, AllChars);
-    ConvertBuf(Buf, len, ConvertTable);
+  CharsToBackTable(ConvertTable, AllChars);
+  ConvertBuf(Buf, Len, ConvertTable);
   end;
 
-function ascii_ansi(const s: LongString): LongString;
+function Ascii_Ansi(const S: LongString): LongString;
   begin
-    Result := s;
-    CharsConvertBuf(Result[1], Length(Result), AnsiAllChars);
+  Result := S;
+  CharsConvertBuf(Result[1], Length(Result), AnsiAllChars);
   end;
 
-function ansi_ascii(const s: LongString): LongString;
+function Ansi_Ascii(const S: LongString): LongString;
   begin
-    Result := s;
-    CharsConvertBufBack(Result[1], Length(Result), AnsiAllChars);
+  Result := S;
+  CharsConvertBufBack(Result[1], Length(Result), AnsiAllChars);
   end;
 
-procedure Ascii_Ansi_Buf(var Buf; l: word);
+procedure Ascii_Ansi_Buf(var Buf; L: Word);
   begin
-    CharsConvertBuf(Buf, l, AnsiAllChars);
+  CharsConvertBuf(Buf, L, AnsiAllChars);
   end;
 
-procedure Ansi_Ascii_Buf(var Buf; l: word);
+procedure Ansi_Ascii_Buf(var Buf; L: Word);
   begin
-    CharsConvertBufBack(Buf, l, AnsiAllChars);
+  CharsConvertBufBack(Buf, L, AnsiAllChars);
   end;
 
-function ascii_koi8r(const s: LongString): LongString;
+function Ascii_Koi8r(const S: LongString): LongString;
   begin
-    Result := s;
-    CharsConvertBuf(Result[1], Length(Result), Koi8rAllChars);
+  Result := S;
+  CharsConvertBuf(Result[1], Length(Result), Koi8rAllChars);
   end;
 
-function koi8r_ascii(const s: LongString): LongString;
+function koi8r_ascii(const S: LongString): LongString;
   begin
-    Result := s;
-    CharsConvertBufBack(Result[1], Length(Result), Koi8rAllChars);
+  Result := S;
+  CharsConvertBufBack(Result[1], Length(Result), Koi8rAllChars);
   end;
 
-procedure Ascii_Koi8r_Buf(var Buf; l: word);
+procedure Ascii_Koi8r_Buf(var Buf; L: Word);
   begin
-    CharsConvertBuf(Buf, l, Koi8rAllChars);
+  CharsConvertBuf(Buf, L, Koi8rAllChars);
   end;
 
-procedure Koi8r_Ascii_Buf(var Buf; l: word);
+procedure Koi8r_Ascii_Buf(var Buf; L: Word);
   begin
-    CharsConvertBufBack(Buf, l, Koi8rAllChars);
+  CharsConvertBufBack(Buf, L, Koi8rAllChars);
   end;
 
-function RusEngConv(const s: LongString): LongString;
+function RusEngConv(const S: LongString): LongString;
   begin
-    Result := s;
-    CharsConvertBuf(Result[1], Length(Result), RusEngAllChars);
+  Result := S;
+  CharsConvertBuf(Result[1], Length(Result), RusEngAllChars);
   end;
 
-function GetToAsciiRecodeTable(k: TKeyMap; var Buf): boolean;
+function GetToAsciiRecodeTable(K: TKeyMap; var Buf): Boolean;
   begin
-    GetToAsciiRecodeTable := False;
-    case k of
-      kmAnsi:
-        CharsToBackTable(TConvertTable(Buf), AnsiAllChars);
-      kmKoi8r:
-        CharsToBackTable(TConvertTable(Buf), Koi8rAllChars);
-      else
-        exit;
-    end {case};
-    GetToAsciiRecodeTable := True;
+  GetToAsciiRecodeTable := False;
+  case K of
+    kmAnsi:
+      CharsToBackTable(TConvertTable(Buf), AnsiAllChars);
+    kmKoi8r:
+      CharsToBackTable(TConvertTable(Buf), Koi8rAllChars);
+    else {case}
+      Exit;
+  end {case};
+  GetToAsciiRecodeTable := True;
   end;
 
 end.

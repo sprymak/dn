@@ -13,110 +13,109 @@ Copyright (C) 2002 Aleksej Kozlov (Cat)
 interface
 
 uses
-  _Defines, _Objects;
+  _Defines, _Objects
+  ;
 
 type
   PRegExp = ^TRegExp;
   TRegExp = object(TObject)
     FStatus: TRegExpStatus;
-    FStart: integer;
-    FLength: integer;
-    Constructor Init;
+    FStart: Integer;
+    FLength: Integer;
+    constructor Init;
     {destructor Done; virtual;}
     procedure Reset;
-    function CompileString(const AExpression: String): boolean;
-    function CompileStr(AExpression: PChar): boolean;
-    function Compile(AExpression: PChar; ALength: integer): boolean;
-    function Execute(AString: PChar; ALength: integer): boolean;
+    function CompileString(const AExpression: String): Boolean;
+    function CompileStr(AExpression: PChar): Boolean;
+    function Compile(AExpression: PChar; ALength: Integer): Boolean;
+    function Execute(AString: PChar; ALength: Integer): Boolean;
     function SubstituteString(ASrc: PChar; const AReplace: String;
-      var ADest: String): boolean;
-    function SubstituteStr(ASrc, AReplace: PChar; ADest: PChar; var
-      ALength: integer): boolean;
-    function Substitute(ASrc, AReplace: PChar; ARLen: integer; ADest:
-      PChar; var ADLen: integer): boolean;
+         var ADest: String): Boolean;
+    function SubstituteStr(ASrc, AReplace: PChar; ADest: PChar;
+         var ALength: Integer): Boolean;
+    function Substitute(ASrc, AReplace: PChar; ARLen: Integer;
+         ADest: PChar; var ADLen: Integer): Boolean;
     procedure Error(AStatus: TRegExpStatus); virtual;
-    function CheckBreak: boolean; virtual;
-    procedure Escape(AChar: Char; var ASubExp: PChar; var ALen:
-      integer); virtual;
-    private
-    FFlags: Set of
-    (
-    ffCompiled,
-    ffAnchored,
-    ffStart,
-    ffParsing,
-    ffMatchNext,
-    ffBreak,
-    ffAutoTag
-    );
-    FCodeSize: word;
+    function CheckBreak: Boolean; virtual;
+    procedure Escape(AChar: Char; var ASubExp: PChar; var ALen: Integer)
+      ; virtual;
+  private
+    FFlags: set of
+      (
+      ffCompiled,
+      ffAnchored,
+      ffStart,
+      ffParsing,
+      ffMatchNext,
+      ffBreak,
+      ffAutoTag
+      );
+    FCodeSize: Word;
     FCodeData: PChar;
-    FStartP: array[1..9] of integer;
-    FEndP: array[1..9] of integer;
+    FStartP: array[1..9] of Integer;
+    FEndP: array[1..9] of Integer;
     FStartCh: Char;
     FMust: PString;
     FInput: PChar;
     FInputBol: PChar;
     FInputEol: PChar;
-    FLStack: array[1..10] of integer;
-    FLStackId: integer;
+    FLStack: array[1..10] of Integer;
+    FLStackId: Integer;
     end;
 
 implementation
 
 uses
-  _DNFuncs;
+  _DNFuncs
+  ;
 
-Constructor TRegExp.Init;
+constructor TRegExp.Init;
   begin
-    _TRegExp^.Init(nil, @Self);
+  _TRegExp^.Init(nil, @Self);
   end;
 
 procedure TRegExp.Reset;
   begin
-    _TRegExp^.Reset(@Self);
+  _TRegExp^.Reset(@Self);
   end;
 
-function TRegExp.CompileString(const AExpression: String): boolean;
+function TRegExp.CompileString(const AExpression: String): Boolean;
   begin
-    Result := _TRegExp^.CompileString(AExpression, @Self);
+  Result := _TRegExp^.CompileString(AExpression, @Self);
   end;
 
-function TRegExp.CompileStr(AExpression: PChar): boolean;
+function TRegExp.CompileStr(AExpression: PChar): Boolean;
   begin
-    Result := _TRegExp^.CompileStr(AExpression, @Self);
+  Result := _TRegExp^.CompileStr(AExpression, @Self);
   end;
 
-function TRegExp.Compile(AExpression: PChar; ALength: integer):
-    boolean;
+function TRegExp.Compile(AExpression: PChar; ALength: Integer): Boolean;
   begin
-    Result := _TRegExp^.Compile(AExpression, ALength, @Self);
+  Result := _TRegExp^.Compile(AExpression, ALength, @Self);
   end;
 
-function TRegExp.Execute(AString: PChar; ALength: integer): boolean;
+function TRegExp.Execute(AString: PChar; ALength: Integer): Boolean;
   begin
-    Result := _TRegExp^.Execute(AString, ALength, @Self);
+  Result := _TRegExp^.Execute(AString, ALength, @Self);
   end;
 
-function TRegExp.SubstituteString(ASrc: PChar; const AReplace:
-    String; var ADest: String): boolean;
+function TRegExp.SubstituteString(ASrc: PChar; const AReplace: String;
+     var ADest: String): Boolean;
   begin
-    Result := _TRegExp^.SubstituteString(ASrc, AReplace, ADest,
-      @Self);
+  Result := _TRegExp^.SubstituteString(ASrc, AReplace, ADest, @Self);
   end;
 
 function TRegExp.SubstituteStr(ASrc, AReplace: PChar; ADest: PChar;
-    var ALength: integer): boolean;
+     var ALength: Integer): Boolean;
   begin
-    Result := _TRegExp^.SubstituteStr(ASrc, AReplace, ADest, ALength,
-      @Self);
+  Result := _TRegExp^.SubstituteStr(ASrc, AReplace, ADest, ALength, @Self);
   end;
 
-function TRegExp.Substitute(ASrc, AReplace: PChar; ARLen: integer;
-    ADest: PChar; var ADLen: integer): boolean;
+function TRegExp.Substitute(ASrc, AReplace: PChar; ARLen: Integer;
+     ADest: PChar; var ADLen: Integer): Boolean;
   begin
-    Result := _TRegExp^.Substitute(ASrc, AReplace, ARLen, ADest,
-      ADLen, @Self);
+  Result := _TRegExp^.Substitute(ASrc, AReplace, ARLen, ADest, ADLen,
+       @Self);
   end;
 
 procedure TRegExp.Error(AStatus: TRegExpStatus);
@@ -124,13 +123,13 @@ procedure TRegExp.Error(AStatus: TRegExpStatus);
 asm
 end;
 
-function TRegExp.CheckBreak: boolean;
+function TRegExp.CheckBreak: Boolean;
   assembler; {&Frame-}
 asm
 end;
 
-procedure TRegExp.Escape(AChar: Char; var ASubExp: PChar; var ALen:
-    integer);
+procedure TRegExp.Escape(AChar: Char; var ASubExp: PChar;
+     var ALen: Integer);
   assembler; {&Frame-}
 asm
 end;

@@ -65,14 +65,15 @@ program RCP;
 {file                                                                 }
 
 uses
-  Lfn, Collect, Drivers, Dos, Objects, advance, advance1, advance2,
-    advance3,
+  Lfn, Collect, Drivers, Dos, Objects, Advance, Advance1, Advance2,
+   Advance3,
   RStrings, GetConst, Menus, Commands, Setups, DNHelp, Views, DNApp,
-    Startup,
+   Startup,
   Dialogs, Validate, IniFiles, Scroller, ListMakr, ObjType, RegAll,
-    DefColl,
+   DefColl,
   ColorSel,
-  SWE;
+  SWE
+  ;
 
 const
   tidCommands = 'cm'#0'cd'#0;
@@ -87,260 +88,261 @@ var
   Types: PValuesHolder;
   LngFileName: String;
   OutLngFileName: String;
-  DlgFileName: String;
+  dlgFileName: String;
   OutDlgFileName: String;
   OutDir: String;
   DLStream: TBufStream;
   DefineParser: TDefCollection;
 
-procedure Error(const s: String);
+procedure Error(const S: String);
   begin
-    Writeln(#13, s);
-    Halt(1);
+  Writeln(#13, S);
+  Halt(1);
   end;
 
-function RemoveLeadSpaces(s: String): String;
+function RemoveLeadSpaces(S: String): String;
   begin
-    DelLeft(s);
-    RemoveLeadSpaces := s;
+  DelLeft(S);
+  RemoveLeadSpaces := S;
   end;
 
 const
   BreakChars = [#9, #10, #13, #12, ' ', #0];
 
-function wSkipBlank(const s: String; i: integer): integer;
+function wSkipBlank(const S: String; i: Integer): Integer;
   near;
   begin
-    while (i <= Length(s)) and (s[i] in BreakChars) do
-      Inc(i);
-    wSkipBlank := i;
+  while (i <= Length(S)) and (S[i] in BreakChars) do
+    Inc(i);
+  wSkipBlank := i;
   end;
 
-function wSkipText(const s: String; i: integer): integer;
+function wSkipText(const S: String; i: Integer): Integer;
   near;
   begin
-    while (i <= Length(s)) and not (s[i] in BreakChars) do
-      Inc(i);
-    wSkipText := i;
+  while (i <= Length(S)) and not (S[i] in BreakChars) do
+    Inc(i);
+  wSkipText := i;
   end;
 
-function SeekWord(const s: String; No: integer): integer;
-    { Pos of word #No in S }
+function SeekWord(const S: String; No: Integer): Integer;
+  { Pos of word #No in S }
   var
-    i: integer;
+    I: Integer;
   begin
-    i := 1;
-    SeekWord := 0;
-    if No >= 1 then
-      repeat
-        i := wSkipBlank(s, i);
-        if i > Length(s) then
-          break;
-        Dec(No);
-        if No <= 0 then
-          begin
-            SeekWord := i;
-            break;
-          end;
-        i := wSkipText(s, i);
-        if i > Length(s) then
-          break;
-      until False;
+  I := 1;
+  SeekWord := 0;
+  if No >= 1 then
+    repeat
+      I := wSkipBlank(S, I);
+      if I > Length(S) then
+        Break;
+      Dec(No);
+      if No <= 0 then
+        begin
+        SeekWord := I;
+        Break;
+        end;
+      I := wSkipText(S, I);
+      if I > Length(S) then
+        Break;
+    until False;
   end { SeekWord };
 
-function GetWord(s: String; No: integer): String; { Word #No of S }
+function GetWord(S: String; No: Integer): String; { Word #No of S }
   var
-    i: integer;
+    I: Integer;
   begin
-    i := SeekWord(s, No);
-    if i > 0 then
+  I := SeekWord(S, No);
+  if I > 0 then
+    begin
+    if I > 1 then
       begin
-        if i > 1 then
-          begin
-            SetLength(s, Length(s)-(i-1));
-            Move(s[i], s[1], Length(s));
-          end;
-        SetLength(s, wSkipText(s, 1)-1);
-        GetWord := s;
-      end
-    else
-      GetWord := '';
+      SetLength(S, Length(S)-(I-1));
+      Move(S[I], S[1], Length(S));
+      end;
+    SetLength(S, wSkipText(S, 1)-1);
+    GetWord := S;
+    end
+  else
+    GetWord := '';
   end;
 
 const
   RStringList: TStreamRec =
-  (ObjType: otStringList;
-  VmtLink: (TypeOf(Collect.TStringList));
-  Load: @Collect.TStringList.Load;
-  Store: nil);
+    (ObjType: otStringList;
+    VmtLink: (TypeOf(Collect.TStringList));
+    Load: @Collect.TStringList.Load;
+    Store: nil);
 
   {-DataCompBoy-}
-procedure ProcessDLs(Enable: boolean);
+procedure ProcessDLs(Enable: Boolean);
   var
-    DLS: PTypeHolder;
+    DLs: PTypeHolder;
     SLM: PStrListMaker;
-    Fail: boolean;
+    Fail: Boolean;
     F: lText;
-    s, s1: String;
+    S, S1: String;
     P: PLngWord;
-  function DoSeekID(P: PLngWord): boolean;
+  function DoSeekID(P: PLngWord): Boolean;
     begin
-      DoSeekID := P^.Name = s1
+    DoSeekID := P^.Name = S1
     end;
   procedure DoTest(P: PLngWord);
     begin
-      if P^.Mark = 0 then
-        begin
-          Writeln('Unresolved identifier "'+P^.Name+'"');
-          Fail := True;
-        end;
+    if P^.Mark = 0 then
+      begin
+      Writeln('Unresolved identifier "'+P^.Name+'"');
+      Fail := True;
+      end;
     end;
-  function MakeStr(s: String): String;
+  function MakeStr(S: String): String;
     label 1, 2;
     var
       A, M: String;
-      i, j: integer;
-      B: boolean;
-      NotFlag: boolean;
+      I, J: Integer;
+      B: Boolean;
+      NotFlag: Boolean;
     begin
-      MakeStr := '';
-      DelLeft(s);
-      if s = '' then
-        exit;
-      i := 0;
-      B := False;
-      A := '';
+    MakeStr := '';
+    DelLeft(S);
+    if S = '' then
+      Exit;
+    I := 0;
+    B := False;
+    A := '';
 1:
-      while i < Length(s) do
-        begin
-          Inc(i);
-          case s[i] of
-            '''':
-              if (s[i+1] = '''') and B and (i < Length(s)) then
-                begin
-                  Inc(i);
-                  A := A+'''' {AddStr(A, '''')}
-                end
-              else
-                B := not B;
-            '^':
-              if B then
-                A := A+s[i] {AddStr(A, S[I])}
-              else
-                begin
-                  Inc(i);
-                  A := A+Char(byte(UpCase(s[i]))-64)
-                    {AddStr(A, Char(Byte(UpCase(S[I]))-64));}
-                end;
-            '#':
-              if B then
-                A := A+s[i] {AddStr(A, S[I])}
-              else
-                begin
-                  j := 1;
-                  M := '';
-                  repeat
-                    Inc(i);
-                    M := M+s[i]; {AddStr(M, S[I]);}
-                  until (i >= Length(s)) or not (s[i+1] in ['0'..'9']);
-                  A := A+Char(StoI(M)) {AddStr(A, Char(StoI(M)));}
-                end;
-            else
-              if B then
-                A := A+s[i]; {AddStr(A, S[I]);}
-          end {case};
-        end;
-      if s[Length(s)] = '+' then
-        begin
-2:
-          readln(F.t, s);
-          if s <> '' then
+    while I < Length(S) do
+      begin
+      Inc(I);
+      case S[I] of
+        '''':
+          if  (S[I+1] = '''') and B and (I < Length(S)) then
             begin
-              s := DefineParser.ProceedStr2(s);
-              if s = '' then
-                goto 2;
+            Inc(I);
+            A := A+'''' {AddStr(A, '''')}
+            end
+          else
+            B := not B;
+        '^':
+          if B then
+            A := A+S[I] {AddStr(A, S[I])}
+          else
+            begin
+            Inc(I);
+            A := A+Char(Byte(UpCase(S[I]))-64)
+              {AddStr(A, Char(Byte(UpCase(S[I]))-64));}
             end;
-          DelLeft(s);
-          i := 0;
-          goto 1;
+        '#':
+          if B then
+            A := A+S[I] {AddStr(A, S[I])}
+          else
+            begin
+            J := 1;
+            M := '';
+            repeat
+              Inc(I);
+              M := M+S[I]; {AddStr(M, S[I]);}
+
+            until (I >= Length(S)) or not (S[I+1] in ['0'..'9']);
+            A := A+Char(StoI(M)) {AddStr(A, Char(StoI(M)));}
+            end;
+        else {case}
+          if B then
+            A := A+S[I]; {AddStr(A, S[I]);}
+      end {case};
+      end;
+    if S[Length(S)] = '+' then
+      begin
+2:
+      Readln(F.T, S);
+      if S <> '' then
+        begin
+        S := DefineParser.ProceedStr2(S);
+        if S = '' then
+          goto 2;
         end;
-      if Pos(^Z, UpStrg(A)) = 1
-      then
-        A := RemoveLeadSpaces(Copy(A, 2, MaxStringLength));
-      MakeStr := A;
+      DelLeft(S);
+      I := 0;
+      goto 1;
+      end;
+    if Pos(^Z, UpStrg(A)) = 1
+    then
+      A := RemoveLeadSpaces(Copy(A, 2, MaxStringLength));
+    MakeStr := A;
     end { MakeStr };
   begin { ProcessDLs }
-    if Enable then
+  if Enable then
+    begin
+    DLs := Types^.GetType(tidDLs);
+    New(SLM, Init($FFF0, $280));
+    lAssignText(F, LngFileName);
+    lResetText(F);
+    if IOResult <> 0 then
+      Error('Cannot open file '+LngFileName);
+    Writeln('Reading ', LngFileName);
+    while not Eof(F.T) do
       begin
-        DLS := Types^.GetType(tidDLs);
-        New(SLM, Init($FFF0, $280));
-        lAssignText(F, LngFileName);
-        lResetText(F);
-        if IOResult <> 0 then
-          Error('Cannot open file '+LngFileName);
-        Writeln('Reading ', LngFileName);
-        while not Eof(F.t) do
-          begin
-            readln(F.t, s);
-            s := DefineParser.ProceedStr2(s);
-            DelLeft(s);
-            s1 := GetWord(UpStrg(s), 1);
-            while (s1 <> '') and (s1[Length(s1)] = ',') do
-              SetLength(s1, Length(s1)-1);
-            if (s1 = '') or (s1[1] = ';') then
-              continue;
-            P := DLS^.FirstThat(@DoSeekID);
-            if P = nil then
-              Error('Unknown identifier "'+GetWord(s, 1)+'"');
-            if P^.Mark = 1 then
-              Error('Duplicate identifier "'+GetWord(s, 1)+'"');
-            SLM^.Put(P^.l, MakeStr(s));
-            P^.Mark := 1;
-          end;
-        Close(F.t);
-        Fail := False;
-        DLS^.ForEach(@DoTest);
-        if Fail then
-          Halt(1);
-        DLStream.Init(OutLngFileName, stCreate, 512);
-        if DLStream.Status <> stOK then
-          Error('Cannot create file '+OutLngFileName);
-        Writeln('Writing ', OutLngFileName);
-        DLStream.Put(SLM);
-        if DLStream.Status <> stOK then
-          begin
-            DLStream.Done;
-            EraseFile(OutLngFileName);
-            Error('Error writing file '+OutLngFileName);
-          end
-        else
-          DLStream.Done;
-        Dispose(SLM, Done);
+      Readln(F.T, S);
+      S := DefineParser.ProceedStr2(S);
+      DelLeft(S);
+      S1 := GetWord(UpStrg(S), 1);
+      while (S1 <> '') and (S1[Length(S1)] = ',') do
+        SetLength(S1, Length(S1)-1);
+      if  (S1 = '') or (S1[1] = ';') then
+        Continue;
+      P := DLs^.FirstThat(@DoSeekID);
+      if P = nil then
+        Error('Unknown identifier "'+GetWord(S, 1)+'"');
+      if P^.Mark = 1 then
+        Error('Duplicate identifier "'+GetWord(S, 1)+'"');
+      SLM^.Put(P^.l, MakeStr(S));
+      P^.Mark := 1;
       end;
-    ReRegisterType(RStringList);
-    DLStream.Init(OutLngFileName, stOpenRead, 512);
-    LStringList := PStringList(DLStream.Get);
-    if (LStringList = nil) and Enable then
+    Close(F.T);
+    Fail := False;
+    DLs^.ForEach(@DoTest);
+    if Fail then
+      Halt(1);
+    DLStream.Init(OutLngFileName, stCreate, 512);
+    if DLStream.Status <> stOK then
+      Error('Cannot create file '+OutLngFileName);
+    Writeln('Writing ', OutLngFileName);
+    DLStream.Put(SLM);
+    if DLStream.Status <> stOK then
       begin
-        DLStream.Done;
-        EraseFile(OutLngFileName);
-        Error('Error reading file '+OutLngFileName);
-      end;
+      DLStream.Done;
+      EraseFile(OutLngFileName);
+      Error('Error writing file '+OutLngFileName);
+      end
+    else
+      DLStream.Done;
+    Dispose(SLM, Done);
+    end;
+  ReRegisterType(RStringList);
+  DLStream.Init(OutLngFileName, stOpenRead, 512);
+  LStringList := PStringList(DLStream.Get);
+  if  (LStringList = nil) and Enable then
+    begin
+    DLStream.Done;
+    EraseFile(OutLngFileName);
+    Error('Error reading file '+OutLngFileName);
+    end;
   end { ProcessDLs };
 {-DataCompBoy-}
 
 type
   TEditCommand = record
-    C, C1, C2: word;
+    C, C1, C2: Word;
     CC1, CC2: array[1..2] of Char;
     end;
 
   {                            Resource Processing                             }
   {----------------------------------------------------------------------------}
 var
-  s: String;
+  S: String;
   F: lText; {DataCompBoy}
-  Line: longInt;
+  Line: LongInt;
   IDs: PTypeHolder;
   DLGs: PTypeHolder;
 
@@ -385,7 +387,7 @@ var
   D: PColorDialog;
   PL, PP: PColorGroup;
   PI: PColorItem;
-  i: longInt;
+  i: LongInt;
   NumCommands: AInt;
 
 const
@@ -396,27 +398,27 @@ var
 
 type
   TEditSaver = object(TObject)
-    Constructor Load(var s: TStream);
-    procedure Store(var s: TStream);
+    constructor Load(var S: TStream);
+    procedure Store(var S: TStream);
     end;
 
 const
   REditSaver: TStreamRec = (
-  ObjType: 12335;
-  VmtLink: (TypeOf(TEditSaver));
-  Load: @TEditSaver.Load;
-  Store: @TEditSaver.Store);
+    ObjType: 12335;
+    VmtLink: (TypeOf(TEditSaver));
+    Load: @TEditSaver.Load;
+    Store: @TEditSaver.Store);
 
-Constructor TEditSaver.Load(var s: TStream);
+constructor TEditSaver.Load(var S: TStream);
   begin
-    s.Read(NumCommands, SizeOf(NumCommands));
-    s.Read(EditCommands, SizeOf(TEditCommand)*NumCommands);
+  S.Read(NumCommands, SizeOf(NumCommands));
+  S.Read(EditCommands, SizeOf(TEditCommand)*NumCommands);
   end;
 
-procedure TEditSaver.Store(var s: TStream);
+procedure TEditSaver.Store(var S: TStream);
   begin
-    s.Write(NumCommands, SizeOf(NumCommands));
-    s.Write(EditCommands, SizeOf(TEditCommand)*NumCommands);
+  S.Write(NumCommands, SizeOf(NumCommands));
+  S.Write(EditCommands, SizeOf(TEditCommand)*NumCommands);
   end;
 
 {-DataCompBoy-}
@@ -424,269 +426,263 @@ function FSetExt(F: String; NewExt: String): String;
   var
     Dir: String;
     Name: String;
-    ext: String;
+    Ext: String;
   begin
-    lFSplit(F, Dir, Name, ext);
-    FSetExt := Dir+Name+NewExt;
+  lFSplit(F, Dir, Name, Ext);
+  FSetExt := Dir+Name+NewExt;
   end;
 {-DataCompBoy-}
 
 procedure StoreResource(P: PObject; Id: TDlgIdx);
   var
     W: PLngWord;
-  function HaveThisID(P: PLngWord): boolean;
+  function HaveThisID(P: PLngWord): Boolean;
     begin
-      HaveThisID := TDlgIdx(P^.l) = Id
+    HaveThisID := TDlgIdx(P^.l) = Id
     end;
   begin
-    W := DLGs^.FirstThat(@HaveThisID);
-    if W = nil then
-      Error('*ERROR*: Index #'+ItoS(word(Id))+' out of range.');
-    if (TheRF^.Empty(TDlgIdx(Id))) and (W^.Mark = 0)
-    then
-      if P <> nil then
-        TheRF^.Put(P, TDlgIdx(Id))
-      else
+  W := DLGs^.FirstThat(@HaveThisID);
+  if W = nil then
+    Error('*ERROR*: Index #'+ItoS(Word(Id))+' out of range.');
+  if  (TheRF^.Empty(TDlgIdx(Id))) and (W^.Mark = 0)
+  then
+    if P <> nil then
+      TheRF^.Put(P, TDlgIdx(Id))
     else
-      Error(#13'*ERROR*: Duplicate definition for "'+W^.Name+'"');
-    W^.Mark := 1;
+  else
+    Error(#13'*ERROR*: Duplicate definition for "'+W^.Name+'"');
+  W^.Mark := 1;
   end;
 
-function GetID(const s: String): longInt;
+function GetID(const S: String): LongInt;
   var
-    t: TLngWord;
-    i: CondInt; {???}
-    l: longInt;
-    k: integer;
+    T: TLngWord;
+    I: CondInt; {???}
+    L: LongInt;
+    k: Integer;
   begin
-    FreeStr := s;
-    DelRight(FreeStr);
-    if s[Length(s)] = ',' then
-      SetLength(FreeStr, Length(FreeStr)-1);
-    DelRight(FreeStr);
-    t.Init(0, FreeStr);
-    if IDs^.Search(@T, i) then
-      begin
-        GetID := PLngWord(IDs^.At(i))^.l;
-      end
-    else
-      begin
-        Val(FreeStr, l, k);
-        if k > 0 then
-          Error('Unknown identifier ('+FreeStr+') in line '+ItoS(
-            Line));
-        GetID := l;
-      end;
+  FreeStr := S;
+  DelRight(FreeStr);
+  if S[Length(S)] = ',' then
+    SetLength(FreeStr, Length(FreeStr)-1);
+  DelRight(FreeStr);
+  T.Init(0, FreeStr);
+  if IDs^.Search(@T, I) then
+    begin
+    GetID := PLngWord(IDs^.At(I))^.L;
+    end
+  else
+    begin
+    Val(FreeStr, L, k);
+    if k > 0 then
+      Error('Unknown identifier ('+FreeStr+') in line '+ItoS(Line));
+    GetID := L;
+    end;
   end { GetID };
 
-function Token(const s: String; var Pos: longInt): String;
+function Token(const S: String; var Pos: LongInt): String;
   var
     A: String;
-    B, Cmd: boolean;
+    B, Cmd: Boolean;
     M: String;
-    j: longInt;
+    J: LongInt;
   begin
-    Token := '';
-    A := '';
-    B := False;
-    Cmd := False;
-    while (s[Pos] = ' ') and (Length(s) >= Pos) do
-      Inc(Pos);
-    while Pos <= Length(s) do
-      begin
-        case s[Pos] of
-          '''':
-            if (s[Pos+1] = '''') and B and (Pos < Length(s)) then
-              begin
-                Inc(Pos);
-                A := A+''''; {AddStr(A, '''')}
-              end
-            else
-              B := not B;
-          ',':
-            if not B or Cmd then
-              break
-            else
-              A := A+s[Pos]; {AddStr( A, S[Pos] );}
-          '^':
-            if B then
-              A := A+s[Pos] {AddStr(A, S[Pos])}
-            else
-              begin
-                Inc(Pos);
-                A := A+Char(byte(UpCase(s[Pos]))-64)
-                  {AddStr(A, Char(Byte(UpCase(S[Pos]))-64));}
-              end;
-          '#':
-            if B then
-              A := A+s[Pos] {AddStr(A, S[Pos])}
-            else
-              begin
-                j := 1;
-                M := '';
-                repeat
-                  Inc(Pos);
-                  M := M+s[Pos] {AddStr(M, S[Pos]);}
-                until not (s[Pos+1] in ['0'..'9']) or (Pos >= Length(s))
-                  ;
-                A := A+Char(StoI(M)) {AddStr(A, Char(StoI(M)));}
-              end;
-          else
-            if B then
-              A := A+s[Pos] {AddStr(A, S[Pos])}
-            else
-              begin
-                B := True;
-                Cmd := True;
-                A := A+s[Pos] {AddStr(A, S[Pos])}
-              end;
-        end {case};
-        Inc(Pos);
-      end;
+  Token := '';
+  A := '';
+  B := False;
+  Cmd := False;
+  while (S[Pos] = ' ') and (Length(S) >= Pos) do
     Inc(Pos);
-    Token := A;
+  while Pos <= Length(S) do
+    begin
+    case S[Pos] of
+      '''':
+        if  (S[Pos+1] = '''') and B and (Pos < Length(S)) then
+          begin
+          Inc(Pos);
+          A := A+''''; {AddStr(A, '''')}
+          end
+        else
+          B := not B;
+      ',':
+        if not B or Cmd then
+          Break
+        else
+          A := A+S[Pos]; {AddStr( A, S[Pos] );}
+      '^':
+        if B then
+          A := A+S[Pos] {AddStr(A, S[Pos])}
+        else
+          begin
+          Inc(Pos);
+          A := A+Char(Byte(UpCase(S[Pos]))-64)
+            {AddStr(A, Char(Byte(UpCase(S[Pos]))-64));}
+          end;
+      '#':
+        if B then
+          A := A+S[Pos] {AddStr(A, S[Pos])}
+        else
+          begin
+          J := 1;
+          M := '';
+          repeat
+            Inc(Pos);
+            M := M+S[Pos] {AddStr(M, S[Pos]);}
+
+          until not (S[Pos+1] in ['0'..'9']) or (Pos >= Length(S));
+          A := A+Char(StoI(M)) {AddStr(A, Char(StoI(M)));}
+          end;
+      else {case}
+        if B then
+          A := A+S[Pos] {AddStr(A, S[Pos])}
+        else
+          begin
+          B := True;
+          Cmd := True;
+          A := A+S[Pos] {AddStr(A, S[Pos])}
+          end;
+    end {case};
+    Inc(Pos);
+    end;
+  Inc(Pos);
+  Token := A;
   end { Token };
 
 procedure MakeGroup;
   var
     P: PColorGroup;
   begin
-    i := Length(idColorGroup);
-    P := ColorGroup(Token(s, i), nil, nil);
-    if PL = nil then
-      PP := P
-    else
-      PL^.Next := P;
-    PL := P;
-    PI := nil;
+  i := Length(idColorGroup);
+  P := ColorGroup(Token(S, i), nil, nil);
+  if PL = nil then
+    PP := P
+  else
+    PL^.Next := P;
+  PL := P;
+  PI := nil;
   end;
 
 procedure MakeItem;
   var
     P: PColorItem;
   begin
-    if PL = nil then
-      Error('Color group should be defined first');
-    i := Length(idColorItem);
-    P := ColorItem(Token(s, i), GetID(Token(s, i)), nil);
-    if PI = nil then
-      PL^.Items := P
-    else
-      PI^.Next := P;
-    PI := P;
+  if PL = nil then
+    Error('Color group should be defined first');
+  i := Length(idColorItem);
+  P := ColorItem(Token(S, i), GetID(Token(S, i)), nil);
+  if PI = nil then
+    PL^.Items := P
+  else
+    PI^.Next := P;
+  PI := P;
   end;
 
 {-DataCompBoy-}
 procedure MakeColorDialog;
   begin
-    PI := nil;
-    PL := nil;
-    PP := nil;
-    while not Eof(F.t) do
-      begin
-        readln(F.t, s);
-        s := DefineParser.ProceedStr2(s);
-        Inc(Line);
-        DelLeft(s);
-        FreeStr := s;
-        UpStr(FreeStr);
-        if (s <> '') and (s[1] <> ';') then
-          if Copy(FreeStr, 1, Length(idColorGroup)) = idColorGroup
-          then
-            MakeGroup
-          else if Copy(FreeStr, 1, Length(idColorItem)) =
-              idColorItem
-          then
-            MakeItem
-          else if Copy(FreeStr, 1, Length(idEND)) = idEND then
-            break
-          else
-            Error('Unknown identifier in line '+ItoS(Line));
-      end;
-    New(D, Init(PP));
-    D^.HelpCtx := hcColorDialog;
-    StoreResource(D, dlgColors);
-    Dispose(D, Done);
+  PI := nil;
+  PL := nil;
+  PP := nil;
+  while not Eof(F.T) do
+    begin
+    Readln(F.T, S);
+    S := DefineParser.ProceedStr2(S);
+    Inc(Line);
+    DelLeft(S);
+    FreeStr := S;
+    UpStr(FreeStr);
+    if  (S <> '') and (S[1] <> ';') then
+      if Copy(FreeStr, 1, Length(idColorGroup)) = idColorGroup then
+        MakeGroup
+      else if Copy(FreeStr, 1, Length(idColorItem)) = idColorItem then
+        MakeItem
+      else if Copy(FreeStr, 1, Length(idEND)) = idEND then
+        Break
+      else
+        Error('Unknown identifier in line '+ItoS(Line));
+    end;
+  New(D, Init(PP));
+  D^.HelpCtx := hcColorDialog;
+  StoreResource(D, dlgColors);
+  Dispose(D, Done);
   end { MakeColorDialog };
 {-DataCompBoy-}
 
 {-DataCompBoy-}
 procedure MakeEditorCommands;
   var
-    i, j: longInt;
-    t: ^TEditSaver;
+    I, J: LongInt;
+    T: ^TEditSaver;
 
   procedure MakeCommand;
     begin
-      if NumCommands = MaxCommands then
-        Error('Editor Commands top limit ('+ItoS(MaxCommands)+
-          ') reached');
-      Inc(NumCommands);
-      i := Length(idCommand);
-      with EditCommands[NumCommands] do
-        begin
-          C := GetID(Token(s, i));
-          C1 := GetID(Token(s, i));
-          C2 := GetID(Token(s, i));
-          FreeStr := Token(s, i)+#0#0;
-          Move(FreeStr[1], CC1, 2);
-          FreeStr := Token(s, i)+#0#0;
-          Move(FreeStr[1], CC2, 2);
-        end;
+    if NumCommands = MaxCommands then
+      Error('Editor Commands top limit ('+ItoS(MaxCommands)+') reached');
+    Inc(NumCommands);
+    i := Length(idCommand);
+    with EditCommands[NumCommands] do
+      begin
+      C := GetID(Token(S, i));
+      C1 := GetID(Token(S, i));
+      C2 := GetID(Token(S, i));
+      FreeStr := Token(S, i)+#0#0;
+      Move(FreeStr[1], CC1, 2);
+      FreeStr := Token(S, i)+#0#0;
+      Move(FreeStr[1], CC2, 2);
+      end;
     end;
 
   begin { MakeEditorCommands }
-    FillChar(EditCommands, SizeOf(EditCommands), 0);
-    NumCommands := 0;
-    while not Eof(F.t) do
-      begin
-        readln(F.t, s);
-        s := DefineParser.ProceedStr2(s);
-        Inc(Line);
-        DelLeft(s);
-        FreeStr := UpStrg(s);
-        if (s <> '') and (s[1] <> ';') then
-          if Copy(FreeStr, 1, Length(idCommand)) = idCommand then
-              MakeCommand
-          else if Copy(FreeStr, 1, Length(idEND)) = idEND then
-            break
-          else
-            Error('Unknown identifier in line '+ItoS(Line));
-      end;
-    New(t, Init);
-    StoreResource(t, dlgEditorCommands);
-    t^.Free;
+  FillChar(EditCommands, SizeOf(EditCommands), 0);
+  NumCommands := 0;
+  while not Eof(F.T) do
+    begin
+    Readln(F.T, S);
+    S := DefineParser.ProceedStr2(S);
+    Inc(Line);
+    DelLeft(S);
+    FreeStr := UpStrg(S);
+    if  (S <> '') and (S[1] <> ';') then
+      if Copy(FreeStr, 1, Length(idCommand)) = idCommand then
+        MakeCommand
+      else if Copy(FreeStr, 1, Length(idEND)) = idEND then
+        Break
+      else
+        Error('Unknown identifier in line '+ItoS(Line));
+    end;
+  New(T, Init);
+  StoreResource(T, dlgEditorCommands);
+  T^.Free;
   end { MakeEditorCommands };
 {-DataCompBoy-}
 
 procedure ProcessDLGs;
   var
-    TP: PTypeHolder;
-    ST: PStream;
-  function GetID(const s: String): longInt;
+    tP: PTypeHolder;
+    St: PStream;
+  function GetID(const S: String): LongInt;
     var
-      t: TLngWord;
-      i: integer;
-      l: CondInt;
+      T: TLngWord;
+      I: Integer;
+      L: CondInt;
     begin
-      FreeStr := s;
-      DelRight(FreeStr);
-      if s[Length(s)] = ',' then
-        SetLength(FreeStr, Length(FreeStr)-1);
-      DelRight(FreeStr);
-      t.Init(0, FreeStr);
-      if IDs^.Search(@T, l) then
-        begin
-          GetID := PLngWord(IDs^.At(l))^.l;
-        end
-      else
-        begin
-          Val(FreeStr, l, i);
-          if i > 0 then
-            Error('Unknown identifier ('+FreeStr+') in line '+ItoS(
-              Line));
-          GetID := l;
-        end;
+    FreeStr := S;
+    DelRight(FreeStr);
+    if S[Length(S)] = ',' then
+      SetLength(FreeStr, Length(FreeStr)-1);
+    DelRight(FreeStr);
+    T.Init(0, FreeStr);
+    if IDs^.Search(@T, L) then
+      begin
+      GetID := PLngWord(IDs^.At(L))^.L;
+      end
+    else
+      begin
+      Val(FreeStr, L, I);
+      if I > 0 then
+        Error('Unknown identifier ('+FreeStr+') in line '+ItoS(Line));
+      GetID := L;
+      end;
     end { GetID };
 
   procedure SetSavers;
@@ -694,835 +690,808 @@ procedure ProcessDLGs;
     var
       D: PDialog;
     begin
-      D := MakeSaversDialog;
-      StoreResource(D, dlgSaversSetup);
-      Dispose(D, Done);
-      {$ELSE}
+    D := MakeSaversDialog;
+    StoreResource(D, dlgSaversSetup);
+    Dispose(D, Done);
+    {$ELSE}
+    begin
+    StoreResource(nil, dlgSaversSetup);
+    {$ENDIF}
+    end;
+
+  function CompileStatus: PStatusDef;
+    var
+      PM, PL: PStatusItem;
+      DM, DL: PStatusDef;
+      I, J: LongInt;
+      S: String;
+
+    procedure MakeStatusDef;
+      var
+        P: PStatusDef;
       begin
-        StoreResource(nil, dlgSaversSetup);
-        {$ENDIF}
+      i := Length(idStatusDef);
+      P := NewStatusDef(GetID(Token(S, i)), GetID(Token(S, i)), nil, nil);
+      if DL = nil then
+        dM := P
+      else
+        DL^.Next := P;
+      DL := P;
+      PL := nil;
       end;
 
-      function CompileStatus: PStatusDef;
-        var
-          PM, PL: PStatusItem;
-          dM, DL: PStatusDef;
-          i, j: longInt;
-          s: String;
+    procedure MakeStatusItem;
+      var
+        P: PStatusItem;
+      begin
+      if DL = nil then
+        Error('Could not make Status Item without Status Definition');
+      i := Length(idStatusItem);
+      P := NewStatusKey(Token(S, i), GetID(Token(S, i)), GetID(Token(S,
+             i)), nil);
+      if PL = nil then
+        DL^.Items := P
+      else
+        PL^.Next := P;
+      PL := P;
+      end;
 
-        procedure MakeStatusDef;
-          var
-            P: PStatusDef;
-          begin
-            i := Length(idStatusDef);
-            P := NewStatusDef(GetID(Token(s, i)), GetID(Token(s, i)),
-              nil, nil);
-            if DL = nil then
-              dM := P
-            else
-              DL^.Next := P;
-            DL := P;
-            PL := nil;
-          end;
+    {-DataCompBoy-}
+    begin { CompileStatus: }
+    DM := nil;
+    DL := nil;
+    PM := nil;
+    PL := nil;
+    while not Eof(F.T) do
+      begin
+      Readln(F.T, S);
+      S := DefineParser.ProceedStr2(S);
+      Inc(Line);
+      DelLeft(S);
+      if  (S <> '') and (S[1] <> ';') then
+        if UpStrg(Copy(S, 1, Length(idStatusDef))) = idStatusDef then
+          MakeStatusDef
+        else if UpStrg(Copy(S, 1, Length(idStatusItem))) = idStatusItem
+        then
+          MakeStatusItem
+        else if UpStrg(Copy(S, 1, Length(idEND))) = idEND then
+          Break
+        else if (S <> '') and (S[1] <> ';') then
+          Error('Unknown identifier in line '+ItoS(Line));
+      end;
+    CompileStatus := DM;
+    end { CompileStatus: };
+  {-DataCompBoy-}
 
-        procedure MakeStatusItem;
-          var
-            P: PStatusItem;
-          begin
-            if DL = nil then
-              Error(
-                'Could not make Status Item without Status Definition');
-            i := Length(idStatusItem);
-            P := NewStatusKey(Token(s, i), GetID(Token(s, i)), GetID(
-              Token(s, i)), nil);
-            if PL = nil then
-              DL^.Items := P
-            else
-              PL^.Next := P;
-            PL := P;
-          end;
+  procedure MakeStatus;
+    var
+      PM: PStatusDef;
+      R: TRect;
+    begin
+    PM := CompileStatus;
+    R.Assign(0, 0, 80, 1);
+    StatusLine := New(PStatusLine, Init(R, PM));
+    StoreResource(StatusLine, dlgStatusLine);
+    Dispose(StatusLine, Done);
+    StatusLine := nil;
+    end;
 
-        {-DataCompBoy-}
-        begin { CompileStatus: }
-          dM := nil;
-          DL := nil;
-          PM := nil;
-          PL := nil;
-          while not Eof(F.t) do
-            begin
-              readln(F.t, s);
-              s := DefineParser.ProceedStr2(s);
-              Inc(Line);
-              DelLeft(s);
-              if (s <> '') and (s[1] <> ';') then
-                if UpStrg(Copy(s, 1, Length(idStatusDef))) =
-                    idStatusDef
-                then
-                  MakeStatusDef
-                else if UpStrg(Copy(s, 1, Length(idStatusItem))) =
-                    idStatusItem
-                then
-                  MakeStatusItem
-                else if UpStrg(Copy(s, 1, Length(idEND))) = idEND
-                then
-                  break
-                else if (s <> '') and (s[1] <> ';') then
-                  Error('Unknown identifier in line '+ItoS(Line));
-            end;
-          CompileStatus := dM;
-        end { CompileStatus: };
-      {-DataCompBoy-}
+  function CompileMenu(S: String): PMenu;
+    var
+      PM, PL: PMenuItem;
+      S1, S2: String;
+      I, J: LongInt;
 
-      procedure MakeStatus;
-        var
-          PM: PStatusDef;
-          R: TRect;
+    procedure AddItem(P: Pointer);
+      begin
+      if PM = nil then
+        PM := P
+      else
+        PL^.Next := P;
+      PL := P;
+      end;
+
+    procedure MakeSubMenu;
+      begin
+      i := Length(idSubMenu);
+      S1 := Token(S, i);
+      S2 := Token(S, i);
+      AddItem(NewSubMenu(S1, GetID(S2), CompileMenu(S), nil));
+      end;
+
+    procedure MakeMenuItem;
+      var
+        HK, Cmd, Ctx: Word;
+      begin
+      i := Length(idMenuItem);
+      AddItem(NewItem(Token(S, i), Token(S, i), GetID(Token(S, i)),
+          GetID(Token(S, i)), GetID(Token(S, i)), nil));
+      end;
+
+    procedure MakeMenuLine;
+      begin
+      AddItem(NewLine(nil));
+      end;
+
+    {-DataCompBoy-}
+    begin { CompileMenu }
+    CompileMenu := nil;
+    PL := nil;
+    PM := nil;
+    while not Eof(F.T) do
+      begin
+      Readln(F.T, S);
+      S := DefineParser.ProceedStr2(S);
+      Inc(Line);
+      DelLeft(S);
+      if  (S <> '') and (S[1] <> ';') then
+        if UpStrg(Copy(S, 1, Length(idSubMenu))) = idSubMenu then
+          MakeSubMenu
+        else if UpStrg(Copy(S, 1, Length(idMenuItem))) = idMenuItem then
+          MakeMenuItem
+        else if UpStrg(Copy(S, 1, Length(idMenuLine))) = idMenuLine then
+          MakeMenuLine
+        else if UpStrg(S) = idEND then
+          Break
+        else if (S <> '') and (S[1] <> ';') then
+          Error('Unknown identifier in line '+ItoS(Line));
+      end;
+    CompileMenu := NewMenu(PM);
+    end { CompileMenu };
+  {-DataCompBoy-}
+
+  procedure MakeMenu(S: String);
+    var
+      ID: TDlgIdx;
+      T: TLngWord;
+      R: TRect;
+      D: PMenuBar;
+      I: LongInt;
+      J: CondInt; {???}
+    begin
+    I := Length(idMenu);
+    FreeStr := Token(S, I);
+    T.Init(0, FreeStr);
+    if not DLGs^.Search(@T, J) then
+      Error('Unknown Resource ID - '+T.Name);
+    ID := TDlgIdx(PLngWord(DLGs^.At(J))^.l);
+    FillChar(R, SizeOf(R), 0);
+    New(D, Init(R, CompileMenu(S)));
+    StoreResource(D, ID);
+    Dispose(D, Done);
+    end;
+
+  procedure CompileDialog(S: String);
+    var
+      D: PDialog;
+      R: TRect;
+      I: LongInt;
+      J: CondInt;
+      PV: PView;
+      LastSB: PScrollBar;
+
+    function IsThis(const S: String): Boolean;
+      begin
+      i := Length(S);
+      IsThis := Copy(FreeStr, 1, i) = S;
+      end;
+
+    procedure MakeInputLine;
+      var
+        P: PHistory;
+      begin
+      R.Assign(GetID(Token(S, i)), GetID(Token(S, i)), GetID(Token(S,
+         i)), GetID(Token(S, i)));
+      R.B.Y := R.A.Y+1;
+      PV := New(PInputline, Init(R, GetID(Token(S, i))));
+      D^.Insert(PV);
+      j := GetID(Token(S, i));
+      if j > 0 then
         begin
-          PM := CompileStatus;
-          R.Assign(0, 0, 80, 1);
-          StatusLine := New(PStatusLine, Init(R, PM));
-          StoreResource(StatusLine, dlgStatusLine);
-          Dispose(StatusLine, Done);
-          StatusLine := nil;
+        R.A.X := R.B.X;
+        R.B.X := R.A.X+3;
+        New(P, Init(R, PInputline(PV), j));
+        D^.Insert(P);
         end;
+      end;
 
-      function CompileMenu(s: String): PMenu;
-        var
-          PM, PL: PMenuItem;
-          s1, s2: String;
-          i, j: longInt;
+    {-DataCompBoy-}
+    procedure MakeHexLine;
+      begin
+      R.Assign(GetID(Token(S, i)), GetID(Token(S, i)), GetID(Token(S,
+         i)), GetID(Token(S, i)));
+      R.B.Y := R.A.Y+1;
+      PV := New(PHexLine, Init(R, PInputline(PV)));
+      D^.Insert(PV);
+      end;
+    {-DataCompBoy-}
 
-        procedure AddItem(P: Pointer);
-          begin
-            if PM = nil then
-              PM := P
-            else
-              PL^.Next := P;
-            PL := P;
-          end;
+    procedure MakeLabel;
+      var
+        B: String;
+        P: PLabel;
+      begin
+      R.A.X := GetID(Token(S, i));
+      R.A.Y := GetID(Token(S, i));
+      R.B.Y := R.A.Y+1;
+      B := Token(S, i);
+      R.B.X := R.A.X+2+CStrLen(B);
+      New(P, Init(R, B, PV));
+      D^.Insert(P);
+      while i < Length(S) do
+        P^.Options := P^.Options or GetID(Token(S, i));
+      end;
 
-        procedure MakeSubMenu;
-          begin
-            i := Length(idSubMenu);
-            s1 := Token(s, i);
-            s2 := Token(s, i);
-            AddItem(NewSubMenu(s1, GetID(s2), CompileMenu(s), nil));
-          end;
+    procedure MakeHistory;
+      var
+        B: String;
+        P: PHistory;
+      begin
+      R.A.X := GetID(Token(S, i));
+      R.B.X := R.A.X+3;
+      R.A.Y := GetID(Token(S, i));
+      R.B.Y := R.A.Y+1;
+      New(P, Init(R, PInputline(PV), GetID(Token(S, i))));
+      D^.Insert(P);
+      while i < Length(S) do
+        P^.Options := P^.Options or GetID(Token(S, i));
+      end;
 
-        procedure MakeMenuItem;
-          var
-            HK, Cmd, Ctx: word;
-          begin
-            i := Length(idMenuItem);
-            AddItem(NewItem(Token(s, i), Token(s, i), GetID(Token(s, i))
-              ,
-            GetID(Token(s, i)), GetID(Token(s, i)), nil));
-          end;
-
-        procedure MakeMenuLine;
-          begin
-            AddItem(NewLine(nil));
-          end;
-
-        {-DataCompBoy-}
-        begin { CompileMenu }
-          CompileMenu := nil;
-          PL := nil;
-          PM := nil;
-          while not Eof(F.t) do
-            begin
-              readln(F.t, s);
-              s := DefineParser.ProceedStr2(s);
-              Inc(Line);
-              DelLeft(s);
-              if (s <> '') and (s[1] <> ';') then
-                if UpStrg(Copy(s, 1, Length(idSubMenu))) = idSubMenu
-                then
-                  MakeSubMenu
-                else if UpStrg(Copy(s, 1, Length(idMenuItem))) =
-                    idMenuItem
-                then
-                  MakeMenuItem
-                else if UpStrg(Copy(s, 1, Length(idMenuLine))) =
-                    idMenuLine
-                then
-                  MakeMenuLine
-                else if UpStrg(s) = idEND then
-                  break
-                else if (s <> '') and (s[1] <> ';') then
-                  Error('Unknown identifier in line '+ItoS(Line));
-            end;
-          CompileMenu := NewMenu(PM);
-        end { CompileMenu };
-      {-DataCompBoy-}
-
-      procedure MakeMenu(s: String);
-        var
-          Id: TDlgIdx;
-          t: TLngWord;
-          R: TRect;
-          D: PMenuBar;
-          i: longInt;
-          j: CondInt; {???}
+    {-DataCompBoy-}
+    function GetItems: PSItem;
+      var
+        P, PP: PSItem;
+        S: String;
+        K: Integer;
+      begin
+      PP := nil;
+      K := i;
+      while not Eof(F.T) do
         begin
-          i := Length(idMenu);
-          FreeStr := Token(s, i);
-          t.Init(0, FreeStr);
-          if not DLGs^.Search(@T, j) then
-            Error('Unknown Resource ID - '+t.Name);
-          Id := TDlgIdx(PLngWord(DLGs^.At(j))^.l);
-          FillChar(R, SizeOf(R), 0);
-          New(D, Init(R, CompileMenu(s)));
-          StoreResource(D, Id);
-          Dispose(D, Done);
-        end;
-
-      procedure CompileDialog(s: String);
-        var
-          D: PDialog;
-          R: TRect;
-          i: longInt;
-          j: CondInt;
-          PV: PView;
-          LastSB: PScrollBar;
-
-        function IsThis(const s: String): boolean;
+        Readln(F.T, S);
+        S := DefineParser.ProceedStr2(S);
+        Inc(Line);
+        DelLeft(S);
+        DelRight(S);
+        FreeStr := S;
+        UpStr(FreeStr);
+        if IsThis(idItem) then
           begin
-            i := Length(s);
-            IsThis := Copy(FreeStr, 1, i) = s;
-          end;
-
-        procedure MakeInputLine;
-          var
-            P: PHistory;
-          begin
-            R.Assign(GetID(Token(s, i)), GetID(Token(s, i)), GetID(
-              Token(s, i)), GetID(Token(s, i)));
-            R.B.Y := R.A.Y+1;
-            PV := New(PInputline, Init(R, GetID(Token(s, i))));
-            D^.Insert(PV);
-            j := GetID(Token(s, i));
-            if j > 0 then
-              begin
-                R.A.X := R.B.X;
-                R.B.X := R.A.X+3;
-                New(P, Init(R, PInputline(PV), j));
-                D^.Insert(P);
-              end;
-          end;
-
-        {-DataCompBoy-}
-        procedure MakeHexLine;
-          begin
-            R.Assign(GetID(Token(s, i)), GetID(Token(s, i)), GetID(
-              Token(s, i)), GetID(Token(s, i)));
-            R.B.Y := R.A.Y+1;
-            PV := New(PHexLine, Init(R, PInputline(PV)));
-            D^.Insert(PV);
-          end;
-        {-DataCompBoy-}
-
-        procedure MakeLabel;
-          var
-            B: String;
-            P: PLabel;
-          begin
-            R.A.X := GetID(Token(s, i));
-            R.A.Y := GetID(Token(s, i));
-            R.B.Y := R.A.Y+1;
-            B := Token(s, i);
-            R.B.X := R.A.X+2+CStrLen(B);
-            New(P, Init(R, B, PV));
-            D^.Insert(P);
-            while i < Length(s) do
-              P^.Options := P^.Options or GetID(Token(s, i));
-          end;
-
-        procedure MakeHistory;
-          var
-            B: String;
-            P: PHistory;
-          begin
-            R.A.X := GetID(Token(s, i));
-            R.B.X := R.A.X+3;
-            R.A.Y := GetID(Token(s, i));
-            R.B.Y := R.A.Y+1;
-            New(P, Init(R, PInputline(PV), GetID(Token(s, i))));
-            D^.Insert(P);
-            while i < Length(s) do
-              P^.Options := P^.Options or GetID(Token(s, i));
-          end;
-
-        {-DataCompBoy-}
-        function GetItems: PSItem;
-          var
-            P, PP: PSItem;
-            s: String;
-            k: integer;
-          begin
-            PP := nil;
-            k := i;
-            while not Eof(F.t) do
-              begin
-                readln(F.t, s);
-                s := DefineParser.ProceedStr2(s);
-                Inc(Line);
-                DelLeft(s);
-                DelRight(s);
-                FreeStr := s;
-                UpStr(FreeStr);
-                if IsThis(idItem) then
-                  begin
-                    if PP = nil then
-                      begin
-                        P := NewSItem(Token(s, i), nil);
-                        PP := P
-                      end
-                    else
-                      begin
-                        P^.Next := NewSItem(Token(s, i), nil);
-                        P := P^.Next
-                      end;
-                  end
-                else if IsThis(idEND) then
-                  break
-                else if (s <> '') and (s[1] <> ';') then
-                  Error('Unknown identifier in line '+ItoS(Line));
-              end;
-            GetItems := PP;
-            i := k;
-          end { GetItems: };
-        {-DataCompBoy-}
-
-        procedure MakeCheckBoxes;
-          begin
-            R.Assign(GetID(Token(s, i)), GetID(Token(s, i)), GetID(
-              Token(s, i)), GetID(Token(s, i)));
-            PV := New(PCheckBoxes, Init(R, GetItems));
-            D^.Insert(PV);
-          end;
-
-        procedure MakeDriveCheckBoxes;
-          begin
-            R.Assign(GetID(Token(s, i)), GetID(Token(s, i)), GetID(
-              Token(s, i)), GetID(Token(s, i)));
-            PV := New(PCurrDriveInfo, Init(R, GetItems));
-            D^.Insert(PV);
-            with PV^ do
-              begin
-                Options := Options or ofPostProcess;
-                EventMask := evBroadcast+evCommand+evKeyDown+
-                  evMouseDown;
-              end;
-          end;
-
-        procedure MakeRadioButtons;
-          begin
-            R.Assign(GetID(Token(s, i)), GetID(Token(s, i)), GetID(
-              Token(s, i)), GetID(Token(s, i)));
-            PV := New(PRadioButtons, Init(R, GetItems));
-            D^.Insert(PV);
-          end;
-
-        procedure MakeButton;
-          var
-            B, k: String;
-            Flags, Options: word;
-            Cmd: word;
-          begin
-            R.Assign(GetID(Token(s, i)), GetID(Token(s, i)), GetID(
-              Token(s, i)), GetID(Token(s, i)));
-            k := Token(s, i);
-            Cmd := GetID(Token(s, i));
-            Flags := 0;
-            Options := 0;
-            while i < Length(s) do
-              begin
-                B := Token(s, i);
-                UpStr(B);
-                if B = 'BFDEFAULT' then
-                  Flags := Flags or bfDefault
-                else if B = 'BFNORMAL' then
-                  Flags := Flags or bfNormal
-                else if B = 'BFBROADCAST' then
-                  Flags := Flags or bfBroadcast
-                else if B = 'BFLEFTJUST' then
-                  Flags := Flags or bfLeftJust
-                else if B = 'BFGRABFOCUS' then
-                  Flags := Flags or bfGrabFocus
-                else
-                  Options := Options or GetID(B);
-              end;
-            PV := New(PButton, Init(R, k, Cmd, Flags));
-            PV^.Options := PV^.Options or Options;
-            D^.Insert(PV);
-          end { MakeButton };
-
-        procedure MakeScrollBar(Mouse: boolean);
-          begin
-            R.Assign(GetID(Token(s, i)), GetID(Token(s, i)), GetID(
-              Token(s, i)), GetID(Token(s, i)));
-            if Mouse then
-              LastSB := New(PMouseBar, Init(R))
-            else
-              LastSB := New(PScrollBar, Init(R));
-            D^.Insert(LastSB);
-          end;
-
-        procedure MakeListBox;
-          begin
-            R.Assign(GetID(Token(s, i)), GetID(Token(s, i)), GetID(
-              Token(s, i)), GetID(Token(s, i)));
-            PV := New(PListBox, Init(R, GetID(Token(s, i)), LastSB));
-            D^.Insert(PV);
-          end;
-
-        procedure MakeStaticText;
-          begin
-            R.Assign(GetID(Token(s, i)), GetID(Token(s, i)), GetID(
-              Token(s, i)), GetID(Token(s, i)));
-            PV := New(PStaticText, Init(R, Token(s, i)));
-            D^.Insert(PV);
-          end;
-
-        procedure MakeUpperTable;
-          begin
-            R.Assign(GetID(Token(s, i)), GetID(Token(s, i)), GetID(
-              Token(s, i)), GetID(Token(s, i)));
-            PV := New(PUpperTable, Init(R));
-            D^.Insert(PV);
-          end;
-
-        procedure MakeParamText;
-          begin
-            R.Assign(GetID(Token(s, i)), GetID(Token(s, i)), GetID(
-              Token(s, i)), GetID(Token(s, i)));
-            PV := New(PParamText, Init(R, Token(s, i), GetID(Token(s, i)
-              )));
-            D^.Insert(PV);
-          end;
-
-        procedure MakeColorPoint;
-          var
-            P: PColorPoint;
-          begin
-            R.A.X := GetID(Token(s, i));
-            R.B.X := R.A.X+1;
-            R.A.Y := GetID(Token(s, i));
-            R.B.X := R.A.X+1;
-            New(P, Init(R, GetID(Token(s, i))));
-            D^.Insert(P);
-            while i < Length(s) do
-              P^.Options := P^.Options or GetID(Token(s, i));
-          end;
-
-        var
-          Id: TDlgIdx;
-          t: TLngWord;
-
-        const
-          DData: TSysData = (
-          Options: 0;
-          Mode1: '';
-          Mode2: '';
-          Temp: '';
-          Drives: (List: nil; Focus: 0);
-          Current: 0;
-          CopyLimitBuf: '';
-          ForceDefArch: ''
-          );
-
-          {-DataCompBoy-}
-        begin { CompileDialog }
-          i := Length(idDialog);
-          PV := nil;
-          LastSB := nil;
-          FreeStr := Token(s, i);
-          t.Init(0, FreeStr);
-          if not DLGs^.Search(@T, j) then
-            Error('Unknown Resource ID: '+t.Name);
-          Id := TDlgIdx(PLngWord(DLGs^.At(j))^.l);
-          R.Assign(0, 0, GetID(Token(s, i)), GetID(Token(s, i)));
-          if Id = dlgSystemSetup then
+          if PP = nil then
             begin
-              D := New(PSysDialog, Init(R, Token(s, i)));
-              D^.Awaken;
+            P := NewSItem(Token(S, i), nil);
+            PP := P
             end
           else
-            New(D, Init(R, Token(s, i)));
-          D^.Options := D^.Options or ofCentered;
-          while not Eof(F.t) do
             begin
-              readln(F.t, s);
-              s := DefineParser.ProceedStr2(s);
-              Inc(Line);
-              DelLeft(s);
-              FreeStr := UpStrg(s);
-              if (s <> '') and (s[1] <> ';') then
-                begin
-                  if IsThis(idInputLine) then
-                    MakeInputLine
-                  else if IsThis(idHexLine) then
-                    MakeHexLine
-                  else if IsThis(idHelpCtx) then
-                    begin
-                      if PV = nil then
-                        D^.HelpCtx := GetID(Token(s, i))
-                      else
-                        PV^.HelpCtx := GetID(Token(s, i))
-                    end
-                  else if IsThis(idLabel) then
-                    MakeLabel
-                  else if IsThis(idStaticText) then
-                    MakeStaticText
-                  else if IsThis(idParamText) then
-                    MakeParamText
-                  else if IsThis(idListBox) then
-                    MakeListBox
-                  else if IsThis(idScrollBar) then
-                    MakeScrollBar(False)
-                  else if IsThis(idMScrollBar) then
-                    MakeScrollBar(True)
-                  else if IsThis(idUpperTable) then
-                    MakeUpperTable
-                  else if IsThis(idCheckBoxes) then
-                    MakeCheckBoxes
-                  else if IsThis(idDriveCheckBox) then
-                      MakeDriveCheckBoxes
-                  else if IsThis(idSelectForward) then
-                    D^.SelectNext(False)
-                  else if IsThis(idSelectBack) then
-                    D^.SelectNext(True)
-                  else if IsThis(idRadioButtons) then
-                      MakeRadioButtons
-                  else if IsThis(idButton) then
-                    MakeButton
-                  else if IsThis(idHistory) then
-                    MakeHistory
-                  else if IsThis(idColorPoint) then
-                    MakeColorPoint
-                  else if IsThis(idEND) then
-                    break
-                  else if (s <> '') and (s[1] <> ';') then
-                    Error('Unknown identifier in line '+ItoS(Line));
-                  while i < Length(s) do
-                    PV^.Options := PV^.Options or GetID(Token(s, i));
-                end;
+            P^.Next := NewSItem(Token(S, i), nil);
+            P := P^.Next
             end;
-          D^.SelectNext(False);
-          StoreResource(D, Id);
-          if Id = dlgSystemSetup then
-            begin
-              New(PCollection(DData.Drives.List), Init(0, 10));
-              D^.SetData(DData);
-            end;
-          Dispose(D, Done);
-        end { CompileDialog };
-      {-DataCompBoy-}
-
-      procedure DoInsert(P: PLngWord);
-        begin
-          IDs^.Insert(P);
+          end
+        else if IsThis(idEND) then
+          Break
+        else if (S <> '') and (S[1] <> ';') then
+          Error('Unknown identifier in line '+ItoS(Line));
         end;
+      GetItems := PP;
+      i := K;
+      end { GetItems: };
+    {-DataCompBoy-}
 
-      function FailCheck: boolean;
-        procedure DoCheck(P: PLngWord);
-          begin
-            if P^.Mark <> 1 then
-              begin
-                Writeln('Unresolved identifier "', P^.Name, '"');
-                FailCheck := True;
-              end;
-          end;
-        begin
-          FailCheck := False;
-          DLGs^.ForEach(@DoCheck);
-        end;
-
-      {-DataCompBoy-}
+    procedure MakeCheckBoxes;
       begin
-        DLGs := Types^.GetType(tidDLGs);
-        New(IDs, Init('', tmConst));
-        TP := Types^.GetType(tidCommands);
-        TP^.ForEach(@DoInsert);
-        TP := Types^.GetType(tidHelpCtx);
-        TP^.ForEach(@DoInsert);
-        TP := Types^.GetType(tidHistory);
-        TP^.ForEach(@DoInsert);
-        TP := Types^.GetType(tidKbdconst);
-        TP^.ForEach(@DoInsert);
-        TP := Types^.GetType(tidOptions);
-        TP^.ForEach(@DoInsert);
-
-        Writeln('Reading ', DlgFileName);
-        lAssignText(F, DlgFileName);
-        ClrIO;
-        lResetText(F);
-        Line := 0;
-        if IOResult <> 0 then
-          Error('Could not open input file');
-        ST := New(PBufStream, Init(OutDlgFileName, stCreate, 512));
-        if ST^.Status <> stOK then
-          begin
-            Close(F.t);
-            Dispose(ST, Done);
-            EraseFile(OutDlgFileName);
-            Error('Could not create output file '+OutDlgFileName);
-          end;
-
-        TheRF := New(PIdxMaker, Init(ST));
-        while not Eof(F.t) do
-          begin
-            readln(F.t, s);
-            s := DefineParser.ProceedStr2(s);
-            Inc(Line);
-            Write(#13'(', Line, ')');
-            DelLeft(s);
-            FreeStr := UpStrg(s);
-            if (s <> '') and (s[1] <> ';') then
-              if Copy(FreeStr, 1, Length(idColorDialog)) =
-                  idColorDialog
-              then
-                MakeColorDialog
-              else if Copy(FreeStr, 1, Length(idDialog)) = idDialog
-              then
-                CompileDialog(s)
-              else if Copy(FreeStr, 1, Length(idMenu)) = idMenu then
-                  MakeMenu(s)
-              else if Copy(FreeStr, 1, Length(idStatusLine)) =
-                  idStatusLine
-              then
-                MakeStatus
-              else if Copy(FreeStr, 1, Length(idEditorCommands)) =
-                  idEditorCommands
-              then
-                MakeEditorCommands
-              else
-                Error('Unknown identifier in line '+ItoS(Line));
-          end;
-
-        Close(F.t);
-        SetSavers;
-        if FailCheck then
-          Halt(1);
-
-        Writeln(#13'Writing ', OutDlgFileName);
-        Dispose(TheRF, Done);
-
-        IDs^.DeleteAll;
-        Dispose(IDs, Done);
+      R.Assign(GetID(Token(S, i)), GetID(Token(S, i)), GetID(Token(S,
+         i)), GetID(Token(S, i)));
+      PV := New(PCheckBoxes, Init(R, GetItems));
+      D^.Insert(PV);
       end;
-      {-DataCompBoy-}
 
-      {-DataCompBoy-}
-      function GetName(s: String): String;
-        var
-          P, n, E: String;
-        begin
-          lFSplit(s, P, n, E);
-          GetName := n;
-        end;
-      {-DataCompBoy-}
-
-      procedure CleanupTypes;
-        procedure DoClean(P: PTypeHolder);
-          procedure DoUnmark(P: PLngWord);
-            begin
-              P^.Mark := 0
-            end;
-          begin
-            P^.ForEach(@DoUnmark);
-          end;
-        begin
-          Types^.ForEach(@DoClean);
-        end;
-
-      function ReplaceChar(A, B: Char; s: String): String;
-        begin
-          Replace(A, B, s);
-          ReplaceChar := s;
-        end;
-
-      var
-        INI: TIniFile;
-        INIs: integer;
-        Lng: String;
-        LList: String;
-
-      procedure InitParser;
-        var
-          Sec: PIniSection;
-          i: integer;
-          k, s: String;
-        begin
-          Sec := INI.GetSection('Parser');
-          if Sec <> nil then
-            begin
-              for i := 0 to Sec^.Count-1 do
-                begin
-                  k := UpStrg(Sec^.GetKeyAt(i));
-                  if k <> '' then
-                    begin
-                      s := Sec^.GetValueAt(i);
-                      DelDoubles('  ', s);
-                      if k = 'CONST' then
-                        Types^.Insert(New(PTypeHolder, Init(
-                          ReplaceChar(' ', #0, s+' '), tmConst)))
-                      else if k = 'TYPE' then
-                        Types^.Insert(New(PTypeHolder, Init(s,
-                          tmEnum)))
-                      else
-                        Error('Undefined keyword "'+k+
-                          '" in [Parser] section');
-                    end;
-                end;
-            end;
-        end { InitParser };
-
-      function CutWord(const s: String; No: integer): String;
-          { S without word #No }
-        var
-          i, k: integer;
-        label
-          Same;
-        begin
-          if No < 1 then
-            goto Same;
-          i := SeekWord(s, No);
-          if i > 0
-          then
-            CutWord := Copy(s, 1, i-1)+Copy(s, wSkipBlank(s,
-              wSkipText(s, i)), MaxStringLength)
-          else
-Same:
-            CutWord := s;
-        end;
-
+    procedure MakeDriveCheckBoxes;
       begin
-        Writeln(
-          #13'Resource Compiler for DN OSP 1.51.07a+  Version 1.08');
-        Writeln('Copyright(C) 1994,95 RIT Research Labs');
-        Writeln('Copyright(C) 1995 AxoN(R)Soft');
+      R.Assign(GetID(Token(S, i)), GetID(Token(S, i)), GetID(Token(S,
+         i)), GetID(Token(S, i)));
+      PV := New(PCurrDriveInfo, Init(R, GetItems));
+      D^.Insert(PV);
+      with PV^ do
+        begin
+        Options := Options or ofPostProcess;
+        EventMask := evBroadcast+evCommand+evKeyDown+evMouseDown;
+        end;
+      end;
 
-        {Cat}
-        {/Cat}
+    procedure MakeRadioButtons;
+      begin
+      R.Assign(GetID(Token(S, i)), GetID(Token(S, i)), GetID(Token(S,
+         i)), GetID(Token(S, i)));
+      PV := New(PRadioButtons, Init(R, GetItems));
+      D^.Insert(PV);
+      end;
 
-        {Cat: выбираем, какой конфигурационный файл использовать:
+    procedure MakeButton;
+      var
+        B, K: String;
+        Flags, Options: Word;
+        CmD: Word;
+      begin
+      R.Assign(GetID(Token(S, i)), GetID(Token(S, i)), GetID(Token(S,
+         i)), GetID(Token(S, i)));
+      K := Token(S, i);
+      CmD := GetID(Token(S, i));
+      Flags := 0;
+      Options := 0;
+      while i < Length(S) do
+        begin
+        B := Token(S, i);
+        UpStr(B);
+        if B = 'BFDEFAULT' then
+          Flags := Flags or bfDefault
+        else if B = 'BFNORMAL' then
+          Flags := Flags or bfNormal
+        else if B = 'BFBROADCAST' then
+          Flags := Flags or bfBroadcast
+        else if B = 'BFLEFTJUST' then
+          Flags := Flags or bfLeftJust
+        else if B = 'BFGRABFOCUS' then
+          Flags := Flags or bfGrabFocus
+        else
+          Options := Options or GetID(B);
+        end;
+      PV := New(PButton, Init(R, K, CmD, Flags));
+      PV^.Options := PV^.Options or Options;
+      D^.Insert(PV);
+      end { MakeButton };
+
+    procedure MakeScrollBar(Mouse: Boolean);
+      begin
+      R.Assign(GetID(Token(S, i)), GetID(Token(S, i)), GetID(Token(S,
+         i)), GetID(Token(S, i)));
+      if Mouse then
+        LastSB := New(PMouseBar, Init(R))
+      else
+        LastSB := New(PScrollBar, Init(R));
+      D^.Insert(LastSB);
+      end;
+
+    procedure MakeListBox;
+      begin
+      R.Assign(GetID(Token(S, i)), GetID(Token(S, i)), GetID(Token(S,
+         i)), GetID(Token(S, i)));
+      PV := New(PListBox, Init(R, GetID(Token(S, i)), LastSB));
+      D^.Insert(PV);
+      end;
+
+    procedure MakeStaticText;
+      begin
+      R.Assign(GetID(Token(S, i)), GetID(Token(S, i)), GetID(Token(S,
+         i)), GetID(Token(S, i)));
+      PV := New(PStaticText, Init(R, Token(S, i)));
+      D^.Insert(PV);
+      end;
+
+    procedure MakeUpperTable;
+      begin
+      R.Assign(GetID(Token(S, i)), GetID(Token(S, i)), GetID(Token(S,
+         i)), GetID(Token(S, i)));
+      PV := New(PUpperTable, Init(R));
+      D^.Insert(PV);
+      end;
+
+    procedure MakeParamText;
+      begin
+      R.Assign(GetID(Token(S, i)), GetID(Token(S, i)), GetID(Token(S,
+         i)), GetID(Token(S, i)));
+      PV := New(PParamText, Init(R, Token(S, i), GetID(Token(S, i))));
+      D^.Insert(PV);
+      end;
+
+    procedure MakeColorPoint;
+      var
+        P: PColorPoint;
+      begin
+      R.A.X := GetID(Token(S, i));
+      R.B.X := R.A.X+1;
+      R.A.Y := GetID(Token(S, i));
+      R.B.X := R.A.X+1;
+      New(P, Init(R, GetID(Token(S, i))));
+      D^.Insert(P);
+      while i < Length(S) do
+        P^.Options := P^.Options or GetID(Token(S, i));
+      end;
+
+    var
+      ID: TDlgIdx;
+      T: TLngWord;
+
+    const
+      DData: TSysData = (
+        Options: 0;
+        Mode1: '';
+        Mode2: '';
+        Temp: '';
+        Drives: (List: nil; Focus: 0);
+        Current: 0;
+        CopyLimitBuf: '';
+        ForceDefArch: ''
+        );
+
+      {-DataCompBoy-}
+    begin { CompileDialog }
+    I := Length(idDialog);
+    PV := nil;
+    LastSB := nil;
+    FreeStr := Token(S, I);
+    T.Init(0, FreeStr);
+    if not DLGs^.Search(@T, J) then
+      Error('Unknown Resource ID: '+T.Name);
+    ID := TDlgIdx(PLngWord(DLGs^.At(J))^.l);
+    R.Assign(0, 0, GetID(Token(S, I)), GetID(Token(S, I)));
+    if ID = dlgSystemSetup then
+      begin
+      D := New(PSysDialog, Init(R, Token(S, I)));
+      D^.Awaken;
+      end
+    else
+      New(D, Init(R, Token(S, I)));
+    D^.Options := D^.Options or ofCentered;
+    while not Eof(F.T) do
+      begin
+      Readln(F.T, S);
+      S := DefineParser.ProceedStr2(S);
+      Inc(Line);
+      DelLeft(S);
+      FreeStr := UpStrg(S);
+      if  (S <> '') and (S[1] <> ';') then
+        begin
+        if IsThis(idInputLine) then
+          MakeInputLine
+        else if IsThis(idHexLine) then
+          MakeHexLine
+        else if IsThis(idHelpCtx) then
+          begin
+          if PV = nil then
+            D^.HelpCtx := GetID(Token(S, I))
+          else
+            PV^.HelpCtx := GetID(Token(S, I))
+          end
+        else if IsThis(idLabel) then
+          MakeLabel
+        else if IsThis(idStaticText) then
+          MakeStaticText
+        else if IsThis(idParamText) then
+          MakeParamText
+        else if IsThis(idListBox) then
+          MakeListBox
+        else if IsThis(idScrollBar) then
+          MakeScrollBar(False)
+        else if IsThis(idMScrollBar) then
+          MakeScrollBar(True)
+        else if IsThis(idUpperTable) then
+          MakeUpperTable
+        else if IsThis(idCheckBoxes) then
+          MakeCheckBoxes
+        else if IsThis(idDriveCheckBox) then
+          MakeDriveCheckBoxes
+        else if IsThis(idSelectForward) then
+          D^.SelectNext(False)
+        else if IsThis(idSelectBack) then
+          D^.SelectNext(True)
+        else if IsThis(idRadioButtons) then
+          MakeRadioButtons
+        else if IsThis(idButton) then
+          MakeButton
+        else if IsThis(idHistory) then
+          MakeHistory
+        else if IsThis(idColorPoint) then
+          MakeColorPoint
+        else if IsThis(idEND) then
+          Break
+        else if (S <> '') and (S[1] <> ';') then
+          Error('Unknown identifier in line '+ItoS(Line));
+        while I < Length(S) do
+          PV^.Options := PV^.Options or GetID(Token(S, I));
+        end;
+      end;
+    D^.SelectNext(False);
+    StoreResource(D, ID);
+    if ID = dlgSystemSetup then
+      begin
+      New(PCollection(DData.Drives.List), Init(0, 10));
+      D^.SetData(DData);
+      end;
+    Dispose(D, Done);
+    end { CompileDialog };
+  {-DataCompBoy-}
+
+  procedure DoInsert(P: PLngWord);
+    begin
+    IDs^.Insert(P);
+    end;
+
+  function FailCheck: Boolean;
+    procedure DoCheck(P: PLngWord);
+      begin
+      if P^.Mark <> 1 then
+        begin
+        Writeln('Unresolved identifier "', P^.Name, '"');
+        FailCheck := True;
+        end;
+      end;
+    begin
+    FailCheck := False;
+    DLGs^.ForEach(@DoCheck);
+    end;
+
+  {-DataCompBoy-}
+  begin { ProcessDLGs }
+  DLGs := Types^.GetType(tidDLGs);
+  New(IDs, Init('', tmConst));
+  tP := Types^.GetType(tidCommands);
+  tP^.ForEach(@DoInsert);
+  tP := Types^.GetType(tidHelpCtx);
+  tP^.ForEach(@DoInsert);
+  tP := Types^.GetType(tidHistory);
+  tP^.ForEach(@DoInsert);
+  tP := Types^.GetType(tidKbdconst);
+  tP^.ForEach(@DoInsert);
+  tP := Types^.GetType(tidOptions);
+  tP^.ForEach(@DoInsert);
+
+  Writeln('Reading ', dlgFileName);
+  lAssignText(F, dlgFileName);
+  ClrIO;
+  lResetText(F);
+  Line := 0;
+  if IOResult <> 0 then
+    Error('Could not open input file');
+  St := New(PBufStream, Init(OutDlgFileName, stCreate, 512));
+  if St^.Status <> stOK then
+    begin
+    Close(F.T);
+    Dispose(St, Done);
+    EraseFile(OutDlgFileName);
+    Error('Could not create output file '+OutDlgFileName);
+    end;
+
+  TheRF := New(PIdxMaker, Init(St));
+  while not Eof(F.T) do
+    begin
+    Readln(F.T, S);
+    S := DefineParser.ProceedStr2(S);
+    Inc(Line);
+    Write(#13'(', Line, ')');
+    DelLeft(S);
+    FreeStr := UpStrg(S);
+    if  (S <> '') and (S[1] <> ';') then
+      if Copy(FreeStr, 1, Length(idColorDialog)) = idColorDialog then
+        MakeColorDialog
+      else if Copy(FreeStr, 1, Length(idDialog)) = idDialog then
+        CompileDialog(S)
+      else if Copy(FreeStr, 1, Length(idMenu)) = idMenu then
+        MakeMenu(S)
+      else if Copy(FreeStr, 1, Length(idStatusLine)) = idStatusLine then
+        MakeStatus
+      else if Copy(FreeStr, 1, Length(idEditorCommands))
+         = idEditorCommands
+      then
+        MakeEditorCommands
+      else
+        Error('Unknown identifier in line '+ItoS(Line));
+    end;
+
+  Close(F.T);
+  SetSavers;
+  if FailCheck then
+    Halt(1);
+
+  Writeln(#13'Writing ', OutDlgFileName);
+  Dispose(TheRF, Done);
+
+  IDs^.DeleteAll;
+  Dispose(IDs, Done);
+  end { ProcessDLGs };
+{-DataCompBoy-}
+
+{-DataCompBoy-}
+function GetName(S: String): String;
+  var
+    P, N, E: String;
+  begin
+  lFSplit(S, P, N, E);
+  GetName := N;
+  end;
+{-DataCompBoy-}
+
+procedure CleanupTypes;
+  procedure DoClean(P: PTypeHolder);
+    procedure DoUnmark(P: PLngWord);
+      begin
+      P^.Mark := 0
+      end;
+    begin
+    P^.ForEach(@DoUnmark);
+    end;
+  begin
+  Types^.ForEach(@DoClean);
+  end;
+
+function ReplaceChar(A, B: Char; S: String): String;
+  begin
+  Replace(A, B, S);
+  ReplaceChar := S;
+  end;
+
+var
+  INI: TIniFile;
+  INIs: Integer;
+  Lng: String;
+  LList: String;
+
+procedure InitParser;
+  var
+    Sec: PIniSection;
+    I: Integer;
+    K, S: String;
+  begin
+  Sec := INI.GetSection('Parser');
+  if Sec <> nil then
+    begin
+    for I := 0 to Sec^.Count-1 do
+      begin
+      K := UpStrg(Sec^.GetKeyAt(I));
+      if K <> '' then
+        begin
+        S := Sec^.GetValueAt(I);
+        DelDoubles('  ', S);
+        if K = 'CONST' then
+          Types^.Insert(New(PTypeHolder, Init(ReplaceChar(' ', #0,
+                 S+' '), tmConst)))
+        else if K = 'TYPE' then
+          Types^.Insert(New(PTypeHolder, Init(S, tmEnum)))
+        else
+          Error('Undefined keyword "'+K+'" in [Parser] section');
+        end;
+      end;
+    end;
+  end { InitParser };
+
+function CutWord(const S: String; No: Integer): String;
+  { S without word #No }
+  var
+    I, K: Integer;
+  label
+    Same;
+  begin
+  if No < 1 then
+    goto Same;
+  I := SeekWord(S, No);
+  if I > 0
+  then
+    CutWord := Copy(S, 1, I-1)
+        +Copy(S, wSkipBlank(S, wSkipText(S, I)), MaxStringLength)
+  else
+Same:
+    CutWord := S;
+  end;
+
+begin
+Writeln(#13'Resource Compiler for DN OSP 1.51.07a+  Version 1.08');
+Writeln('Copyright(C) 1994,95 RIT Research Labs');
+Writeln('Copyright(C) 1995 AxoN(R)Soft');
+
+{Cat}
+{/Cat}
+
+{Cat: выбираем, какой конфигурационный файл использовать:
       - если в командной строке O или OS2 - RCPVPO.INI
       - если в командной строке W или W32 - RCPVPW.INI
       - если в командной строке D или D32 - RCPVPD.INI
       - если командная строка пуста - конфигурационный файл,
       соответствующий системе, для которой скомпилирован RCP.EXE}
 
-        FreeStr := ParamStr(1);
-        UpStr(FreeStr);
-        if (FreeStr = 'O') or (FreeStr = 'OS2')
-          or (FreeStr = 'W') or (FreeStr = 'W32')
-          or (FreeStr = 'D') or (FreeStr = 'D32')
-          or (FreeStr = '')
-        then
-          begin
-            if FreeStr = '' then
-              {$IFDEF OS2}
-              FreeStr := 'O';
-              {$ELSE}
-              {$IFDEF WIN32}
-              FreeStr := 'W';
-              {$ELSE}
-              {$IFDEF DPMI32}
-              FreeStr := 'D';
-              {$ELSE}
-              FreeStr := '?';
-            {$ENDIF}
-            {$ENDIF}
-            {$ENDIF}
-            Writeln('Using config file RCPVP'+FreeStr[1]+'.INI');
-            INI.Init('RCPVP'+FreeStr[1]+'.INI', INIs);
-            if INIs <> stOK then
-              Error('File RCPVP'+FreeStr[1]+'.INI not found.');
-          end
-        else
-          Error('Invalid parameter "'+FreeStr+'".');
-        {/Cat}
+FreeStr := ParamStr(1);
+UpStr(FreeStr);
+if  (FreeStr = 'O') or (FreeStr = 'OS2')
+  or (FreeStr = 'W') or (FreeStr = 'W32')
+  or (FreeStr = 'D') or (FreeStr = 'D32')
+  or (FreeStr = '')
+then
+  begin
+  if FreeStr = '' then
+    {$IFDEF OS2}
+    FreeStr := 'O';
+    {$ELSE}
+    {$IFDEF WIN32}
+    FreeStr := 'W';
+    {$ELSE}
+    {$IFDEF DPMI32}
+    FreeStr := 'D';
+    {$ELSE}
+    FreeStr := '?';
+  {$ENDIF}
+  {$ENDIF}
+  {$ENDIF}
+  Writeln('Using config file RCPVP'+FreeStr[1]+'.INI');
+  INI.Init('RCPVP'+FreeStr[1]+'.INI', INIs);
+  if INIs <> stOK then
+    Error('File RCPVP'+FreeStr[1]+'.INI not found.');
+  end
+else
+  Error('Invalid parameter "'+FreeStr+'".');
+{/Cat}
 
-        RegisterType(RStrListMaker);
-        RegisterAll;
-        RegisterType(REditSaver);
+RegisterType(RStrListMaker);
+RegisterAll;
+RegisterType(REditSaver);
 
-        New(Types, Init(10, 10));
-        InitParser;
+New(Types, Init(10, 10));
+InitParser;
 
-        {-DataCompBoy-}
-        DefineParser.Init($10, $10);
-        LList := INI.Get('Controls', 'Defines');
-        repeat
-          Lng := GetWord(LList, 1);
-          if Lng <> '' then
-            begin
-              DefineParser.ProceedFile(Lng);
-              LList := CutWord(LList, 1);
-            end
-          else
-            break
-        until False;
-        {-DataCompBoy-}
+{-DataCompBoy-}
+DefineParser.Init($10, $10);
+LList := INI.Get('Controls', 'Defines');
+repeat
+  Lng := GetWord(LList, 1);
+  if Lng <> '' then
+    begin
+    DefineParser.ProceedFile(Lng);
+    LList := CutWord(LList, 1);
+    end
+  else
+    Break
+until False;
+{-DataCompBoy-}
 
-        LList := INI.Get('Controls', 'Indexes');
-        repeat
-          Lng := GetWord(LList, 1);
-          if Lng <> '' then
-            begin
-              ProcessFile(Lng, Types);
-              LList := CutWord(LList, 1);
-            end
-          else
-            break
-        until False;
+LList := INI.Get('Controls', 'Indexes');
+repeat
+  Lng := GetWord(LList, 1);
+  if Lng <> '' then
+    begin
+    ProcessFile(Lng, Types);
+    LList := CutWord(LList, 1);
+    end
+  else
+    Break
+until False;
 
-        LList := INI.Get('Controls', 'Languages');
-        repeat
-          Lng := GetWord(LList, 1);
-          if Lng <> '' then
-            begin
-              if UpStrg(INI.Get(Lng, 'ProcessDLs')) = 'YES' then
-                  begin
-                  LngFileName := INI.Get(Lng, 'LngInput');
-                  if LngFileName = '' then
-                    Error('No LNG input file defined for language "'+
-                      Lng+'".');
-                  OutLngFileName := INI.Get(Lng, 'LngOutput');
-                  if OutLngFileName = '' then
-                    Error(
-                      'No LNG output file defined for language "'+
-                      Lng+'".');
-                  ProcessDLs(True);
-                end
-              else
-                ProcessDLs(False);
-              DlgFileName := INI.Get(Lng, 'DlgInput');
-              if DlgFileName = '' then
-                Error('No DLG input file defined for language "'+Lng+
-                  '".');
-              OutDlgFileName := INI.Get(Lng, 'DlgOutput');
-              if OutDlgFileName = '' then
-                Error('No DLG output file defined for language "'+
-                  Lng+'".');
-              ProcessDLGs;
-              if LStringList <> nil then
-                begin
-                  Dispose(LStringList, Done);
-                  LStringList := nil;
-                  if StringCache <> nil then
-                    Dispose(StringCache, Done);
-                  StringCache := nil;
-                end;
-              DLStream.Done;
-              ReRegisterType(RStrListMaker);
-              CleanupTypes;
-              LList := CutWord(LList, 1);
-            end
-          else
-            break;
-        until False;
-        Dispose(Types, Done);
-      end.
+LList := INI.Get('Controls', 'Languages');
+repeat
+  Lng := GetWord(LList, 1);
+  if Lng <> '' then
+    begin
+    if UpStrg(INI.Get(Lng, 'ProcessDLs')) = 'YES' then
+      begin
+      LngFileName := INI.Get(Lng, 'LngInput');
+      if LngFileName = '' then
+        Error('No LNG input file defined for language "'+Lng+'".');
+      OutLngFileName := INI.Get(Lng, 'LngOutput');
+      if OutLngFileName = '' then
+        Error('No LNG output file defined for language "'+Lng+'".');
+      ProcessDLs(True);
+      end
+    else
+      ProcessDLs(False);
+    dlgFileName := INI.Get(Lng, 'DlgInput');
+    if dlgFileName = '' then
+      Error('No DLG input file defined for language "'+Lng+'".');
+    OutDlgFileName := INI.Get(Lng, 'DlgOutput');
+    if OutDlgFileName = '' then
+      Error('No DLG output file defined for language "'+Lng+'".');
+    ProcessDLGs;
+    if LStringList <> nil then
+      begin
+      Dispose(LStringList, Done);
+      LStringList := nil;
+      if StringCache <> nil then
+        Dispose(StringCache, Done);
+      StringCache := nil;
+      end;
+    DLStream.Done;
+    ReRegisterType(RStrListMaker);
+    CleanupTypes;
+    LList := CutWord(LList, 1);
+    end
+  else
+    Break;
+until False;
+Dispose(Types, Done);
+end.

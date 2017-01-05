@@ -54,7 +54,8 @@ unit DnIni;
 interface
 
 uses
-  Commands;
+  Commands
+  ;
 
 type
   TBlockMarker = record
@@ -62,9 +63,9 @@ type
 
 const
 
-  INIstoredsize: longInt = 0;
-  INIstoredtime: longInt = 0;
-  INIstoredcrc: longInt = 0; {DataCompBoy}
+  INIstoredsize: LongInt = 0;
+  INIstoredtime: LongInt = 0;
+  INIstoredcrc: LongInt = 0; {DataCompBoy}
 
   { DO NOT CHANGE THIS LINE }iniparamblock_START: TBlockMarker = ();
   { ------------------------------ PLACE ALL INI VARIABLES BELOW }
@@ -83,107 +84,108 @@ const
   {; Variable name           ; Type       ; Default value      ;          Comments ;}
   {`.________________________;____________;____________________;___________________'}
   {} {Interface}
-  {}CutDriveInfo: boolean = True;
-  {}WinManagerSelectNext: boolean = True;
-  {}DriveSelectVCenter: boolean = False; {-$X-Man}
-  {}SystemMenuChar: byte = 4;
-  {}HorizScrollBarChars: String[6] = #17#16#177#254#178;
-    {DataCompBoy}
-  {}VertScrollBarChars: String[6] = #30#31#177#254#178;
-    {DataCompBoy}
-  {}ReflectCopyDirection: boolean = False;
-  {}ReuseViewers: byte = 0; { 0 - always open new}
-  {}ReuseEditors: byte = 0; { 1 - prompt for open}
+  {}CutDriveInfo: Boolean = True;
+  {}WinManagerSelectNext: Boolean = True;
+  {}DriveSelectVCenter: Boolean = False; {-$X-Man}
+  {}SystemMenuChar: Byte = 4;
+  {}HorizScrollBarChars: String[6] = #17#16#177#254#178; {DataCompBoy}
+  {}VertScrollBarChars: String[6] = #30#31#177#254#178; {DataCompBoy}
+  {}ReflectCopyDirection: Boolean = False;
+  {}ReuseViewers: Byte = 0; { 0 - always open new}
+  {}ReuseEditors: Byte = 0; { 1 - prompt for open}
   {} { 2 - do not open new}
-  {}HistoryErrorBeep: boolean = True; {DataCompBoy}
-  {}PreserveMenuPositions: boolean = False; {DataCompBoy}
-  {}LFNinBottom: boolean = False; {JO}
+  {}HistoryErrorBeep: Boolean = True; {DataCompBoy}
+  {}PreserveMenuPositions: Boolean = False; {DataCompBoy}
+  {}LFNinBottom: Boolean = False; {JO}
   {}PanelDescrArvid: String = ''; {JO}
   {}PanelDescrArc: String = ''; {JO}
   {}PanelDescrTemp: String = ''; {JO}
   {}PanelDescrFind: String = ''; {JO}
   {}PanelDescrDrive: String = ''; {JO}
-  {}UseEnterInViewer: byte = 0; {JO}
-  {}SkipXLatMenu: boolean = False; {JO}
-  {}EscForOutputWindow: boolean = False; {JO}
+  {}UseEnterInViewer: Byte = 0; {JO}
+  {}SkipXLatMenu: Boolean = False; {JO}
+  {}EscForOutputWindow: Boolean = False; {JO}
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
   {`.________________________;____________;____________________;___________________'}
   {} {Clock}
-  {}ShowSeconds: boolean = True;
-  {}BlinkSeparator: boolean = True; {JO}
-  {}ShowCentury: boolean = True;
-  {}ShowDayOfWeek: boolean = True;
+  {}ShowSeconds: Boolean = True;
+  {}BlinkSeparator: Boolean = True; {JO}
+  {}ShowCentury: Boolean = True;
+  {}ShowDayOfWeek: Boolean = True;
   {}DaysOfWeek: String[23] = '(use language default)';
-  {}RightAlignClock: boolean = False; {FY 13-03-2000}
+  {}RightAlignClock: Boolean = False; {FY 13-03-2000}
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
   {`.________________________;____________;____________________;___________________'}
   {} {SmartPad}
-  {}SPInsertDate: boolean = True;
-  {}SPLineChar: byte = 196; {X-Man} {SYR}
+  {}SPInsertDate: Boolean = True;
+  {}SPLineChar: Byte = 196; {X-Man}
+  {SYR}
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
   {`.________________________;____________;____________________;___________________'}
   {} {Game}
-  {}EnableGame: boolean = True;
+  {}EnableGame: Boolean = True;
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
   {`.________________________;____________;____________________;___________________'}
   {} {Clipboard}
-  {}CBSize: longInt = 4096; {-$VOL}
-  {}CBAutoSave: boolean = False; {-$VOL}
+  {}cbSize: LongInt = 4096; {-$VOL}
+  {}cbAutoSave: Boolean = False; {-$VOL}
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
   {`.________________________;____________;____________________;___________________'}
   {} {Kernel}
   //CanUseLFN                : Boolean    = True;
-  {}AutoSave: boolean = True;
-  {}ShowKeyCode: byte = 0;
-  {}CopyLimit: longInt = 8192; {DataCompBoy} {piwamoto}
-  {}HandleChDirCommand: boolean = True; {DataCompBoy}
-  {}StoreVideoMode: byte = 0; {PZ} {DataCompBoy}
-  {}SmartWindowsBoxClose: longInt = 0; {DataCompBoy, AK155}
-  {}CtrlBreakKill: boolean = False; {AK155}
+  {}AutoSave: Boolean = True;
+  {}ShowKeyCode: Byte = 0;
+  {}CopyLimit: LongInt = 8192; {DataCompBoy}
+  {piwamoto}
+  {}HandleChDirCommand: Boolean = True; {DataCompBoy}
+  {}StoreVideoMode: Byte = 0; {PZ}
+  {DataCompBoy}
+  {}SmartWindowsBoxClose: LongInt = 0; {DataCompBoy, AK155}
+  {}CtrlBreakKill: Boolean = False; {AK155}
   //DoVESATest               : Boolean    = False;                      {DataCompBoy}
   {}ForceDefaultArchiver: String[3] = ''; {JO}
   {$IFDEF WIN32}
   {}AltGrAsAlt               : Boolean    = True; {JO} {JO: эта переменная дублируется в VpKbdW32}
   {$ENDIF}
   {$IFNDEF OS2}
-  {}DescrByShortNames: boolean = True; {JO}
+  {}DescrByShortNames: Boolean = True; {JO}
   {$ENDIF}
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
   {`.________________________;____________;____________________;___________________'}
   {} {Editor}
-  {}UnlimitUnindent: boolean = False;
-  {}Koi8rKeyMap: boolean = True;
-  {}DrawRShift: boolean = True;
-  {}AutoScopeDetect: boolean = True;
-  {}ShowBookmarks: boolean = True;
-  {}FastBookmark: boolean = True;
+  {}UnlimitUnindent: Boolean = False;
+  {}Koi8rKeyMap: Boolean = True;
+  {}DrawRShift: Boolean = True;
+  {}AutoScopeDetect: Boolean = True;
+  {}ShowBookmarks: Boolean = True;
+  {}FastBookmark: Boolean = True;
   {}DefCodePage: String[9] = 'Dos';
-  {}CapitalCodePageName: boolean = False;
-  {}FastSearchDeep: longInt = 0;
-  {}WinManagerPosToEdit: boolean = True;
+  {}CapitalCodePageName: Boolean = False;
+  {}FastSearchDeep: LongInt = 0;
+  {}WinManagerPosToEdit: Boolean = True;
   {}AutoBracketPairs: String = '()[]{}<>';
-  {}F6_DuplicatesLine: boolean = False; {JO}
+  {}F6_DuplicatesLine: Boolean = False; {JO}
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
   {`.________________________;____________;____________________;___________________'}
   {} {FilePanels}
-  {}ShowFileMask: boolean = True;
-  {}ShowLongName: boolean = True;
-  {}QuickRenameInDialog: boolean = False;
-  {}UpperCaseSorting: boolean = True; {JO}
-  {}AutoRefreshDriveLine: boolean = False; {Cat}
-  {}AutoRefreshPanels: boolean = False; {Cat}
-  {}QuickSearchType: byte = 0; {Cat}
-  {}BriefSelectedInfo: boolean = True; {AK155}
-  {}BriefTotalInfo: boolean = False; {AK155}
-  {}PackingInfoInBottom: boolean = True; {AK155}
-  {}PathInfoInBottom: boolean = True; {AK155}
+  {}ShowFileMask: Boolean = True;
+  {}ShowLongName: Boolean = True;
+  {}QuickRenameInDialog: Boolean = False;
+  {}UpperCaseSorting: Boolean = True; {JO}
+  {}AutoRefreshDriveLine: Boolean = False; {Cat}
+  {}AutoRefreshPanels: Boolean = False; {Cat}
+  {}QuickSearchType: Byte = 0; {Cat}
+  {}BriefSelectedInfo: Boolean = True; {AK155}
+  {}BriefTotalInfo: Boolean = False; {AK155}
+  {}PackingInfoInBottom: Boolean = True; {AK155}
+  {}PathInfoInBottom: Boolean = True; {AK155}
   {$IFDEF OS2}
   {}ExecWin32GUI: String[30] = 'start /n /f pe';
   {}ExecWin32CUI: String[30] = 'pec';
@@ -192,22 +194,22 @@ const
   {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
   {`.________________________;____________;____________________;___________________'}
   {} {NetInfo}
-  {}NoLevelsInfo: boolean = False;
+  {}NoLevelsInfo: Boolean = False;
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
   {`.________________________;____________;____________________;___________________'}
   {} {TaskList}
-  {}KillAllowed: boolean = False; {JO}
-  {}ShowExePaths: boolean = False; {JO}
-  {}FilteredList: boolean = True; {JO}
+  {}KillAllowed: Boolean = False; {JO}
+  {}ShowExePaths: Boolean = False; {JO}
+  {}FilteredList: Boolean = True; {JO}
   {$IFDEF OS2}
   {}UserTaskFilter: String = 'pmshell.exe#filebar.exe#clipvdm.exe';
-    {JO}
+  {JO}
   {$ENDIF}
   {$IFDEF Win32}
   {}UserTaskFilter: String =
-    'msgsrv32.exe#mmtask.tsk#mstask.exe#systray.exe#internat.exe#winoa386.mod'
-    ; {JO}
+  'msgsrv32.exe#mmtask.tsk#mstask.exe#systray.exe#internat.exe#winoa386.mod'
+  ; {JO}
   {$ENDIF}
   {$IFDEF DPMI32}
   {}UserTaskFilter: String = ''; {JO}
@@ -218,7 +220,7 @@ const
   {} {Language}
   {}ActiveLanguage: String[9] = '';
   {}HelpLanguageOverride: String[9] = '';
-  {}ShowLanguageMenu: boolean = False;
+  {}ShowLanguageMenu: Boolean = False;
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
   {`.________________________;____________;____________________;___________________'}
@@ -251,23 +253,23 @@ const
   {`.________________________;_________;________________;___________________'}
 
   {} {SetupStorage}
-  {}SystemDataOpt: longInt = 75; {SystemData.Options}
-  {}InterfaceDataOpt: longInt = 8201; {InterfaceData.Options}
-  {}DriveInfoType: longInt = 0; {InterfaceData.DrvInfType}
-  {}FMSetupOpt: longInt = 11358; {FMSetup.Options}
-  {}EditorDefaultsOpt: longInt = 8194; {EditorDefaults.EdOpt}
-  {}EditorDefaultsOpt2: longInt = 3; {EditorDefaults.EdOpt2}
-  {}ViewerOpt: longInt = 16; {EditorDefaults.ViOpt}
-  {}StartupDataLoad: longInt = 2; {StartupData.Load}
-  {}StartupDataUnload: longInt = 0; {StartupData.Unload}
-  {}StartupDataSlice2: longInt = 1; {StartupData.Slice2}
-  {}ConfirmsOpt: longInt = cfSingleErase+cfMultiErase+
-    cfEraseReadonly+cfEraseSubDir
+  {}SystemDataOpt: LongInt = 75; {SystemData.Options}
+  {}InterfaceDataOpt: LongInt = 8201; {InterfaceData.Options}
+  {}DriveInfoType: LongInt = 0; {InterfaceData.DrvInfType}
+  {}FMSetupOpt: LongInt = 11358; {FMSetup.Options}
+  {}EditorDefaultsOpt: LongInt = 8194; {EditorDefaults.EdOpt}
+  {}EditorDefaultsOpt2: LongInt = 3; {EditorDefaults.EdOpt2}
+  {}ViewerOpt: LongInt = 16; {EditorDefaults.ViOpt}
+  {}StartupDataLoad: LongInt = 2; {StartupData.Load}
+  {}StartupDataUnload: LongInt = 0; {StartupData.Unload}
+  {}StartupDataSlice2: LongInt = 1; {StartupData.Slice2}
+  {}ConfirmsOpt: LongInt =
+   cfSingleErase+cfMultiErase+cfEraseReadonly+cfEraseSubDir
   +cfMouseConfirm+cfExitConfirm+cfChaneLngWarning; {Confirms}
-  {}NonVIOScreenMode: longInt = 65535; {JO}
-    {последний видеорежим в полноэкранной сессии}
-  {}VIOScreenMode: longInt = 65535; {JO}
-    {последний видеорежим в оконной сессии}
+  {}NonVIOScreenMode: LongInt = 65535; {JO}
+  {последний видеорежим в полноэкранной сессии}
+  {}VIOScreenMode: LongInt = 65535; {JO}
+  {последний видеорежим в оконной сессии}
   {,'~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`~~~~~~~~~~~~`,}
   {;                   This is end of parameters definitions                       ;}
   {`.______________________________________________________________________________'}
@@ -281,36 +283,37 @@ procedure LoadDnIniSettings;
 procedure SaveDnIniSettings(PVar: Pointer);
 procedure DoneIniEngine;
 
-function ProbeINI(var INItime, INIsize, INIcrc: longInt): boolean;
+function ProbeINI(var INItime, INIsize, INIcrc: LongInt): Boolean;
 
 procedure ShowIniErrors;
 procedure ClearIniErrors;
 
 implementation
 uses
-  Dos, Lfn, profile, advance, advance1, Collect, Messages, DNApp,
+  Dos, Lfn, profile, Advance, Advance1, Collect, Messages, DNApp,
   {$IFDEF WIN32}VpSysLow, {$ENDIF}
-  Strings;
+  Strings
+  ;
 
 type
 
-  TSInt8 = shortint;
+  TSInt8 = ShortInt;
   TSInt16 = SmallInt;
-  TSInt32 = longInt;
-  TUInt8 = byte;
-  TUInt16 = word;
+  TSInt32 = LongInt;
+  TUInt8 = Byte;
+  TUInt16 = Word;
 
   TIniItemKind = (
-  ikBool,
-  ikEnum,
-  ikStr,
-  ikSInt,
-  ikUInt,
-  ikChar
-  );
+    ikBool,
+    ikEnum,
+    ikStr,
+    ikSInt,
+    ikUInt,
+    ikChar
+    );
 
   TDoProc = procedure (Group, Parameter: PChar; Kind: TIniItemKind;
-    Size: word; PVar: Pointer);
+     Size: Word; PVar: Pointer);
 
 const
   {Group names}
@@ -332,7 +335,7 @@ const
 type
   PIniError = ^TIniError;
   TIniError = record
-    Size: byte;
+    Size: Byte;
     Group: PChar;
     Parameter: PChar;
     end;
@@ -349,20 +352,20 @@ procedure TIniErrors.FreeItem(Item: Pointer);
   var
     P: PIniError absolute Item;
   begin
-    Dispose(P);
+  Dispose(P);
   end;
 
-procedure AddIniError(Size: byte; Group: PChar; Parameter: PChar);
+procedure AddIniError(Size: Byte; Group: PChar; Parameter: PChar);
   var
-    P: PIniError;
+    p: PIniError;
   begin
-    if IniErrors = nil then
-      IniErrors := New(PIniErrors, Init(1, 1));
-    New(P);
-    P^.Size := Size;
-    P^.Group := Group;
-    P^.Parameter := Parameter;
-    IniErrors^.Insert(P);
+  if IniErrors = nil then
+    IniErrors := New(PIniErrors, Init(1, 1));
+  New(p);
+  p^.Size := Size;
+  p^.Group := Group;
+  p^.Parameter := Parameter;
+  IniErrors^.Insert(p);
   end;
 
 procedure ShowIniErrors;
@@ -370,550 +373,543 @@ procedure ShowIniErrors;
   procedure Show(P: Pointer);
     type
       TParams = record
-        Size: longInt;
+        Size: LongInt;
         Group: PChar;
         Parameter: PChar;
         end;
     var
-      i: PIniError absolute P;
-      Sg: String[10];
-      Sp: String[21];
-      Id: TStrIdx;
-      flg: word;
-      Q: Pointer;
-      Par: TParams;
+      I: PIniError absolute P;
+      sg: String[10];
+      sp: String[21];
+      id: TStrIdx;
+      flg: Word;
+      q: Pointer;
+      par: TParams;
     begin
-      if P = nil then
-        exit;
-      Sg := StrPas(i^.Group);
-      Sp := StrPas(i^.Parameter);
-      flg := mfOKButton;
-      Par.Group := @sg;
-      Par.Parameter := @sp;
-      if i^.Size > 0 then
-        begin
-          Par.Size := i^.Size;
-          Inc(flg, mfWarning);
-          Id := dlIniDataTooLong;
-          Q := @par.Size;
-        end
-      else
-        begin
-          Inc(flg, mfError);
-          Id := dlIniDataReadError;
-          Q := @par.Group;
-        end;
-      Msg(Id, Q, flg);
+    if P = nil then
+      Exit;
+    sg := StrPas(I^.Group);
+    sp := StrPas(I^.Parameter);
+    flg := mfOKButton;
+    par.Group := @sg;
+    par.Parameter := @sp;
+    if I^.Size > 0 then
+      begin
+      par.Size := I^.Size;
+      Inc(flg, mfWarning);
+      id := dlIniDataTooLong;
+      q := @par.Size;
+      end
+    else
+      begin
+      Inc(flg, mfError);
+      id := dlIniDataReadError;
+      q := @par.Group;
+      end;
+    Msg(id, q, flg);
     end { Show };
 
   begin { ShowIniErrors }
-    if IniErrors <> nil then
-      begin
-        IniErrors^.ForEach(@Show);
-        ClearIniErrors;
-      end;
+  if IniErrors <> nil then
+    begin
+    IniErrors^.ForEach(@Show);
+    ClearIniErrors;
+    end;
   end { ShowIniErrors };
 
 procedure ClearIniErrors;
   begin
-    if IniErrors <> nil then
-      begin
-        IniErrors^.FreeAll;
-        Dispose(IniErrors, Done);
-        IniErrors := nil;
-      end;
+  if IniErrors <> nil then
+    begin
+    IniErrors^.FreeAll;
+    Dispose(IniErrors, Done);
+    IniErrors := nil;
+    end;
   end;
 
 function DnIniFileName: String;
   begin
-    DnIniFileName := SourceDir+'DN.INI';
+  DnIniFileName := SourceDir+'DN.INI';
   end;
 
 procedure Proceed(RegisterVar: TDoProc);
   begin
-    {Interface}
-    RegisterVar(CSInterface, 'CutDriveInfo', ikBool, SizeOf(
-      CutDriveInfo), @CutDriveInfo);
-    RegisterVar(CSInterface, 'WinManagerSelectNext', ikBool, SizeOf(
-      WinManagerSelectNext), @WinManagerSelectNext);
-    RegisterVar(CSInterface, 'DriveSelectVCenter', ikBool, SizeOf(
-      DriveSelectVCenter), @DriveSelectVCenter); {-$X-Man}
-    RegisterVar(CSInterface, 'SystemMenuChar', ikUInt, SizeOf(
-      SystemMenuChar), @SystemMenuChar);
-    RegisterVar(CSInterface, 'HorizScrollBarChars', ikStr, SizeOf(
-      HorizScrollBarChars), @HorizScrollBarChars);
-    RegisterVar(CSInterface, 'VertScrollBarChars', ikStr, SizeOf(
-      VertScrollBarChars), @VertScrollBarChars);
-    RegisterVar(CSInterface, 'ReflectCopyDirection', ikBool, SizeOf(
-      ReflectCopyDirection), @ReflectCopyDirection);
-    RegisterVar(CSInterface, 'ReuseViewers', ikUInt, SizeOf(
-      ReuseViewers), @ReuseViewers);
-    RegisterVar(CSInterface, 'ReuseEditors', ikUInt, SizeOf(
-      ReuseEditors), @ReuseEditors);
-    RegisterVar(CSInterface, 'HistoryErrorBeep', ikBool, SizeOf(
-      HistoryErrorBeep), @HistoryErrorBeep);
-    RegisterVar(CSInterface, 'PreserveMenuPositions', ikBool, SizeOf(
-      PreserveMenuPositions), @PreserveMenuPositions);
-    RegisterVar(CSInterface, 'LFNinBottom', ikBool, SizeOf(
-      LFNinBottom), @LFNinBottom); {JO}
-    //  RegisterVar(CSInterface, 'DescriptionInBottom',  ikBool, SizeOf(DescriptionInBottom),  @DescriptionInBottom);{JO}
-    RegisterVar(CSInterface, 'PanelDescrArvid', ikStr, SizeOf(
-      PanelDescrArvid), @PanelDescrArvid); {JO}
-    RegisterVar(CSInterface, 'PanelDescrArc', ikStr, SizeOf(
-      PanelDescrArc), @PanelDescrArc); {JO}
-    RegisterVar(CSInterface, 'PanelDescrTemp', ikStr, SizeOf(
-      PanelDescrTemp), @PanelDescrTemp); {JO}
-    RegisterVar(CSInterface, 'PanelDescrFind', ikStr, SizeOf(
-      PanelDescrFind), @PanelDescrFind); {JO}
-    RegisterVar(CSInterface, 'PanelDescrDrive', ikStr, SizeOf(
-      PanelDescrDrive), @PanelDescrDrive); {JO}
-    RegisterVar(CSInterface, 'UseEnterInViewer', ikUInt, SizeOf(
-      UseEnterInViewer), @UseEnterInViewer); {JO}
-    RegisterVar(CSInterface, 'SkipXLatMenu', ikBool, SizeOf(
-      SkipXLatMenu), @SkipXLatMenu); {JO}
-    RegisterVar(CSInterface, 'EscForOutputWindow', ikBool, SizeOf(
-      EscForOutputWindow), @EscForOutputWindow); {JO}
-    {Clock}
-    RegisterVar(CSClock, 'ShowSeconds', ikBool, SizeOf(ShowSeconds),
-      @ShowSeconds);
-    RegisterVar(CSClock, 'BlinkSeparator', ikBool, SizeOf(
-      BlinkSeparator), @BlinkSeparator);
-    RegisterVar(CSClock, 'ShowCentury', ikBool, SizeOf(ShowCentury),
-      @ShowCentury);
-    RegisterVar(CSClock, 'ShowDayOfWeek', ikBool, SizeOf(
-      ShowDayOfWeek), @ShowDayOfWeek);
-    RegisterVar(CSClock, 'DaysOfWeek', ikStr, SizeOf(DaysOfWeek),
-      @DaysOfWeek);
-    RegisterVar(CSClock, 'RightAlignClock', ikBool, SizeOf(
-      RightAlignClock), @RightAlignClock); {FY 13-03-2000}
-    {SmartPad}
-    RegisterVar(CSSmartPad, 'InsertDate', ikBool, SizeOf(
-      SPInsertDate), @SPInsertDate);
-    RegisterVar(CSSmartPad, 'LineChar', ikUInt, SizeOf(SPLineChar),
-      @SPLineChar); {SYR}
-    {Game}
-    RegisterVar(CSGame, 'EnableGame', ikBool, SizeOf(EnableGame),
-      @EnableGame);
-    {Clipboard}
-    RegisterVar(CSClipboard, 'SaveClipboardOnExit', ikBool, SizeOf(
-      CBAutoSave), @CBAutoSave);
-    RegisterVar(CSClipboard, 'MaxClipboardSize', ikSInt, SizeOf(
-      CBSize), @CBSize);
-    {Kernel}
-    //RegisterVar(CSKernel,    'UseLFN',               ikBool, SizeOf(CanUseLFN),            @CanUseLFN);
-    RegisterVar(CSKernel, 'AutoSave', ikBool, SizeOf(AutoSave),
-      @AutoSave);
-    RegisterVar(CSKernel, 'ShowKeyCode', ikUInt, SizeOf(ShowKeyCode),
-      @ShowKeyCode);
-    RegisterVar(CSKernel, 'CopyLimit', ikSInt, SizeOf(CopyLimit),
-      @CopyLimit);
-    RegisterVar(CSKernel, 'HandleChDirCommand', ikBool, SizeOf(
-      HandleChDirCommand), @HandleChDirCommand); {DataCompBoy}
-    RegisterVar(CSKernel, 'StoreVideoMode', ikUInt, SizeOf(
-      StoreVideoMode), @StoreVideoMode); {PZ} {DataCompBoy}
-    RegisterVar(CSKernel, 'SmartWindowsBoxClose', ikSInt, SizeOf(
-      SmartWindowsBoxClose), @SmartWindowsBoxClose); {DataCompBoy}
-    RegisterVar(CSKernel, 'CtrlBreakKill', ikBool, SizeOf(
-      CtrlBreakKill), @CtrlBreakKill); {AK155}
-    //RegisterVar(CSKernel,    'DoVESATest',           ikBool, SizeOf(DoVESATest),           @DoVESATest);           {DataCompBoy}
-    RegisterVar(CSKernel, 'ForceDefaultArchiver', ikStr, SizeOf(
-      ForceDefaultArchiver), @ForceDefaultArchiver); {JO}
-    {$IFDEF WIN32}
-    RegisterVar(CSKernel,    'AltGrAsAlt',           ikBool, SizeOf(AltGrAsAlt),           @AltGrAsAlt);           {JO}
-    {$ENDIF}
-    {$IFNDEF OS2}
-    RegisterVar(CSKernel, 'DescrByShortNames', ikBool, SizeOf(
-      DescrByShortNames), @DescrByShortNames); {JO}
-    {$ENDIF}
-    {Editor}
-    RegisterVar(CSEditor, 'UnlimitUnindent', ikBool, SizeOf(
-      UnlimitUnindent), @UnlimitUnindent);
-    RegisterVar(CSEditor, 'Koi8rKeyMap', ikBool, SizeOf(Koi8rKeyMap),
-      @Koi8rKeyMap);
-    RegisterVar(CSEditor, 'DrawRShift', ikBool, SizeOf(DrawRShift),
-      @DrawRShift);
-    RegisterVar(CSEditor, 'AutoScopeDetect', ikBool, SizeOf(
-      AutoScopeDetect), @AutoScopeDetect);
-    RegisterVar(CSEditor, 'ShowBookmarks', ikBool, SizeOf(
-      ShowBookmarks), @ShowBookmarks);
-    RegisterVar(CSEditor, 'FastBookmark', ikBool, SizeOf(
-      FastBookmark), @FastBookmark);
-    RegisterVar(CSEditor, 'DefCodePage', ikStr, SizeOf(DefCodePage),
-      @DefCodePage);
-    RegisterVar(CSEditor, 'CapitalCodePageName', ikBool, SizeOf(
-      CapitalCodePageName), @CapitalCodePageName);
-    RegisterVar(CSEditor, 'FastSearchDeep', ikSInt, SizeOf(
-      FastSearchDeep), @FastSearchDeep);
-    RegisterVar(CSEditor, 'WinManagerPosToEdit', ikBool, SizeOf(
-      WinManagerPosToEdit), @WinManagerPosToEdit);
-    RegisterVar(CSEditor, 'AutoBracketPairs', ikStr, SizeOf(
-      AutoBracketPairs), @AutoBracketPairs);
-    RegisterVar(CSEditor, 'F6_DuplicatesLine', ikBool, SizeOf(
-      F6_DuplicatesLine), @F6_DuplicatesLine); {JO}
-    {FilePanels}
-    RegisterVar(CSFilePanels, 'ShowFileMask', ikBool, SizeOf(
-      ShowFileMask), @ShowFileMask);
-    RegisterVar(CSFilePanels, 'ShowLongName', ikBool, SizeOf(
-      ShowLongName), @ShowLongName);
-    RegisterVar(CSFilePanels, 'QuickRenameInDialog', ikBool, SizeOf(
-      QuickRenameInDialog), @QuickRenameInDialog);
-    RegisterVar(CSFilePanels, 'UpperCaseSorting', ikBool, SizeOf(
-      UpperCaseSorting), @UpperCaseSorting); {JO}
-    RegisterVar(CSFilePanels, 'AutoRefreshDriveLine', ikBool, SizeOf(
-      AutoRefreshDriveLine), @AutoRefreshDriveLine); {Cat}
-    RegisterVar(CSFilePanels, 'AutoRefreshPanels', ikBool, SizeOf(
-      AutoRefreshPanels), @AutoRefreshPanels); {Cat}
-    RegisterVar(CSFilePanels, 'QuickSearchType', ikUInt, SizeOf(
-      QuickSearchType), @QuickSearchType); {Cat}
-    RegisterVar(CSFilePanels, 'BriefSelectedInfo', ikBool, SizeOf(
-      BriefSelectedInfo), @BriefSelectedInfo); {AK155}
-    RegisterVar(CSFilePanels, 'BriefTotalInfo', ikBool, SizeOf(
-      BriefTotalInfo), @BriefTotalInfo); {AK155}
-    RegisterVar(CSFilePanels, 'PackingInfoInBottom', ikBool, SizeOf(
-      PackingInfoInBottom), @PackingInfoInBottom); {AK155}
-    RegisterVar(CSFilePanels, 'PathInfoInBottom', ikBool, SizeOf(
-      PathInfoInBottom), @PathInfoInBottom); {AK155}
-    {$IFDEF OS2}
-    RegisterVar(CSFilePanels, 'ExecWin32GUI', ikStr, SizeOf(
-      ExecWin32GUI), @ExecWin32GUI);
-    RegisterVar(CSFilePanels, 'ExecWin32CUI', ikStr, SizeOf(
-      ExecWin32CUI), @ExecWin32CUI);
-    {$ENDIF}
-    {NetInfo}
-    RegisterVar(CSNetInfo, 'NoLevelsInfo', ikBool, SizeOf(
-      NoLevelsInfo), @NoLevelsInfo);
-    {TaskList}
-    RegisterVar(CSTaskList, 'KillAllowed', ikBool, SizeOf(
-      KillAllowed), @KillAllowed); {JO}
-    RegisterVar(CSTaskList, 'ShowExePaths', ikBool, SizeOf(
-      ShowExePaths), @ShowExePaths); {JO}
-    RegisterVar(CSTaskList, 'FilteredList', ikBool, SizeOf(
-      FilteredList), @FilteredList); {JO}
-    RegisterVar(CSTaskList, 'UserTaskFilter', ikStr, SizeOf(
-      UserTaskFilter), @UserTaskFilter); {JO}
-    {Language}
-    RegisterVar(CSLanguage, 'ActiveLanguage', ikStr, SizeOf(
-      ActiveLanguage), @ActiveLanguage);
-    RegisterVar(CSLanguage, 'HelpLanguageOverride', ikStr, SizeOf(
-      HelpLanguageOverride), @HelpLanguageOverride);
-    RegisterVar(CSLanguage, 'ShowLanguageMenu', ikBool, SizeOf(
-      ShowLanguageMenu), @ShowLanguageMenu);
-    {$IFDEF REGEXP}
-    {RegExp}
-    RegisterVar(CSRegExp, 'RegExpStr0', ikStr, SizeOf(RegExpStr0),
-      @RegExpStr0); {PZ}
-    RegisterVar(CSRegExp, 'RegExpStr1', ikStr, SizeOf(RegExpStr1),
-      @RegExpStr1); {PZ}
-    RegisterVar(CSRegExp, 'RegExpStr2', ikStr, SizeOf(RegExpStr2),
-      @RegExpStr2); {PZ}
-    RegisterVar(CSRegExp, 'RegExpStr3', ikStr, SizeOf(RegExpStr3),
-      @RegExpStr3); {PZ}
-    RegisterVar(CSRegExp, 'RegExpStr4', ikStr, SizeOf(RegExpStr4),
-      @RegExpStr4); {PZ}
-    RegisterVar(CSRegExp, 'RegExpStr5', ikStr, SizeOf(RegExpStr5),
-      @RegExpStr5); {PZ}
-    RegisterVar(CSRegExp, 'RegExpStr6', ikStr, SizeOf(RegExpStr6),
-      @RegExpStr6); {PZ}
-    RegisterVar(CSRegExp, 'RegExpStr7', ikStr, SizeOf(RegExpStr7),
-      @RegExpStr7); {PZ}
-    RegisterVar(CSRegExp, 'RegExpStr8', ikStr, SizeOf(RegExpStr8),
-      @RegExpStr8); {PZ}
-    RegisterVar(CSRegExp, 'RegExpStr9', ikStr, SizeOf(RegExpStr9),
-      @RegExpStr9); {PZ}
-    {$ENDIF}
-    {QuickDirs}
-    RegisterVar(CSQuickDirs, 'QDirs1', ikStr, SizeOf(QDirs1),
-      @QDirs1);
-    RegisterVar(CSQuickDirs, 'QDirs2', ikStr, SizeOf(QDirs2),
-      @QDirs2);
-    RegisterVar(CSQuickDirs, 'QDirs3', ikStr, SizeOf(QDirs3),
-      @QDirs3);
-    RegisterVar(CSQuickDirs, 'QDirs4', ikStr, SizeOf(QDirs4),
-      @QDirs4);
-    RegisterVar(CSQuickDirs, 'QDirs5', ikStr, SizeOf(QDirs5),
-      @QDirs5);
-    RegisterVar(CSQuickDirs, 'QDirs6', ikStr, SizeOf(QDirs6),
-      @QDirs6);
-    RegisterVar(CSQuickDirs, 'QDirs7', ikStr, SizeOf(QDirs7),
-      @QDirs7);
-    RegisterVar(CSQuickDirs, 'QDirs8', ikStr, SizeOf(QDirs8),
-      @QDirs8);
-    RegisterVar(CSQuickDirs, 'QDirs9', ikStr, SizeOf(QDirs9),
-      @QDirs9);
-    {SetupStorage}
-    RegisterVar(CSSetupStorage, 'SystemDataOpt', ikSInt, SizeOf(
-      SystemDataOpt), @SystemDataOpt);
-    RegisterVar(CSSetupStorage, 'InterfaceDataOpt', ikSInt, SizeOf(
-      InterfaceDataOpt), @InterfaceDataOpt);
-    RegisterVar(CSSetupStorage, 'DriveInfoType', ikSInt, SizeOf(
-      DriveInfoType), @DriveInfoType);
-    RegisterVar(CSSetupStorage, 'FMSetupOpt', ikSInt, SizeOf(
-      FMSetupOpt), @FMSetupOpt);
-    RegisterVar(CSSetupStorage, 'EditorDefaultsOpt', ikSInt, SizeOf(
-      EditorDefaultsOpt), @EditorDefaultsOpt);
-    RegisterVar(CSSetupStorage, 'EditorDefaultsOpt2', ikSInt, SizeOf(
-      EditorDefaultsOpt2), @EditorDefaultsOpt2);
-    RegisterVar(CSSetupStorage, 'ViewerOpt', ikSInt, SizeOf(
-      ViewerOpt), @ViewerOpt);
-    RegisterVar(CSSetupStorage, 'StartupDataLoad', ikSInt, SizeOf(
-      StartupDataLoad), @StartupDataLoad);
-    RegisterVar(CSSetupStorage, 'StartupDataUnload', ikSInt, SizeOf(
-      StartupDataUnload), @StartupDataUnload);
-    RegisterVar(CSSetupStorage, 'StartupDataSlice2', ikSInt, SizeOf(
-      StartupDataSlice2), @StartupDataSlice2);
-    RegisterVar(CSSetupStorage, 'ConfirmsOpt', ikSInt, SizeOf(
-      ConfirmsOpt), @ConfirmsOpt);
-    RegisterVar(CSSetupStorage, 'NonVIOScreenMode', ikSInt, SizeOf(
-      NonVIOScreenMode), @NonVIOScreenMode);
-    RegisterVar(CSSetupStorage, 'VIOScreenMode', ikSInt, SizeOf(
-      VIOScreenMode), @VIOScreenMode);
+  {Interface}
+  RegisterVar(CSInterface, 'CutDriveInfo', ikBool, SizeOf(CutDriveInfo),
+     @CutDriveInfo);
+  RegisterVar(CSInterface, 'WinManagerSelectNext', ikBool,
+       SizeOf(WinManagerSelectNext), @WinManagerSelectNext);
+  RegisterVar(CSInterface, 'DriveSelectVCenter', ikBool,
+       SizeOf(DriveSelectVCenter), @DriveSelectVCenter); {-$X-Man}
+  RegisterVar(CSInterface, 'SystemMenuChar', ikUInt,
+       SizeOf(SystemMenuChar), @SystemMenuChar);
+  RegisterVar(CSInterface, 'HorizScrollBarChars', ikStr,
+       SizeOf(HorizScrollBarChars), @HorizScrollBarChars);
+  RegisterVar(CSInterface, 'VertScrollBarChars', ikStr,
+       SizeOf(VertScrollBarChars), @VertScrollBarChars);
+  RegisterVar(CSInterface, 'ReflectCopyDirection', ikBool,
+       SizeOf(ReflectCopyDirection), @ReflectCopyDirection);
+  RegisterVar(CSInterface, 'ReuseViewers', ikUInt, SizeOf(ReuseViewers),
+     @ReuseViewers);
+  RegisterVar(CSInterface, 'ReuseEditors', ikUInt, SizeOf(ReuseEditors),
+     @ReuseEditors);
+  RegisterVar(CSInterface, 'HistoryErrorBeep', ikBool,
+       SizeOf(HistoryErrorBeep), @HistoryErrorBeep);
+  RegisterVar(CSInterface, 'PreserveMenuPositions', ikBool,
+       SizeOf(PreserveMenuPositions), @PreserveMenuPositions);
+  RegisterVar(CSInterface, 'LFNinBottom', ikBool, SizeOf(LFNinBottom),
+     @LFNinBottom); {JO}
+  //  RegisterVar(CSInterface, 'DescriptionInBottom',  ikBool, SizeOf(DescriptionInBottom),  @DescriptionInBottom);{JO}
+  RegisterVar(CSInterface, 'PanelDescrArvid', ikStr,
+       SizeOf(PanelDescrArvid), @PanelDescrArvid); {JO}
+  RegisterVar(CSInterface, 'PanelDescrArc', ikStr,
+     SizeOf(PanelDescrArc), @PanelDescrArc); {JO}
+  RegisterVar(CSInterface, 'PanelDescrTemp', ikStr,
+     SizeOf(PanelDescrTemp), @PanelDescrTemp); {JO}
+  RegisterVar(CSInterface, 'PanelDescrFind', ikStr,
+     SizeOf(PanelDescrFind), @PanelDescrFind); {JO}
+  RegisterVar(CSInterface, 'PanelDescrDrive', ikStr,
+       SizeOf(PanelDescrDrive), @PanelDescrDrive); {JO}
+  RegisterVar(CSInterface, 'UseEnterInViewer', ikUInt,
+       SizeOf(UseEnterInViewer), @UseEnterInViewer); {JO}
+  RegisterVar(CSInterface, 'SkipXLatMenu', ikBool, SizeOf(SkipXLatMenu),
+     @SkipXLatMenu); {JO}
+  RegisterVar(CSInterface, 'EscForOutputWindow', ikBool,
+       SizeOf(EscForOutputWindow), @EscForOutputWindow); {JO}
+  {Clock}
+  RegisterVar(CSClock, 'ShowSeconds', ikBool, SizeOf(ShowSeconds),
+     @ShowSeconds);
+  RegisterVar(CSClock, 'BlinkSeparator', ikBool, SizeOf(BlinkSeparator),
+     @BlinkSeparator);
+  RegisterVar(CSClock, 'ShowCentury', ikBool, SizeOf(ShowCentury),
+     @ShowCentury);
+  RegisterVar(CSClock, 'ShowDayOfWeek', ikBool, SizeOf(ShowDayOfWeek),
+     @ShowDayOfWeek);
+  RegisterVar(CSClock, 'DaysOfWeek', ikStr, SizeOf(DaysOfWeek),
+     @DaysOfWeek);
+  RegisterVar(CSClock, 'RightAlignClock', ikBool,
+     SizeOf(RightAlignClock), @RightAlignClock); {FY 13-03-2000}
+  {SmartPad}
+  RegisterVar(CSSmartPad, 'InsertDate', ikBool, SizeOf(SPInsertDate),
+     @SPInsertDate);
+  RegisterVar(CSSmartPad, 'LineChar', ikUInt, SizeOf(SPLineChar),
+     @SPLineChar); {SYR}
+  {Game}
+  RegisterVar(CSGame, 'EnableGame', ikBool, SizeOf(EnableGame),
+     @EnableGame);
+  {Clipboard}
+  RegisterVar(CSClipboard, 'SaveClipboardOnExit', ikBool,
+       SizeOf(cbAutoSave), @CBAutoSave);
+  RegisterVar(CSClipboard, 'MaxClipboardSize', ikSInt, SizeOf(cbSize),
+     @CBSize);
+  {Kernel}
+  //RegisterVar(CSKernel,    'UseLFN',               ikBool, SizeOf(CanUseLFN),            @CanUseLFN);
+  RegisterVar(CSKernel, 'AutoSave', ikBool, SizeOf(AutoSave), @AutoSave);
+  RegisterVar(CSKernel, 'ShowKeyCode', ikUInt, SizeOf(ShowKeyCode),
+     @ShowKeyCode);
+  RegisterVar(CSKernel, 'CopyLimit', ikSInt, SizeOf(CopyLimit),
+     @CopyLimit);
+  RegisterVar(CSKernel, 'HandleChDirCommand', ikBool,
+       SizeOf(HandleChDirCommand), @HandleChDirCommand); {DataCompBoy}
+  RegisterVar(CSKernel, 'StoreVideoMode', ikUInt,
+     SizeOf(StoreVideoMode), @StoreVideoMode); {PZ}
+  {DataCompBoy}
+  RegisterVar(CSKernel, 'SmartWindowsBoxClose', ikSInt,
+       SizeOf(SmartWindowsBoxClose), @SmartWindowsBoxClose);
+  {DataCompBoy}
+  RegisterVar(CSKernel, 'CtrlBreakKill', ikBool, SizeOf(CtrlBreakKill),
+     @CtrlBreakKill); {AK155}
+  //RegisterVar(CSKernel,    'DoVESATest',           ikBool, SizeOf(DoVESATest),           @DoVESATest);           {DataCompBoy}
+  RegisterVar(CSKernel, 'ForceDefaultArchiver', ikStr,
+       SizeOf(ForceDefaultArchiver), @ForceDefaultArchiver); {JO}
+  {$IFDEF WIN32}
+  RegisterVar(CSKernel, 'AltGrAsAlt', ikBool,
+      SizeOf(AltGrAsAlt), @AltGrAsAlt); {JO}
+  {$ENDIF}
+  {$IFNDEF OS2}
+  RegisterVar(CSKernel, 'DescrByShortNames', ikBool,
+       SizeOf(DescrByShortNames), @DescrByShortNames); {JO}
+  {$ENDIF}
+  {Editor}
+  RegisterVar(CSEditor, 'UnlimitUnindent', ikBool,
+     SizeOf(UnlimitUnindent), @UnlimitUnindent);
+  RegisterVar(CSEditor, 'Koi8rKeyMap', ikBool, SizeOf(Koi8rKeyMap),
+     @Koi8rKeyMap);
+  RegisterVar(CSEditor, 'DrawRShift', ikBool, SizeOf(DrawRShift),
+     @DrawRShift);
+  RegisterVar(CSEditor, 'AutoScopeDetect', ikBool,
+     SizeOf(AutoScopeDetect), @AutoScopeDetect);
+  RegisterVar(CSEditor, 'ShowBookmarks', ikBool, SizeOf(ShowBookmarks),
+     @ShowBookmarks);
+  RegisterVar(CSEditor, 'FastBookmark', ikBool, SizeOf(FastBookmark),
+     @FastBookmark);
+  RegisterVar(CSEditor, 'DefCodePage', ikStr, SizeOf(DefCodePage),
+     @DefCodePage);
+  RegisterVar(CSEditor, 'CapitalCodePageName', ikBool,
+       SizeOf(CapitalCodePageName), @CapitalCodePageName);
+  RegisterVar(CSEditor, 'FastSearchDeep', ikSInt,
+     SizeOf(FastSearchDeep), @FastSearchDeep);
+  RegisterVar(CSEditor, 'WinManagerPosToEdit', ikBool,
+       SizeOf(WinManagerPosToEdit), @WinManagerPosToEdit);
+  RegisterVar(CSEditor, 'AutoBracketPairs', ikStr,
+       SizeOf(AutoBracketPairs), @AutoBracketPairs);
+  RegisterVar(CSEditor, 'F6_DuplicatesLine', ikBool,
+       SizeOf(F6_DuplicatesLine), @F6_DuplicatesLine); {JO}
+  {FilePanels}
+  RegisterVar(CSFilePanels, 'ShowFileMask', ikBool,
+     SizeOf(ShowFileMask), @ShowFileMask);
+  RegisterVar(CSFilePanels, 'ShowLongName', ikBool,
+     SizeOf(ShowLongName), @ShowLongName);
+  RegisterVar(CSFilePanels, 'QuickRenameInDialog', ikBool,
+       SizeOf(QuickRenameInDialog), @QuickRenameInDialog);
+  RegisterVar(CSFilePanels, 'UpperCaseSorting', ikBool,
+       SizeOf(UpperCaseSorting), @UpperCaseSorting); {JO}
+  RegisterVar(CSFilePanels, 'AutoRefreshDriveLine', ikBool,
+       SizeOf(AutoRefreshDriveLine), @AutoRefreshDriveLine); {Cat}
+  RegisterVar(CSFilePanels, 'AutoRefreshPanels', ikBool,
+       SizeOf(AutoRefreshPanels), @AutoRefreshPanels); {Cat}
+  RegisterVar(CSFilePanels, 'QuickSearchType', ikUInt,
+       SizeOf(QuickSearchType), @QuickSearchType); {Cat}
+  RegisterVar(CSFilePanels, 'BriefSelectedInfo', ikBool,
+       SizeOf(BriefSelectedInfo), @BriefSelectedInfo); {AK155}
+  RegisterVar(CSFilePanels, 'BriefTotalInfo', ikBool,
+       SizeOf(BriefTotalInfo), @BriefTotalInfo); {AK155}
+  RegisterVar(CSFilePanels, 'PackingInfoInBottom', ikBool,
+       SizeOf(PackingInfoInBottom), @PackingInfoInBottom); {AK155}
+  RegisterVar(CSFilePanels, 'PathInfoInBottom', ikBool,
+       SizeOf(PathInfoInBottom), @PathInfoInBottom); {AK155}
+  {$IFDEF OS2}
+  RegisterVar(CSFilePanels, 'ExecWin32GUI', ikStr, SizeOf(ExecWin32GUI),
+     @ExecWin32GUI);
+  RegisterVar(CSFilePanels, 'ExecWin32CUI', ikStr, SizeOf(ExecWin32CUI),
+     @ExecWin32CUI);
+  {$ENDIF}
+  {NetInfo}
+  RegisterVar(CSNetInfo, 'NoLevelsInfo', ikBool, SizeOf(NoLevelsInfo),
+     @NoLevelsInfo);
+  {TaskList}
+  RegisterVar(CSTaskList, 'KillAllowed', ikBool, SizeOf(KillAllowed),
+     @KillAllowed); {JO}
+  RegisterVar(CSTaskList, 'ShowExePaths', ikBool, SizeOf(ShowExePaths),
+     @ShowExePaths); {JO}
+  RegisterVar(CSTaskList, 'FilteredList', ikBool, SizeOf(FilteredList),
+     @FilteredList); {JO}
+  RegisterVar(CSTaskList, 'UserTaskFilter', ikStr,
+     SizeOf(UserTaskFilter), @UserTaskFilter); {JO}
+  {Language}
+  RegisterVar(CSLanguage, 'ActiveLanguage', ikStr,
+     SizeOf(ActiveLanguage), @ActiveLanguage);
+  RegisterVar(CSLanguage, 'HelpLanguageOverride', ikStr,
+       SizeOf(HelpLanguageOverride), @HelpLanguageOverride);
+  RegisterVar(CSLanguage, 'ShowLanguageMenu', ikBool,
+       SizeOf(ShowLanguageMenu), @ShowLanguageMenu);
+  {$IFDEF REGEXP}
+  {RegExp}
+  RegisterVar(CSRegExp, 'RegExpStr0', ikStr, SizeOf(RegExpStr0),
+     @RegExpStr0); {PZ}
+  RegisterVar(CSRegExp, 'RegExpStr1', ikStr, SizeOf(RegExpStr1),
+     @RegExpStr1); {PZ}
+  RegisterVar(CSRegExp, 'RegExpStr2', ikStr, SizeOf(RegExpStr2),
+     @RegExpStr2); {PZ}
+  RegisterVar(CSRegExp, 'RegExpStr3', ikStr, SizeOf(RegExpStr3),
+     @RegExpStr3); {PZ}
+  RegisterVar(CSRegExp, 'RegExpStr4', ikStr, SizeOf(RegExpStr4),
+     @RegExpStr4); {PZ}
+  RegisterVar(CSRegExp, 'RegExpStr5', ikStr, SizeOf(RegExpStr5),
+     @RegExpStr5); {PZ}
+  RegisterVar(CSRegExp, 'RegExpStr6', ikStr, SizeOf(RegExpStr6),
+     @RegExpStr6); {PZ}
+  RegisterVar(CSRegExp, 'RegExpStr7', ikStr, SizeOf(RegExpStr7),
+     @RegExpStr7); {PZ}
+  RegisterVar(CSRegExp, 'RegExpStr8', ikStr, SizeOf(RegExpStr8),
+     @RegExpStr8); {PZ}
+  RegisterVar(CSRegExp, 'RegExpStr9', ikStr, SizeOf(RegExpStr9),
+     @RegExpStr9); {PZ}
+  {$ENDIF}
+  {QuickDirs}
+  RegisterVar(CSQuickDirs, 'QDirs1', ikStr, SizeOf(QDirs1), @QDirs1);
+  RegisterVar(CSQuickDirs, 'QDirs2', ikStr, SizeOf(QDirs2), @QDirs2);
+  RegisterVar(CSQuickDirs, 'QDirs3', ikStr, SizeOf(QDirs3), @QDirs3);
+  RegisterVar(CSQuickDirs, 'QDirs4', ikStr, SizeOf(QDirs4), @QDirs4);
+  RegisterVar(CSQuickDirs, 'QDirs5', ikStr, SizeOf(QDirs5), @QDirs5);
+  RegisterVar(CSQuickDirs, 'QDirs6', ikStr, SizeOf(QDirs6), @QDirs6);
+  RegisterVar(CSQuickDirs, 'QDirs7', ikStr, SizeOf(QDirs7), @QDirs7);
+  RegisterVar(CSQuickDirs, 'QDirs8', ikStr, SizeOf(QDirs8), @QDirs8);
+  RegisterVar(CSQuickDirs, 'QDirs9', ikStr, SizeOf(QDirs9), @QDirs9);
+  {SetupStorage}
+  RegisterVar(CSSetupStorage, 'SystemDataOpt', ikSInt,
+       SizeOf(SystemDataOpt), @SystemDataOpt);
+  RegisterVar(CSSetupStorage, 'InterfaceDataOpt', ikSInt,
+       SizeOf(InterfaceDataOpt), @InterfaceDataOpt);
+  RegisterVar(CSSetupStorage, 'DriveInfoType', ikSInt,
+       SizeOf(DriveInfoType), @DriveInfoType);
+  RegisterVar(CSSetupStorage, 'FMSetupOpt', ikSInt, SizeOf(FMSetupOpt),
+     @FMSetupOpt);
+  RegisterVar(CSSetupStorage, 'EditorDefaultsOpt', ikSInt,
+       SizeOf(EditorDefaultsOpt), @EditorDefaultsOpt);
+  RegisterVar(CSSetupStorage, 'EditorDefaultsOpt2', ikSInt,
+       SizeOf(EditorDefaultsOpt2), @EditorDefaultsOpt2);
+  RegisterVar(CSSetupStorage, 'ViewerOpt', ikSInt, SizeOf(ViewerOpt),
+     @ViewerOpt);
+  RegisterVar(CSSetupStorage, 'StartupDataLoad', ikSInt,
+       SizeOf(StartupDataLoad), @StartupDataLoad);
+  RegisterVar(CSSetupStorage, 'StartupDataUnload', ikSInt,
+       SizeOf(StartupDataUnload), @StartupDataUnload);
+  RegisterVar(CSSetupStorage, 'StartupDataSlice2', ikSInt,
+       SizeOf(StartupDataSlice2), @StartupDataSlice2);
+  RegisterVar(CSSetupStorage, 'ConfirmsOpt', ikSInt,
+     SizeOf(ConfirmsOpt), @ConfirmsOpt);
+  RegisterVar(CSSetupStorage, 'NonVIOScreenMode', ikSInt,
+       SizeOf(NonVIOScreenMode), @NonVIOScreenMode);
+  RegisterVar(CSSetupStorage, 'VIOScreenMode', ikSInt,
+       SizeOf(VIOScreenMode), @VIOScreenMode);
   end { Proceed };
 
-function IniVarToStr(Kind: TIniItemKind; Size: word; PVar: Pointer):
-    String;
+function IniVarToStr(Kind: TIniItemKind; Size: Word; PVar: Pointer)
+  : String;
   var
-    B: boolean;
-    i: integer;
+    b: Boolean;
+    i: Integer;
   begin
-    Result := '';
+  Result := '';
 
-    case Kind of
+  case Kind of
 
-      ikBool:
-        begin
-          case Size of
-            1:
-              B := boolean(PVar^);
-            2:
-              B := Wordbool(PVar^);
-            4:
-              B := Longbool(PVar^);
-            else
-              exit;
-          end {case};
-          if B then
-            Result := '1'
-          else
-            Result := '0';
-        end;
+    ikBool:
+      begin
+      case Size of
+        1:
+          b := Boolean(PVar^);
+        2:
+          b := Wordbool(PVar^);
+        4:
+          b := Longbool(PVar^);
+        else {case}
+          Exit;
+      end {case};
+      if b then
+        Result := '1'
+      else
+        Result := '0';
+      end;
 
-      ikEnum:
-        begin
-          if Size <= High(TUInt8) then
-            Str(TUInt8(PVar^), Result)
-          else
-            Str(TUInt16(PVar^), Result);
-        end;
+    ikEnum:
+      begin
+      if Size <= High(TUInt8) then
+        Str(TUInt8(PVar^), Result)
+      else
+        Str(TUInt16(PVar^), Result);
+      end;
 
-      ikStr:
-        begin
-          Result := Copy(String(PVar^), 1, Size-1);
-        end;
+    ikStr:
+      begin
+      Result := Copy(String(PVar^), 1, Size-1);
+      end;
 
-      ikSInt:
-        begin
-          case Size of
-            1:
-              Str(TSInt8(PVar^), Result);
-            2:
-              Str(TSInt16(PVar^), Result);
-            4:
-              Str(TSInt32(PVar^), Result);
-          end {case};
-        end;
+    ikSInt:
+      begin
+      case Size of
+        1:
+          Str(TSInt8(PVar^), Result);
+        2:
+          Str(TSInt16(PVar^), Result);
+        4:
+          Str(TSInt32(PVar^), Result);
+      end {case};
+      end;
 
-      ikUInt:
-        begin
-          case Size of
-            1:
-              Str(TUInt8(PVar^), Result);
-            2:
-              Str(TUInt16(PVar^), Result);
-          end {case};
-        end;
+    ikUInt:
+      begin
+      case Size of
+        1:
+          Str(TUInt8(PVar^), Result);
+        2:
+          Str(TUInt16(PVar^), Result);
+      end {case};
+      end;
 
-      ikChar:
-        begin
-          Move(PVar^, Result[1], Size);
-          SetLength(Result, Size) {result[0] := Chr(size);}
-        end;
+    ikChar:
+      begin
+      Move(PVar^, Result[1], Size);
+      SetLength(Result, Size) {result[0] := Chr(size);}
+      end;
 
-    end {case};
+  end {case};
   end { IniVarToStr };
 
-function IniStrToVar(text: String; Kind: TIniItemKind; Size: word;
-    PVar: Pointer): boolean;
+function IniStrToVar(Text: String; Kind: TIniItemKind; Size: Word;
+     PVar: Pointer): Boolean;
   var
-    i: integer;
-    Buffer: array[0..3] of byte;
-    B: boolean absolute Buffer;
-    i32: TSInt32 absolute Buffer;
-    i16: TSInt16 absolute Buffer;
-    i8: TSInt8 absolute Buffer;
-    u16: TUInt16 absolute Buffer;
-    u8: TUInt8 absolute Buffer;
+    i: Integer;
+    buffer: array[0..3] of Byte;
+    b: Boolean absolute buffer;
+    i32: TSInt32 absolute buffer;
+    i16: TSInt16 absolute buffer;
+    i8: TSInt8 absolute buffer;
+    u16: TUInt16 absolute buffer;
+    u8: TUInt8 absolute buffer;
   begin
-    IniStrToVar := False;
-    case Kind of
+  IniStrToVar := False;
+  case Kind of
 
-      ikBool:
+    ikBool:
+      begin
+      UpStr(Text);
+      if  (Text = '1') or (Text = 'TRUE') or (Text = 'YES')
+           or (Text = 'ON')
+      then
+        b := True
+      else if (Text = '0') or (Text = 'FALSE') or (Text = 'NO')
+           or (Text = 'OFF')
+      then
+        b := False
+      else
+        Exit;
+      IniStrToVar := True;
+      case Size of
+        1:
+          Boolean(PVar^) := b;
+        2:
+          Wordbool(PVar^) := b;
+        4:
+          Longbool(PVar^) := b;
+      end {case};
+      end;
+
+    ikEnum:
+      begin
+      if Size <= High(u8) then
         begin
-          UpStr(text);
-          if (text = '1') or (text = 'TRUE') or (text = 'YES') or (
-              text = 'ON')
-          then
-            B := True
-          else if (text = '0') or (text = 'FALSE') or (text = 'NO') or (
-              text = 'OFF')
-          then
-            B := False
-          else
-            exit;
+        Val(Text, u8, i);
+        if  (i = 0) and (u8 <= Size) then
+          begin
           IniStrToVar := True;
-          case Size of
-            1:
-              boolean(PVar^) := B;
-            2:
-              Wordbool(PVar^) := B;
-            4:
-              Longbool(PVar^) := B;
-          end {case};
-        end;
-
-      ikEnum:
+          Move(buffer, PVar^, 1);
+          end;
+        end
+      else
         begin
-          if Size <= High(u8) then
-            begin
-              Val(text, u8, i);
-              if (i = 0) and (u8 <= Size) then
-                begin
-                  IniStrToVar := True;
-                  Move(Buffer, PVar^, 1);
-                end;
-            end
-          else
-            begin
-              Val(text, u16, i);
-              if (i = 0) and (u16 <= Size) then
-                begin
-                  IniStrToVar := True;
-                  Move(Buffer, PVar^, 2);
-                end;
-            end;
+        Val(Text, u16, i);
+        if  (i = 0) and (u16 <= Size) then
+          begin
+          IniStrToVar := True;
+          Move(buffer, PVar^, 2);
+          end;
         end;
+      end;
 
-      ikStr:
+    ikStr:
+      begin
+      String(PVar^) := Copy(Text, 1, Size-1);
+      IniStrToVar := Length(Text) < Size;
+      end;
+
+    ikSInt:
+      begin
+      case Size of
+        1:
+          Val(Text, i8, i);
+        2:
+          Val(Text, i16, i);
+        4:
+          Val(Text, i32, i);
+      end {case};
+      if i = 0 then
         begin
-          String(PVar^) := Copy(text, 1, Size-1);
-          IniStrToVar := Length(text) < Size;
+        IniStrToVar := True;
+        Move(buffer, PVar^, Size);
         end;
+      end;
 
-      ikSInt:
+    ikUInt:
+      begin
+      case Size of
+        1:
+          Val(Text, u8, i);
+        2:
+          Val(Text, u16, i);
+      end {case};
+      if i = 0 then
         begin
-          case Size of
-            1:
-              Val(text, i8, i);
-            2:
-              Val(text, i16, i);
-            4:
-              Val(text, i32, i);
-          end {case};
-          if i = 0 then
-            begin
-              IniStrToVar := True;
-              Move(Buffer, PVar^, Size);
-            end;
+        IniStrToVar := True;
+        Move(buffer, PVar^, Size);
         end;
+      end;
 
-      ikUInt:
+    ikChar:
+      begin
+      if Text = '' then
+        Exit;
+      i := Size;
+      if Length(Text) < Size then
         begin
-          case Size of
-            1:
-              Val(text, u8, i);
-            2:
-              Val(text, u16, i);
-          end {case};
-          if i = 0 then
-            begin
-              IniStrToVar := True;
-              Move(Buffer, PVar^, Size);
-            end;
+        IniStrToVar := True;
+        i := Length(Text);
         end;
+      Move(Text[1], PVar^, i);
+      if i < Size then
+        FillChar(PChar(PVar)[i], Size-i, 0);
+      end;
 
-      ikChar:
-        begin
-          if text = '' then
-            exit;
-          i := Size;
-          if Length(text) < Size then
-            begin
-              IniStrToVar := True;
-              i := Length(text);
-            end;
-          Move(text[1], PVar^, i);
-          if i < Size then
-            FillChar(PChar(PVar)[i], Size-i, 0);
-        end;
-
-    end {case};
+  end {case};
   end { IniStrToVar };
 
-procedure Loader(Group, Parameter: PChar; Kind: TIniItemKind; Size:
-    word; PVar: Pointer);
+procedure Loader(Group, Parameter: PChar; Kind: TIniItemKind;
+     Size: Word; PVar: Pointer);
   var
     s: String;
-    B: byte;
+    b: Byte;
   begin
-    s := IniVarToStr(Kind, Size, PVar)+#0;
-    s[0] := Chr(GetPrivateProfileString(
-    Group,
-    Parameter,
-    @s[1],
-    @s[1],
-    255,
-    @FreeStr[1]
-    ));
-    if not IniStrToVar(s, Kind, Size, PVar) then
-      begin
-        B := 0;
-        if (Kind = ikStr) or (Kind = ikChar) then
-          B := Length(s)+1-Size;
-        AddIniError(B, Group, Parameter);
-      end;
+  s := IniVarToStr(Kind, Size, PVar)+#0;
+  s[0] := Chr(GetPrivateProfileString(
+        Group,
+        Parameter,
+        @s[1],
+        @s[1],
+        255,
+        @FreeStr[1]
+        ));
+  if not IniStrToVar(s, Kind, Size, PVar) then
+    begin
+    b := 0;
+    if  (Kind = ikStr) or (Kind = ikChar) then
+      b := Length(s)+1-Size;
+    AddIniError(b, Group, Parameter);
+    end;
   end { Loader };
 
 const
   SaveVar: Pointer = nil;
 
-procedure Saver(Group, Parameter: PChar; Kind: TIniItemKind; Size:
-    word; PVar: Pointer);
+procedure Saver(Group, Parameter: PChar; Kind: TIniItemKind; Size: Word;
+     PVar: Pointer);
   var
     s: String;
-    B: array[0..255] of Char;
+    b: array[0..255] of Char;
   begin
-    if (SaveVar <> nil) and (SaveVar <> PVar) then
-      exit;
-    s := IniVarToStr(Kind, Size, PVar)+#0;
-    { This code is provided only to not cut longer string if only a part }
-    { was read in Loader procedure.                                      }
-    if ((Kind = ikStr) and (Length(s) = (Size-1)))
-      or ((Kind = ikChar) and (Length(s) = Size))
-    then
-      begin
-        FillChar(B, SizeOf(B), 0);
-        GetPrivateProfileString(
-        Group,
-        Parameter,
-        @b[255], { default = empty string (null-terminated) }
-        @b[0],
-        255,
-        @FreeStr[1]
-        );
-        if StrLComp(@b, @s[1], Length(s)) = 0 then
-          exit;
-      end;
-    StrPCopy(B, s);
-    WritePrivateProfileString(
+  if  (SaveVar <> nil) and (SaveVar <> PVar) then
+    Exit;
+  s := IniVarToStr(Kind, Size, PVar)+#0;
+  { This code is provided only to not cut longer string if only a part }
+  { was read in Loader procedure.                                      }
+  if  ( (Kind = ikStr) and (Length(s) = (Size-1)))
+    or ((Kind = ikChar) and (Length(s) = Size))
+  then
+    begin
+    FillChar(b, SizeOf(b), 0);
+    GetPrivateProfileString(
+      Group,
+      Parameter,
+      @b[255], { default = empty string (null-terminated) }
+      @b[0],
+      255,
+      @FreeStr[1]
+      );
+    if StrLComp(@b, @s[1], Length(s)) = 0 then
+      Exit;
+    end;
+  StrPCopy(b, s);
+  WritePrivateProfileString(
     Group,
     Parameter,
     @b[0],
@@ -923,45 +919,44 @@ procedure Saver(Group, Parameter: PChar; Kind: TIniItemKind; Size:
 
 procedure LoadDnIniSettings;
   begin
-    FreeStr := DnIniFileName+#0;
-    Proceed(Loader);
-    CloseProfile;
+  FreeStr := DnIniFileName+#0;
+  Proceed(Loader);
+  CloseProfile;
   end;
 
 procedure SaveDnIniSettings(PVar: Pointer);
   begin
-    SaveVar := PVar;
-    FreeStr := DnIniFileName+#0;
-    Proceed(Saver);
-    CloseProfile;
+  SaveVar := PVar;
+  FreeStr := DnIniFileName+#0;
+  Proceed(Saver);
+  CloseProfile;
   end;
 
 procedure DoneIniEngine;
   begin
-    CloseProfile;
+  CloseProfile;
   end;
 
 {-DataCompBoy-}
-function ProbeINI(var INItime, INIsize, INIcrc: longInt): boolean;
+function ProbeINI(var INItime, INIsize, INIcrc: LongInt): Boolean;
   var
     SR: lSearchRec;
     {F: TDosStream;}
     {B: PByteArray;}
-    Pos: longInt;
-    s: word;
+    Pos: LongInt;
+    S: Word;
   begin
-    INItime := 0;
-    INIsize := 0;
-    INIcrc := 0;
-    lFindFirst(DnIniFileName, AnyFile, SR);
-    if (DOSError = 0) and ((SR.SR.Attr and Directory) = 0) then
-      begin
-        ProbeINI := True;
-        INItime := SR.SR.Time;
-        INIsize := 0; {AK155 на случай DPMI, где Size: longint}
-        Move(SR.SR.Size, INIsize, SizeOf(SR.SR.Size));
-          {AK155 Size: comp}
-        {F.Init(SourceDir+'DN.INI', stOpenRead);
+  INItime := 0;
+  INIsize := 0;
+  INIcrc := 0;
+  lFindFirst(DnIniFileName, AnyFile, SR);
+  if  (DosError = 0) and ((SR.SR.Attr and Directory) = 0) then
+    begin
+    ProbeINI := True;
+    INItime := SR.SR.Time;
+    INIsize := 0; {AK155 на случай DPMI, где Size: longint}
+    Move(SR.SR.Size, INIsize, SizeOf(SR.SR.Size)); {AK155 Size: comp}
+    {F.Init(SourceDir+'DN.INI', stOpenRead);
         S := Min(INIsize, 32767);
         if S>0 then begin
          GetMem(B, S);
@@ -970,10 +965,10 @@ function ProbeINI(var INItime, INIsize, INIcrc: longInt): boolean;
          FreeMem(B, S);
         end;
         F.Done;}
-      end
-    else
-      ProbeINI := False;
-    lFindClose(SR);
+    end
+  else
+    ProbeINI := False;
+  lFindClose(SR);
   end { ProbeINI };
 {-DataCompBoy-}
 

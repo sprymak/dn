@@ -46,22 +46,21 @@
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 
-unit advance4; {OS/2 support}
+unit Advance4; {OS/2 support}
 
 interface
 
 type
-  SessionType = (stOS2SYS, stOS2FullScreen, stOS2Windowed,
-    stPMSession,
-  stVDMFullScreen, stWinFullScreen, stWinWindow, stVDMWindow);
+  SessionType = (stOS2SYS, stOS2FullScreen, stOS2Windowed, stPMSession,
+    stVDMFullScreen, stWinFullScreen, stWinWindow, stVDMWindow);
 
-procedure RunOS2Command(Command: String; Bckg: boolean; Session:
-    SessionType);
+procedure RunOS2Command(Command: String; Bckg: Boolean;
+     Session: SessionType);
 
 implementation
 
 uses
-  advance, Lfn, advance1, advance3, Drivers
+  Advance, Lfn, Advance1, Advance3, Drivers
   , Dos, DnExec
   ;
 { ------------------------------------ OS/2 API --------------------------- }
@@ -69,57 +68,57 @@ uses
 {-DataCompBoy-}
 procedure RunOS2Command;
   var
-    t: lText;
-    i: integer;
-    s, M, ex: String;
+    T: lText;
+    I: Integer;
+    S, M, EX: String;
   begin
-    if not OS2exec then
-      exit;
-    i := 1;
-    repeat
-      ClrIO;
-      ex := SwpDir+'$DN'+ItoS(i)+'$.CMD';
-      lAssignText(t, ex);
-      FileMode := $40;
-      lResetText(t);
-      if IOResult <> 0 then
-        break;
-      Close(t.t);
-      if InOutRes = 0 then
-        Inc(i);
-    until IOResult <> 0;
+  if not OS2exec then
+    Exit;
+  I := 1;
+  repeat
     ClrIO;
-    lAssignText(t, ex);
-    lRewriteText(t);
-    lGetDir(0, s);
-    Writeln(t.t, '@'+Copy(s, 1, 2));
-    Writeln(t.t, '@cd "'+s+'"');
-    s := Command;
-    if PosChar(';', s) > 0 then
+    EX := SwpDir+'$DN'+ItoS(I)+'$.CMD';
+    lAssignText(T, EX);
+    FileMode := $40;
+    lResetText(T);
+    if IOResult <> 0 then
+      Break;
+    Close(T.T);
+    if InOutRes = 0 then
+      Inc(I);
+  until IOResult <> 0;
+  ClrIO;
+  lAssignText(T, EX);
+  lRewriteText(T);
+  lGetDir(0, S);
+  Writeln(T.T, '@'+Copy(S, 1, 2));
+  Writeln(T.T, '@cd "'+S+'"');
+  S := Command;
+  if PosChar(';', S) > 0 then
+    begin
+    Replace(';;', #0, S);
+    while (S <> '') and (PosChar(';', S) <> 0) do
       begin
-        Replace(';;', #0, s);
-        while (s <> '') and (PosChar(';', s) <> 0) do
-          begin
-            i := PosChar(';', s);
-            M := Copy(s, 1, i-1);
-            Replace(#0, ';', M);
-            Writeln(t.t, M);
-            Delete(s, 1, i);
-          end;
-        Replace(#0, ';', s);
-        Writeln(t.t, s);
-      end
-    else
-      Writeln(t.t, Command);
-    if not Bckg and (ShiftState and $20 = 0) then
-      Writeln(t.t, '@pause');
-    Write(t.t, '@del "'+ex+'" & exit'^Z);
-    Close(t.t);
-    if Session = stOS2FullScreen then
-      M := 'START "'+Command+'" /FS '+ex
-    else
-      M := 'START "'+Command+'" /WIN '+ex;
-    ExecString(@M, '');
+      I := PosChar(';', S);
+      M := Copy(S, 1, I-1);
+      Replace(#0, ';', M);
+      Writeln(T.T, M);
+      Delete(S, 1, I);
+      end;
+    Replace(#0, ';', S);
+    Writeln(T.T, S);
+    end
+  else
+    Writeln(T.T, Command);
+  if not Bckg and (ShiftState and $20 = 0) then
+    Writeln(T.T, '@pause');
+  Write(T.T, '@del "'+EX+'" & exit'^Z);
+  Close(T.T);
+  if Session = stOS2FullScreen then
+    M := 'START "'+Command+'" /FS '+EX
+  else
+    M := 'START "'+Command+'" /WIN '+EX;
+  ExecString(@M, '');
   end { RunOS2Command };
 {DataCompBoy}
 end.

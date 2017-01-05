@@ -51,195 +51,197 @@ unit XDblWnd;
 interface
 
 uses
-  DblWnd, Drivers, Views, Objects;
+  DblWnd, Drivers, Views, Objects
+  ;
 
 type
 
   PXDoubleWindow = ^TXDoubleWindow;
   TXDoubleWindow = object(TDoubleWindow)
-    procedure SetState(AState: word; Enable: boolean); virtual;
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     end;
 
 implementation
 uses
-  Commands, advance, advance1, advance2, advance3, DNApp, DNUtil;
+  Commands, Advance, Advance1, Advance2, Advance3, DNApp, DNUtil
+  ;
 
 function TXDoubleWindow.GetPalette;
   const
-    s: String[Length(CDoubleWindow)] = CDoubleWindow;
+    S: String[Length(CDoubleWindow)] = CDoubleWindow;
   begin
-    GetPalette := @S;
+  GetPalette := @S;
   end;
 
-procedure TXDoubleWindow.SetState(AState: word; Enable: boolean);
+procedure TXDoubleWindow.SetState(AState: Word; Enable: Boolean);
   begin
-    inherited SetState(AState, Enable);
-    if (AState and sfDragging <> 0) or
+  inherited SetState(AState, Enable);
+  if  (AState and sfDragging <> 0) or
       (AState and (sfSelected+sfActive) <> 0)
-    then
-      Separator^.Draw;
-    if AState = sfSelected then
-      begin
-        SetState(sfActive, Enable);
-        {$IFDEF TrashCan}
-        TrashCan^.Hide;
-        {$ENDIF}
-        if Enable then
-          EnableCommands(DblWndCommands)
-        else
-          DisableCommands(DblWndCommands);
-      end
-      {$IFDEF TrashCan}
-    else if TrashCan^.ImVisible then
-      begin
-        TrashCan^.Show;
-        TrashCan^.MakeFirst;
-      end;
+  then
+    Separator^.Draw;
+  if AState = sfSelected then
+    begin
+    SetState(sfActive, Enable);
+    {$IFDEF TrashCan}
+    TrashCan^.Hide;
     {$ENDIF}
+    if Enable then
+      EnableCommands(DblWndCommands)
+    else
+      DisableCommands(DblWndCommands);
+    end
+    {$IFDEF TrashCan}
+  else if TrashCan^.ImVisible then
+    begin
+    TrashCan^.Show;
+    TrashCan^.MakeFirst;
+    end;
+  {$ENDIF}
   end { TXDoubleWindow.SetState };
 
 procedure TXDoubleWindow.HandleEvent;
   var
-    CE: boolean;
-    LVisible, RVisible, LSelected: boolean;
+    CE: Boolean;
+    LVisible, RVisible, LSelected: Boolean;
     EV: TEvent;
   begin
-    if RightView <> nil
-    then
-      RVisible := RightView^.GetState(sfVisible)
-    else
-      RVisible := False;
-    if LeftView <> nil then
-      begin
-        LVisible := LeftView^.GetState(sfVisible);
-        LSelected := LeftView^.GetState(sfSelected);
-      end
-    else
-      begin
-        LVisible := False;
-        LSelected := False;
-      end;
-    CE := True;
-    case Event.What of
-      evKeyDown:
-        case Event.KeyCode of
-          {kbCtrlP,}
-          kbCtrlLeft, kbCtrlRight,
-          kbCtrlShiftLeft, kbCtrlShiftRight,
-          kbAlt1, kbAlt2, kbAlt3, kbAlt4, kbAlt5,
-          kbAlt6, kbAlt7, kbAlt8, kbAlt9, kbAlt0,
-          kbCtrl1, kbCtrl2, kbCtrl3, kbCtrl4, kbCtrl5, {DataCompBoy}
-          kbCtrl6, kbCtrl7, kbCtrl8, kbCtrl9, kbCtrl0, {DataCompBoy}
-          kbAltLeft, kbAltRight,
-          kbAltShiftLeft, kbAltShiftRight,
-          kbCtrlAltZ, {Knave 11.09.99} {DataCompBoy}
-          kbCtrlSqBracketL, kbCtrlSqBracketR:
+  if RightView <> nil
+  then
+    RVisible := RightView^.GetState(sfVisible)
+  else
+    RVisible := False;
+  if LeftView <> nil then
+    begin
+    LVisible := LeftView^.GetState(sfVisible);
+    LSelected := LeftView^.GetState(sfSelected);
+    end
+  else
+    begin
+    LVisible := False;
+    LSelected := False;
+    end;
+  CE := True;
+  case Event.What of
+    evKeyDown:
+      case Event.KeyCode of
+        {kbCtrlP,}
+        kbCtrlLeft, kbCtrlRight,
+        kbCtrlShiftLeft, kbCtrlShiftRight,
+        kbAlt1, kbAlt2, kbAlt3, kbAlt4, kbAlt5,
+        kbAlt6, kbAlt7, kbAlt8, kbAlt9, kbAlt0,
+        kbCtrl1, kbCtrl2, kbCtrl3, kbCtrl4, kbCtrl5, {DataCompBoy}
+        kbCtrl6, kbCtrl7, kbCtrl8, kbCtrl9, kbCtrl0, {DataCompBoy}
+        kbAltLeft, kbAltRight,
+        kbAltShiftLeft, kbAltShiftRight,
+        kbCtrlAltZ, {Knave 11.09.99} {DataCompBoy}
+        kbCtrlSqBracketL, kbCtrlSqBracketR:
+          begin
+          HandleCommand(Event);
+          CE := False;
+          end;
+      end {case};
+    evBroadcast:
+      case Event.Command of
+        cmLookForPanels, cmGetUserParams, cmGetUserParamsWL,
+        cmChangeDirectory, cmChangeDrv,
+        cmIsRightPanel:
+          begin
+          HandleCommand(Event);
+          CE := False
+          end;
+      end {case};
+    evCommand:
+      case Event.Command of
+        cmChangeDirectory:
+          begin
+          if LTree = nil then
             begin
-              HandleCommand(Event);
-              CE := False;
-            end;
-        end {case};
-      evBroadcast:
-        case Event.Command of
-          cmLookForPanels, cmGetUserParams, cmGetUserParamsWL,
-          cmChangeDirectory, cmChangeDrv,
-          cmIsRightPanel:
+            if LSelected then
+              LeftView^.HandleEvent(Event)
+            else
+              RightView^.HandleEvent(Event);
+            end
+          else
             begin
-              HandleCommand(Event);
-              CE := False
+            if not LSelected then
+              LeftView^.HandleEvent(Event)
+            else
+              RightView^.HandleEvent(Event);
             end;
-        end {case};
-      evCommand:
-        case Event.Command of
-          cmChangeDirectory:
-            begin
-              if LTree = nil then
-                begin
-                  if LSelected then
-                    LeftView^.HandleEvent(Event)
-                  else
-                    RightView^.HandleEvent(Event);
-                end
-              else
-                begin
-                  if not LSelected then
-                    LeftView^.HandleEvent(Event)
-                  else
-                    RightView^.HandleEvent(Event);
-                end;
-              exit;
-            end;
-          cmChangeTree:
-            if LTree <> nil then
-              LTree^.HandleEvent(Event);
-          cmRereadInfo:
-            begin
-              if LeftView <> nil then
-                LeftView^.HandleEvent(Event);
-              if RightView <> nil then
-                RightView^.HandleEvent(Event);
-              exit;
-            end;
-          cmCloseLinked,
-          cmMakeForced,
-          cmRereadForced,
-          cmTotalReread,
-          cmReboundPanel,
-          cmRereadDir:
-            begin
-              EV := Event;
-              LPanel^.HandleEvent(Event);
-              Event := EV;
-              RPanel^.HandleEvent(Event);
-              ClearEvent(Event);
-            end;
-          cmPushName,
-          cmGetDirName:
-            begin
-              if LType = dtPanel then
-                LeftView^.HandleEvent(Event);
-              if RType = dtPanel then
-                RightView^.HandleEvent(Event);
-              exit
-            end;
-          cmGetDirInfo,
-          cmZoom,
-          cmMaxi,
-          cmGetName,
-          cmPostHideRight,
-          cmPostHideLeft,
-          cmChangeInactive,
-          cmPanelCompare,
-          cmDiskInfo,
-          {$IFDEF NETINFO}cmNetInfo, {-$VIV} {$ENDIF}
-          cmLoadViewFile,
-          cmGLoadViewFile,
-          cmEnableView,
-          cmDisableView,
-          cmPushFullName,
-          cmPushFirstName,
-          cmPushInternalName,
-          cmFindTree,
-          cmRereadTree,
-          cmHideLeft,
-          cmHideRight,
-          cmChangeLeft,
-          cmChangeRight,
-          cmDirTree,
-          cmQuickView,
-          cmSwapPanels,
-          cmSwitchOther:
-            begin
-              HandleCommand(Event);
-              CE := False
-            end;
-        end {case};
-    end {case};
+          Exit;
+          end;
+        cmChangeTree:
+          if LTree <> nil then
+            LTree^.HandleEvent(Event);
+        cmRereadInfo:
+          begin
+          if LeftView <> nil then
+            LeftView^.HandleEvent(Event);
+          if RightView <> nil then
+            RightView^.HandleEvent(Event);
+          Exit;
+          end;
+        cmCloseLinked,
+        cmMakeForced,
+        cmRereadForced,
+        cmTotalReread,
+        cmReboundPanel,
+        cmRereadDir:
+          begin
+          EV := Event;
+          LPanel^.HandleEvent(Event);
+          Event := EV;
+          RPanel^.HandleEvent(Event);
+          ClearEvent(Event);
+          end;
+        cmPushName,
+        cmGetDirName:
+          begin
+          if LType = dtPanel then
+            LeftView^.HandleEvent(Event);
+          if RType = dtPanel then
+            RightView^.HandleEvent(Event);
+          Exit
+          end;
+        cmGetDirInfo,
+        cmZoom,
+        cmMaxi,
+        cmGetName,
+        cmPostHideRight,
+        cmPostHideLeft,
+        cmChangeInactive,
+        cmPanelCompare,
+        cmDiskInfo,
+        {$IFDEF NETINFO}cmNetInfo, {-$VIV} {$ENDIF}
+        cmLoadViewFile,
+        cmGLoadViewFile,
+        cmEnableView,
+        cmDisableView,
+        cmPushFullName,
+        cmPushFirstName,
+        cmPushInternalName,
+        cmFindTree,
+        cmRereadTree,
+        cmHideLeft,
+        cmHideRight,
+        cmChangeLeft,
+        cmChangeRight,
+        cmDirTree,
+        cmQuickView,
+        cmSwapPanels,
+        cmSwitchOther:
+          begin
+          HandleCommand(Event);
+          CE := False
+          end;
+      end {case};
+  end {case};
 
-    if (Event.What <> evNothing) and CE then
-      inherited HandleEvent(Event);
+  if  (Event.What <> evNothing) and CE then
+    inherited HandleEvent(Event);
   end { TXDoubleWindow.HandleEvent };
 
 end.

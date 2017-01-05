@@ -51,7 +51,8 @@ unit EdWin;
 interface
 
 uses
-  Objects, Microed, Menus, ed2, UniWin;
+  Objects, Microed, Menus, ed2, UniWin
+  ;
 
 type
   { TEditWindow }
@@ -64,107 +65,107 @@ type
     Intern: PFileEditor;
     MenuBar: PMenuBar;
     UpMenu: PMenu;
-    ModalEnd: boolean;
-    Constructor Init(R: TRect; FileName: String);
-    Constructor Load(var s: TStream);
+    ModalEnd: Boolean;
+    constructor Init(R: TRect; FileName: String);
+    constructor Load(var S: TStream);
     //    procedure ChangeBounds(var R: TRect); virtual;
-    procedure Store(var s: TStream);
-    function Execute: word; virtual;
-    procedure SetState(AState: word; Enable: boolean); virtual;
+    procedure Store(var S: TStream);
+    function Execute: Word; virtual;
+    procedure SetState(AState: Word; Enable: Boolean); virtual;
     end;
 
 implementation
 uses
   MicroEd2, DNApp, Commands, DNHelp, Views,
-  Startup, advance1, FViewer, Drivers, Editor, advance
-    {$IFDEF RecodeWhenDraw}, Lfn {$ENDIF};
+  Startup, Advance1, FViewer, Drivers, Editor, Advance
+  {$IFDEF RecodeWhenDraw}, Lfn {$ENDIF}
+  ;
 
 type
   PEditSaver = ^TEditSaver;
   TEditSaver = object(TObject)
-    Constructor Load(var s: TStream);
-    procedure Store(var s: TStream);
+    constructor Load(var S: TStream);
+    procedure Store(var S: TStream);
     end;
 
 const
   REditSaver: TStreamRec = (
-  ObjType: 12335;
-  VmtLink: (TypeOf(TEditSaver));
-  Load: @TEditSaver.Load;
-  Store: @TEditSaver.Store);
+    ObjType: 12335;
+    VmtLink: (TypeOf(TEditSaver));
+    Load: @TEditSaver.Load;
+    Store: @TEditSaver.Store);
 
-  Registered: boolean = False;
+  Registered: Boolean = False;
 
-Constructor TEditSaver.Load(var s: TStream);
+constructor TEditSaver.Load(var S: TStream);
   begin
-    s.Read(MaxCommands, SizeOf(MaxCommands));
-    s.Read(EditCommands, SizeOf(TEditCommand)*MaxCommands);
+  S.Read(MaxCommands, SizeOf(MaxCommands));
+  S.Read(EditCommands, SizeOf(TEditCommand)*MaxCommands);
   end;
 
-procedure TEditSaver.Store(var s: TStream);
+procedure TEditSaver.Store(var S: TStream);
   begin
-    s.Write(MaxCommands, SizeOf(MaxCommands));
-    s.Write(EditCommands, SizeOf(TEditCommand)*MaxCommands);
+  S.Write(MaxCommands, SizeOf(MaxCommands));
+  S.Write(EditCommands, SizeOf(TEditCommand)*MaxCommands);
   end;
 
 procedure LoadCommands;
   var
     P: PEditSaver;
   begin
-    if MaxCommands = 0 then
-      begin
-        if not Registered then
-          RegisterType(REditSaver);
-        Registered := True;
-        P := PEditSaver(LoadResource(dlgEditorCommands));
-        P^.Free;
-      end;
+  if MaxCommands = 0 then
+    begin
+    if not Registered then
+      RegisterType(REditSaver);
+    Registered := True;
+    P := PEditSaver(LoadResource(dlgEditorCommands));
+    P^.Free;
+    end;
   end;
 
-Constructor TEditWindow.Load(var s: TStream);
+constructor TEditWindow.Load(var S: TStream);
   var
     PI: PMenuItem;
     R: TRect;
   begin
-    inherited Load(s);
-    GetSubViewPtr(s, Intern);
-    GetSubViewPtr(s, AInfo);
-    GetSubViewPtr(s, ABookLine); {-$VIV}
-    { GetSubViewPtr(S, MenuBar);} (*X-Man*)
-    if (Intern = nil) or (AInfo = nil) or (ABookLine = nil) then
-        {Cat}
-      Fail;
-    GetExtent(R);
-    R.Grow(-1, -1);
-    R.B.Y := R.A.Y+1;
-    MenuBar := PMenuBar(LoadResource(dlgEditorMenu));
-    if MenuBar <> nil then
-      MenuBar^.Locate(R);
-    Insert(MenuBar);
-    UpMenu := MenuBar^.Menu;
+  inherited Load(S);
+  GetSubViewPtr(S, Intern);
+  GetSubViewPtr(S, AInfo);
+  GetSubViewPtr(S, ABookLine); {-$VIV}
+  { GetSubViewPtr(S, MenuBar);} (*X-Man*)
+  if  (Intern = nil) or (AInfo = nil) or (ABookLine = nil) then
+    {Cat}
+    Fail;
+  GetExtent(R);
+  R.Grow(-1, -1);
+  R.B.Y := R.A.Y+1;
+  MenuBar := PMenuBar(LoadResource(dlgEditorMenu));
+  if MenuBar <> nil then
+    MenuBar^.Locate(R);
+  Insert(MenuBar);
+  UpMenu := MenuBar^.Menu;
 
-    PI := MenuBar^.Menu^.Items;
-    while (PI <> nil) and (PI^.HelpCtx <> hcedOptions) do
-      PI := PI^.Next;
-    if (PI <> nil) then
-      PI := Pointer(PI^.SubMenu);
-    PFileEditor(Intern)^.OptMenu := Pointer(PI);
-    if Title <> nil then
-      DisposeStr(Title);
-    if PFileEditor(Intern)^.SmartPad then
-      begin
-        Title := NewStr('SmartPad(TM) - '+PFileEditor(Intern)^.
-          EditName);
-      end
-    else if PFileEditor(Intern)^.ClipBrd then
-      begin
-        Title := NewStr('Clipboard');
-      end
-    else
-      Title := NewStr(GetString(dlEditTitle)+' - '+
-        {$IFDEF RecodeWhenDraw}CharToOemStr {$ENDIF}(PFileEditor(
-        Intern)^.EditName));
-    LoadCommands;
+  PI := MenuBar^.Menu^.Items;
+  while (PI <> nil) and (PI^.HelpCtx <> hcedOptions) do
+    PI := PI^.Next;
+  if  (PI <> nil) then
+    PI := Pointer(PI^.SubMenu);
+  PFileEditor(Intern)^.OptMenu := Pointer(PI);
+  if Title <> nil then
+    DisposeStr(Title);
+  if PFileEditor(Intern)^.SmartPad then
+    begin
+    Title := NewStr('SmartPad(TM) - '+PFileEditor(Intern)^.EditName);
+    end
+  else if PFileEditor(Intern)^.ClipBrd then
+    begin
+    Title := NewStr('Clipboard');
+    end
+  else
+    Title := NewStr(GetString(dlEditTitle)+' - '+
+        {$IFDEF RecodeWhenDraw}CharToOemStr
+           {$ENDIF}(PFileEditor(Intern)^.EditName));
+  LoadCommands;
   end { TEditWindow.Load };
 
 {procedure TEditWindow.ChangeBounds;
@@ -184,89 +185,89 @@ function TEditWindow.Execute;
   var
     Event: TEvent;
   begin
-    ModalEnd := False;
-    repeat
-      GetEvent(Event);
-      if Event.What <> evNothing then
-        HandleEvent(Event);
-    until ModalEnd;
+  ModalEnd := False;
+  repeat
+    GetEvent(Event);
+    if Event.What <> evNothing then
+      HandleEvent(Event);
+  until ModalEnd;
   end;
 
-procedure TEditWindow.Store(var s: TStream);
+procedure TEditWindow.Store(var S: TStream);
   begin
-    inherited Store(s);
-    PutSubViewPtr(s, Intern);
-    PutSubViewPtr(s, AInfo);
-    PutSubViewPtr(s, ABookLine); {-$VIV}
-    { PutSubViewPtr(S, MenuBar);} (*X-Man*)
+  inherited Store(S);
+  PutSubViewPtr(S, Intern);
+  PutSubViewPtr(S, AInfo);
+  PutSubViewPtr(S, ABookLine); {-$VIV}
+  { PutSubViewPtr(S, MenuBar);} (*X-Man*)
   end;
 
 { TEditWindow }
-Constructor TEditWindow.Init;
+constructor TEditWindow.Init;
   var
-    PM: PMenu;
-    PI: PMenuItem;
+    pm: PMenu;
+    Pi: PMenuItem;
   begin
-    inherited Init(R, '', 0);
-    LoadCommands;
-    Options := Options or ofTileable;
-    Flags := Flags or wfMaxi;
+  inherited Init(R, '', 0);
+  LoadCommands;
+  Options := Options or ofTileable;
+  Flags := Flags or wfMaxi;
 
-    GetExtent(R);
-    R.Grow(-1, -1);
-    R.B.Y := R.A.Y+1;
-    MenuBar := PMenuBar(LoadResource(dlgEditorMenu));
-    if MenuBar <> nil then
-      MenuBar^.Locate(R);
-    Insert(MenuBar);
+  GetExtent(R);
+  R.Grow(-1, -1);
+  R.B.Y := R.A.Y+1;
+  MenuBar := PMenuBar(LoadResource(dlgEditorMenu));
+  if MenuBar <> nil then
+    MenuBar^.Locate(R);
+  Insert(MenuBar);
 
-    {MenuBar^.Options := MenuBar^.Options or ofPostProcess;}
-    GetExtent(R);
-    R.Grow(-1, -1);
-    Inc(R.A.Y);
+  {MenuBar^.Options := MenuBar^.Options or ofPostProcess;}
+  GetExtent(R);
+  R.Grow(-1, -1);
+  Inc(R.A.Y);
 
-    Intern := New(PXFileEditor, Init(R,
-    MakeScrollBar(sbHorizontal+sbHandleKeyboard),
-    MakeScrollBar(sbVertical+sbHandleKeyboard), FileName));
+  Intern := New(PXFileEditor, Init(R,
+        MakeScrollBar(sbHorizontal+sbHandleKeyboard),
+        MakeScrollBar(sbVertical+sbHandleKeyboard), FileName));
 
-    {FreeObject(Intern);}
+  {FreeObject(Intern);}
 
-    PI := MenuBar^.Menu^.Items;
-    while (PI <> nil) and (PI^.HelpCtx <> hcedOptions) do
-      PI := PI^.Next;
-    if (PI <> nil) then
-      PI := Pointer(PI^.SubMenu);
-    PFileEditor(Intern)^.OptMenu := Pointer(PI);
+  Pi := MenuBar^.Menu^.Items;
+  while (Pi <> nil) and (Pi^.HelpCtx <> hcedOptions) do
+    Pi := Pi^.Next;
+  if  (Pi <> nil) then
+    Pi := Pointer(Pi^.SubMenu);
+  PFileEditor(Intern)^.OptMenu := Pointer(Pi);
 
-    Insert(Intern);
-    MILoadFile(Intern, FileName);
-    if not Intern^.isValid then
-      begin
-        Done;
-        Fail;
-      end;
-    GetExtent(R);
-    R.A.Y := R.B.Y-1;
-    R.A.X := 2;
-    Dec(R.B.X, 2);
-    AInfo := New(PInfoLine, Init(R));
-    InsertBefore(AInfo, First);
-    GetExtent(R);
-    R.B.X := R.A.X+1;
-    Inc(R.A.Y, 2);
-    Dec(R.B.Y);
-    ABookLine := New(PBookmarkLine, Init(R));
-    ABookLine^.GrowMode := gfGrowHiY;
-    Insert(ABookLine);
+  Insert(Intern);
+  MILoadFile(Intern, FileName);
+  if not Intern^.isValid then
+    begin
+    Done;
+    Fail;
+    end;
+  GetExtent(R);
+  R.A.Y := R.B.Y-1;
+  R.A.X := 2;
+  Dec(R.B.X, 2);
+  AInfo := New(PInfoLine, Init(R));
+  InsertBefore(AInfo, First);
+  GetExtent(R);
+  R.B.X := R.A.X+1;
+  Inc(R.A.Y, 2);
+  Dec(R.B.Y);
+  ABookLine := New(PBookmarkLine, Init(R));
+  ABookLine^.GrowMode := gfGrowHiY;
+  Insert(ABookLine);
 
-    Intern^.InfoL := AInfo;
-    Intern^.BMrk := ABookLine;
+  Intern^.InfoL := AInfo;
+  Intern^.BMrk := ABookLine;
   end { TEditWindow.Init };
 
 procedure TEditWindow.SetState;
   begin
-    inherited SetState(AState, Enable);
-    Redraw;
+  inherited SetState(AState, Enable);
+  Redraw;
   end;
 
 end.

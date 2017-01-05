@@ -49,33 +49,34 @@
 uses
   Lfn, {DataCompBoy}
   Dos,
-  advance1, advance, Objects;
+  Advance1, Advance, Objects
+  ;
 
 const
-  versionName: String = '1.51.10b15';
-  versionDate: String = '';
+  VersionName: String = '1.51.10b16';
+  VersionDate: String = '';
   VersionWord: AWord = 15198;
 
 var
   F: lText;
-  Day, Month, Year, dow: word;
+  Day, Month, Year, dow: Word;
 
 const
   DOWs: array[0..6] of String[3] =
-  ('Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat');
+    ('Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat');
   Months: array[1..12] of String[3] =
-  ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep',
-    'Oct', 'Nov', 'Dec');
+    ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep',
+     'Oct', 'Nov', 'Dec');
   Days: array[1..31] of String[2] =
-  ('01', '02', '03', '04', '05', '06', '07', '08', '09', '10',
-  '11', '12', '13', '14', '15', '16', '17', '18', '19', '20',
-  '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31');
+    ('01', '02', '03', '04', '05', '06', '07', '08', '09', '10',
+    '11', '12', '13', '14', '15', '16', '17', '18', '19', '20',
+    '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31');
 
 begin
-  if (ParamCount = 0) or (ParamCount > 3) then
-    Halt(1);
-  if ParamStr(2) = '' then
-    versionName := versionName+'/'+
+if  (ParamCount = 0) or (ParamCount > 3) then
+  Halt(1);
+if ParamStr(2) = '' then
+  VersionName := VersionName+'/'+
     {$IFDEF OS2}
     +'OS2'
     {$ELSE}
@@ -89,134 +90,128 @@ begin
     {$ENDIF}
     {$ENDIF}
     {$ENDIF}
-  else
-    versionName := versionName+'/'+ParamStr(2);
-  {Cat: компиляция плагинской версии:
+else
+  VersionName := VersionName+'/'+ParamStr(2);
+{Cat: компиляция плагинской версии:
         - либо если задан параметр PLUGIN (компиляция посредством _DNC.CMD)
         - либо если в STDEFINE.INC установлена директива PLUGIN (компиляция вручную)}
-  {$IFNDEF PLUGIN}
-  if ParamStr(ParamCount) = 'PLUGIN' then
-    {$ENDIF}
-    versionName := versionName+'/Plugin';
+{$IFNDEF PLUGIN}
+if ParamStr(ParamCount) = 'PLUGIN' then
+  {$ENDIF}
+  VersionName := VersionName+'/Plugin';
 
-  Writeln(' '#254' Creating ', ParamStr(1)+' '+versionName);
+Writeln(' '#254' Creating ', ParamStr(1)+' '+VersionName);
 
-  GetDate(Year, Month, Day, dow);
-  Str(Year, versionDate);
-  versionDate := DOWs[dow]+', '+Days[Day]+' '+Months[Month]+' '+
-    versionDate+' at '+GetDateTime(True);
-  lAssignText(F, ParamStr(1));
-  ClrIO;
-  lRewriteText(F);
-  Writeln(F.t,
-    '{/////////////////////////////////////////////////////////////////////////'
-    );
-  Writeln(F.t, '//');
-  Writeln(F.t, '//  Dos Navigator Open Source '+versionName);
-  Writeln(F.t,
-    '//  Based on Dos Navigator (C) 1991-99 RIT Research Labs');
-  Writeln(F.t, '//');
-  Writeln(F.t,
-    '//  This programs is free for commercial and non-commercial use as long as'
-    );
-  Writeln(F.t, '//  the following conditions are aheared to.');
-  Writeln(F.t, '//');
-  Writeln(F.t,
-    '//  Copyright remains RIT Research Labs, and as such any Copyright notices'
-    );
-  Writeln(F.t,
-    '//  in the code are not to be removed. If this package is used in a'
-    );
-  Writeln(F.t,
-    '//  product, RIT Research Labs should be given attribution as the RIT Research'
-    );
-  Writeln(F.t,
-    '//  Labs of the parts of the library used. This can be in the form of a textual'
-    );
-  Writeln(F.t,
-    '//  message at program startup or in documentation (online or textual)'
-    );
-  Writeln(F.t, '//  provided with the package.');
-  Writeln(F.t, '//');
-  Writeln(F.t,
-    '//  Redistribution and use in source and binary forms, with or without'
-    );
-  Writeln(F.t,
-    '//  modification, are permitted provided that the following conditions are'
-    );
-  Writeln(F.t, '//  met:');
-  Writeln(F.t, '//');
-  Writeln(F.t,
-    '//  1. Redistributions of source code must retain the copyright');
-  Writeln(F.t,
-    '//     notice, this list of conditions and the following disclaimer.'
-    );
-  Writeln(F.t,
-    '//  2. Redistributions in binary form must reproduce the above copyright'
-    );
-  Writeln(F.t,
-    '//     notice, this list of conditions and the following disclaimer in the'
-    );
-  Writeln(F.t,
-    '//     documentation and/or other materials provided with the distribution.'
-    );
-  Writeln(F.t,
-    '//  3. All advertising materials mentioning features or use of this software'
-    );
-  Writeln(F.t, '//     must display the following acknowledgement:');
-  Writeln(F.t,
-    '//     "Based on Dos Navigator by RIT Research Labs.');
-  Writeln(F.t, '//');
-  Writeln(F.t,
-    '//  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS'
-    );
-  Writeln(F.t,
-    '//  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED'
-    );
-  Writeln(F.t,
-    '//  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE'
-    );
-  Writeln(F.t,
-    '//  DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR'
-    );
-  Writeln(F.t,
-    '//  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL'
-    );
-  Writeln(F.t,
-    '//  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE'
-    );
-  Writeln(F.t,
-    '//  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS')
-    ;
-  Writeln(F.t,
-    '//  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER'
-    );
-  Writeln(F.t,
-    '//  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR'
-    );
-  Writeln(F.t,
-    '//  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF'
-    );
-  Writeln(F.t, '//  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.');
-  Writeln(F.t, '//');
-  Writeln(F.t,
-    '//  The licence and distribution terms for any publically available'
-    );
-  Writeln(F.t,
-    '//  version or derivative of this code cannot be changed. i.e. this code'
-    );
-  Writeln(F.t,
-    '//  cannot simply be copied and put under another distribution licence'
-    );
-  Writeln(F.t, '//  (including the GNU Public Licence).');
-  Writeln(F.t, '//');
-  Writeln(F.t,
-    '//////////////////////////////////////////////////////////////////////////}'
-    );
-  Writeln(F.t, '  Const');
-  Writeln(F.t, '     VersionName =''', versionName, ''';');
-  Writeln(F.t, '     VersionDate =''', versionDate, ''';');
-  Writeln(F.t, '     VersionWord:AWord = $', Hex4(VersionWord), ';');
+GetDate(Year, Month, Day, dow);
+Str(Year, VersionDate);
+VersionDate :=
 
-  Close(F.t);
+
+     DOWs[dow]+', '+Days[Day]+' '+Months[Month]+' '+VersionDate+' at '+GetDateTime
+    (True);
+lAssignText(F, ParamStr(1));
+ClrIO;
+lRewriteText(F);
+Writeln(F.T,
+  '{/////////////////////////////////////////////////////////////////////////'
+  );
+Writeln(F.T, '//');
+Writeln(F.T, '//  Dos Navigator Open Source '+VersionName);
+Writeln(F.T, '//  Based on Dos Navigator (C) 1991-99 RIT Research Labs');
+Writeln(F.T, '//');
+Writeln(F.T,
+  '//  This programs is free for commercial and non-commercial use as long as'
+  );
+Writeln(F.T, '//  the following conditions are aheared to.');
+Writeln(F.T, '//');
+Writeln(F.T,
+  '//  Copyright remains RIT Research Labs, and as such any Copyright notices'
+  );
+Writeln(F.T,
+   '//  in the code are not to be removed. If this package is used in a');
+Writeln(F.T,
+  '//  product, RIT Research Labs should be given attribution as the RIT Research'
+  );
+Writeln(F.T,
+  '//  Labs of the parts of the library used. This can be in the form of a textual'
+  );
+Writeln(F.T,
+  '//  message at program startup or in documentation (online or textual)'
+  );
+Writeln(F.T, '//  provided with the package.');
+Writeln(F.T, '//');
+Writeln(F.T,
+  '//  Redistribution and use in source and binary forms, with or without'
+  );
+Writeln(F.T,
+  '//  modification, are permitted provided that the following conditions are'
+  );
+Writeln(F.T, '//  met:');
+Writeln(F.T, '//');
+Writeln(F.T,
+   '//  1. Redistributions of source code must retain the copyright');
+Writeln(F.T,
+  '//     notice, this list of conditions and the following disclaimer.');
+Writeln(F.T,
+  '//  2. Redistributions in binary form must reproduce the above copyright'
+  );
+Writeln(F.T,
+  '//     notice, this list of conditions and the following disclaimer in the'
+  );
+Writeln(F.T,
+  '//     documentation and/or other materials provided with the distribution.'
+  );
+Writeln(F.T,
+  '//  3. All advertising materials mentioning features or use of this software'
+  );
+Writeln(F.T, '//     must display the following acknowledgement:');
+Writeln(F.T, '//     "Based on Dos Navigator by RIT Research Labs.');
+Writeln(F.T, '//');
+Writeln(F.T,
+  '//  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS'
+  );
+Writeln(F.T,
+  '//  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED');
+Writeln(F.T,
+  '//  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE'
+  );
+Writeln(F.T,
+  '//  DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR'
+  );
+Writeln(F.T,
+  '//  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL'
+  );
+Writeln(F.T,
+  '//  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE');
+Writeln(F.T,
+   '//  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS');
+Writeln(F.T,
+  '//  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER'
+  );
+Writeln(F.T,
+   '//  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR');
+Writeln(F.T,
+  '//  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF'
+  );
+Writeln(F.T, '//  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.');
+Writeln(F.T, '//');
+Writeln(F.T,
+   '//  The licence and distribution terms for any publically available');
+Writeln(F.T,
+  '//  version or derivative of this code cannot be changed. i.e. this code'
+  );
+Writeln(F.T,
+  '//  cannot simply be copied and put under another distribution licence'
+  );
+Writeln(F.T, '//  (including the GNU Public Licence).');
+Writeln(F.T, '//');
+Writeln(F.T,
+  '//////////////////////////////////////////////////////////////////////////}'
+  );
+Writeln(F.T, '  Const');
+Writeln(F.T, '     VersionName =''', VersionName, ''';');
+Writeln(F.T, '     VersionDate =''', VersionDate, ''';');
+Writeln(F.T, '     VersionWord:AWord = $', Hex4(VersionWord), ';');
+
+Close(F.T);
 end.

@@ -1,4 +1,4 @@
-unit uue2inc;
+unit Uue2Inc;
 (******
 
 Pascal version of UUE2INC.ASM
@@ -13,22 +13,23 @@ Written by Cat 2:5030/1326.13
 interface
 
 uses
-  use16;
+  use16
+  ;
 
 type
   T64 = record
-    case byte of
-      0: (l0, l1: longInt);
-      1: (w0, w1, W2, W3: word);
-      2: (c0: Comp);
-  end;
+    case Byte of
+      0: (l0, l1: LongInt);
+      1: (W0, W1, W2, W3: Word);
+      2: (C0: Comp);
+    end;
 
 procedure Prepare1Str(var Sou, Dst);
-function GetUUxlt(B: byte): Char;
-function GetLnCrc(var Buf; Size: longInt): Char;
-procedure cCRC(var Buf; Size: longInt; var PrevSum: word);
-procedure Crc64(var Buf; Size: longInt; var PrevSum: T64; var
-    PrevCnt: word);
+function GetUUxlt(b: Byte): Char;
+function GetLnCrc(var Buf; Size: LongInt): Char;
+procedure cCRC(var Buf; Size: LongInt; var PrevSum: Word);
+procedure CRC64(var Buf; Size: LongInt; var PrevSum: T64;
+     var PrevCnt: Word);
 procedure Clear64(var n: T64);
 
 implementation
@@ -62,107 +63,107 @@ Cat:  this array is not used in my version
 
 procedure Prepare1Str(var Sou, Dst);
   var
-    i, j: byte;
-    sou_: array[0..44] of byte absolute Sou;
+    i, j: Byte;
+    sou_: array[0..44] of Byte absolute Sou;
     dst_: array[0..59] of Char absolute Dst;
   begin
-    i := 0;
-    j := 0;
-    while i < 45 do
-      begin
-        dst_[j+0] := UUxlt[sou_[i] shr 2];
-        dst_[j+1] := UUxlt[((sou_[i] and 3) shl 4)+(sou_[i+1] shr 4)];
-        dst_[j+2] := UUxlt[((sou_[i+1] and 15) shl 2)+(sou_[i+2] shr 6)]
-          ;
-        dst_[j+3] := UUxlt[sou_[i+2] and 63];
+  i := 0;
+  j := 0;
+  while i < 45 do
+    begin
+    dst_[j+0] := UUxlt[sou_[i] shr 2];
+    dst_[j+1] := UUxlt[((sou_[i] and 3) shl 4)+(sou_[i+1] shr 4)];
+    dst_[j+2] := UUxlt[((sou_[i+1] and 15) shl 2)+(sou_[i+2] shr 6)];
+    dst_[j+3] := UUxlt[sou_[i+2] and 63];
 
-        Inc(i, 3);
-        Inc(j, 4);
-      end
+    Inc(i, 3);
+    Inc(j, 4);
+    end
   end;
 
-function GetUUxlt(B: byte): Char;
+function GetUUxlt(b: Byte): Char;
   begin
-    GetUUxlt := UUxlt[B]
+  GetUUxlt := UUxlt[b]
   end;
 
-procedure cCRC(var Buf; Size: longInt; var PrevSum: word);
+procedure cCRC(var Buf; Size: LongInt; var PrevSum: Word);
   var
-    buf_: array[1..65520] of byte absolute Buf;
-    i: longInt;
+    buf_: array[1..65520] of Byte absolute Buf;
+    i: LongInt;
   begin
-    for i := 1 to Size do
-      if (PrevSum and 1) = 0 then{suxx! no "ror" operation...}
-        PrevSum := (PrevSum shr 1)+buf_[i]
-      else
-        PrevSum := (PrevSum shr 1)+buf_[i]+$8000
+  for i := 1 to Size do
+    if  (PrevSum and 1) = 0 then
+      {suxx! no "ror" operation...}
+      PrevSum := (PrevSum shr 1)+buf_[i]
+    else
+      PrevSum := (PrevSum shr 1)+buf_[i]+$8000
   end;
 
-procedure Crc64(var Buf; Size: longInt; var PrevSum: T64; var
-    PrevCnt: word);
+procedure CRC64(var Buf; Size: LongInt; var PrevSum: T64;
+     var PrevCnt: Word);
   var
-    buf_: array[1..65520] of byte absolute Buf;
-    i: longInt;
+    buf_: array[1..65520] of Byte absolute Buf;
+    i: LongInt;
 
-  procedure AddByte(B: byte);
+  procedure AddByte(b: Byte);
     near;
     begin
-      with PrevSum do
+    with PrevSum do
+      begin
+      C0 := C0+b;
+      if  (l1 and $80000000) = 0 then
+        {"shl" can't be used with comp...}
+        if  (l0 and $80000000) = 0 then
+          begin
+          l0 := l0 shl 1;
+          l1 := l1 shl 1
+          end
+        else
+          begin
+          l0 := l0 shl 1;
+          l1 := (l1 shl 1)+1
+          end
+      else if (l0 and $80000000) = 0 then
         begin
-          c0 := c0+B;
-          if (l1 and $80000000) = 0 then
-              {"shl" can't be used with comp...}
-            if (l0 and $80000000) = 0 then
-              begin
-                l0 := l0 shl 1;
-                l1 := l1 shl 1
-              end
-            else
-              begin
-                l0 := l0 shl 1;
-                l1 := (l1 shl 1)+1
-              end
-          else if (l0 and $80000000) = 0 then
-            begin
-              l0 := (l0 shl 1)+1;
-              l1 := l1 shl 1
-            end
-          else
-            begin
-              l0 := (l0 shl 1)+1;
-              l1 := (l1 shl 1)+1
-            end
+        l0 := (l0 shl 1)+1;
+        l1 := l1 shl 1
         end
+      else
+        begin
+        l0 := (l0 shl 1)+1;
+        l1 := (l1 shl 1)+1
+        end
+      end
     end { AddByte };
 
-  begin { Crc64 }
-    for i := 1 to Size do
-      begin
-        AddByte(buf_[i]);
-        AddByte(byte(PrevCnt));
-        Inc(PrevCnt)
-      end
-  end { Crc64 };
+  begin { CRC64 }
+  for i := 1 to Size do
+    begin
+    AddByte(buf_[i]);
+    AddByte(Byte(PrevCnt));
+    Inc(PrevCnt)
+    end
+  end { CRC64 };
 
 procedure Clear64(var n: T64);
   begin
-    with n do
-      begin
-        l0 := 2055944585;
-        l1 := 2086759929;
-      end
+  with n do
+    begin
+    l0 := 2055944585;
+    l1 := 2086759929;
+    end
   end;
 
-function GetLnCrc(var Buf; Size: longInt): Char;
+function GetLnCrc(var Buf; Size: LongInt): Char;
   var
-    buf_: array[1..65520] of byte absolute Buf;
-    i: longInt;
-    DX: word;
+    buf_: array[1..65520] of Byte absolute Buf;
+    i: LongInt;
+    dx: Word;
   begin
-    DX := 0;
-    for i := 1 to Size do
-      Inc(DX, (buf_[i]-$20) and $3F);
-    GetLnCrc := UUxlt[DX and $3F]
+  dx := 0;
+  for i := 1 to Size do
+    Inc(dx, (buf_[i]-$20) and $3F);
+  GetLnCrc := UUxlt[dx and $3F]
   end;
 
 begin

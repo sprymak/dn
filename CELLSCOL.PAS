@@ -52,54 +52,56 @@ unit CellsCol;
 interface
 
 uses
-  Objects, Collect, Calculat;
+  Objects, Collect, Calculat
+  ;
 
 type
   PCellrec = ^TCellRec;
   TCellRec = record
-    Col: byte;
+    Col: Byte;
     Row: AInt;
     Options: AWord;
-    Decimals: byte;
+    Decimals: Byte;
     Value: CReal;
     SucTop: AInt;
     NextC: AInt;
-    s: String;
+    S: String;
     end;
 
   TCellSearcRec = record
-    Col: byte;
+    Col: Byte;
     Row: AInt;
     end;
   PCellCollection = ^TCellCollection;
   TCellCollection = object(TSortedCollection)
-    Constructor ShortLoad(var s: TStream);
-    procedure ShortStore(var s: TStream);
+    constructor ShortLoad(var S: TStream);
+    procedure ShortStore(var S: TStream);
     procedure FreeItem(Item: Pointer); virtual;
-    function NewCellRec(ACol, ARow: AInt; const A_S: String):
-      PCellrec;
+    function NewCellRec(ACol, ARow: AInt; const A_S: String): PCellrec;
     { создать запись }
     function NewItem(ACol, ARow: AInt; const A_S: String): PCellrec;
     { создать запись и поместить ее в коллекцию }
     function ReplaceItem
-    (ACol: byte; ARow: AInt; const A_S: String): PCellrec;
-    function Get(Col: byte; Row: AInt): PCellrec;
-    procedure SetValue(Col, Row: integer; AValue: real);
-    procedure DelItem(Col, Row: integer);
-    procedure PutItem(var s: TStream; Item: Pointer); virtual;
-    function GetItem(var s: TStream): Pointer; virtual;
-    function MakeFormatString(AValue: real): String;
-    function Compare(K1, k2: Pointer): integer; virtual;
-    function TSort(var Start: integer): boolean; {AK155}
-    procedure ForRectangle(AX: byte; AY: AInt; {AK155}
-    BX: byte; BY: AInt; Action: Pointer); {см. комментарий к телу!}
+        (ACol: Byte; ARow: AInt; const A_S: String): PCellrec;
+    function Get(Col: Byte; Row: AInt): PCellrec;
+    procedure SetValue(Col, Row: Integer; AValue: CReal);
+    procedure DelItem(Col, Row: Integer);
+    procedure PutItem(var S: TStream; Item: Pointer); virtual;
+    function GetItem(var S: TStream): Pointer; virtual;
+    function MakeFormatString(AValue: CReal): String;
+    function Compare(K1, K2: Pointer): Integer; virtual;
+    function TSort(var Start: Integer): Boolean; {AK155}
+    procedure ForRectangle(AX: Byte; AY: AInt; {AK155}
+        BX: Byte; BY: AInt; Action: Pointer); {см. комментарий к телу!}
     end;
+
+{$IFNDEF B243} Real = Real48; {$ENDIF}
 
 const
   MaxCellY = 4096;
 
-  LenSavedDataRec = SizeOf(byte)+SizeOf(AInt)+SizeOf(AWord)+
-  SizeOf(byte)+SizeOf(real);
+  LenSavedDataRec = SizeOf(Byte)+SizeOf(AInt)+SizeOf(AWord)+
+  SizeOf(Byte)+SizeOf(Real);
 
   LenDataRec = SizeOf(TCellRec)-SizeOf(String)+1;
 
@@ -131,159 +133,160 @@ const
   CommaChar: Char = ',';
   SeparatorChar: Char = '|';
 
-function MakeComma(s: String): String;
-function GetCellCoord(s: String; var X: byte; var Y: AInt): boolean;
-function GetColName(X: integer): ShortString;
-function GetRowName(Y: integer): String;
-function GetCellName(X, Y: integer): String;
+function MakeComma(S: String): String;
+function GetCellCoord(S: String; var X: Byte; var Y: AInt): Boolean;
+function GetColName(X: Integer): ShortString;
+function GetRowName(Y: Integer): String;
+function GetCellName(X, Y: Integer): String;
 
 implementation
 
 uses
-  Memory, advance, advance1, advance2, advance3, ObjType;
+  Memory, Advance, Advance1, Advance2, Advance3, ObjType
+  ;
 
 const
   VObjType: AWord = otCellCollection;
 
-procedure TCellCollection.ShortStore(var s: TStream);
+procedure TCellCollection.ShortStore(var S: TStream);
   var
     TCount, TLimit, TDelta: AInt;
   procedure DoPutItem(P: Pointer);
     begin
-      PutItem(s, P);
+    PutItem(S, P);
     end;
   begin
-    TCount := Count;
-    TLimit := Limit;
-    TDelta := Delta;
-    s.Write(VObjType, SizeOf(AWord));
-    s.Write(TCount, SizeOf(AInt));
-    s.Write(TLimit, SizeOf(AInt));
-    s.Write(TDelta, SizeOf(AInt));
-    ForEach(@DoPutItem);
-    s.Write(Duplicates, SizeOf(Duplicates));
+  TCount := Count;
+  TLimit := Limit;
+  TDelta := Delta;
+  S.Write(VObjType, SizeOf(AWord));
+  S.Write(TCount, SizeOf(AInt));
+  S.Write(TLimit, SizeOf(AInt));
+  S.Write(TDelta, SizeOf(AInt));
+  ForEach(@DoPutItem);
+  S.Write(Duplicates, SizeOf(Duplicates));
   end;
 
-Constructor TCellCollection.ShortLoad(var s: TStream);
+constructor TCellCollection.ShortLoad(var S: TStream);
   var
-    Q: AWord;
-    C, i: integer;
+    q: AWord;
+    C, I: Integer;
     ACount, ALimit, ADelta: AInt;
   begin
-    s.Read(Q, SizeOf(AWord));
-    if Q <> VObjType then
-      Fail;
-    s.Read(ACount, SizeOf(AInt));
-    s.Read(ALimit, SizeOf(AInt));
-    s.Read(ADelta, SizeOf(AInt));
-    inherited Init(ALimit, ADelta);
-    SetLimit(ACount);
-    for i := 0 to ACount-1 do
-      AtInsert(i, GetItem(s));
-    s.Read(Duplicates, SizeOf(boolean));
+  S.Read(q, SizeOf(AWord));
+  if q <> VObjType then
+    Fail;
+  S.Read(ACount, SizeOf(AInt));
+  S.Read(ALimit, SizeOf(AInt));
+  S.Read(ADelta, SizeOf(AInt));
+  inherited Init(ALimit, ADelta);
+  SetLimit(ACount);
+  for I := 0 to ACount-1 do
+    AtInsert(I, GetItem(S));
+  S.Read(Duplicates, SizeOf(Boolean));
   end;
 
 procedure TCellCollection.FreeItem;
   begin
-    FreeMem(Item, LenDataRec+Length(PCellrec(Item)^.s));
+  FreeMem(Item, LenDataRec+Length(PCellrec(Item)^.S));
   end;
 
-function TCellCollection.MakeFormatString(AValue: real): String;
+function TCellCollection.MakeFormatString(AValue: CReal): String;
   var
-    s: String;
+    S: String;
   begin
-    Str(AValue: 20: 2, s);
-    DelLeft(s);
-    MakeFormatString := s;
+  Str(AValue: 20: 2, S);
+  DelLeft(S);
+  MakeFormatString := S;
   end;
 
 function TCellCollection.NewCellRec
-  (ACol, ARow: AInt; const A_S: String): PCellrec;
+    (ACol, ARow: AInt; const A_S: String): PCellrec;
   begin
-    Result := MemAlloc(LenDataRec+Length(A_S));
-    with Result^ do
-      begin
-        Row := ARow;
-        Col := ACol;
-        s := A_S;
-        Options := 0;
-        Decimals := 0;
-        Value := 0;
-      end;
+  Result := MemAlloc(LenDataRec+Length(A_S));
+  with Result^ do
+    begin
+    Row := ARow;
+    Col := ACol;
+    S := A_S;
+    Options := 0;
+    Decimals := 0;
+    Value := 0;
+    end;
   end;
 
 function TCellCollection.NewItem
-  (ACol, ARow: AInt; const A_S: String): PCellrec;
+    (ACol, ARow: AInt; const A_S: String): PCellrec;
   begin
-    Result := NewCellRec(ACol, ARow, A_S);
-    Insert(Result);
+  Result := NewCellRec(ACol, ARow, A_S);
+  Insert(Result);
   end;
 
-procedure TCellCollection.DelItem(Col, Row: integer);
+procedure TCellCollection.DelItem(Col, Row: Integer);
   var
-    i: integer;
+    I: Integer;
     P: PCellrec;
   begin
-    for i := 1 to Count do
+  for I := 1 to Count do
+    begin
+    P := At(I-1);
+    if  (P^.Row = Row) and (P^.Col = Col) then
       begin
-        P := At(i-1);
-        if (P^.Row = Row) and (P^.Col = Col) then
-          begin
-            AtFree(i-1);
-            exit;
-          end;
+      AtFree(I-1);
+      Exit;
       end;
+    end;
   end;
 
-procedure TCellCollection.SetValue(Col, Row: integer; AValue: real);
+procedure TCellCollection.SetValue(Col, Row: Integer; AValue: CReal);
   var
-    i: integer;
+    I: Integer;
     P: PCellrec;
   begin
-    for i := 1 to Count do
+  for I := 1 to Count do
+    begin
+    P := At(I-1);
+    if  (P^.Row = Row) and (P^.Col = Col) then
       begin
-        P := At(i-1);
-        if (P^.Row = Row) and (P^.Col = Col) then
-          begin
-            P^.Value := AValue;
-            exit;
-          end;
+      P^.Value := AValue;
+      Exit;
       end;
+    end;
   end;
 
 function TCellCollection.ReplaceItem
-  (ACol: byte; ARow: AInt; const A_S: String): PCellrec;
+    (ACol: Byte; ARow: AInt; const A_S: String): PCellrec;
   var
-    i, D, o: integer;
+    I, D, O: Integer;
     SR: TCellSearcRec;
   begin
-    SR.Col := ACol;
-    SR.Row := ARow;
-    if not Search(@SR, i) then
+  SR.Col := ACol;
+  SR.Row := ARow;
+  if not Search(@SR, I) then
+    begin
+    Result := NewCellRec(ACol, ARow, A_S);
+    AtInsert(I, Result);
+    end
+  else
+    begin
+    Result := At(I);
+    if Result^.S <> A_S then
       begin
-        Result := NewCellRec(ACol, ARow, A_S);
-        AtInsert(i, Result);
-      end
-    else
-      begin
-        Result := At(i);
-        if Result^.s <> A_S then
-          begin
-            o := Result^.Options;
-            D := Result^.Decimals;
-            FreeItem(Result);
-            Result := MemAlloc(LenDataRec+Length(A_S));
-            with Result^ do
-              begin
-                Row := ARow;
-                Col := ACol;
-                Options := o;
-                Decimals := D;
-                s := A_S;
-                AtPut(i, Result);
-              end;
-          end;
+      O := Result^.Options;
+      D := Result^.Decimals;
+      FreeItem(Result);
+      Result := MemAlloc(LenDataRec+Length(A_S));
+      with Result^ do
+        begin
+        Row := ARow;
+        Col := ACol;
+        Options := O;
+        Decimals := D;
+        S := A_S;
+        AtPut(I, Result);
+        end;
       end;
+    end;
   end { TCellCollection.ReplaceItem };
 
 { Для совместимости файла wkz со старыми версиями DN, выводится
@@ -293,252 +296,251 @@ function TCellCollection.ReplaceItem
 procedure TCellCollection.PutItem;
   var
     P: PCellrec absolute Item;
-    R: real;
+    R: Real;
   begin
-    s.Write(P^, LenSavedDataRec-SizeOf(real));
-    if P^.Options and (coFormula or coValue) = 0 then
-      R := 0
-    else if Abs(P^.Value) < 1.7e38 then
-      R := P^.Value
-    else if P^.Value < 0 then
-      R := -1.7e38
-    else
-      R := 1.7e38;
-    s.Write(R, SizeOf(R));
-    s.Write(P^.s, 1+Length(P^.s));
+  S.Write(P^, LenSavedDataRec-SizeOf(Real));
+  if P^.Options and (coFormula or coValue) = 0 then
+    R := 0
+  else if Abs(P^.Value) < 1.7e38 then
+    R := P^.Value
+  else if P^.Value < 0 then
+    R := -1.7e38
+  else
+    R := 1.7e38;
+  S.Write(R, SizeOf(R));
+  S.Write(P^.S, 1+Length(P^.S));
   end;
 
 function TCellCollection.GetItem;
   var
     R: TCellRec;
-    l: integer;
+    l: Integer;
   begin
-    s.Read(R, LenSavedDataRec);
-    s.Read(R.s[0], 1);
-    s.Read(R.s[1], Length(R.s));
-    l := LenDataRec+Length(R.s);
-    Result := MemAlloc(l);
-    Move(R, Result^, l);
+  S.Read(R, LenSavedDataRec);
+  S.Read(R.S[0], 1);
+  S.Read(R.S[1], Length(R.S));
+  l := LenDataRec+Length(R.S);
+  Result := MemAlloc(l);
+  Move(R, Result^, l);
   end;
 
-function TCellCollection.Get(Col: byte; Row: AInt): PCellrec;
+function TCellCollection.Get(Col: Byte; Row: AInt): PCellrec;
   var
-    i: integer;
+    I: Integer;
     P: PCellrec;
     SR: TCellSearcRec;
   begin
-    Get := nil;
-    SR.Col := Col;
-    SR.Row := Row;
-    if Search(@SR, i) then
-      Get := At(i);
+  Get := nil;
+  SR.Col := Col;
+  SR.Row := Row;
+  if Search(@SR, I) then
+    Get := At(I);
   end;
 
 function TCellCollection.Compare;
   var
-    Col1, Col2, Row1, Row2: integer;
+    Col1, Col2, Row1, Row2: Integer;
   begin
-    Compare := 0;
-    if K1 = nil then
+  Compare := 0;
+  if K1 = nil then
+    Compare := -1
+  else if K2 = nil then
+    Compare := 1
+  else
+    begin
+    with PCellrec(K1)^ do
+      begin
+      Col1 := Col;
+      Row1 := Row
+      end;
+    with PCellrec(K2)^ do
+      begin
+      Col2 := Col;
+      Row2 := Row
+      end;
+    if Row1 < Row2 then
       Compare := -1
-    else if k2 = nil then
+    else if Row1 > Row2 then
+      Compare := 1
+    else if Col1 < Col2 then
+      Compare := -1
+    else if Col1 > Col2 then
       Compare := 1
     else
-      begin
-        with PCellrec(K1)^ do
-          begin
-            Col1 := Col;
-            Row1 := Row
-          end;
-        with PCellrec(k2)^ do
-          begin
-            Col2 := Col;
-            Row2 := Row
-          end;
-        if Row1 < Row2 then
-          Compare := -1
-        else if Row1 > Row2 then
-          Compare := 1
-        else if Col1 < Col2 then
-          Compare := -1
-        else if Col1 > Col2 then
-          Compare := 1
-        else
-          Compare := 0;
-      end;
+      Compare := 0;
+    end;
   end { TCellCollection.Compare };
 
 const
   Delim = ':(),+-*/%'#0;
-function TCellCollection.TSort(var Start: integer): boolean;
+function TCellCollection.TSort(var Start: Integer): Boolean;
   type
     PSucPool = ^TSucPool;
     TSucPool = array[1..$FFFF] of record
-      suc, Next: integer
+      Suc, Next: Integer
       end;
   const
     PoolUnit = 5;
   var
     QLink: PWordArray;
     {У Кнута есть еще Count, как синоним QLink, но мы будем писать везде QLink}
-    QLinkSize: longInt;
+    QLinkSize: LongInt;
     Top: PWordArray; {Top^[0] не используем}
-    TopSize: longInt;
+    TopSize: LongInt;
     SucPool: PSucPool;
-    PoolCount: longInt;
-    P: integer;
-    F, R: integer;
-    n: integer;
-    i, k, j: integer;
-    t: integer;
-    formula, C1, C2: String;
-    Op: integer;
+    PoolCount: LongInt;
+    P: Integer;
+    F, R: Integer;
+    N: Integer;
+    i, k, j: Integer;
+    t: Integer;
+    formula, c1, c2: String;
+    op: Integer;
     CurCell: PCellrec;
     SR, SR1, SR2: TCellSearcRec;
 
-  function Scan(var sym: String): boolean;
+  function Scan(var sym: String): Boolean;
     var
-      t0: integer;
+      t0: Integer;
     begin
-      if formula[t] = #0 then
-        begin
-          Result := False;
-          exit;
-        end;
-      Result := True;
-      while Pos(formula[t], Delim) <> 0 do
-        Inc(t);
-      t0 := t;
-      repeat
-        Inc(t);
-        Op := Pos(formula[t], Delim);
-      until Op <> 0;
-      sym := Copy(formula, t0, t-t0);
-      if formula[t] <> #0 then
-        Inc(t);
-    end { Scan };
+    if formula[T] = #0 then
+      begin
+      Result := False;
+      Exit;
+      end;
+    Result := True;
+    while Pos(formula[T], Delim) <> 0 do
+      Inc(T);
+    t0 := T;
+    repeat
+      Inc(T);
+      Op := Pos(formula[T], Delim);
+    until Op <> 0;
+    sym := Copy(formula, t0, T-t0);
+    if formula[T] <> #0 then
+      Inc(T);
+    end;
 
   procedure RegisterPrev;
     var
-      j: integer;
-      l: longInt;
+      j: Integer;
+      l: LongInt;
       NewPool: PSucPool;
     begin
-      if Search(@SR, j) then
+    if Search(@SR, j) then
+      begin
+      Inc(QLink^[k]);
+      { P <= Avail }
+      Inc(P);
+      if P > PoolCount then
         begin
-          Inc(QLink^[k]);
-          { P <= Avail }
-          Inc(P);
-          if P > PoolCount then
-            begin
-              NewPool := MemAlloc((PoolCount+PoolUnit)*SizeOf(
-                SucPool^[1]));
-              l := PoolCount*SizeOf(SucPool^[1]);
-              Move(SucPool^, NewPool^, l);
-              FreeMem(SucPool, l);
-              SucPool := NewPool;
-              Inc(PoolCount, PoolUnit);
-            end;
-          with SucPool^[P] do
-            begin
-              suc := k;
-              Next := Top^[j+1];
-              Top^[j+1] := P;
-            end;
+        NewPool := MemAlloc((PoolCount+PoolUnit)*SizeOf(SucPool^[1]));
+        l := PoolCount*SizeOf(SucPool^[1]);
+        Move(SucPool^, NewPool^, l);
+        FreeMem(SucPool, l);
+        SucPool := NewPool;
+        Inc(PoolCount, PoolUnit);
         end;
+      with SucPool^[P] do
+        begin
+        Suc := k;
+        Next := Top^[j+1];
+        Top^[j+1] := P;
+        end;
+      end;
     end { RegisterPrev };
 
-  begin{TCellCollection.TSort}
-    { Топологическая сортировка. См. Д.Кнут, т.1, 2.3.2.}
-    P := 0; { инициализация SucPool}
-    n := Count;
-    QLinkSize := (n+1)*SizeOf(QLink^[0]);
-    QLink := MemAlloc(QLinkSize);
-    TopSize := (n+1)*SizeOf(Top^[1]);
-    Top := MemAlloc(TopSize);
-    PoolCount := PoolUnit;
-    SucPool := MemAlloc(PoolCount*SizeOf(SucPool^[1]));
-    for k := 1 to n do
+  begin {TCellCollection.TSort}
+  { Топологическая сортировка. См. Д.Кнут, т.1, 2.3.2.}
+  P := 0; { инициализация SucPool}
+  N := Count;
+  QLinkSize := (N+1)*SizeOf(QLink^[0]);
+  QLink := MemAlloc(QLinkSize);
+  TopSize := (N+1)*SizeOf(Top^[1]);
+  Top := MemAlloc(TopSize);
+  PoolCount := PoolUnit;
+  SucPool := MemAlloc(PoolCount*SizeOf(SucPool^[1]));
+  for k := 1 to N do
+    begin
+    QLink^[k] := 0;
+    Top^[k] := 0;
+    end;
+  for k := 1 to N do
+    begin
+    CurCell := PCellrec(At(k-1));
+    with CurCell^ do
       begin
-        QLink^[k] := 0;
-        Top^[k] := 0;
-      end;
-    for k := 1 to n do
-      begin
-        CurCell := PCellrec(At(k-1));
-        with CurCell^ do
-          begin
-            if (Options and coFormula) <> 0 then
-              begin
-                formula := s+#0;
-                t := 2;
-                while Scan(C2) do
-                  begin
-                    if Op = 1 then
-                      begin{обработка c1:c2}
-                        C1 := C2;
-                        Scan(C2);
-                        if GetCellCoord(C1, SR1.Col, SR1.Row)
-                          and GetCellCoord(C2, SR2.Col, SR2.Row)
-                        then
-                          for SR.Col := SR1.Col to SR2.Col do
-                            for SR.Row := SR1.Row to SR2.Row do
-                              RegisterPrev;
-                        Scan(C1);
-                      end
-                    else
-                      begin{обработка c2}
-                        if GetCellCoord(C2, SR.Col, SR.Row) then
-                          RegisterPrev;
-                        C1 := C2;
-                      end;
-                  end;
-              end;
-          end;
-      end;
-
-    QLink^[0] := 0;
-    R := 0;
-    for k := 1 to n do
-      if QLink^[k] = 0 then
+      if  (Options and coFormula) <> 0 then
         begin
-          QLink^[R] := k;
-          R := k; {в книге ошибочно написано P вместо R}
-        end;
-    F := QLink^[0];
-
-    Start := F;
-    while F <> 0 do
-      begin
-        CurCell := PCellrec(At(F-1));
-        Dec(n);
-        P := Top^[F];
-        Top^[F] := 0;
-        while P <> 0 do
+        formula := S+#0;
+        t := 2;
+        while Scan(c2) do
           begin
-            i := SucPool^[P].suc;
-            Dec(QLink^[i]);
-            if QLink^[i] = 0 then
-              begin
-                QLink^[R] := i;
-                R := i;
-              end;
-            P := SucPool^[P].Next;
+          if op = 1 then
+            begin {обработка c1:c2}
+            c1 := c2;
+            Scan(c2);
+            if GetCellCoord(c1, SR1.Col, SR1.Row)
+              and GetCellCoord(c2, SR2.Col, SR2.Row)
+            then
+              for SR.Col := SR1.Col to SR2.Col do
+                for SR.Row := SR1.Row to SR2.Row do
+                  RegisterPrev;
+            Scan(c1);
+            end
+          else
+            begin {обработка c2}
+            if GetCellCoord(c2, SR.Col, SR.Row) then
+              RegisterPrev;
+            c1 := c2;
+            end;
           end;
-        F := QLink^[F];
-        CurCell^.NextC := F;
+        end;
       end;
-    Result := n = 0;
-    if not Result then
+    end;
+
+  QLink^[0] := 0;
+  R := 0;
+  for k := 1 to N do
+    if QLink^[k] = 0 then
       begin
-        k := 1;
-        while Top^[k] = 0 do
-          Inc(k);
-        Start := SucPool^[Top^[k]].suc;
+      QLink^[R] := k;
+      R := k; {в книге ошибочно написано P вместо R}
       end;
-    FreeMem(Top, TopSize);
-    FreeMem(QLink, QLinkSize);
-    FreeMem(SucPool, PoolCount*SizeOf(SucPool^[1]));
+  F := QLink^[0];
+
+  Start := F;
+  while F <> 0 do
+    begin
+    CurCell := PCellrec(At(F-1));
+    Dec(N);
+    P := Top^[F];
+    Top^[F] := 0;
+    while P <> 0 do
+      begin
+      i := SucPool^[P].Suc;
+      Dec(QLink^[i]);
+      if QLink^[i] = 0 then
+        begin
+        QLink^[R] := i;
+        R := i;
+        end;
+      P := SucPool^[P].Next;
+      end;
+    F := QLink^[F];
+    CurCell^.NextC := F;
+    end;
+  Result := N = 0;
+  if not Result then
+    begin
+    k := 1;
+    while Top^[k] = 0 do
+      Inc(k);
+    Start := SucPool^[Top^[k]].Suc;
+    end;
+  FreeMem(Top, TopSize);
+  FreeMem(QLink, QLinkSize);
+  FreeMem(SucPool, PoolCount*SizeOf(SucPool^[1]));
   end { TCellCollection.TSort };
 
 {  То ли в VP ошибка, то ли я чего-то не понимаю, но если переменные,
@@ -549,110 +551,110 @@ function TCellCollection.TSort(var Start: integer): boolean;
 Возможно, дело в глубине вложенности процедур. Радикальным средством
 борьбы с этим глюком является использование в Action^ только
 статических переменных. AK155}
-procedure TCellCollection.ForRectangle(AX: byte; AY: AInt;
-  BX: byte; BY: AInt; Action: Pointer);
+procedure TCellCollection.ForRectangle(AX: Byte; AY: AInt;
+    BX: Byte; BY: AInt; Action: Pointer);
   type
     TActionProc = procedure (Item: Pointer);
   var
     Y: AInt;
     SR: TCellSearcRec;
     P: PCellrec;
-    i: integer;
+    I: Integer;
     ActionProc: TActionProc;
   begin
-    @ActionProc := Action;
-    SR.Col := AX;
-    for Y := AY to BY do
+  @ActionProc := Action;
+  SR.Col := AX;
+  for Y := AY to BY do
+    begin
+    SR.Row := Y;
+    Search(@SR, I);
+    while True do
       begin
-        SR.Row := Y;
-        Search(@SR, i);
-        while True do
-          begin
-            if (i = Count) then
-              exit;
-            P := PCellrec(At(i));
-            if (P^.Row <> Y) or (P^.Col > BX) then
-              break;
-            ActionProc(P);
-            Inc(i);
-          end;
+      if  (I = Count) then
+        Exit;
+      P := PCellrec(At(I));
+      if  (P^.Row <> Y) or (P^.Col > BX) then
+        Break;
+      ActionProc(P);
+      Inc(I);
       end;
+    end;
   end { TCellCollection.ForRectangle };
 
 {-----------------------------------------------------------------------}
 
-function GetCellCoord(s: String; var X: byte; var Y: AInt): boolean;
+function GetCellCoord(S: String; var X: Byte; var Y: AInt): Boolean;
   var
-    i, j, ierr: integer;
+    I, J, ierr: Integer;
   begin
-    Result := False;
-    j := 1;
-    if s[1] = '@' then
-      Inc(j);
-    if (Length(s) <= j) then
-      exit;
-    UpStr(s);
-    i := j;
-    while (i <= Length(s)) and (s[i] >= 'A') and (s[i] <= 'Z') do
-      Inc(i);
+  Result := False;
+  J := 1;
+  if S[1] = '@' then
+    Inc(J);
+  if  (Length(S) <= J) then
+    Exit;
+  UpStr(S);
+  I := J;
+  while (I <= Length(S)) and (S[I] >= 'A') and (S[I] <= 'Z') do
+    Inc(I);
 
-    {код колонки - с j по i исключительно}
-    if i = j+1 then
-      X := byte(s[j])-byte('A')
-    else if i = j+2 then
-      X := (byte(s[j])-(byte('A')-1))*26+byte(s[j+1])-byte('A')
-    else
-      exit; {допускается только 1 или 2 буквы}
+  {код колонки - с j по i исключительно}
+  if I = J+1 then
+    X := Byte(S[J])-Byte('A')
+  else if I = J+2 then
+    X := (Byte(S[J])-(Byte('A')-1))*26+Byte(S[J+1])-Byte('A')
+  else
+    Exit; {допускается только 1 или 2 буквы}
 
-    if s[i] = '@' then
-      Inc(i);
-    Val(Copy(s, i, 255), Y, ierr);
-    if (ierr <> 0) or (Y <= 0) or (Y > MaxCellY) then
-      exit;
-    Dec(Y);
-    Result := True;
+  if S[I] = '@' then
+    Inc(I);
+  Val(Copy(S, I, 255), Y, ierr);
+  if  (ierr <> 0) or (Y <= 0) or (Y > MaxCellY) then
+    Exit;
+  Dec(Y);
+  Result := True;
   end { GetCellCoord };
 
-function GetColName(X: integer): ShortString;
+function GetColName(X: Integer): ShortString;
   begin
-    Result := 'AA';
-    if X < 26 then
-      begin
-        Dec(Result[0]);
-        Inc(Result[1], X);
-      end
-    else
-      begin
-        Inc(Result[1], X div 26-1);
-        Inc(Result[2], X mod 26);
-      end
+  Result := 'AA';
+  if X < 26 then
+    begin
+    Dec(Result[0]);
+    Inc(Result[1], X);
+    end
+  else
+    begin
+    Inc(Result[1], X div 26-1);
+    Inc(Result[2], X mod 26);
+    end
   end;
 
-function GetRowName(Y: integer): String;
+function GetRowName(Y: Integer): String;
   begin
-    Str(Y+1, Result);
+  Str(Y+1, Result);
   end;
 
-function GetCellName(X, Y: integer): String;
+function GetCellName(X, Y: Integer): String;
   begin
-    Result := GetColName(X)+GetRowName(Y);
+  Result := GetColName(X)+GetRowName(Y);
   end;
 
-function MakeComma(s: String): String;
+function MakeComma(S: String): String;
   var
-    i: integer;
-    k: integer;
+    I: Integer;
+    K: Integer;
   begin
-    i := PosChar('.', s);
-    if i = 0 then
-      i := Length(s)+1;
-    k := 3;
-    while (i-k) > 1 do
-      begin
-        Insert(CommaChar, s, i-k);
-        Inc(k, 3);
-      end;
-    MakeComma := s;
+  I := PosChar('.', S);
+  if I = 0 then
+    I := Length(S)+1;
+  K := 3;
+  while (I-K) > 1 do
+    begin
+    Insert(CommaChar, S, I-K);
+    Inc(K, 3);
+    end;
+  MakeComma := S;
   end;
 
 end.

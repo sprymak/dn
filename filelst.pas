@@ -50,449 +50,445 @@ unit Filelst;
 interface
 
 uses
-  Collect;
+  Collect
+  ;
 
 procedure MakeListFile(APP: Pointer; Files: PCollection);
-function ParseAddress(Address: String; var Zone, Net, Node, Point:
-    word): boolean;
+function ParseAddress(Address: String; var Zone, Net, Node, Point: Word)
+  : Boolean;
 
 implementation
 uses
-  Startup, Lfn, Messages, Objects, FilesCol, advance2, advance1,
-    UserMenu,
-  advance, HistList, Commands, DNApp, DNUtil, Tree, Views, Drivers,
-    Drives
+  Startup, Lfn, Messages, Objects, FilesCol, Advance2, Advance1, UserMenu,
+  Advance, HistList, Commands, DNApp, DNUtil, Tree, Views, Drivers, Drives
   {, dnfuncs} {надо вставлять до Dos}
   , Dos
   , ErrMess, FlPanelX
   ;
 
-function ParseAddress(Address: String; var Zone, Net, Node, Point:
-    word): boolean;
+function ParseAddress(Address: String; var Zone, Net, Node, Point: Word)
+  : Boolean;
   var
-    i, j: integer;
+    I, J: Integer;
   begin
-    ParseAddress := False;
-    Point := 0;
-    i := PosChar('@', Address);
-    if i > 0 then
-      Delete(Address, i, 255);
-    i := PosChar(':', Address);
-    if i > 0 then
-      begin
-        Val(Copy(Address, 1, i-1), Zone, j);
-        if j <> 0 then
-          exit;
-        Delete(Address, 1, i);
-      end;
-    i := PosChar('/', Address);
-    if i > 0 then
-      begin
-        Val(Copy(Address, 1, i-1), Net, j);
-        if j <> 0 then
-          exit;
-        Delete(Address, 1, i);
-      end;
-    i := PosChar('.', Address);
-    if i > 0 then
-      begin
-        Val(Copy(Address, i+1, MaxStringLength), Point, j);
-        if j <> 0 then
-          exit;
-        Delete(Address, i, MaxStringLength);
-      end;
-    if Length(Address) > 0 then
-      begin
-        Val(Address, Node, j);
-        if j <> 0 then
-          exit;
-      end;
-    ParseAddress := True;
+  ParseAddress := False;
+  Point := 0;
+  I := PosChar('@', Address);
+  if I > 0 then
+    Delete(Address, I, 255);
+  I := PosChar(':', Address);
+  if I > 0 then
+    begin
+    Val(Copy(Address, 1, I-1), Zone, J);
+    if J <> 0 then
+      Exit;
+    Delete(Address, 1, I);
+    end;
+  I := PosChar('/', Address);
+  if I > 0 then
+    begin
+    Val(Copy(Address, 1, I-1), Net, J);
+    if J <> 0 then
+      Exit;
+    Delete(Address, 1, I);
+    end;
+  I := PosChar('.', Address);
+  if I > 0 then
+    begin
+    Val(Copy(Address, I+1, MaxStringLength), Point, J);
+    if J <> 0 then
+      Exit;
+    Delete(Address, I, MaxStringLength);
+    end;
+  if Length(Address) > 0 then
+    begin
+    Val(Address, Node, J);
+    if J <> 0 then
+      Exit;
+    end;
+  ParseAddress := True;
   end { ParseAddress };
 
 procedure MakeListFile;
   label AddrError, Retry;
   var
-    i, j, k: integer;
-    D, dr, SR, SN: String;
+    I, J, K: Integer;
+    D, Dr, SR, Sn: String;
     P: PFileRec;
-    s: TMakeListRec;
-    t, HF: lText;
+    S: TMakeListRec;
+    T, HF: lText;
     Nm: String;
-    XT: String;
-    FidoMode: boolean;
+    Xt: String;
+    FidoMode: Boolean;
     SS: String;
     PP: PString;
-    zz, NN, ND, PT: word;
-    BB: boolean;
+    ZZ, NN, ND, PT: Word;
+    BB: Boolean;
     FLD, Dr_: String;
-    CurPos: integer;
-    UPr: tUserParams;
-    rc: longInt;
+    CurPos: Integer;
+    UPr: TUserParams;
+    RC: LongInt;
 
-  function GetNextName(var TheString, TheName: String): boolean;
+  function GetNextName(var TheString, TheName: String): Boolean;
     var
-      j: boolean;
+      j: Boolean;
     begin
-      while (CurPos <= Length(TheString)) and (TheString[CurPos] in [
-          ';', ' '])
-      do
-        Inc(CurPos);
-      TheName := '';
-      j := False;
-      while (CurPos <= Length(TheString)) and ((TheString[CurPos] <>
-          ';') or j)
-      do
-        begin
-          if TheString[CurPos] = '"' then
-            j := not j;
-          TheName := TheName+TheString[CurPos];
-          Inc(CurPos)
-        end;
-      while TheName[Length(TheName)] = ' ' do
-        SetLength(TheName, Length(TheName)-1);
-      GetNextName := TheName <> ''
+    while (CurPos <= Length(TheString))
+         and (TheString[CurPos] in [';', ' '])
+    do
+      Inc(CurPos);
+    TheName := '';
+    j := False;
+    while (CurPos <= Length(TheString))
+         and ((TheString[CurPos] <> ';') or j)
+    do
+      begin
+      if TheString[CurPos] = '"' then
+        j := not j;
+      TheName := TheName+TheString[CurPos];
+      Inc(CurPos)
+      end;
+    while TheName[Length(TheName)] = ' ' do
+      SetLength(TheName, Length(TheName)-1);
+    GetNextName := TheName <> ''
     end { GetNextName };
 
-  function SomeFilesExist(var NameList: String): boolean;
+  function SomeFilesExist(var NameList: String): Boolean;
     var
       TheName: String;
     begin
-      SomeFilesExist := False;
-      CurPos := 1;
-      while GetNextName(NameList, TheName) do
-        if ExistFile(TheName)
-        then
-          begin
-            SomeFilesExist := True;
-            exit
-          end
+    SomeFilesExist := False;
+    CurPos := 1;
+    while GetNextName(NameList, TheName) do
+      if ExistFile(TheName)
+      then
+        begin
+        SomeFilesExist := True;
+        Exit
+        end
     end;
 
   procedure MakeStr(D: String);
     label Fail;
     var
-      Drr: boolean;
+      Drr: Boolean;
     begin
-      { BB means "Is filename occurs in Action?" }
-      Replace('!!', #1, D);
-      Replace('##', #2, D);
-      Replace('$$', #3, D);
-      Replace('&&', #4, D);
-      if (PosChar('!', D) = 0) and (PosChar('#', D) = 0) then
-        if (D[Length(D)] in [#8, ' ']) or ((Length(D) = 1) and (D[1] in
-            ['^', #2]))
-        then
-          D := D+'!.!'
-        else
-          D := D+' !.!';
-      if ((s.Options and cmlAutoDetermine = cmlAutoDetermine) and
-        {$IFNDEF OS2}
-        (lfGetShortFileName(SR) <> lfGetShortFileName(dr)) and
-        {$ELSE}
-        (SR <> dr) and
-        {$ENDIF}
-        (Pos('!\', D) = 0) and
-        (Pos('!/', D) = 0) and
-        (Pos('!:', D) = 0) and
-        (Pos('#\', D) = 0) and
-        (Pos('#/', D) = 0) and
-        (Pos('#:', D) = 0))
-        or ((s.Options and cmlPathNames <> 0) and
-        (s.Options and cmlAutoDetermine = 0))
+    { BB means "Is filename occurs in Action?" }
+    Replace('!!', #1, D);
+    Replace('##', #2, D);
+    Replace('$$', #3, D);
+    Replace('&&', #4, D);
+    if  (PosChar('!', D) = 0) and (PosChar('#', D) = 0) then
+      if  (D[Length(D)] in [#8, ' '])
+             or ((Length(D) = 1) and (D[1] in ['^', #2]))
       then
-        begin{ Need to force insert !:!\ }
-          k := Pos('.!', D);
+        D := D+'!.!'
+      else
+        D := D+' !.!';
+    if  ( (S.Options and cmlAutoDetermine = cmlAutoDetermine) and
+        {$IFNDEF OS2}
+          (lfGetShortFileName(SR) <> lfGetShortFileName(dr)) and
+        {$ELSE}
+          (SR <> dr) and
+        {$ENDIF}
+          (Pos('!\', D) = 0) and
+          (Pos('!/', D) = 0) and
+          (Pos('!:', D) = 0) and
+          (Pos('#\', D) = 0) and
+          (Pos('#/', D) = 0) and
+          (Pos('#:', D) = 0))
+      or ((S.Options and cmlPathNames <> 0) and
+          (S.Options and cmlAutoDetermine = 0))
+    then
+      begin { Need to force insert !:!\ }
+      k := Pos('.!', D);
+      if k = 0 then
+        begin
+        k := PosChar('!', D);
+        if k = 0 then
+          begin
+          k := Pos('.#', D);
           if k = 0 then
             begin
-              k := PosChar('!', D);
-              if k = 0 then
-                begin
-                  k := Pos('.#', D);
-                  if k = 0 then
-                    begin
-                      k := PosChar('#', D);
-                      if k = 0 then
-                        goto Fail;
-                    end
-                  else if (k <> 1) and (D[k-1] in ['!', '#']) then
-                      Dec(k)
-                  else
-                    goto Fail;
-                end
-              else if (k <> 1) and (D[k-1] in ['!', '#']) then
-                Dec(k)
-              else
-                goto Fail;
+            k := PosChar('#', D);
+            if k = 0 then
+              goto Fail;
             end
           else if (k <> 1) and (D[k-1] in ['!', '#']) then
             Dec(k)
           else
             goto Fail;
-          Insert('!:!\', D, k);
-        end;
+          end
+        else if (k <> 1) and (D[k-1] in ['!', '#']) then
+          Dec(k)
+        else
+          goto Fail;
+        end
+      else if (k <> 1) and (D[k-1] in ['!', '#']) then
+        Dec(k)
+      else
+        goto Fail;
+      Insert('!:!\', D, k);
+      end;
 Fail: { Cannot find place to insert !\ }
-      Replace(#1, '!!', D);
-      Replace(#2, '##', D);
-      Replace(#3, '$$', D);
-      Replace(#4, '&&', D);
-      D := MakeString(D, @UPr, False, nil);
-      Writeln(t.t, D);
+    Replace(#1, '!!', D);
+    Replace(#2, '##', D);
+    Replace(#3, '$$', D);
+    Replace(#4, '&&', D);
+    D := MakeString(D, @UPr, False, nil);
+    Writeln(T.T, D);
     end { MakeStr };
 
   begin { MakeListFile }
-    if Files^.Count = 0 then
-      exit;
-    Message(APP, evBroadcast, cmGetUserParams, @UPr);
-    FillChar(s, SizeOf(s), 0);
-    s.FileName := HistoryStr(hsMakeList, 0);
-    if s.FileName = '' then
-      s.FileName := 'DNLIST'+CmdExt;
-    s.Action := HistoryStr(hsExecDOSCmd, 0);
-    s.Header := HistoryStr(hsMakeListHeader, 0); {JO}
-    {S.Header := '';}s.HeaderMode := hfmAuto;
-    s.Footer := HistoryStr(hsMakeListFooter, 0); {JO}
-    {S.Footer := '';}s.FooterMode := hfmAuto;
-    s.Options := MakeListFileOptions;
-    if s.Options and cmlPathNames <> 0 then
+  if Files^.Count = 0 then
+    Exit;
+  Message(APP, evBroadcast, cmGetUserParams, @UPr);
+  FillChar(S, SizeOf(S), 0);
+  S.FileName := HistoryStr(hsMakeList, 0);
+  if S.FileName = '' then
+    S.FileName := 'DNLIST'+CmdExt;
+  S.Action := HistoryStr(hsExecDOSCmd, 0);
+  S.Header := HistoryStr(hsMakeListHeader, 0); {JO}
+  {S.Header := '';}S.HeaderMode := hfmAuto;
+  S.Footer := HistoryStr(hsMakeListFooter, 0); {JO}
+  {S.Footer := '';}S.FooterMode := hfmAuto;
+  S.Options := MakeListFileOptions;
+  if S.Options and cmlPathNames <> 0 then
+    begin
+    BB := False;
+    PP := PFileRec(Files^.At(0))^.Owner;
+    for I := 1 to Files^.Count-1 do
       begin
-        BB := False;
-        PP := PFileRec(Files^.At(0))^.Owner;
-        for i := 1 to Files^.Count-1 do
-          begin
-            BB := BB or (PFileRec(Files^.At(i))^.Owner <> PP);
-            if BB then
-              break;
-          end;
-        if BB then
-          s.Options := s.Options or cmlPathNames
-        else
-          s.Options := s.Options and not cmlPathNames;
+      BB := BB or (PFileRec(Files^.At(I))^.Owner <> PP);
+      if BB then
+        Break;
       end;
-    if (ExecResource(dlgMakeList, s) <> cmOK) then
-      exit;
-    MakeListFileOptions := s.Options;
-    while s.Action[Length(s.Action)] = ' ' do
-      SetLength(s.Action, Length(s.Action)-1);
-    while s.Header[Length(s.Header)] = ' ' do
-      SetLength(s.Header, Length(s.Header)-1);
-    while s.Footer[Length(s.Footer)] = ' ' do
-      SetLength(s.Footer, Length(s.Footer)-1);
-    if s.Action <> '' then
-      s.Action := s.Action+' ';
-    FileMode := 2;
-    Abort := False;
-    if s.FileName[1] in ['+', '%', '/'] then
-      begin
+    if BB then
+      S.Options := S.Options or cmlPathNames
+    else
+      S.Options := S.Options and not cmlPathNames;
+    end;
+  if  (ExecResource(dlgMakeList, S) <> cmOK) then
+    Exit;
+  MakeListFileOptions := S.Options;
+  while S.Action[Length(S.Action)] = ' ' do
+    SetLength(S.Action, Length(S.Action)-1);
+  while S.Header[Length(S.Header)] = ' ' do
+    SetLength(S.Header, Length(S.Header)-1);
+  while S.Footer[Length(S.Footer)] = ' ' do
+    SetLength(S.Footer, Length(S.Footer)-1);
+  if S.Action <> '' then
+    S.Action := S.Action+' ';
+  FileMode := 2;
+  Abort := False;
+  if S.FileName[1] in ['+', '%', '/'] then
+    begin
 Retry:
-        FidoMode := True;
-        SS := FMSetup.DIZ;
-        i := Pos('/FIDO=', SS);
-        if i = 0 then
-          begin
-            SS := '';
+    FidoMode := True;
+    SS := FMSetup.DIZ;
+    I := Pos('/FIDO=', SS);
+    if I = 0 then
+      begin
+      SS := '';
 AddrError:
-            if ExecResource(dlgFTNInfo, SS) = cmCancel then
-              exit;
-            if PosChar(',', SS) > 0 then
-              i := Pos('/FIDO=', FMSetup.DIZ);
-            if i > 0 then
-              begin
-                for j := i to 255 do
-                  if FMSetup.DIZ[j] = ';' then
-                    break;
-                Delete(FMSetup.DIZ, i, j-i+1);
-              end;
-            if FMSetup.DIZ[Length(FMSetup.DIZ)] <> ';' then
-              FMSetup.DIZ := FMSetup.DIZ+';';
-            FMSetup.DIZ := FMSetup.DIZ+'/FIDO='+SS;
-            Message(Application, evCommand, cmUpdateConfig, nil);
-            goto Retry;
-          end;
-        Delete(SS, 1, i+5);
-        i := PosChar(';', SS);
-        if i = 0 then
-          i := Length(SS)+1;
-        SetLength(SS, i-1);
-        i := PosChar(',', SS);
-        if i = 0 then
-          goto AddrError;
-        ParseAddress(Copy(SS, 1, i-1), zz, NN, ND, PT);
-        k := zz;
-        ParseAddress(Copy(s.FileName, 2, MaxStringLength), zz, NN, ND,
-          PT);
-        Delete(SS, 1, i);
-        if SS[Length(SS)] = '\' then
-          SetLength(SS, Length(SS)-1);
-        lFSplit(SS, dr, Nm, XT);
-        if k <> zz then
-          XT := '.'+Copy(Hex4(zz), 2, 3);
-        SS := dr+Nm+XT;
-        if PT = 0 then
-          Nm := Hex4(NN)+Hex4(ND)
-        else
-          begin
-            SS := MakeNormName(SS, Hex4(NN)+Hex4(ND)+'.PNT\');
-            Nm := Hex8(PT);
-          end;
-        XT := '.hlo';
-        case s.FileName[1] of
-          '+':
-            XT[2] := 'c';
-          '%':
-            XT[2] := 'f';
-        end {case};
-        SS := MakeNormName(SS, Nm+XT);
-        s.FileName := SS;
-        s.Options := s.Options or cmlPathNames;
-      end
+      if ExecResource(dlgFTNInfo, SS) = cmCancel then
+        Exit;
+      if PosChar(',', SS) > 0 then
+        I := Pos('/FIDO=', FMSetup.DIZ);
+      if I > 0 then
+        begin
+        for J := I to 255 do
+          if FMSetup.DIZ[J] = ';' then
+            Break;
+        Delete(FMSetup.DIZ, I, J-I+1);
+        end;
+      if FMSetup.DIZ[Length(FMSetup.DIZ)] <> ';' then
+        FMSetup.DIZ := FMSetup.DIZ+';';
+      FMSetup.DIZ := FMSetup.DIZ+'/FIDO='+SS;
+      Message(Application, evCommand, cmUpdateConfig, nil);
+      goto Retry;
+      end;
+    Delete(SS, 1, I+5);
+    I := PosChar(';', SS);
+    if I = 0 then
+      I := Length(SS)+1;
+    SetLength(SS, I-1);
+    I := PosChar(',', SS);
+    if I = 0 then
+      goto AddrError;
+    ParseAddress(Copy(SS, 1, I-1), ZZ, NN, ND, PT);
+    K := ZZ;
+    ParseAddress(Copy(S.FileName, 2, MaxStringLength), ZZ, NN, ND, PT);
+    Delete(SS, 1, I);
+    if SS[Length(SS)] = '\' then
+      SetLength(SS, Length(SS)-1);
+    lFSplit(SS, Dr, Nm, Xt);
+    if K <> ZZ then
+      Xt := '.'+Copy(Hex4(ZZ), 2, 3);
+    SS := Dr+Nm+Xt;
+    if PT = 0 then
+      Nm := Hex4(NN)+Hex4(ND)
     else
-      FidoMode := False;
-    D := lFExpand(s.FileName);
-    lFSplit(D, dr, Nm, XT);
-    ClrIO;
-    FLD := dr;
-    CreateDirInheritance(dr, False);
-    if Abort then
-      exit;
-    lAssignText(t, D);
-    ClrIO;
-    lResetText(t);
-    if IOResult = 0 then
       begin
-        Close(t.t);
-        PP := @SS;
-        SS := Cut(D, 40);
-        if FidoMode then
-          i := cmOK
-        else
-          i := MessageBox(GetString(dlED_OverQuery)
+      SS := MakeNormName(SS, Hex4(NN)+Hex4(ND)+'.PNT\');
+      Nm := Hex8(PT);
+      end;
+    Xt := '.hlo';
+    case S.FileName[1] of
+      '+':
+        Xt[2] := 'c';
+      '%':
+        Xt[2] := 'f';
+    end {case};
+    SS := MakeNormName(SS, Nm+Xt);
+    S.FileName := SS;
+    S.Options := S.Options or cmlPathNames;
+    end
+  else
+    FidoMode := False;
+  D := lFExpand(S.FileName);
+  lFSplit(D, Dr, Nm, Xt);
+  ClrIO;
+  FLD := Dr;
+  CreateDirInheritance(Dr, False);
+  if Abort then
+    Exit;
+  lAssignText(T, D);
+  ClrIO;
+  lResetText(T);
+  if IOResult = 0 then
+    begin
+    Close(T.T);
+    PP := @SS;
+    SS := Cut(D, 40);
+    if FidoMode then
+      I := cmOK
+    else
+      I := MessageBox(GetString(dlED_OverQuery)
           , @PP, mfYesButton+mfCancelButton+mfAppendButton+mfWarning);
-        case i of
-          cmOK:
-            lAppendText(t);
-          cmYes:
-            lRewriteText(t);
-          else
-            exit;
-        end {case};
-      end
+    case I of
+      cmOK:
+        lAppendText(T);
+      cmYes:
+        lRewriteText(T);
+      else {case}
+        Exit;
+    end {case};
+    end
+  else
+    lRewriteText(T);
+  if Abort then
+    begin
+    Close(T.T);
+    Exit;
+    end;
+  RC := IOResult;
+  if RC <> 0 then
+    begin
+    MessFileNotOpen(Cut(S.FileName, 40), RC);
+    Exit;
+    end;
+  if  (S.Header <> '') and not FidoMode then
+    begin
+    if  (S.HeaderMode = hfmInsertText) or
+        ( (S.HeaderMode = hfmAuto) and not SomeFilesExist(S.Header))
+    then
+      Writeln(T.T, S.Header)
     else
-      lRewriteText(t);
-    if Abort then
       begin
-        Close(t.t);
-        exit;
-      end;
-    rc := IOResult;
-    if rc <> 0 then
-      begin
-        MessFileNotOpen(Cut(s.FileName, 40), rc);
-        exit;
-      end;
-    if (s.Header <> '') and not FidoMode then
-      begin
-        if (s.HeaderMode = hfmInsertText) or
-          ((s.HeaderMode = hfmAuto) and not SomeFilesExist(s.Header))
-        then
-          Writeln(t.t, s.Header)
-        else
+      CurPos := 1;
+      while GetNextName(S.Header, SS) do
+        begin
+        lAssignText(HF, SS);
+        ClrIO;
+        lResetText(HF);
+        RC := IOResult;
+        if  (RC <> 0) and (S.HeaderMode = hfmInsertFiles) then
           begin
-            CurPos := 1;
-            while GetNextName(s.Header, SS) do
-              begin
-                lAssignText(HF, SS);
-                ClrIO;
-                lResetText(HF);
-                rc := IOResult;
-                if (rc <> 0) and (s.HeaderMode = hfmInsertFiles)
-                then
-                  begin
-                    MessFileNotOpen(Cut(SS, 40), rc);
-                  end;
-                while (IOResult = 0) and not Eof(HF.t) do
-                  begin
-                    readln(HF.t, SS);
-                    Writeln(t.t, SS);
-                  end;
-                Close(HF.t)
-              end;
-            ClrIO;
+          MessFileNotOpen(Cut(SS, 40), RC);
           end;
+        while (IOResult = 0) and not Eof(HF.T) do
+          begin
+          Readln(HF.T, SS);
+          Writeln(T.T, SS);
+          end;
+        Close(HF.T)
+        end;
+      ClrIO;
       end;
-    Message(Desktop, evBroadcast, cmGetUserParams, @UPr);
-    for i := 1 to Files^.Count do
-      begin
-        P := Files^.At(i-1);
-        UPr.active := P;
-        {AK155 23-09-2003: разотметка по одному файлу тормозит страшно при
+    end;
+  Message(Desktop, evBroadcast, cmGetUserParams, @UPr);
+  for I := 1 to Files^.Count do
+    begin
+    P := Files^.At(I-1);
+    UPr.Active := P;
+    {AK155 23-09-2003: разотметка по одному файлу тормозит страшно при
 большом числе файлов
     Message(APP, evCommand, cmCopyUnselect, P);
 /AK155}
-        BB := False;
-        SR := P^.Owner^;
-        Replace('!', #0, SR);
-        if SR[Length(SR)] <> '\' then
-          SR := SR+'\';
-        SS := s.Action;
-        if SS <> '' then
-          begin
-            Replace(';;', #1, SS);
-            while SS <> '' do
-              begin
-                j := PosChar(';', SS);
-                if j = 0 then
-                  j := Length(SS)+1;
-                MakeStr(fReplace(#1, ';', Copy(SS, 1, j-1)));
-                Delete(SS, 1, j);
-              end;
-          end
-        else if (s.Options and cmlPathNames <> 0) or (s.Options and
-            cmlAutoDetermine <> 0) and (SR <> FLD)
-        then
-          MakeStr('!:!\!.!')
-        else
-          MakeStr('!.!');
-      end;
-    if (s.Footer <> '') and not FidoMode then
+    BB := False;
+    SR := P^.Owner^;
+    Replace('!', #0, SR);
+    if SR[Length(SR)] <> '\' then
+      SR := SR+'\';
+    SS := S.Action;
+    if SS <> '' then
       begin
-        if (s.FooterMode = hfmInsertText) or
-          ((s.FooterMode = hfmAuto) and not SomeFilesExist(s.Footer))
-        then
-          Writeln(t.t, s.Footer)
-        else
+      Replace(';;', #1, SS);
+      while SS <> '' do
+        begin
+        J := PosChar(';', SS);
+        if J = 0 then
+          J := Length(SS)+1;
+        MakeStr(fReplace(#1, ';', Copy(SS, 1, J-1)));
+        Delete(SS, 1, J);
+        end;
+      end
+    else if (S.Options and cmlPathNames <> 0)
+         or (S.Options and cmlAutoDetermine <> 0) and (SR <> FLD)
+    then
+      MakeStr('!:!\!.!')
+    else
+      MakeStr('!.!');
+    end;
+  if  (S.Footer <> '') and not FidoMode then
+    begin
+    if  (S.FooterMode = hfmInsertText) or
+        ( (S.FooterMode = hfmAuto) and not SomeFilesExist(S.Footer))
+    then
+      Writeln(T.T, S.Footer)
+    else
+      begin
+      CurPos := 1;
+      while GetNextName(S.Footer, SS) do
+        begin
+        lAssignText(HF, SS);
+        ClrIO;
+        lResetText(HF);
+        RC := IOResult;
+        if  (RC <> 0) and (S.FooterMode = hfmInsertFiles) then
           begin
-            CurPos := 1;
-            while GetNextName(s.Footer, SS) do
-              begin
-                lAssignText(HF, SS);
-                ClrIO;
-                lResetText(HF);
-                rc := IOResult;
-                if (rc <> 0) and (s.FooterMode = hfmInsertFiles)
-                then
-                  begin
-                    MessFileNotOpen(Cut(SS, 40), rc);
-                  end;
-                while (IOResult = 0) and not Eof(HF.t) do
-                  begin
-                    readln(HF.t, SS);
-                    Writeln(t.t, SS);
-                  end;
-                Close(HF.t)
-              end;
-            ClrIO;
+          MessFileNotOpen(Cut(SS, 40), RC);
           end;
+        while (IOResult = 0) and not Eof(HF.T) do
+          begin
+          Readln(HF.T, SS);
+          Writeln(T.T, SS);
+          end;
+        Close(HF.T)
+        end;
+      ClrIO;
       end;
-    Close(t.t);
-    { AK155 23-09-2003 Теперь скопом снимаем всю отметку. Делать это надо
+    end;
+  Close(T.T);
+  { AK155 23-09-2003 Теперь скопом снимаем всю отметку. Делать это надо
 обязательно до RereadDirectory, так как она страшно тормзит при большом
 числе отмеченных файлов. }
-    ClearSelection(APP, PFilePanelRoot(APP)^.Files);
-    {/AK155}
-    RereadDirectory(dr);
-    GlobalMessage(evCommand, cmRereadInfo, nil);
-    GlobalMessage(evCommand, cmRereadTree, @Dr);
+  ClearSelection(APP, PFilePanelRoot(APP)^.Files);
+  {/AK155}
+  RereadDirectory(Dr);
+  GlobalMessage(evCommand, cmRereadInfo, nil);
+  GlobalMessage(evCommand, cmRereadTree, @Dr);
   end { MakeListFile };
 {-DataCompBoy-}
 

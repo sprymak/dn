@@ -51,7 +51,8 @@ unit DblWnd;
 interface
 
 uses
-  Lfn, Views, Objects, Drivers, FlPanel, HideView, Tree, FViewer;
+  Lfn, Views, Objects, Drivers, FlPanel, HideView, Tree, FViewer
+  ;
 
 type
   {
@@ -65,9 +66,9 @@ type
 
   PDoubleWindow = ^TDoubleWindow;
   TDoubleWindow = object( {TStd}TWindow)
-    isValid: boolean;
+    isValid: Boolean;
     LeftView, RightView: PHideView;
-    RDrive, LDrive: byte;
+    RDrive, LDrive: Byte;
     Separator: PSeparator;
     LPanel, RPanel: PFilePanel;
     Info: PHideView;
@@ -78,15 +79,15 @@ type
     QView: PFileViewer;
     OldBounds: TRect;
     OldPanelBounds: TRect;
-    PanelZoomed: boolean;
+    PanelZoomed: Boolean;
     LType, RType: AInt;
-    Constructor Init(Bounds: TRect; ANumber, ADrive: integer);
+    constructor Init(Bounds: TRect; ANumber, ADrive: Integer);
     procedure InitLeftView(R: TRect);
     procedure InitRightView(R: TRect);
     procedure InitInterior;
-    Constructor Load(var s: TStream);
-    procedure Store(var s: TStream);
-    function Valid(C: word): boolean; virtual;
+    constructor Load(var S: TStream);
+    procedure Store(var S: TStream);
+    function Valid(C: Word): Boolean; virtual;
     procedure ChangeBounds(var Bounds: TRect); virtual;
     procedure HandleCommand(var Event: TEvent);
     end;
@@ -106,7 +107,7 @@ const
   #165+ { 32-38  File Panel               }
   #172#173#174#175#176#177#180#181+
   #186#187#188+#192#193#194#195#196 { Drive Line };
-    {JO - 5 additional highlight groups}
+  {JO - 5 additional highlight groups}
 
 const
   dtInfo = 1;
@@ -119,49 +120,48 @@ const
 
 implementation
 uses
-  DiskInfo, Commands, FileCopy, FilesCol, advance, advance1,
-    advance2,
-  advance3, Startup, DNApp, RStrings, {DataCompBoy}Messages
+  DiskInfo, Commands, FileCopy, FilesCol, Advance, Advance1, Advance2,
+  Advance3, Startup, DNApp, RStrings, {DataCompBoy}Messages
   {$IFDEF NETINFO}, NetInfo {-$VIV} {$ENDIF}
   , Dos
   ;
 
-Constructor TDoubleWindow.Init;
+constructor TDoubleWindow.Init;
   var
     P: PFilePanel;
     P2: PTopView;
     R: TRect;
     PV: PView;
   begin
-    inherited Init(Bounds, '', ANumber);
-    isValid := True;
-    Options := Options or ofTileable;
-    EventMask := $FFFF;
-    Abort := False;
-    if (ADrive <= 0) or not ValidDrive(Char(ADrive+64)) then
-      ADrive := 0;
-    LDrive := ADrive;
-    RDrive := ADrive;
-    GetExtent(R);
-    R.Grow(-1, 0);
-    R.A.X := R.B.X div 2;
-    R.B.X := R.A.X+2;
-    PanelZoomed := False;
-    Separator := New(PSeparator, Init(R, Size.X));
-    Insert(Separator);
-    LeftView := nil;
-    RightView := nil;
-    InitInterior;
-    if Abort then
-      isValid := False;
-    case PanelDefaults.LeftPanel of
-      fdoInfoDrive:
-        Message(@Self, evCommand, cmDiskInfo, nil);
-      fdoTreeFrive:
-        Message(@Self, evCommand, cmDirTree, nil);
-      fdoRightOnly:
-        Message(@Self, evCommand, cmHideLeft, nil);
-    end {case};
+  inherited Init(Bounds, '', ANumber);
+  isValid := True;
+  Options := Options or ofTileable;
+  EventMask := $FFFF;
+  Abort := False;
+  if  (ADrive <= 0) or not ValidDrive(Char(ADrive+64)) then
+    ADrive := 0;
+  LDrive := ADrive;
+  RDrive := ADrive;
+  GetExtent(R);
+  R.Grow(-1, 0);
+  R.A.X := R.B.X div 2;
+  R.B.X := R.A.X+2;
+  PanelZoomed := False;
+  Separator := New(PSeparator, Init(R, Size.X));
+  Insert(Separator);
+  LeftView := nil;
+  RightView := nil;
+  InitInterior;
+  if Abort then
+    isValid := False;
+  case PanelDefaults.LeftPanel of
+    fdoInfoDrive:
+      Message(@Self, evCommand, cmDiskInfo, nil);
+    fdoTreeFrive:
+      Message(@Self, evCommand, cmDirTree, nil);
+    fdoRightOnly:
+      Message(@Self, evCommand, cmHideLeft, nil);
+  end {case};
   end { TDoubleWindow.Init };
 
 procedure TDoubleWindow.InitLeftView;
@@ -173,43 +173,43 @@ procedure TDoubleWindow.InitLeftView;
     PD: PDriveLine;
     B: TRect;
   begin
-    if Abort then
-      exit;
-    B := R;
-    B.A.X := B.B.X;
-    Inc(B.B.X);
-    Inc(B.A.Y);
-    Dec(B.B.Y, 3);
-    New(PV, Init(B));
-    New(P, Init(R, LDrive, PV));
-    PV^.Panel := P;
-    if Abort then
-      begin
-        Dispose(P, Done);
-        Dispose(PV, Done);
-        exit
-      end;
+  if Abort then
+    Exit;
+  B := R;
+  B.A.X := B.B.X;
+  Inc(B.B.X);
+  Inc(B.A.Y);
+  Dec(B.B.Y, 3);
+  New(PV, Init(B));
+  New(P, Init(R, LDrive, PV));
+  PV^.Panel := P;
+  if Abort then
+    begin
+    Dispose(P, Done);
+    Dispose(PV, Done);
+    Exit
+    end;
 
-    New(P1, Init(R));
-    P1^.Panel := P;
-    P^.InfoView := P1;
+  New(P1, Init(R));
+  P1^.Panel := P;
+  P^.InfoView := P1;
 
-    New(P2, Init(R));
-    P2^.Panel := P;
-    P^.DirView := P2;
-    P2^.EventMask := $FFFF;
+  New(P2, Init(R));
+  P2^.Panel := P;
+  P^.DirView := P2;
+  P2^.EventMask := $FFFF;
 
-    New(PD, Init(R, P));
-    P^.DriveLine := PD;
+  New(PD, Init(R, P));
+  P^.DriveLine := PD;
 
-    P^.ChangeBounds(R);
+  P^.ChangeBounds(R);
 
-    Insert(PV);
-    Insert(P2);
-    Insert(P1);
-    Insert(P);
-    Insert(PD);
-    LeftView := P;
+  Insert(PV);
+  Insert(P2);
+  Insert(P1);
+  Insert(P);
+  Insert(PD);
+  LeftView := P;
   end { TDoubleWindow.InitLeftView };
 
 procedure TDoubleWindow.InitRightView;
@@ -221,44 +221,44 @@ procedure TDoubleWindow.InitRightView;
     PD: PDriveLine;
     RR: TRect;
   begin
-    if Abort then
-      exit;
-    RR.B.X := RR.A.X+1;
-    New(PS, Init(RR));
+  if Abort then
+    Exit;
+  RR.B.X := RR.A.X+1;
+  New(PS, Init(RR));
 
-    New(P, Init(R, RDrive, PS));
-    PS^.Panel := P;
-    if Abort then
-      begin
-        Dispose(P, Done);
-        Dispose(PS, Done);
-        exit
-      end;
+  New(P, Init(R, RDrive, PS));
+  PS^.Panel := P;
+  if Abort then
+    begin
+    Dispose(P, Done);
+    Dispose(PS, Done);
+    Exit
+    end;
 
-    New(P1, Init(R));
-    P1^.Panel := P;
-    P^.InfoView := P1;
+  New(P1, Init(R));
+  P1^.Panel := P;
+  P^.InfoView := P1;
 
-    New(P2, Init(R));
-    P2^.Panel := P;
-    P^.DirView := P2;
-    P2^.EventMask := $FFFF;
+  New(P2, Init(R));
+  P2^.Panel := P;
+  P^.DirView := P2;
+  P2^.EventMask := $FFFF;
 
-    New(PD, Init(R, P));
-    P^.DriveLine := PD;
+  New(PD, Init(R, P));
+  P^.DriveLine := PD;
 
-    P^.ChangeBounds(R);
-    Insert(PS);
-    Insert(P2);
-    Insert(P1);
-    Insert(PD);
-    Insert(P);
-    RightView := P;
+  P^.ChangeBounds(R);
+  Insert(PS);
+  Insert(P2);
+  Insert(P1);
+  Insert(PD);
+  Insert(P);
+  RightView := P;
   end { TDoubleWindow.InitRightView };
 
 function TDoubleWindow.Valid;
   begin
-    Valid := inherited Valid(C) and isValid;
+  Valid := inherited Valid(C) and isValid;
   end;
 
 procedure TDoubleWindow.ChangeBounds(var Bounds: TRect);
@@ -266,672 +266,675 @@ procedure TDoubleWindow.ChangeBounds(var Bounds: TRect);
     D: TPoint;
     R: TRect;
     P: PSeparator;
-    LVisible, RVisible, SVisible: boolean;
+    LVisible, RVisible, SVisible: Boolean;
   label 1;
   begin
-    D.X := Bounds.B.X-Bounds.A.X-Size.X;
-    D.Y := Bounds.B.Y-Bounds.A.Y-Size.Y;
+  D.X := Bounds.B.X-Bounds.A.X-Size.X;
+  D.Y := Bounds.B.Y-Bounds.A.Y-Size.Y;
+  P := PSeparator(Separator);
+  GetExtent(R);
+  R.Grow(-1, 0);
+  R.A.X := (R.B.X*P^.OldX) div P^.OldW;
+  if D.EqualsXY(0, 0) and (R.A.X = P^.Origin.X) then
+    begin
+    SetBounds(Bounds);
+    DrawView;
+    end
+  else
+    begin
+    FreeBuffer;
+    SetBounds(Bounds);
+    GetExtent(Clip);
+    GetBuffer;
+    Lock;
+    GetExtent(R);
+    Frame^.ChangeBounds(R);
     P := PSeparator(Separator);
+    LVisible := LeftView^.GetState(sfVisible);
+    RVisible := RightView^.GetState(sfVisible);
+    SVisible := P^.GetState(sfVisible);
+    if not LVisible or not RVisible then
+      begin
+      if SVisible then
+        P^.Hide;
+      GetExtent(R);
+      R.Grow(-1, -1);
+      if LVisible then
+        LeftView^.ChangeBounds(R)
+      else
+        RightView^.ChangeBounds(R);
+      goto 1;
+      end;
+    if not SVisible then
+      P^.Show;
     GetExtent(R);
     R.Grow(-1, 0);
     R.A.X := (R.B.X*P^.OldX) div P^.OldW;
-    if D.EqualsXY(0, 0) and (R.A.X = P^.Origin.X) then
-      begin
-        SetBounds(Bounds);
-        DrawView;
-      end
-    else
-      begin
-        FreeBuffer;
-        SetBounds(Bounds);
-        GetExtent(Clip);
-        GetBuffer;
-        Lock;
-        GetExtent(R);
-        Frame^.ChangeBounds(R);
-        P := PSeparator(Separator);
-        LVisible := LeftView^.GetState(sfVisible);
-        RVisible := RightView^.GetState(sfVisible);
-        SVisible := P^.GetState(sfVisible);
-        if not LVisible or not RVisible then
-          begin
-            if SVisible then
-              P^.Hide;
-            GetExtent(R);
-            R.Grow(-1, -1);
-            if LVisible then
-              LeftView^.ChangeBounds(R)
-            else
-              RightView^.ChangeBounds(R);
-            goto 1;
-          end;
-        if not SVisible then
-          P^.Show;
-        GetExtent(R);
-        R.Grow(-1, 0);
-        R.A.X := (R.B.X*P^.OldX) div P^.OldW;
-        R.B.X := R.A.X+2;
-        Separator^.ChangeBounds(R);
-        GetExtent(R);
-        R.Grow(-1, -1);
-        R.A.X := (R.B.X*P^.OldX) div P^.OldW+2;
-        RightView^.ChangeBounds(R);
-        GetExtent(R);
-        R.Grow(-1, -1);
-        R.B.X := (R.B.X*P^.OldX) div P^.OldW;
-        LeftView^.ChangeBounds(R);
+    R.B.X := R.A.X+2;
+    Separator^.ChangeBounds(R);
+    GetExtent(R);
+    R.Grow(-1, -1);
+    R.A.X := (R.B.X*P^.OldX) div P^.OldW+2;
+    RightView^.ChangeBounds(R);
+    GetExtent(R);
+    R.Grow(-1, -1);
+    R.B.X := (R.B.X*P^.OldX) div P^.OldW;
+    LeftView^.ChangeBounds(R);
 1:
-        Redraw;
-        UnLock;
-      end;
+    Redraw;
+    UnLock;
+    end;
   end { TDoubleWindow.ChangeBounds };
 
-Constructor TDoubleWindow.Load;
+constructor TDoubleWindow.Load;
   var
-    B: boolean;
+    B: Boolean;
   begin
-    inherited Load(s);
-    s.Read(OldBounds, SizeOf(OldBounds)*2+SizeOf(LType)+SizeOf(RType));
-    GetSubViewPtr(s, Separator);
-    GetSubViewPtr(s, LeftView);
-    GetSubViewPtr(s, RightView);
-    GetSubViewPtr(s, LPanel);
-    GetSubViewPtr(s, RPanel);
-    GetSubViewPtr(s, Info);
-    {$IFDEF NETINFO}
-    GetSubViewPtr(s, NetInfo); {-$VIV}
-    {$ENDIF}
-    {Cat}
-    if (Separator = nil) or (LeftView = nil) or (RightView = nil)
-      or (LPanel = nil) or (RPanel = nil)
-    then
-      Fail;
-    {/Cat}
-    if TypeOf(LeftView^) = TypeOf(TFilePanel) then
-      PSpecScroll(PFilePanel(LeftView)^.ScrollBar)^.Panel :=
+  inherited Load(S);
+  S.Read(OldBounds, SizeOf(OldBounds)*2+SizeOf(LType)+SizeOf(RType));
+  GetSubViewPtr(S, Separator);
+  GetSubViewPtr(S, LeftView);
+  GetSubViewPtr(S, RightView);
+  GetSubViewPtr(S, LPanel);
+  GetSubViewPtr(S, RPanel);
+  GetSubViewPtr(S, Info);
+  {$IFDEF NETINFO}
+  GetSubViewPtr(S, NetInfo); {-$VIV}
+  {$ENDIF}
+  {Cat}
+  if  (Separator = nil) or (LeftView = nil) or (RightView = nil)
+    or (LPanel = nil) or (RPanel = nil)
+  then
+    Fail;
+  {/Cat}
+  if TypeOf(LeftView^) = TypeOf(TFilePanel) then
+    PSpecScroll(PFilePanel(LeftView)^.ScrollBar)^.Panel :=
       PFilePanel(LeftView);
-    if TypeOf(RightView^) = TypeOf(TFilePanel) then
-      PSpecScroll(PFilePanel(RightView)^.ScrollBar)^.Panel :=
+  if TypeOf(RightView^) = TypeOf(TFilePanel) then
+    PSpecScroll(PFilePanel(RightView)^.ScrollBar)^.Panel :=
       PFilePanel(RightView);
-    s.Read(B, 1);
-    LTree := nil;
-    if B then
-      begin
-        GetSubViewPtr(s, LTree);
-        if LTree = nil then{Cat}
-          Fail;
-      end;
-    s.Read(B, 1);
-    QView := nil;
-    if B then
-      begin
-        GetSubViewPtr(s, QView);
-        if QView = nil then{Cat}
-          Fail;
-      end;
-    if (LTree <> nil) and (LTree^.Size.X > 0) then
-      LTree^.ReadAfterLoad;
-    if (RType = dtInfo) or (LType = dtInfo) then
-      begin
-        if Info = nil then{Cat}
-          Fail;
-        PDiskInfo(Info)^.ReadData(False);
-      end;
-    {$IFDEF NETINFO}
-    if (RType = dtNetInfo) or (LType = dtNetInfo) then
-      begin
-        if NetInfo = nil then{Cat}
-          Fail;
-        PNetInfo(NetInfo)^.ReadData(False); {-$VIV}
-      end;
-    {$ENDIF}
-    if (RType = dtView) or (LType = dtView) then
-      Message(@Self, evCommand, cmEnableView, nil);
-    isValid := True;
+  S.Read(B, 1);
+  LTree := nil;
+  if B then
+    begin
+    GetSubViewPtr(S, LTree);
+    if LTree = nil then
+      {Cat}
+      Fail;
+    end;
+  S.Read(B, 1);
+  QView := nil;
+  if B then
+    begin
+    GetSubViewPtr(S, QView);
+    if QView = nil then
+      {Cat}
+      Fail;
+    end;
+  if  (LTree <> nil) and (LTree^.Size.X > 0) then
+    LTree^.ReadAfterLoad;
+  if  (RType = dtInfo) or (LType = dtInfo) then
+    begin
+    if Info = nil then
+      {Cat}
+      Fail;
+    PDiskInfo(Info)^.ReadData(False);
+    end;
+  {$IFDEF NETINFO}
+  if  (RType = dtNetInfo) or (LType = dtNetInfo) then
+    begin
+    if NetInfo = nil then
+      {Cat}
+      Fail;
+    PNetInfo(NetInfo)^.ReadData(False); {-$VIV}
+    end;
+  {$ENDIF}
+  if  (RType = dtView) or (LType = dtView) then
+    Message(@Self, evCommand, cmEnableView, nil);
+  isValid := True;
   end { TDoubleWindow.Load };
 
 procedure TDoubleWindow.Store;
   var
-    B: boolean;
+    B: Boolean;
   begin
-    inherited Store(s);
-    s.Write(OldBounds, SizeOf(OldBounds)*2+SizeOf(LType)+SizeOf(
-      RType));
-    PutSubViewPtr(s, Separator);
-    PutSubViewPtr(s, LeftView);
-    PutSubViewPtr(s, RightView);
-    PutSubViewPtr(s, LPanel);
-    PutSubViewPtr(s, RPanel);
-    PutSubViewPtr(s, Info);
-    {$IFDEF NETINFO}
-    PutSubViewPtr(s, NetInfo); {-$VIV}
-    {$ENDIF}
-    if LTree <> nil then
-      B := True
-    else
-      B := False;
-    s.Write(B, 1);
-    if B then
-      PutSubViewPtr(s, LTree);
-    if QView <> nil then
-      B := True
-    else
-      B := False;
-    s.Write(B, 1);
-    if B then
-      PutSubViewPtr(s, QView);
+  inherited Store(S);
+  S.Write(OldBounds, SizeOf(OldBounds)*2+SizeOf(LType)+SizeOf(RType));
+  PutSubViewPtr(S, Separator);
+  PutSubViewPtr(S, LeftView);
+  PutSubViewPtr(S, RightView);
+  PutSubViewPtr(S, LPanel);
+  PutSubViewPtr(S, RPanel);
+  PutSubViewPtr(S, Info);
+  {$IFDEF NETINFO}
+  PutSubViewPtr(S, NetInfo); {-$VIV}
+  {$ENDIF}
+  if LTree <> nil then
+    B := True
+  else
+    B := False;
+  S.Write(B, 1);
+  if B then
+    PutSubViewPtr(S, LTree);
+  if QView <> nil then
+    B := True
+  else
+    B := False;
+  S.Write(B, 1);
+  if B then
+    PutSubViewPtr(S, QView);
   end { TDoubleWindow.Store };
 
 procedure TDoubleWindow.InitInterior;
   var
     R: TRect;
   begin
-    GetExtent(R);
-    R.Grow(-1, -1);
-    R.A.X := R.B.X div 2+2;
-    InitRightView(R);
-    if Abort then
-      exit;
+  GetExtent(R);
+  R.Grow(-1, -1);
+  R.A.X := R.B.X div 2+2;
+  InitRightView(R);
+  if Abort then
+    Exit;
 
-    GetExtent(R);
-    R.Grow(-1, -1);
-    R.B.X := R.B.X div 2;
-    InitLeftView(R);
+  GetExtent(R);
+  R.Grow(-1, -1);
+  R.B.X := R.B.X div 2;
+  InitLeftView(R);
 
-    if Abort then
-      exit;
-    RightView^.Select;
-    RPanel := PFilePanel(RightView);
-    LType := dtPanel;
-    RType := dtPanel;
-    LType := dtPanel;
-    LPanel := PFilePanel(LeftView);
-    GetExtent(R);
-    R.Grow(-1, -1);
-    R.B.X := Separator^.Origin.X;
-    Info := nil;
-    LTree := nil;
-    QView := nil;
-    {$IFDEF NETINFO}
-    NetInfo := nil; {-$VIV}
-    {$ENDIF}
+  if Abort then
+    Exit;
+  RightView^.Select;
+  RPanel := PFilePanel(RightView);
+  LType := dtPanel;
+  RType := dtPanel;
+  LType := dtPanel;
+  LPanel := PFilePanel(LeftView);
+  GetExtent(R);
+  R.Grow(-1, -1);
+  R.B.X := Separator^.Origin.X;
+  Info := nil;
+  LTree := nil;
+  QView := nil;
+  {$IFDEF NETINFO}
+  NetInfo := nil; {-$VIV}
+  {$ENDIF}
   end { TDoubleWindow.InitInterior };
 
 procedure TDoubleWindow.HandleCommand;
   var
     R, R1, R2: TRect;
-    i, k: integer;
-    LVisible, RVisible, LSelected: boolean;
+    I, K: Integer;
+    LVisible, RVisible, LSelected: Boolean;
     Sp: PSeparator;
     EV: TEvent;
     P: PView;
-    s: String;
+    S: String;
 
   procedure UnLck;
     begin
-      Dec(R.A.X);
-      ChangeBounds(R);
-      Inc(R.A.X);
-      ChangeBounds(R);
-      UnLock;
+    Dec(R.A.X);
+    ChangeBounds(R);
+    Inc(R.A.X);
+    ChangeBounds(R);
+    UnLock;
     end;
 
   procedure SwitchLeft;
     begin
-      if not RVisible or PanelZoomed then
-        exit;
-      if LVisible then
-        begin
-          GetBounds(R);
-          OldBounds := R;
-          { Flash >>> }
-          R.A.X := RightView^.Origin.X-R.A.X-1;
-          if R.B.X-R.A.X <= 16 then
-            Dec(R.A.X, 16-(R.B.X-R.A.X));
-          { Flash <<< }
-          Lock;
-          LeftView^.HideView;
-          RightView^.Select;
-          Locate(R);
-          Redraw;
-          UnLock;
-        end
-      else
-        begin
-          GetBounds(R);
-          R.A.X := OldBounds.A.X;
-          R.B.X := OldBounds.B.X; { Flash }
-          Lock;
-          LeftView^.ShowView;
-          Redraw;
-          Locate(R);
-          UnLock;
-          Owner^.Redraw;
-        end
+    if not RVisible or PanelZoomed then
+      Exit;
+    if LVisible then
+      begin
+      GetBounds(R);
+      OldBounds := R;
+      { Flash >>> }
+      R.A.X := RightView^.Origin.X-R.A.X-1;
+      if R.B.X-R.A.X <= 16 then
+        Dec(R.A.X, 16-(R.B.X-R.A.X));
+      { Flash <<< }
+      Lock;
+      LeftView^.HideView;
+      RightView^.Select;
+      Locate(R);
+      Redraw;
+      UnLock;
+      end
+    else
+      begin
+      GetBounds(R);
+      R.A.X := OldBounds.A.X;
+      R.B.X := OldBounds.B.X; { Flash }
+      Lock;
+      LeftView^.ShowView;
+      Redraw;
+      Locate(R);
+      UnLock;
+      Owner^.Redraw;
+      end
     end { SwitchLeft };
 
   procedure SwitchRight;
     begin
-      if not LVisible or PanelZoomed then
-        exit;
-      if RVisible then
-        begin
-          GetBounds(R);
-          OldBounds := R;
-          R.B.X := Separator^.Origin.X+R.A.X+1;
-          Lock;
-          RightView^.HideView;
-          LeftView^.Select;
-          Locate(R);
-          Redraw;
-          UnLock;
-        end
-      else
-        begin
-          GetBounds(R);
-          R.A.X := OldBounds.A.X;
-          R.B.X := OldBounds.B.X; { Flash }
-          Lock;
-          RightView^.ShowView;
-          Redraw;
-          Locate(R);
-          UnLock;
-          Owner^.Redraw;
-        end
+    if not LVisible or PanelZoomed then
+      Exit;
+    if RVisible then
+      begin
+      GetBounds(R);
+      OldBounds := R;
+      R.B.X := Separator^.Origin.X+R.A.X+1;
+      Lock;
+      RightView^.HideView;
+      LeftView^.Select;
+      Locate(R);
+      Redraw;
+      UnLock;
+      end
+    else
+      begin
+      GetBounds(R);
+      R.A.X := OldBounds.A.X;
+      R.B.X := OldBounds.B.X; { Flash }
+      Lock;
+      RightView^.ShowView;
+      Redraw;
+      Locate(R);
+      UnLock;
+      Owner^.Redraw;
+      end
     end { SwitchRight };
 
   procedure GetDirName;
     begin
-      if LVisible and (LType = dtPanel) then
-        PString(Event.InfoPtr)^:= PFilePanel(LPanel)^.DirectoryName
-      else if RVisible and (RType = dtPanel) then
-        PString(Event.InfoPtr)^:= PFilePanel(RPanel)^.DirectoryName
+    if LVisible and (LType = dtPanel) then
+      PString(Event.InfoPtr)^:= PFilePanel(LPanel)^.DirectoryName
+    else if RVisible and (RType = dtPanel) then
+      PString(Event.InfoPtr)^:= PFilePanel(RPanel)^.DirectoryName
     end;
 
   procedure ChangeDrvLeft;
     var
-      s: String;
+      S: String;
       P: TPoint;
     begin
+    if LType <> dtPanel then
+      begin
+      LeftView^.GetBounds(R);
+      R.A.Y := 1;
+      R.B.Y := Size.Y;
+      LPanel^.Locate(R);
+      end;
+    GetBounds(R);
+    if not LVisible or (LType <> dtPanel) then
+      begin
+      if LVisible then
+        P.X := Origin.X+(1+LeftView^.Size.X) div 2
+      else if Separator^.OldW > 0 then
+        P.X :=
+              (OldBounds.A.X+((OldBounds.B.X-OldBounds.A.X)*Separator^.OldX
+              ) div Separator^.OldW) div 2
+      else
+        P.X := 1;
+      P.Y := Origin.Y+3;
+      S := SelectDrive(P.X, P.Y, LPanel^.DirectoryName[1], True);
+      if S = '' then
+        Exit;
+      ClrIO;
+      Message(LPanel, evCommand, cmChangeDrv, @S);
       if LType <> dtPanel then
         begin
-          LeftView^.GetBounds(R);
-          R.A.Y := 1;
-          R.B.Y := Size.Y;
-          LPanel^.Locate(R);
-        end;
-      GetBounds(R);
-      if not LVisible or (LType <> dtPanel) then
-        begin
-          if LVisible then
-            P.X := Origin.X+(1+LeftView^.Size.X) div 2
-          else if Separator^.OldW > 0 then
-            P.X := (OldBounds.A.X+((OldBounds.B.X-OldBounds.A.X)*
-              Separator^.OldX) div Separator^.OldW) div 2
-          else
-            P.X := 1;
-          P.Y := Origin.Y+3;
-          s := SelectDrive(P.X, P.Y, LPanel^.DirectoryName[1], True);
-          if s = '' then
-            exit;
-          ClrIO;
-          Message(LPanel, evCommand, cmChangeDrv, @S);
-          if LType <> dtPanel then
-            begin
-              Lock;
-              if not LVisible then
-                SwitchLeft;
-              LeftView^.GetBounds(R1);
-              LeftView^.HideView;
-              R1.A.Y := 1;
-              R1.B.Y := Size.Y-1;
-              LPanel^.Locate(R1);
-              LeftView := LPanel;
-              LType := dtPanel;
-              LPanel^.ShowView;
-              UnLck;
-            end
-          else if not LVisible then
-            SwitchLeft;
-          LeftView^.GetBounds(R1);
+        Lock;
+        if not LVisible then
+          SwitchLeft;
+        LeftView^.GetBounds(R1);
+        LeftView^.HideView;
+        R1.A.Y := 1;
+        R1.B.Y := Size.Y-1;
+        LPanel^.Locate(R1);
+        LeftView := LPanel;
+        LType := dtPanel;
+        LPanel^.ShowView;
+        UnLck;
         end
-      else
-        begin
-          Message(LPanel, evCommand, cmChangeDrive, nil);
-        end;
-      if (ShiftState and 3 <> 0) and (not LSelected) then
-        LeftView^.Select;
+      else if not LVisible then
+        SwitchLeft;
+      LeftView^.GetBounds(R1);
+      end
+    else
+      begin
+      Message(LPanel, evCommand, cmChangeDrive, nil);
+      end;
+    if  (ShiftState and 3 <> 0) and (not LSelected) then
+      LeftView^.Select;
     end { ChangeDrvLeft };
 
   procedure ChangeDrvRight;
     var
-      s: String;
+      S: String;
       P: TPoint;
     begin
+    if RType <> dtPanel then
+      begin
+      RightView^.GetBounds(R);
+      R.A.Y := 1;
+      R.B.Y := Size.Y;
+      RPanel^.Locate(R);
+      end;
+    GetBounds(R);
+    if not RVisible or (RType <> dtPanel) then
+      begin
+      if RVisible then
+        P.X := Origin.X+RightView^.Origin.X+(1+RightView^.Size.X) div 2
+      else if Separator^.OldW > 0 then
+        P.X := (OldBounds.B.X+OldBounds.A.X+((OldBounds.B.X-OldBounds.A.X)*
+              Separator^.OldX) div Separator^.OldW) div 2
+      else
+        P.X := OldBounds.B.X+OldBounds.A.X;
+      P.Y := Origin.Y+3;
+      S := SelectDrive(P.X, P.Y, RPanel^.DirectoryName[1], True);
+      if S = '' then
+        Exit;
+      ClrIO;
+      Message(RPanel, evCommand, cmChangeDrv, @S);
       if RType <> dtPanel then
         begin
-          RightView^.GetBounds(R);
-          R.A.Y := 1;
-          R.B.Y := Size.Y;
-          RPanel^.Locate(R);
-        end;
-      GetBounds(R);
-      if not RVisible or (RType <> dtPanel) then
-        begin
-          if RVisible then
-            P.X := Origin.X+RightView^.Origin.X+(1+RightView^.Size.X)
-              div 2
-          else if Separator^.OldW > 0 then
-            P.X := (OldBounds.B.X+OldBounds.A.X+((OldBounds.B.X-
-              OldBounds.A.X)*
-            Separator^.OldX) div Separator^.OldW) div 2
-          else
-            P.X := OldBounds.B.X+OldBounds.A.X;
-          P.Y := Origin.Y+3;
-          s := SelectDrive(P.X, P.Y, RPanel^.DirectoryName[1], True);
-          if s = '' then
-            exit;
-          ClrIO;
-          Message(RPanel, evCommand, cmChangeDrv, @S);
-          if RType <> dtPanel then
-            begin
-              Lock;
-              if not RVisible then
-                SwitchRight;
-              RightView^.GetBounds(R1);
-              RightView^.HideView;
-              R1.A.Y := 1;
-              R1.B.Y := Size.Y-1;
-              RPanel^.Locate(R1);
-              RightView := RPanel;
-              RType := dtPanel;
-              RPanel^.ShowView;
-              UnLck;
-            end
-          else if not RVisible then
-            SwitchRight;
-          RightView^.GetBounds(R1);
+        Lock;
+        if not RVisible then
+          SwitchRight;
+        RightView^.GetBounds(R1);
+        RightView^.HideView;
+        R1.A.Y := 1;
+        R1.B.Y := Size.Y-1;
+        RPanel^.Locate(R1);
+        RightView := RPanel;
+        RType := dtPanel;
+        RPanel^.ShowView;
+        UnLck;
         end
-      else
-        Message(RPanel, evCommand, cmChangeDrive, nil);
-      if (ShiftState and 3 <> 0) and LSelected then
-        RightView^.Select;
+      else if not RVisible then
+        SwitchRight;
+      RightView^.GetBounds(R1);
+      end
+    else
+      Message(RPanel, evCommand, cmChangeDrive, nil);
+    if  (ShiftState and 3 <> 0) and LSelected then
+      RightView^.Select;
     end { ChangeDrvRight };
 
   procedure ViewInsert;
     var
       R2: TRect;
-      s: PViewScroll;
+      S: PViewScroll;
       P: PView;
     begin
-      R2.Assign(1, 1, 2, 5);
-      s := New(PViewScroll, Init(R2));
-      s^.Options := s^.Options or ofPostProcess;
-      QView := New(PHFileViewer, Init(R1, nil, '', '', s, True, (
-        EditorDefaults.ViOpt and 1) <> 0));
-      if not QView^.Valid(0) then
-        begin
-          Dispose(s, Done);
-          Dispose(QView, Done);
-          QView := nil;
-          exit
-        end
-      else
-        begin
-          Lock;
-          Insert(QView);
-          Insert(s);
-          QView^.HideView;
-          UnLock;
-        end;
+    R2.Assign(1, 1, 2, 5);
+    S := New(PViewScroll, Init(R2));
+    S^.Options := S^.Options or ofPostProcess;
+    QView := New(PHFileViewer, Init(R1, nil, '', '', S, True,
+             (EditorDefaults.ViOpt and 1) <> 0));
+    if not QView^.Valid(0) then
+      begin
+      Dispose(S, Done);
+      Dispose(QView, Done);
+      QView := nil;
+      Exit
+      end
+    else
+      begin
+      Lock;
+      Insert(QView);
+      Insert(S);
+      QView^.HideView;
+      UnLock;
+      end;
     end { ViewInsert };
 
   procedure InsertTree;
     var
       R2: TRect;
-      s: PMyScrollBar;
+      S: PMyScrollBar;
       P: PView;
     begin
-      R2.Assign(1, 1, 2, 5);
-      s := New(PMyScrollBar, Init(R2));
-      s^.Options := s^.Options or ofPostProcess;
-      LTree := New(PHTreeView, Init(R1, 0, False, s));
-      if not LTree^.Valid(0) then
-        begin
-          Dispose(s, Done);
-          Dispose(LTree, Done);
-          LTree := nil;
-          exit
-        end
-      else
-        begin
-          P := New(PTreeInfoView, Init(R1, LTree));
-          LTree^.Info := P;
-          Lock;
-          Insert(LTree);
-          Insert(s);
-          Insert(P);
-          LTree^.HideView;
-          UnLock;
-        end;
+    R2.Assign(1, 1, 2, 5);
+    S := New(PMyScrollBar, Init(R2));
+    S^.Options := S^.Options or ofPostProcess;
+    LTree := New(PHTreeView, Init(R1, 0, False, S));
+    if not LTree^.Valid(0) then
+      begin
+      Dispose(S, Done);
+      Dispose(LTree, Done);
+      LTree := nil;
+      Exit
+      end
+    else
+      begin
+      P := New(PTreeInfoView, Init(R1, LTree));
+      LTree^.Info := P;
+      Lock;
+      Insert(LTree);
+      Insert(S);
+      Insert(P);
+      LTree^.HideView;
+      UnLock;
+      end;
     end { InsertTree };
 
   type
     PPView = ^PView;
 
-  procedure SwitchView(dtType: byte);
+  procedure SwitchView(dtType: Byte);
     var
       V: PHideView;
     begin
-      GetBounds(R);
+    GetBounds(R);
+    if LSelected then
+      RightView^.GetBounds(R1)
+    else
+      LeftView^.GetBounds(R1);
+    case dtType of
+      dtTree:
+        begin
+        if LTree = nil then
+          begin
+          {if StartupData.Slice2 and osuReleaseTree = 0 then Application^.BFSpeed;}
+          InsertTree;
+          {if StartupData.Slice2 and osuReleaseTree = 0 then Application^.EFSpeed;}
+          end;
+        if LTree = nil then
+          Exit;
+        V := LTree;
+        end;
+      dtView:
+        begin
+        if QView = nil then
+          ViewInsert;
+        if QView = nil then
+          Exit;
+        V := QView;
+        end;
+      dtInfo:
+        begin
+        if Info = nil then
+          begin
+          Info := New(PDiskInfo, Init(R));
+          Info^.HideView;
+          Insert(Info);
+          end;
+        V := Info;
+        end;
+      {$IFDEF NETINFO}
+      dtNetInfo:
+        begin
+        if NetInfo = nil then
+          {-$VIV start}
+          begin
+          NetInfo := New(PNetInfo, Init(R));
+          NetInfo^.HideView;
+          Insert(NetInfo);
+          end;
+        V := NetInfo;
+        end; {-$VIV end}
+      {$ENDIF}
+    end {case};
+    V^.GetBounds(R1);
+    if  (LType = dtType) and LVisible then
+      begin
+      LeftView := LPanel;
+      Lock;
+      V^.HideView;
+      R1.A.Y := 1;
+      R1.B.Y := Size.Y-1;
+      LPanel^.Locate(R1);
+      LPanel^.ShowView;
+      LType := dtPanel;
       if LSelected then
-        RightView^.GetBounds(R1)
-      else
-        LeftView^.GetBounds(R1);
+        LPanel^.Select;
+      UnLck
+      end
+    else if (RType = dtType) and RVisible then
+      begin
+      RightView := RPanel;
+      Lock;
+      V^.HideView;
+      R1.A.Y := 1;
+      R1.B.Y := Size.Y-1;
+      RPanel^.Locate(R1);
+      RPanel^.ShowView;
+      RType := dtPanel;
+      if not LSelected then
+        RPanel^.Select;
+      UnLck
+      end
+    else if (RType = dtType) and not RVisible then
+      SwitchRight
+    else if (LType = dtType) and not LVisible then
+      SwitchLeft
+    else if LSelected then
+      begin
+      Lock;
+      RightView^.GetBounds(R1);
+      RightView^.HideView;
+      RightView := V;
+      R1.A.Y := 1;
+      R1.B.Y := Size.Y-1;
+      V^.Locate(R1);
+      V^.ShowView;
+      RType := dtType;
+      if not RVisible then
+        SwitchRight;
+      {begin GetBounds(R); R.A.X := OldBounds.A.X; R.B.X := OldBounds.B.X;end;}
+      LeftView^.Select;
+      Redraw;
+      UnLock;
+      end
+    else
+      begin
+      Lock;
+      LeftView^.GetBounds(R1);
+      LeftView^.HideView;
+      LeftView := V;
+      R1.A.Y := 1;
+      R1.B.Y := Size.Y-1;
+      V^.Locate(R1);
+      V^.ShowView;
+      LType := dtType;
+      if not LVisible then
+        SwitchLeft;
+      { begin GetBounds(R); R.A.X := OldBounds.A.X; R.B.X := OldBounds.B.X end;}
+      RightView^.Select;
+      Redraw;
+      UnLock;
+      end;
+    if not V^.GetState(sfVisible) then
+      begin
+      V^.Free;
       case dtType of
         dtTree:
-          begin
-            if LTree = nil then
-              begin
-                {if StartupData.Slice2 and osuReleaseTree = 0 then Application^.BFSpeed;}
-                InsertTree;
-                {if StartupData.Slice2 and osuReleaseTree = 0 then Application^.EFSpeed;}
-              end;
-            if LTree = nil then
-              exit;
-            V := LTree;
-          end;
+          LTree := nil;
         dtView:
-          begin
-            if QView = nil then
-              ViewInsert;
-            if QView = nil then
-              exit;
-            V := QView;
-          end;
+          QView := nil;
         dtInfo:
-          begin
-            if Info = nil then
-              begin
-                Info := New(PDiskInfo, Init(R));
-                Info^.HideView;
-                Insert(Info);
-              end;
-            V := Info;
-          end;
+          Info := nil;
         {$IFDEF NETINFO}
         dtNetInfo:
-          begin
-            if NetInfo = nil then{-$VIV start}
-              begin
-                NetInfo := New(PNetInfo, Init(R));
-                NetInfo^.HideView;
-                Insert(NetInfo);
-              end;
-            V := NetInfo;
-          end; {-$VIV end}
+          NetInfo := nil;
         {$ENDIF}
       end {case};
-      V^.GetBounds(R1);
-      if (LType = dtType) and LVisible then
-        begin
-          LeftView := LPanel;
-          Lock;
-          V^.HideView;
-          R1.A.Y := 1;
-          R1.B.Y := Size.Y-1;
-          LPanel^.Locate(R1);
-          LPanel^.ShowView;
-          LType := dtPanel;
-          if LSelected then
-            LPanel^.Select;
-          UnLck
-        end
-      else if (RType = dtType) and RVisible then
-        begin
-          RightView := RPanel;
-          Lock;
-          V^.HideView;
-          R1.A.Y := 1;
-          R1.B.Y := Size.Y-1;
-          RPanel^.Locate(R1);
-          RPanel^.ShowView;
-          RType := dtPanel;
-          if not LSelected then
-            RPanel^.Select;
-          UnLck
-        end
-      else if (RType = dtType) and not RVisible then
-        SwitchRight
-      else if (LType = dtType) and not LVisible then
-        SwitchLeft
-      else if LSelected then
-        begin
-          Lock;
-          RightView^.GetBounds(R1);
-          RightView^.HideView;
-          RightView := V;
-          R1.A.Y := 1;
-          R1.B.Y := Size.Y-1;
-          V^.Locate(R1);
-          V^.ShowView;
-          RType := dtType;
-          if not RVisible then
-            SwitchRight;
-          {begin GetBounds(R); R.A.X := OldBounds.A.X; R.B.X := OldBounds.B.X;end;}
-          LeftView^.Select;
-          Redraw;
-          UnLock;
-        end
-      else
-        begin
-          Lock;
-          LeftView^.GetBounds(R1);
-          LeftView^.HideView;
-          LeftView := V;
-          R1.A.Y := 1;
-          R1.B.Y := Size.Y-1;
-          V^.Locate(R1);
-          V^.ShowView;
-          LType := dtType;
-          if not LVisible then
-            SwitchLeft;
-          { begin GetBounds(R); R.A.X := OldBounds.A.X; R.B.X := OldBounds.B.X end;}
-          RightView^.Select;
-          Redraw;
-          UnLock;
-        end;
-      if not V^.GetState(sfVisible) then
-        begin
-          V^.Free;
-          case dtType of
-            dtTree:
-              LTree := nil;
-            dtView:
-              QView := nil;
-            dtInfo:
-              Info := nil;
-            {$IFDEF NETINFO}
-            dtNetInfo:
-              NetInfo := nil;
-            {$ENDIF}
-          end {case};
-        end;
+      end;
     end { SwitchView };
 
   procedure CE;
     begin
-      ClearEvent(Event)
+    ClearEvent(Event)
     end;
 
-  function isPanel: boolean;
+  function isPanel: Boolean;
     begin
-      isPanel := (Current = LPanel) or (Current = RPanel);
+    isPanel := (Current = LPanel) or (Current = RPanel);
     end;
 
   var
     AP, PP: PFilePanel;
-    D: word;
+    D: Word;
   begin { TDoubleWindow.HandleCommand }
-    if RightView <> nil
-    then
-      RVisible := RightView^.GetState(sfVisible)
-    else
-      RVisible := False;
-    if LeftView <> nil then
-      begin
-        LVisible := LeftView^.GetState(sfVisible);
-        LSelected := LeftView^.GetState(sfSelected);
-      end
-    else
-      begin
-        LVisible := False;
-        LSelected := False;
-      end;
-    Sp := Separator;
-    case Event.What of
-      evKeyDown:
-        case Event.KeyCode of
-          kbCtrlLeft, kbCtrlRight,
-          kbCtrlShiftLeft, kbCtrlShiftRight:
-            if (FMSetup.Options and fmoCtrlDifference <> 0) then
-              if (LVisible and RVisible) then
-                if FMSetup.Options and fmoAlternCtrlDiff <> 0 then
-                    begin
-                    if LSelected then
-                      if (ShiftState2 and 1 <> 0)
-                      then
-                        RightView^.HandleEvent(Event)
-                      else
-                        LeftView^.HandleEvent(Event)
-                    else if (ShiftState2 and 1 <> 0)
-                    then
-                      LeftView^.HandleEvent(Event)
-                    else
-                      RightView^.HandleEvent(Event);
-                    exit;
-                  end
-                else
-                  begin
-                    if LVisible and (ShiftState2 and 1 <> 0)
-                    then
-                      LeftView^.HandleEvent(Event)
-                    else
-                      RightView^.HandleEvent(Event);
-                    exit;
-                  end;
-
-          kbAlt1, kbAlt2, kbAlt3, kbAlt4, kbAlt5, kbAlt0,
-          kbAlt6, kbAlt7, kbAlt8, kbAlt9:
-            if FMSetup.Options and fmoAltDifference <> 0 then
-              begin
-                if LVisible and (ShiftState2 and 2 <> 0) then
+  if RightView <> nil
+  then
+    RVisible := RightView^.GetState(sfVisible)
+  else
+    RVisible := False;
+  if LeftView <> nil then
+    begin
+    LVisible := LeftView^.GetState(sfVisible);
+    LSelected := LeftView^.GetState(sfSelected);
+    end
+  else
+    begin
+    LVisible := False;
+    LSelected := False;
+    end;
+  Sp := Separator;
+  case Event.What of
+    evKeyDown:
+      case Event.KeyCode of
+        kbCtrlLeft, kbCtrlRight,
+        kbCtrlShiftLeft, kbCtrlShiftRight:
+          if  (FMSetup.Options and fmoCtrlDifference <> 0) then
+            if  (LVisible and RVisible) then
+              if FMSetup.Options and fmoAlternCtrlDiff <> 0 then
+                begin
+                if LSelected then
+                  if  (ShiftState2 and 1 <> 0)
+                  then
+                    RightView^.HandleEvent(Event)
+                  else
+                    LeftView^.HandleEvent(Event)
+                else if (ShiftState2 and 1 <> 0)
+                then
                   LeftView^.HandleEvent(Event)
                 else
                   RightView^.HandleEvent(Event);
-                exit;
-              end;
-          {
+                Exit;
+                end
+              else
+                begin
+                if LVisible and (ShiftState2 and 1 <> 0)
+                then
+                  LeftView^.HandleEvent(Event)
+                else
+                  RightView^.HandleEvent(Event);
+                Exit;
+                end;
+
+        kbAlt1, kbAlt2, kbAlt3, kbAlt4, kbAlt5, kbAlt0,
+        kbAlt6, kbAlt7, kbAlt8, kbAlt9:
+          if FMSetup.Options and fmoAltDifference <> 0 then
+            begin
+            if LVisible and (ShiftState2 and 2 <> 0) then
+              LeftView^.HandleEvent(Event)
+            else
+              RightView^.HandleEvent(Event);
+            Exit;
+            end;
+        {
               kbCtrl1, kbCtrl2, kbCtrl3, kbCtrl4, kbCtrl5, kbCtrl6, kbCtrl7,
               kbCtrl8, kbCtrl9, kbCtrl0:
                      if FMSetup.Options and fmoCtrlDifference <> 0 then
@@ -942,405 +945,405 @@ procedure TDoubleWindow.HandleCommand;
                              Exit;
                            end;
 }
-          kbAltLeft,
-          kbAltShiftLeft:
-            if RVisible and LVisible then
+        kbAltLeft,
+        kbAltShiftLeft:
+          if RVisible and LVisible then
+            begin
+            D := 1;
+            if ShiftState and (kbLeftShift+kbRightShift) <> 0 then
               begin
-                D := 1;
-                if ShiftState and (kbLeftShift+kbRightShift) <> 0
-                then
-                  begin
-                    if LSelected then
-                      if LType = dtPanel
-                      then
-                        AP := LPanel
-                      else
-                        AP := RPanel
-                    else if RType = dtPanel
-                    then
-                      AP := RPanel
-                    else
-                      AP := LPanel
-                      ;
-                    D := AP^.LineLength; { Flash }
-                  end;
-                if Sp^.OldX > D then
-                  Dec(Sp^.OldX, D); { Flash }
-                Sp^.OldW := Size.X;
-                R.A := Origin;
-                R.B.X := Origin.X+Size.X;
-                R.B.Y := Origin.Y+Size.Y;
-                ChangeBounds(R);
-                CE;
-              end;
-
-          kbAltRight,
-          kbAltShiftRight:
-            if RVisible and LVisible then
-              begin
-                D := 1;
-                if ShiftState and (kbLeftShift+kbRightShift) <> 0
-                then
-                  begin
-                    if LSelected then
-                      if LType = dtPanel
-                      then
-                        AP := LPanel
-                      else
-                        AP := RPanel
-                    else if RType = dtPanel
-                    then
-                      AP := RPanel
-                    else
-                      AP := LPanel
-                      ;
-                    D := AP^.LineLength; { Flash }
-                  end;
-                Sp^.OldW := Size.X;
-                if Sp^.OldX < Sp^.OldW-D then
-                  Inc(Sp^.OldX, D);
-                R.A := Origin;
-                R.B.X := Origin.X+Size.X;
-                R.B.Y := Origin.Y+Size.Y;
-                ChangeBounds(R);
-                CE;
-              end;
-          kbAltCtrlSqBracketL,
-          kbCtrlSqBracketL:
-            begin
-              s := '';
-              Message(LeftView, evCommand, cmGetName, @S);
-              if not (s[Length(s)] in ['\', '/']) then
-                AddStr(s, '\');
-              s := SquashesName(s);
-              Message(CommandLine, evCommand, cmInsertName, @S);
-              CE;
-            end;
-          kbAltCtrlSqBracketR,
-          kbCtrlSqBracketR:
-            begin
-              s := '';
-              Message(RightView, evCommand, cmGetName, @S);
-              if not (s[Length(s)] in ['\', '/']) then
-                AddStr(s, '\');
-              s := SquashesName(s);
-              Message(CommandLine, evCommand, cmInsertName, @S);
-              CE;
-            end;
-        end {case};
-      evBroadcast:
-        case Event.Command of
-          cmLookForPanels:
-            ClearEvent(Event);
-          cmGetUserParams, cmGetUserParamsWL:
-            begin
               if LSelected then
-                begin
-                  PP := RPanel;
+                if LType = dtPanel
+                then
                   AP := LPanel
-                end
-              else
-                begin
-                  PP := LPanel;
+                else
                   AP := RPanel
-                end;
-              with PUserParams(Event.InfoPtr)^ do
-                begin
-                  AP^.GetUserParams(active, ActiveList, Event.
-                    Command = cmGetUserParamsWL);
-                  PP^.GetUserParams(Passive, PassiveList, Event.
-                    Command = cmGetUserParamsWL);
-                end;
-              CE;
-            end;
-          cmChangeDirectory:
-            begin
-              if LSelected
+              else if RType = dtPanel
               then
-                LPanel^.ChDir(PString(Event.InfoPtr)^)
+                AP := RPanel
               else
-                RPanel^.ChDir(PString(Event.InfoPtr)^);
-              CE;
-            end;
-          cmChangeDrv:
-            begin
-              Event.What := evCommand;
-              if LSelected then
-                LPanel^.HandleEvent(Event)
-              else
-                RPanel^.HandleEvent(Event);
-              ClearEvent(Event);
-            end;
-          cmIsRightPanel:
-            if Event.InfoPtr = RPanel then
-              ClearEvent(Event);
-        end {case};
-      evCommand:
-        case Event.Command of
-
-          cmSwitchOther:
-            if not PanelZoomed then
-              begin
-                CE;
-                if LSelected then
-                  SwitchRight
-                else
-                  SwitchLeft
+                AP := LPanel
+                  ;
+              D := AP^.LineLength; { Flash }
               end;
-
-          cmGetDirInfo:
-            begin
-              if LSelected then
-                if (LType = dtPanel) then
-                  LeftView^.HandleEvent(Event)
-                else
-                  RightView^.HandleEvent(Event)
-              else if (RType = dtPanel) then
-                RightView^.HandleEvent(Event)
-              else
-                LeftView^.HandleEvent(Event);
-
-              ClearEvent(Event);
-            end;
-          cmZoom:
-            begin
-              { Flash 05-02-2004 >>> }
-              if (LSelected and (LType = dtView)) or
-                 (not LSelected and (RType = dtView)) then
-                begin
-                  GetBounds(OldBounds);
-                  GetBounds(OldPanelBounds);
-                  if (Size.X < Desktop.Size.X) or PanelZoomed then
-                    Message(@Self, evCommand, cmMaxi, nil);
-                end;
-              { Flash 05-02-2004 <<< }
-            end;
-          {Knave 11.09.99 --------------- begin 1}
-          {DataCompBoy}cmMaxi:
-            if RVisible and LVisible then
-              begin
-                CE;
-                Lock;
-                if LSelected
-                then
-                  SwitchRight
-                else
-                  SwitchLeft;
-                GetBounds(OldPanelBounds);
-                ChangeBounds(OldBounds);
-                PanelZoomed := True;
-                UnLock;
-              end
-            else if PanelZoomed then
-              begin
-                CE;
-                Lock;
-                ChangeBounds(OldPanelBounds);
-                PanelZoomed := False;
-                if LSelected
-                then
-                  SwitchRight
-                else
-                  SwitchLeft;
-                UnLock;
-              end;
-          {Knave 11.09.99 --------------- end 1}
-          cmGetName:
-            begin
-              PString(Event.InfoPtr)^:= GetString(dlFileManager);
-              PString(Event.InfoPtr)^:= PString(Event.InfoPtr)^+Cut(
-                {$IFDEF RecodeWhenDraw}CharToOemStr {$ENDIF}(LPanel^.
-                DirectoryName),
-              (55-Length(PString(Event.InfoPtr)^)) div 2)+','
-              +Cut( {$IFDEF RecodeWhenDraw}CharToOemStr {$ENDIF}(
-                RPanel^.DirectoryName),
-              (55-Length(PString(Event.InfoPtr)^)) div 2);
-              CE
-            end;
-          cmPostHideRight:
-            begin
-              if not RVisible then
-                SwitchRight;
-              RVisible := True;
-              if LVisible then
-                SwitchLeft;
-            end;
-          cmPostHideLeft:
-            begin
-              if not LVisible then
-                SwitchLeft;
-              LVisible := True;
-              if RVisible then
-                SwitchRight;
-            end;
-          cmChangeInactive:
-            begin
-              Event.Command := cmFindGotoFile;
-              if LSelected then
-                begin
-                  RPanel^.HandleEvent(Event);
-                  if RType <> dtPanel then
-                    SwitchView(RType);
-                end
-              else
-                begin
-                  LPanel^.HandleEvent(Event);
-                  if LType <> dtPanel then
-                    SwitchView(LType);
-                end;
-              CE;
-            end;
-          cmGetDirName:
-            GetDirName;
-          cmPanelCompare:
-            begin
-              if LSelected then
-                RPanel^.HandleEvent(Event)
-              else
-                LPanel^.HandleEvent(Event);
-            end;
-          cmDiskInfo:
-            begin
-              CE;
-              if isPanel and not PanelZoomed then{AK155}
-                begin
-                  SwitchView(dtInfo);
-                  if LSelected then
-                    Message(LeftView, evCommand, cmLViewFile, nil)
-                  else
-                    Message(RightView, evCommand, cmLViewFile, nil);
-                end;
-            end;
-          {$IFDEF NETINFO}
-          cmNetInfo:
-            if not PanelZoomed then
-              begin{-$VIV start}
-                SwitchView(dtNetInfo);
-                CE;
-                if LSelected then
-                  Message(LeftView, evCommand, cmLViewFile, nil)
-                else
-                  Message(RightView, evCommand, cmLViewFile, nil);
-              end; {-$VIV end}
-          {$ENDIF}
-          cmLoadViewFile:
-            if not PanelZoomed then
-              begin
-                if (QView <> nil) and ((LType = dtView) or (RType =
-                    dtView))
-                then
-                  QView^.HandleEvent(Event)
-                else if (Info <> nil) and Info^.GetState(sfVisible)
-                then
-                  Info^.HandleEvent(Event);
-                CE;
-              end;
-          cmGLoadViewFile:
+            if Sp^.OldX > D then
+              Dec(Sp^.OldX, D); { Flash }
+            Sp^.OldW := Size.X;
+            R.A := Origin;
+            R.B.X := Origin.X+Size.X;
+            R.B.Y := Origin.Y+Size.Y;
+            ChangeBounds(R);
             CE;
-          cmEnableView:
-            begin
-              Message(LPanel, evCommand, cmEnableView, nil);
-              Message(RPanel, evCommand, cmEnableView, nil);
             end;
-          cmDisableView:
+
+        kbAltRight,
+        kbAltShiftRight:
+          if RVisible and LVisible then
             begin
-              Message(LPanel, evCommand, cmDisableView, nil);
-              Message(RPanel, evCommand, cmDisableView, nil);
-            end;
-          cmPushFullName,
-          cmPushFirstName,
-          cmPushInternalName:
-            begin
-              LeftView^.HandleEvent(Event);
-              RightView^.HandleEvent(Event);
-              CE;
-              exit;
-            end;
-          cmFindTree,
-          cmRereadTree:
-            if LTree <> nil then
-              LTree^.HandleEvent(Event);
-          cmHideLeft:
-            begin
-              if LVisible and not RVisible then
-                Message(Application, evCommand, cmShowOutput, nil)
-              else
-                SwitchLeft;
-              CE
-            end;
-          cmHideRight:
-            begin
-              if RVisible and not LVisible then
-                Message(Application, evCommand, cmShowOutput, nil)
-              else
-                SwitchRight;
-              CE
-            end;
-          cmChangeLeft:
-            begin
-              ChangeDrvLeft;
-              CE
-            end;
-          cmChangeRight:
-            begin
-              ChangeDrvRight;
-              CE
-            end;
-          cmDirTree:
-            begin
-              if isPanel then{AK155}
-                SwitchView(dtTree);
-              CE
-            end;
-          cmQuickView:
-            if isPanel and not PanelZoomed then{AK155}
+            D := 1;
+            if ShiftState and (kbLeftShift+kbRightShift) <> 0 then
               begin
-                SwitchView(dtView);
-                if LSelected then
-                  Message(LeftView, evCommand, cmLViewFile, nil)
+              if LSelected then
+                if LType = dtPanel
+                then
+                  AP := LPanel
                 else
-                  Message(RightView, evCommand, cmLViewFile, nil);
-                CE
+                  AP := RPanel
+              else if RType = dtPanel
+              then
+                AP := RPanel
+              else
+                AP := LPanel
+                  ;
+              D := AP^.LineLength; { Flash }
               end;
-          cmSwapPanels:
-            if not PanelZoomed then
+            Sp^.OldW := Size.X;
+            if Sp^.OldX < Sp^.OldW-D then
+              Inc(Sp^.OldX, D);
+            R.A := Origin;
+            R.B.X := Origin.X+Size.X;
+            R.B.Y := Origin.Y+Size.Y;
+            ChangeBounds(R);
+            CE;
+            end;
+        kbAltCtrlSqBracketL,
+        kbCtrlSqBracketL:
+          begin
+          S := '';
+          Message(LeftView, evCommand, cmGetName, @S);
+          if not (S[Length(S)] in ['\', '/']) then
+            AddStr(S, '\');
+          S := SquashesName(S);
+          Message(CommandLine, evCommand, cmInsertName, @S);
+          CE;
+          end;
+        kbAltCtrlSqBracketR,
+        kbCtrlSqBracketR:
+          begin
+          S := '';
+          Message(RightView, evCommand, cmGetName, @S);
+          if not (S[Length(S)] in ['\', '/']) then
+            AddStr(S, '\');
+          S := SquashesName(S);
+          Message(CommandLine, evCommand, cmInsertName, @S);
+          CE;
+          end;
+      end {case};
+    evBroadcast:
+      case Event.Command of
+        cmLookForPanels:
+          ClearEvent(Event);
+        cmGetUserParams, cmGetUserParamsWL:
+          begin
+          if LSelected then
+            begin
+            PP := RPanel;
+            AP := LPanel
+            end
+          else
+            begin
+            PP := LPanel;
+            AP := RPanel
+            end;
+          with PUserParams(Event.InfoPtr)^ do
+            begin
+            AP^.GetUserParams(Active, ActiveList, Event.Command =
+               cmGetUserParamsWL);
+            PP^.GetUserParams(Passive, PassiveList, Event.Command =
+               cmGetUserParamsWL);
+            end;
+          CE;
+          end;
+        cmChangeDirectory:
+          begin
+          if LSelected
+          then
+            LPanel^.ChDir(PString(Event.InfoPtr)^)
+          else
+            RPanel^.ChDir(PString(Event.InfoPtr)^);
+          CE;
+          end;
+        cmChangeDrv:
+          begin
+          Event.What := evCommand;
+          if LSelected then
+            LPanel^.HandleEvent(Event)
+          else
+            RPanel^.HandleEvent(Event);
+          ClearEvent(Event);
+          end;
+        cmIsRightPanel:
+          if Event.InfoPtr = RPanel then
+            ClearEvent(Event);
+      end {case};
+    evCommand:
+      case Event.Command of
+
+        cmSwitchOther:
+          if not PanelZoomed then
+            begin
+            CE;
+            if LSelected then
+              SwitchRight
+            else
+              SwitchLeft
+            end;
+
+        cmGetDirInfo:
+          begin
+          if LSelected then
+            if  (LType = dtPanel) then
+              LeftView^.HandleEvent(Event)
+            else
+              RightView^.HandleEvent(Event)
+          else if (RType = dtPanel) then
+            RightView^.HandleEvent(Event)
+          else
+            LeftView^.HandleEvent(Event);
+
+          ClearEvent(Event);
+          end;
+        cmZoom:
+          begin
+          { Flash 05-02-2004 >>> }
+          if (LSelected and (LType = dtView)) or
+             (not LSelected and (RType = dtView))
+          then
+            begin
+            GetBounds(OldBounds);
+            GetBounds(OldPanelBounds);
+            if (Size.X < Desktop.Size.X) or PanelZoomed then
+              Message(@Self, evCommand, cmMaxi, nil);
+            end;
+          { Flash 05-02-2004 <<< }
+          end;
+        {Knave 11.09.99 --------------- begin 1}
+        {DataCompBoy}cmMaxi:
+          if RVisible and LVisible then
+            begin
+            CE;
+            Lock;
+            if LSelected
+            then
+              SwitchRight
+            else
+              SwitchLeft;
+            GetBounds(OldPanelBounds);
+            ChangeBounds(OldBounds);
+            PanelZoomed := True;
+            UnLock;
+            end
+          else if PanelZoomed then
+            begin
+            CE;
+            Lock;
+            ChangeBounds(OldPanelBounds);
+            PanelZoomed := False;
+            if LSelected
+            then
+              SwitchRight
+            else
+              SwitchLeft;
+            UnLock;
+            end;
+        {Knave 11.09.99 --------------- end 1}
+        cmGetName:
+          begin
+          PString(Event.InfoPtr)^:= GetString(dlFileManager);
+          PString(Event.InfoPtr)^:= PString(Event.InfoPtr)^+Cut(
+              {$IFDEF RecodeWhenDraw}CharToOemStr
+                 {$ENDIF}(LPanel^.DirectoryName),
+                (55-Length(PString(Event.InfoPtr)^)) div 2)+','
+            +Cut( {$IFDEF RecodeWhenDraw}CharToOemStr
+                 {$ENDIF}(RPanel^.DirectoryName),
+                (55-Length(PString(Event.InfoPtr)^)) div 2);
+          CE
+          end;
+        cmPostHideRight:
+          begin
+          if not RVisible then
+            SwitchRight;
+          RVisible := True;
+          if LVisible then
+            SwitchLeft;
+          end;
+        cmPostHideLeft:
+          begin
+          if not LVisible then
+            SwitchLeft;
+          LVisible := True;
+          if RVisible then
+            SwitchRight;
+          end;
+        cmChangeInactive:
+          begin
+          Event.Command := cmFindGotoFile;
+          if LSelected then
+            begin
+            RPanel^.HandleEvent(Event);
+            if RType <> dtPanel then
+              SwitchView(RType);
+            end
+          else
+            begin
+            LPanel^.HandleEvent(Event);
+            if LType <> dtPanel then
+              SwitchView(LType);
+            end;
+          CE;
+          end;
+        cmGetDirName:
+          GetDirName;
+        cmPanelCompare:
+          begin
+          if LSelected then
+            RPanel^.HandleEvent(Event)
+          else
+            LPanel^.HandleEvent(Event);
+          end;
+        cmDiskInfo:
+          begin
+          CE;
+          if isPanel and not PanelZoomed then
+            {AK155}
+            begin
+            SwitchView(dtInfo);
+            if LSelected then
+              Message(LeftView, evCommand, cmLViewFile, nil)
+            else
+              Message(RightView, evCommand, cmLViewFile, nil);
+            end;
+          end;
+        {$IFDEF NETINFO}
+        cmNetInfo:
+          if not PanelZoomed then
+            begin {-$VIV start}
+            SwitchView(dtNetInfo);
+            CE;
+            if LSelected then
+              Message(LeftView, evCommand, cmLViewFile, nil)
+            else
+              Message(RightView, evCommand, cmLViewFile, nil);
+            end; {-$VIV end}
+        {$ENDIF}
+        cmLoadViewFile:
+          if not PanelZoomed then
+            begin
+            if  (QView <> nil) and ((LType = dtView) or (RType = dtView))
+            then
+              QView^.HandleEvent(Event)
+            else if (Info <> nil) and Info^.GetState(sfVisible) then
+              Info^.HandleEvent(Event);
+            CE;
+            end;
+        cmGLoadViewFile:
+          CE;
+        cmEnableView:
+          begin
+          Message(LPanel, evCommand, cmEnableView, nil);
+          Message(RPanel, evCommand, cmEnableView, nil);
+          end;
+        cmDisableView:
+          begin
+          Message(LPanel, evCommand, cmDisableView, nil);
+          Message(RPanel, evCommand, cmDisableView, nil);
+          end;
+        cmPushFullName,
+        cmPushFirstName,
+        cmPushInternalName:
+          begin
+          LeftView^.HandleEvent(Event);
+          RightView^.HandleEvent(Event);
+          CE;
+          Exit;
+          end;
+        cmFindTree,
+        cmRereadTree:
+          if LTree <> nil then
+            LTree^.HandleEvent(Event);
+        cmHideLeft:
+          begin
+          if LVisible and not RVisible then
+            Message(Application, evCommand, cmShowOutput, nil)
+          else
+            SwitchLeft;
+          CE
+          end;
+        cmHideRight:
+          begin
+          if RVisible and not LVisible then
+            Message(Application, evCommand, cmShowOutput, nil)
+          else
+            SwitchRight;
+          CE
+          end;
+        cmChangeLeft:
+          begin
+          ChangeDrvLeft;
+          CE
+          end;
+        cmChangeRight:
+          begin
+          ChangeDrvRight;
+          CE
+          end;
+        cmDirTree:
+          begin
+          if isPanel then
+            {AK155}
+            SwitchView(dtTree);
+          CE
+          end;
+        cmQuickView:
+          if isPanel and not PanelZoomed then
+            {AK155}
+            begin
+            SwitchView(dtView);
+            if LSelected then
+              Message(LeftView, evCommand, cmLViewFile, nil)
+            else
+              Message(RightView, evCommand, cmLViewFile, nil);
+            CE
+            end;
+        cmSwapPanels:
+          if not PanelZoomed then
+            begin
+            Lock;
+            if not RVisible then
+              Message(@Self, evCommand, cmHideRight, nil)
+            else if not LVisible then
+              Message(@Self, evCommand, cmHideLeft, nil);
+            LeftView^.GetBounds(R1);
+            R1.B.Y := Size.Y-1;
+            RightView^.GetBounds(R2);
+            R2.B.Y := Size.Y-1;
+            Lock;
+            I := LType;
+            LType := RType;
+            RType := I;
+            if  (LType = dtPanel) or (RType = dtPanel) then
               begin
-                Lock;
-                if not RVisible then
-                  Message(@Self, evCommand, cmHideRight, nil)
-                else if not LVisible then
-                  Message(@Self, evCommand, cmHideLeft, nil);
-                LeftView^.GetBounds(R1);
-                R1.B.Y := Size.Y-1;
-                RightView^.GetBounds(R2);
-                R2.B.Y := Size.Y-1;
-                Lock;
-                i := LType;
-                LType := RType;
-                RType := i;
-                if (LType = dtPanel) or (RType = dtPanel) then
-                  begin
-                    P := LPanel;
-                    LPanel := RPanel;
-                    RPanel := PFilePanel(P);
-                  end;
-                LeftView^.ChangeBounds(R2);
-                RightView^.ChangeBounds(R1);
-                P := LeftView;
-                LeftView := RightView;
-                RightView := PHideView(P);
-                Redraw;
-                UnLock;
-                if not LVisible then
-                  Message(@Self, evCommand, cmHideRight, nil)
-                else if not RVisible then
-                  Message(@Self, evCommand, cmHideLeft, nil);
-                UnLock;
-                CE
+              P := LPanel;
+              LPanel := RPanel;
+              RPanel := PFilePanel(P);
               end;
-        end {case};
-    end {case};
-    inherited HandleEvent(Event);
+            LeftView^.ChangeBounds(R2);
+            RightView^.ChangeBounds(R1);
+            P := LeftView;
+            LeftView := RightView;
+            RightView := PHideView(P);
+            Redraw;
+            UnLock;
+            if not LVisible then
+              Message(@Self, evCommand, cmHideRight, nil)
+            else if not RVisible then
+              Message(@Self, evCommand, cmHideLeft, nil);
+            UnLock;
+            CE
+            end;
+      end {case};
+  end {case};
+  inherited HandleEvent(Event);
   end { TDoubleWindow.HandleCommand };
 
 end.
