@@ -1,42 +1,22 @@
 {/////////////////////////////////////////////////////////////////////////
 //
-//  Dos Navigator Open Source 1.51.08
-//  Based on Dos Navigator (C) 1991-99 RIT Research Labs
+//  Dos Navigator/2 Open Source
 //
-//  This programs is free for commercial and non-commercial use as long as
+//  This unit is free for commercial and non-commercial use as long as
 //  the following conditions are aheared to.
 //
-//  Copyright remains RIT Research Labs, and as such any Copyright notices
-//  in the code are not to be removed. If this package is used in a
-//  product, RIT Research Labs should be given attribution as the RIT Research
-//  Labs of the parts of the library used. This can be in the form of a textual
-//  message at program startup or in documentation (online or textual)
-//  provided with the package.
+//  Any Copyright notices in the code are not to be removed.
 //
-//  Redistribution and use in source and binary forms, with or without
+//  Redistribution and use in source forms, with or without
 //  modification, are permitted provided that the following conditions are
 //  met:
 //
 //  1. Redistributions of source code must retain the copyright
-//     notice, this list of conditions and the following disclaimer.
-//  2. Redistributions in binary form must reproduce the above copyright
-//     notice, this list of conditions and the following disclaimer in the
-//     documentation and/or other materials provided with the distribution.
-//  3. All advertising materials mentioning features or use of this software
-//     must display the following acknowledgement:
-//     "Based on Dos Navigator by RIT Research Labs."
-//
-//  THIS SOFTWARE IS PROVIDED BY RIT RESEARCH LABS "AS IS" AND ANY EXPRESS
-//  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-//  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-//  DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR
-//  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-//  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
-//  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-//  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
-//  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-//  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-//  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//     notice and this list of conditions.
+//  2. All advertising materials mentioning use of this unit must
+//     display or contain in online help or documentation the following
+//     acknowledgement:
+//     "Based on Dos Navigator/2 Open Source"
 //
 //  The licence and distribution terms for any publically available
 //  version or derivative of this code cannot be changed. i.e. this code
@@ -45,7 +25,7 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
-{(c) Alexey Korop (AK155), 2002}
+{(c) Alexey Korop (AK155), 2002, 2007}
 unit Calculat;
 {&Delphi+}
 
@@ -73,16 +53,34 @@ var
   Res: CReal;
   CalcSym: String;
 
+var
+  MultR: String;
+    { Множители степеней 10 в национальном обозначении,
+    по 3 символа, первый в тройке - пробел. Должны позиционно
+    соответствовать следующим международным обозначениям и,
+    соответственно, степеням 10:
+          ' d  с  m  u  p  n  f  da k  M  G  T  P ';
+           -1 -2 -3 -6 -9 -12-15 1  3  6  9  12 15
+      Например, для русского эта строка долна иметь вид:
+          ' д  с  м  мк п  н  ф  да к  М  Г  Т  П '
+    Если национальные обозначения не нужны, оставить MultR=''.
+    }
+
 implementation
 
 uses
-  Advance1, Advance
-  , math, sysutils, Calc
+  Advance1
+  , math, sysutils
+{$IFDEF SpreadSheet}
+  , Calc
+{$ENDIF}
   ;
 
 var
   Expression: String;
+{$IFDEF SpreadSheet}
   CurCalcView: PCalcView;
+{$ENDIF}
 
   { Число в указанной системе счичления }
 function GetV(S: String; Base: Integer; var Value: CReal): Boolean;
@@ -139,8 +137,7 @@ function GetV(S: String; Base: Integer; var Value: CReal): Boolean;
 function GetDec(S: String; var Value: CReal): Boolean;
   const
     MultE = ' d  с  m  u  p  n  f  da k  M  G  T  P ';
-    MultR = ' д  с  м  мк п  н  ф  да к  М  Г  Т  П ';
-    //            -1 -2 -3 -6 -9-12-15 1  3  6  9  12 15
+    //       -1 -2 -3 -6 -9 -12-15 1  3  6  9  12 15
     MultV: array[1..Length(MultE) div 3] of CReal =
       (1e-1, 1e-2, 1e-3, 1e-6, 1e-9, 1e-12, 1e-15
       , 1e1, 1e3, 1e6, 1e9, 1e12, 1e15);
@@ -154,7 +151,7 @@ function GetDec(S: String; var Value: CReal): Boolean;
     begin
     m := ' '+Copy(S, R, 255)+' ';
     l := Pos(m, MultE);
-    if l = 0 then
+    if (l = 0) and (Length(MultE) = Length(MultR)) then
       l := Pos(m, MultR);
     if l <> 0 then
       begin
@@ -480,10 +477,10 @@ const
     , (n: 'CTH'; E: @CotanhEv; A: 1)
     , (n: 'COTANH'; E: @CotanhEv; A: 1)
     , (n: 'ARCSINH'; E: @ArcSinhEv; A: 1)
-    , (n: 'ASH'; E: @ArcSinEv; A: 1)
+    , (n: 'ASH'; E: @ArcSinhEv; A: 1)
     , (n: 'ARCCOSH'; E: @ArcCoshEv; A: 1)
-    , (n: 'ACOSH'; E: @ArcCosEv; A: 1)
-    , (n: 'ACH'; E: @ArcCosEv; A: 1)
+    , (n: 'ACOSH'; E: @ArcCoshEv; A: 1)
+    , (n: 'ACH'; E: @ArcCoshEv; A: 1)
     , (n: 'ATH'; E: @ArcTanhEv; A: 1)
     , (n: 'ARTH'; E: @ArcTanhEv; A: 1)
     , (n: 'ARCTANH'; E: @ArcTanhEv; A: 1)
@@ -535,7 +532,7 @@ procedure ScanSym;
   else if (c = '$') or ((c >= '0') and (c <= '9')) then
     begin {число}
     if  (c <> '$') and (System.UpCase(Expression[T-1]) = 'E')
-      and (Expression[T] = '-')
+      and (Expression[T] in ['-', '+'])
     then
       begin {похоже на число вида 5e-3}
       repeat
@@ -562,6 +559,8 @@ procedure ScanSym;
         Exit;
         end;
       end;
+
+{$IFDEF SpreadSheet}
     if CurCalcView <> nil then
       with PCalcView(CurCalcView)^ do
         begin
@@ -587,6 +586,7 @@ procedure ScanSym;
           Exit
           end;
         end;
+{$ENDIF}
     end;
   end { ScanSym };
 
@@ -954,7 +954,7 @@ function GetErrOp(var x: Integer): String;
       end;
     1..Op2Base-1:
       OpName := Copy(OpChars, CurrOp, 1);
-    Op2Base..FnBase:
+    Op2Base..FnBase-1:
       OpName := Copy(Op2, 1+3*(CurrOp-Op2Base), 2);
     else {case}
       OpName := FnTab[CurrOp-FnBase].n
@@ -966,7 +966,9 @@ function Evalue(const s: String; CCV: Pointer): CReal;
   var
     o: Pointer;
   begin
+{$IFDEF SpreadSheet}
   CurCalcView := CCV;
+{$ENDIF}
   Evalue := 0;
   try
     EvalueError := False;

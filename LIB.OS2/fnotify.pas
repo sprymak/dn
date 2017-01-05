@@ -31,7 +31,10 @@ procedure NotifyDeleteWatcher(const Path: String);
   end;
 
 procedure NotifyInit;
-procedure NotifyAsk(var S: String);
+function NotifyAsk(var S: String): Boolean;
+  {` Результат False показывает, что система автообновления
+    не запущена или в паузе, то есть никаких действий по
+    автообновлению производить не надо `}
 procedure NotifySuspend;
 procedure NotifyResume;
 procedure NotifyDone;
@@ -153,10 +156,16 @@ function NotifyThreadFunction(P: ULong): ApiRet;
   until False;
   end;
 
-procedure NotifyAsk(var S: String);
+function NotifyAsk(var S: String): Boolean;
   var
     P: Byte;
   begin
+  if (SuspendCount <> 0) then
+    begin
+    Result := False;
+    Exit;
+    end;
+  Result := True;
   if DataReady {AK155} and (SuspendCount = 0) {/AK155} then
     with DataPtr^ do
       begin

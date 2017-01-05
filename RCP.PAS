@@ -366,7 +366,6 @@ const
   idComboBox = 'COMBOBOX ';
   idNotepad = 'NOTEPAD ';
   idPage = 'PAGE ';
-  idHistory = 'HISTORY ';
   idItem = 'ITEM ';
   idHelpCtx = 'HELPCTX ';
   idStaticText = 'STATICTEXT ';
@@ -913,15 +912,7 @@ procedure ProcessDLGs;
       D^.Insert(PV);
       j := GetID(Token(S, i));
       if j > 0 then
-        begin
-        R.A.X := R.B.X;
-        R.B.X := R.A.X+3;
-//JO: поскольку TInputline и TLongInputline отличаются только методами
-//    GetData и SetData, не вызывающимися в методах THistory,
-//    то такая подмена возможна
-        New(P, Init(R, PInputline(PV), j));
-        D^.Insert(P);
-        end;
+        Error('LongInputLine dosn''t have a history, line '+ItoS(Line));
       end;
 
     {-DataCompBoy-}
@@ -946,21 +937,6 @@ procedure ProcessDLGs;
       B := Token(S, i);
       R.B.X := R.A.X+2+CStrLen(B);
       New(P, Init(R, B, PV));
-      D^.Insert(P);
-      while i < Length(S) do
-        P^.Options := P^.Options or GetID(Token(S, i));
-      end;
-
-    procedure MakeHistory;
-      var
-        B: String;
-        P: PHistory;
-      begin
-      R.A.X := GetID(Token(S, i));
-      R.B.X := R.A.X+3;
-      R.A.Y := GetID(Token(S, i));
-      R.B.Y := R.A.Y+1;
-      New(P, Init(R, PInputline(PV), GetID(Token(S, i))));
       D^.Insert(P);
       while i < Length(S) do
         P^.Options := P^.Options or GetID(Token(S, i));
@@ -1238,8 +1214,6 @@ procedure ProcessDLGs;
           end
         else if IsThis(idButton) then
           MakeButton
-        else if IsThis(idHistory) then
-          MakeHistory
         else if IsThis(idColorPoint) then
           MakeColorPoint
         else if IsThis(idEND) then

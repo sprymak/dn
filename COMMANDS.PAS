@@ -1288,6 +1288,7 @@ const
   cmLoadViewFile = 10404;
   cmGLoadViewFile = 10405;
   cmLViewFile = 10406;
+  cmStandAt = 10407;
   cmIntFileView = 10410;
   cmIntFileEdit = 10411;
 
@@ -2288,8 +2289,6 @@ type
     dlSS_T_ime,
     dlSSUse_M_ouse,
     dlCalculator,
-    dlCalcEx_p_ression,
-    dlCalcCopy_a_s,
     dlUnknownWindowType,
     dlColorsTitle,
     dl_C_olor,
@@ -2413,6 +2412,7 @@ type
     dlPDeleteQeury2,
     dlCantPrint,
     dlCantPrintFile,
+    dlNotPrinter,
     dlTermProtocol,
     dlTermProtocolFile,
     dlTermProtocolRece,
@@ -2987,6 +2987,7 @@ type
     sdtCDROM,
     sdtRAMDrive, {X-Man <<<}
     sdtOptical, {JO}
+    sdtSubst, {AK155}
 
     dlDoes_Not_Exist, {JO}
     dlCmdLineTooLong, {JO}
@@ -3060,7 +3061,9 @@ type
     dlInFound,
     dlInBranchOfArchive,
     dlInFoundInArchive,
-    dlInList
+    dlInList,
+    dlNetworkError,
+    dlNoNetworkPath
     {/JO}
     );
 
@@ -3071,6 +3074,7 @@ type
     dlgCommandsHistory,
     dlgExtract,
     dlgSetPassword,
+    dlgLoginPassword,
     dlgCompareDirs,
     dlgFilesAttr,
     dlgFileAttr,

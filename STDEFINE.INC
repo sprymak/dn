@@ -115,8 +115,8 @@
  {$DEFINE QSORT}
  {.$DEFINE POGLSORT}
  {$DEFINE SpreadSheet}
- {.$DEFINE PrintManager}
- {.$DEFINE Printer}
+ {$DEFINE PrintManager}
+ {$DEFINE Printer}
  {$DEFINE PrintFromEditor}
  {.$DEFINE PKTVIEW} {нормально компилится и работает, но надо ли}
  {$DEFINE DisAsm}  {нормально компилится и работает, но надо ли}

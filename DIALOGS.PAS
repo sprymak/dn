@@ -241,7 +241,12 @@ type
 
   PLongInputline = ^TLongInputLine;
   {`2 Аналог TInputLine, но GetData и SetData работают с AnsiString.
-    Внимание! Load и Store, как и раньше, работают с 1-байтной длиной! }
+    Внимание! Load и Store, как и раньше, работают с 1-байтной длиной!.
+      TLongInputLine не должен иметь истории, так как это, во-первых,
+    приведёт к ошибке в SetData при извлечени из истории, и, во-вторых,
+    не имеет смысла, так как история работает с короткими строками, то
+    tcnm полноценной истории для TLongInputLine быть не может, пока
+    история не будет переведена на AnsiString. }
   TLongInputLine = object(TInputLine)
     procedure GetData(var Rec); virtual;
     procedure SetData(var Rec); virtual;
@@ -1392,13 +1397,16 @@ procedure TInputLine.SelectAll(Enable: Boolean);
   end;
 
 procedure TInputLine.SetData(var Rec);
+  var
+    WorkData: String;
   begin
 //!  if Data = '' then
 //!    Exit;
+  WorkData := Copy(string(Rec), 1, MaxLen);
   if  (Validator = nil) or
-      (Validator^.Transfer(Data, @Rec, vtSetData) = 0)
+      (Validator^.Transfer(Data, @WorkData, vtSetData) = 0)
   then
-    Data := String(Rec);
+    Data := WorkData;
   Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
   SelectAll(True);
   end;
@@ -3001,14 +3009,7 @@ procedure THistory.HandleEvent(var Event: TEvent);
       if C = cmOK then
         begin
         Rslt := HistoryWindow^.GetSelection;
-        if Length(Rslt) > Link^.MaxLen then
-          SetLength(Rslt, Link^.MaxLen);
-//JO: для совместимости с TLongInputLine не используем TInputLine.GetData и
-//    TInputLine.SetData - см. мой комментаpий к пpоцедуpе MakeLongInputLine
-//    в rcp.pas
-       {Link^.SetData(Rslt);}
-        Link^.Data := Rslt;
-        Link^.SelectAll(True);
+        Link^.SetData(Rslt);
         Link^.DrawView;
         end;
       Dispose(HistoryWindow, Done);

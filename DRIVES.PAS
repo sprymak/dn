@@ -140,6 +140,8 @@ type
                                  PutDirs: Boolean): PDrive; virtual;
     procedure DrvFindFile(FC: PFilesCollection); virtual;
     procedure ReadDescrptions(FilesC: PFilesCollection); virtual;
+    function GetDriveLetter: Char; virtual;
+      {` Для выбора обозначения диска в линейке дисков и меню дисков `}
     end;
 
 procedure RereadDirectory(Dir: String);
@@ -861,6 +863,11 @@ procedure TDrive.ReadDescrptions(FilesC: PFilesCollection);
     end;
   end;
 
+function TDrive.GetDriveLetter: Char;
+  begin
+  Result := CurDir[1];
+  end;
+
 {-DataCompBoy-}
 function TDrive.GetDirectory;
   var
@@ -872,8 +879,18 @@ function TDrive.GetDirectory;
     MemReq: LongInt;
     MAvail: LongInt;
     SearchAttr: word;
+    PName: PString; //AK155 В SR имя для сравнения с маской
   begin
   ClrIO;
+  PName := @SR.FullName;
+  {$IFDEF DualName}
+  if (Panel <> nil) and
+     ((PFilePanelRoot(Panel)^.PanSetup^.Show.ColumnsMask
+       and psLFN_InColumns) = 0)
+  then // в панели короткие имена
+    PName := @SR.SR.Name;
+  {$ENDIF}
+
   TFiles := 0;
   DizOwner := '';
   Descriptions := nil;
@@ -897,7 +914,7 @@ function TDrive.GetDirectory;
   do
     begin
     if not IsDummyDir(SR.SR.Name) and
-      ((SR.SR.Attr and Directory <> 0) or InFilter(SR.SR.Name, FileMask))
+      ((SR.SR.Attr and Directory <> 0) or InFilter(PName^, FileMask))
     then
       begin
       P := NewFileRec(SR.FullName {$IFDEF DualName}, SR.SR.Name {$ENDIF}
@@ -983,7 +1000,7 @@ procedure TDrive.GetDown;
     else
       S2 := AddSpace(S2, NameWidht);
     end;
-  LFN_inCurFileLine := UpStrg(P^.FlName[True]) = UpStrg(S2);
+  LFN_inCurFileLine := UpStrg(P^.FlName[True]) = UpStrg(fDelRight(S2));
   {$IFDEF RecodeWhenDraw}S2 := CharToOemStr(S2); {$ENDIF}
 
   with TDate4(P^.FDate) do

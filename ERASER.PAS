@@ -392,10 +392,13 @@ TryDel:
   label LLL, DeleteDirDIZ;
 
   begin { EraseFiles }
+  NotifySuspend; {<fnotify.001>}
   if not ValidErase(Files) then
+    begin
+    NotifyResume;
     Exit;
+    end;
   LongWorkBegin;
-  NotifySuspend; {Cat}
   DeleteAllFiles := False;
   SkipAll := False;
   Abort := False;
@@ -600,8 +603,14 @@ procedure SetVLabel;
   var
     S: String;
     rc: LongInt;
+    Dr: Char;
   begin
-  S := {$IFDEF WIN32}CharToOemStr {$ENDIF}(GetVolumeLabel(GetCurDrive));
+  Dr := GetCurDrive;
+  if Dr = '\' then
+    Exit; {!! Это очень некрасивое решение. Лучше бы сделать неактивной
+      команду cmSetVolumeLabel, если на активной панели сетевой диск.
+      А заодно и если там архив. }
+  S := {$IFDEF WIN32}CharToOemStr {$ENDIF}(GetVolumeLabel(Dr));
   {Cat}
   if ExecResource(dlgVolumeLabel, S) = cmOK then
     begin

@@ -450,7 +450,7 @@ WriteKey:
       KeyCode := SysKeyEvent.skeKeyCode or ((SysKeyEvent.skeShiftState
              and $0F) shl 16); {Cat}
       {AK155}
-      {$IFDEF OS2}
+      {$IFNDEF DPMI32}
       WheelEvent := (SysKeyEvent.skeShiftState and $80) <> 0;
         { см. vpsysos2.pas и vpkbdw32.pas}
       ShiftState := SysKeyEvent.skeShiftState and $7F;

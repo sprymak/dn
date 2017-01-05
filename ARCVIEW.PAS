@@ -128,6 +128,7 @@ type
                                  PutDirs: Boolean): PDrive; virtual;
     procedure DrvFindFile(FC: PFilesCollection); virtual;
     procedure ReadDescrptions(FilesC: PFilesCollection); virtual;
+    function GetDriveLetter: Char; virtual;
     end;
 
 function ArcViewer(AName, VAName: String): Boolean;
@@ -160,7 +161,7 @@ uses
   , UserMenu {JO: для скрывания панелей при разархивировании }
   , arc_Zip {JO: для CentralDirRecPresent}
   , Events {AK155 для LongWorkBegin - LongWorkEnd}
-  , PDSetup, FlPanelX
+  , PDSetup, FlPanelX, fnotify
   ;
 
 const
@@ -337,21 +338,21 @@ constructor TArcDrive.Load;
   DriveType := dtArc;
   ArcFileName := ArcName;
   VArcFileName := VArcName;
+  Files := PDirStorage(S.Get);
+    { AK155 Данные о файлах надо прочитать из потока независио
+    от того, будет ли найден сам архив и надо ли его перечитывать,
+    иначе собьётся дальнейшее чтение потока }
   lFindFirst(ArcName, AnyFileDir, SR); {JO}
   lFindClose(SR);
   if DosError <> 0 then
     goto Failure;
   if  (ArcDate <> SR.SR.Time) or (ArcSize <> SR.SR.Size) then
     begin {архив изменился, надо его перечитывать заново}
-    Files := PDirStorage(S.Get);
-    {AK155 28-11-2002 Тут лучше бы не читать,
-     а просто пропустить кусок потока, но я не умею это делать}
     CurDir := '\';
     ReadArchive;
     end
   else
     begin
-    Files := PDirStorage(S.Get);
     New(ArcFile, Init(ArcName, stOpenRead, ArcBufSize));
     if  (ArcFile = nil) or (ArcFile^.Status <> stOK) then
       begin
@@ -1379,18 +1380,18 @@ TryAgain:
     else
       Unp := Copy(Unp, 1, PosChar(';', Unp)-1);
     end;
-    { Flash 21-01-2004
-      Директорию нужно запоминать на том диске, где находится
-      временный каталог. А на том, где лежит архив
-      с просматриваемым файлом, она запомнится в любом случае. }
-    LFN.lChDir(Copy(TempDir,1,2));
-  lGetDir(0, DirToChange);
   Inhr := CreateDirInheritance(ExtrDir, True);
   CreateDirInheritance(TempExtrDir, False);
   //JO: если каталог назначения не создался (напpимеp, если диск доступен
   //    только на чтение), то нет смысла и вызывать аpхиватоp
   if not PathExist(TempExtrDir) then
     Exit;
+  { Flash 21-01-2004
+    Директорию нужно запоминать на том диске, где находится
+    временный каталог. А на том, где лежит архив
+    с просматриваемым файлом, она запомнится в любом случае. }
+  LFN.lChDir(Copy(TempExtrDir,1,2));
+  lGetDir(0, DirToChange);
   LFN.lChDir(TempExtrDir);
  {$IFDEF DPMI32}
   if AType^.SwapWhenExec and TempDirUsed then
@@ -1461,6 +1462,7 @@ procedure TArcDrive.CopyFiles;
     ExtrDir: String;
     DDr: Char;
   begin
+  NotifySuspend; {<fnotify.001>}
   ExtrDir := '';
   DT.S := '';
   DT.Psw := Password;
@@ -1478,6 +1480,7 @@ procedure TArcDrive.CopyFiles;
   if DT.S = cTEMP_ then
     begin
     CopyToTempDrive(AFiles, Own, ArcName);
+    NotifyResume;
     Exit;
     end;
   {JO}
@@ -1505,7 +1508,10 @@ procedure TArcDrive.CopyFiles;
   {/JO}
   if not SkipCopyDialog then
     if ExecResource(dlgExtract, DT) <> cmOK then
+      begin
+      NotifyResume;
       Exit;
+      end;
   {JO}
   if  ( (DT.W and 1) <> (UnarchiveOpt and 1)) or
       ( (DT.W and 4) <> (UnarchiveOpt and 4))
@@ -1517,6 +1523,7 @@ procedure TArcDrive.CopyFiles;
   ExtrDir := DT.S;
   Password := DT.Psw;
   ExtractFiles(AFiles, ExtrDir, Own, DT.W);
+  NotifyResume;
   end { TArcDrive.CopyFiles };
 {-DataCompBoy-}
 
@@ -2093,6 +2100,11 @@ procedure TArcDrive.DrvFindFile(FC: PFilesCollection);
 
 procedure TArcDrive.ReadDescrptions(FilesC: PFilesCollection);
   begin
+  end;
+
+function TArcDrive.GetDriveLetter: Char;
+  begin
+  Result := ArcName[1];
   end;
 
 end.

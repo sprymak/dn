@@ -1057,7 +1057,6 @@ function SelectDrive; {-$VIV, JO}
     TDriveRec = record
       Dr: Char;
       DT: TDrvTypeNew;
-      DrInvalid: Boolean;
       FullS: String[50];
       end;
 
@@ -1156,7 +1155,7 @@ function SelectDrive; {-$VIV, JO}
     else
       FreeStr := '';
 
-    Items := NewItem('~*:~ TEMP: '+FreeStr, '', kbSpace, 1200,
+    Items := NewItem('~*:~ TEMP:'+FreeStr, '', kbSpace, 1200,
          hcTempList, Items);
     Items := NewLine(Items);
     Inc(N)
@@ -1167,7 +1166,7 @@ function SelectDrive; {-$VIV, JO}
       begin
       Inc(DrvCnt);
       DrvStrArr[DrvCnt].Dr := C;
-      DrvStrArr[DrvCnt].FullS := '~'+C+':~ ';
+      DrvStrArr[DrvCnt].FullS := '~'+C+':~';
       end;
 
   for I := 1 to DrvCnt do
@@ -1177,7 +1176,6 @@ function SelectDrive; {-$VIV, JO}
         ((InterfaceData.DrvInfType.ForDrives and 1 <> 0) and
          (Pos(Dr, UpStrg(InterfaceData.DrvInfType.ExceptDrv)) = 0)) then
         begin
-        DrInvalid := False;
        {DriveNum := Byte(C)-64;}
         DT := GetDriveTypeNew(Dr);
         case DT of
@@ -1185,10 +1183,7 @@ function SelectDrive; {-$VIV, JO}
             if (InterfaceData.DrvInfType.TypeShowFor and ditFloppy <> 0) then
               FullS := FullS+GetString(sdtRemovable);
           dtnInvalid:
-            begin
             FullS := FullS+GetString(sdtError);
-            DrInvalid := True;
-            end;
           dtnCDRom:
             if  (InterfaceData.DrvInfType.TypeShowFor and ditCDMO <> 0) then
               FullS := FullS+GetString(sdtCDROM);
@@ -1207,6 +1202,9 @@ function SelectDrive; {-$VIV, JO}
           dtRamDisk:
             if  (InterfaceData.DrvInfType.TypeShowFor and ditProgr <> 0) then
               FullS := FullS+GetString(sdtRAMDrive);
+          dtnSubst:
+            if  (InterfaceData.DrvInfType.TypeShowFor and ditNet <> 0) then
+              FullS := FullS+GetString(sdtSubst);
           dtnUnknown:
             FullS := FullS+GetString(sdtError);
         end {case};
@@ -1218,8 +1216,7 @@ function SelectDrive; {-$VIV, JO}
 
   if Tabulated then
     for I := 1 to DrvCnt do
-      if DrvStrArr[I].DT <> dtnLAN then
-        DrvStrArr[I].FullS := AddSpace(DrvStrArr[I].FullS, MaxFullSLength);
+      DrvStrArr[I].FullS := AddSpace(DrvStrArr[I].FullS, MaxFullSLength);
 
   for I := 1 to DrvCnt do
     with DrvStrArr[I] do
@@ -1227,7 +1224,7 @@ function SelectDrive; {-$VIV, JO}
         ((InterfaceData.DrvInfType.ForDrives and 1 <> 0) and
          (Pos(Dr, UpStrg(InterfaceData.DrvInfType.ExceptDrv)) = 0)) then
         begin
-        if (not DrInvalid) and ((DT = dtnUnknown)
+        if ((DT = dtnUnknown)
           or ((DT = dtnHDD)
             and (InterfaceData.DrvInfType.FSShowFor and ditHDD <> 0))
           or ((DT = dtnFloppy)
@@ -1246,7 +1243,7 @@ function SelectDrive; {-$VIV, JO}
 
   if Tabulated then
     for I := 1 to DrvCnt do
-      if DrvStrArr[I].DT <> dtnLAN then
+      if not (DrvStrArr[I].DT in [dtnLAN, dtnSubst]) then
         DrvStrArr[I].FullS := AddSpace(DrvStrArr[I].FullS, MaxFullSLength);
 
   for I := 1 to DrvCnt do
@@ -1255,7 +1252,7 @@ function SelectDrive; {-$VIV, JO}
         ((InterfaceData.DrvInfType.ForDrives and 1 <> 0) and
          (Pos(Dr, UpStrg(InterfaceData.DrvInfType.ExceptDrv)) = 0)) then
         begin
-        if (not DrInvalid) and (
+        if (
           ((DT = dtnHDD)
             and (InterfaceData.DrvInfType.VLabShowFor and ditHDD <> 0))
           or ((DT = dtnFloppy)
@@ -1274,7 +1271,7 @@ function SelectDrive; {-$VIV, JO}
 
   if Tabulated then
     for I := 1 to DrvCnt do
-      if DrvStrArr[I].DT <> dtnLAN then
+      if not (DrvStrArr[I].DT in [dtnLAN, dtnSubst]) then
         DrvStrArr[I].FullS := AddSpace(DrvStrArr[I].FullS, MaxFullSLength);
 
   K := MaxSizeDig;
@@ -1285,7 +1282,7 @@ function SelectDrive; {-$VIV, JO}
         ((InterfaceData.DrvInfType.ForDrives and 1 <> 0) and
          (Pos(Dr, UpStrg(InterfaceData.DrvInfType.ExceptDrv)) = 0)) then
         begin
-        if (not DrInvalid) and (
+        if (
           ((DT = dtnHDD)
             and (InterfaceData.DrvInfType.FreeSpShowFor and ditHDD <> 0))
           or ((DT = dtnFloppy)
@@ -1311,12 +1308,15 @@ function SelectDrive; {-$VIV, JO}
 
   if Tabulated then
     for I := 1 to DrvCnt do
-      if DrvStrArr[I].DT <> dtnLAN then
+      if not (DrvStrArr[I].DT in [dtnLAN, dtnSubst]) then
         Delete(DrvStrArr[I].FullS, MaxFullSLength+1, K-1);
 
   for I := 1 to DrvCnt do
     with DrvStrArr[I] do
-      if DT = dtnLAN then FullS := FullS + '~'+GetShare(Dr)+'~';
+      if DT = dtnLAN then
+        FullS := FullS + ' ~'+GetShare(Dr)+'~'
+      else if DT = dtnSubst then
+        FullS := FullS + ' ~'+GetSubst(Dr)+'~';
 
   for I := 1 to DrvCnt do
     with DrvStrArr[I] do

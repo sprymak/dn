@@ -1542,7 +1542,7 @@ function GlobalMessage;
   Ptr := nil;
   if Command = cmPanelReread then
     Command := cmTotalReread;
-  Application^.ForEach(@Action);
+  Application^.ForEach(@Action);      {<dnapp.001>}
   Desktop^.ForEach(@Action);
   GlobalMessage := Ptr;
   end { GlobalMessage };

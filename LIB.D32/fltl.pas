@@ -12,7 +12,8 @@ interface
 
 type
   TDrvTypeNew = ( dtnFloppy, dtnHDD, dtnInvalid,
-    dtnCDRom, dtnLAN, dtnUnknown, dtnOptical, dtnProgram, dtRamDisk);
+    dtnCDRom, dtnLAN, dtnUnknown, dtnOptical
+    , dtnProgram, dtRamDisk, dtnSubst);
 
 function GetBytesPerCluster(Path: PChar): LongInt;
 
@@ -32,6 +33,7 @@ procedure GetSerFileSys(Drive: Char; var SerialNo: Longint;
 
 function GetFSString(Drive: Char): String; {AK155}
 function GetShare(Drive: Char): String; {AK155}
+function GetSubst(Drive: Char): String; {AK155}
 function GetDriveTypeNew(Drive: Char): TDrvTypeNew; {JO} {<fltl.001>}
 
 function GetErrorText(ErrCode: Integer; var Msg: String): Boolean;
@@ -143,6 +145,11 @@ function GetFSString(Drive: Char): String; {AK155}
   end;
 
 function GetShare(Drive: Char): String; {AK155}
+  begin
+  Result := '';
+  end;
+
+function GetSubst(Drive: Char): string; {AK155}
   begin
   Result := '';
   end;

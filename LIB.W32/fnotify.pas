@@ -21,7 +21,10 @@ var
 procedure NotifyInit;
 procedure NotifyAddWatcher(const Path: String);
 procedure NotifyDeleteWatcher(const Path: String);
-procedure NotifyAsk(var S: String);
+function NotifyAsk(var S: String): Boolean;
+  {` Результат False показывает, что система автообновления
+    не запущена или в паузе, то есть никаких действий по
+    автообновлению производить не надо `}
 procedure NotifySuspend;
 procedure NotifyResume;
 procedure NotifyDone;
@@ -153,19 +156,20 @@ procedure NotifyDeleteWatcher(const Path: String);
   {$ENDIF}
   end;
 
-procedure NotifyAsk(var S: String);
+function NotifyAsk(var S: String): Boolean;
   var
     I: LongInt;
   begin
   {JO}
   if  (NotifierCollection = nil)
     {AK155} or (SuspendCount <> 0) {/AK155}
-    then
+  then
     begin
-    S := '';
+    Result := False;
     Exit;
     end;
   {/JO}
+  Result := True;
   for I := 0 to NotifierCollection^.Count-1 do
     with PNotifierRec(NotifierCollection^.At(I))^ do
       if WaitForSingleObject(Handle, 0) = wait_Object_0 then

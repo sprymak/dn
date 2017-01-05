@@ -51,14 +51,12 @@ unit CCalc;
 interface
 
 uses
-  Advance, Advance1, Advance2, Calculat, RStrings, DNApp,
-  Dialogs, Views, Defines, Drivers, Commands, HistList, DNHelp
+  Defines, Streams, Dialogs, Views, Drivers, Calculat
   ;
 
 type
   PCalcLine = ^TCalcLine;
   TCalcLine = object(TInputLine)
-    ResultSelected: Boolean;
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure SetData(var B); virtual;
     procedure SetValues(SetSelf: Boolean);
@@ -68,9 +66,14 @@ type
 
   PIndicator = ^TIndicator;
   TIndicator = object(TView)
-    CalcError: Boolean;
+    CalcLine: PCalcLine;
+    Radio: PRadioButtons;
     Value: CReal;
+    SResult: String[40];
+    CalcError: Boolean;
     constructor Init(var R: TRect);
+    constructor Load(var S: TStream);
+    procedure Store(var S: TStream);
     procedure HandleEvent(var Event: TEvent); virtual;
     procedure Draw; virtual;
     procedure WrtT(X: CReal; var S: String);
@@ -84,6 +87,23 @@ const
 
 implementation
 
+uses
+  Advance, Advance1, Advance2,
+  RStrings, DNApp,
+  Commands, HistList
+  , objects2
+  ;
+
+{ AK155 19/10/2006
+ TCalcLine и TIndicator ориентированы на использование внутри диалога
+калькулятора. У этого диалога DirectLink[1] должен ссылаться на строку
+ввода, DirectLink[2] - на блок радиокнопок выбора представления
+результата, а DirectLink[3] в ресурсе не определён, но в программе
+используется для ссылки на индикатор (PIndicator) из строки ввода.
+Включать поле с такой ссылкой прямо в TCalcLine неудобно, так как это
+исключило бы возможность загружать строку ввода из ресурса диалога и
+подменять ей тип на TCalcLine }
+
 constructor TIndicator.Init;
   begin
   inherited Init(R);
@@ -92,6 +112,21 @@ constructor TIndicator.Init;
   Value := 0;
   end;
 
+constructor TIndicator.Load(var S: TStream);
+  begin
+  inherited Load(S);
+  GetPeerViewPtr(S, CalcLine);
+  GetPeerViewPtr(S, Radio);
+  end;
+
+procedure TIndicator.Store(var S: TStream);
+  begin
+  inherited Store(S);
+  PutPeerViewPtr(S, CalcLine);
+  PutPeerViewPtr(S, Radio);
+  end;
+
+
 function TIndicator.GetPalette;
   const
     S: String[1] = CCluster;
@@ -99,15 +134,15 @@ function TIndicator.GetPalette;
   GetPalette := @S;
   end;
 
-procedure GetNValue(L: LongInt; A: Integer; var S: String);
+function GetNValue(L: LongInt; A: Integer): String;
   begin
-  S := '';
+  Result := '';
   if L = 0 then
-    S := '0'
+    Result := '0'
   else
     while (L <> 0) do
       begin
-      S := HexStr[(L and ((1 shl A)-1))]+S;
+      Result := HexStr[(L and ((1 shl A)-1))]+Result;
       L := L shr A;
       end;
   end;
@@ -151,37 +186,7 @@ procedure TIndicator.HandleEvent;
       cmCopyClip:
         begin
         ClearEvent(Event);
-        Owner^.GetData(D);
-        case D.n of
-          0:
-            begin
-            Str(Value: 0: 20, D.S);
-            while D.S[Length(D.S)] = '0' do
-              SetLength(D.S, Length(D.S)-1);
-            if D.S[Length(D.S)] = '.' then
-              SetLength(D.S, Length(D.S)-1);
-            end;
-          1:
-            if Abs(Value) < $7FFFFFFF then
-              GetNValue(Trunc(Value), 4, D.S)
-            else
-              Exit;
-          2:
-            if Abs(Value) < $7FFFFFFF then
-              GetNValue(Trunc(Value), 1, D.S)
-            else
-              Exit;
-          3:
-            if Abs(Value) < $7FFFFFFF then
-              GetNValue(Trunc(Value), 3, D.S)
-            else
-              Exit;
-          4:
-            Str(Value, D.S);
-          5:
-            WrtT(Value, D.S);
-        end {case};
-        Message(Application, evCommand, cmPutInClipboard, @D.S);
+        Message(Application, evCommand, cmPutInClipboard, @SResult);
         end;
     end {case};
   end { TIndicator.HandleEvent };
@@ -226,18 +231,15 @@ procedure TIndicator.Draw;
     S: String[40];
     C: Byte;
     L, LL: LongInt;
+    SelectedForm: Integer;
 
   procedure Wrt(N: Integer);
     begin
     MoveChar(B, ' ', C, Size.X);
     MoveStr(B[Size.X-Length(S)-1], S, C);
     WriteLine(0, N, Size.X, 1, B);
-    end;
-
-  procedure WrtN(N, A: Integer);
-    begin
-    GetNValue(LL, A, S);
-    Wrt(N);
+    if N = SelectedForm then
+      SResult := S;
     end;
 
   begin
@@ -253,6 +255,7 @@ procedure TIndicator.Draw;
     end
   else
     begin
+    Radio^.GetData(SelectedForm);
     Str(Value: 0: 20, S);
     if PosChar('E', S) = 0 then
       while S[Length(S)] = '0' do
@@ -271,11 +274,13 @@ procedure TIndicator.Draw;
     else
       begin
       LL := Trunc(Value);
-      WrtN(1, 4);
-      WrtN(2, 1);
-      WrtN(3, 3);
-      WrtT(Value, S);
-      Wrt(5);
+      S := '$'+GetNValue(LL, 4);
+      Wrt(1);
+      S := GetNValue(LL, 1) + 'b';
+      Wrt(2);
+      S := GetNValue(LL, 3) + 'o';
+      Wrt(3);
+      WrtT(Value, S); Wrt(5);
       end;
     Str(Value, S);
     Wrt(4);
@@ -287,11 +292,6 @@ procedure TCalcLine.HandleEvent;
     WasKey: Boolean;
   begin
   WasKey := Event.What = evKeyDown;
-  if WasKey and ResultSelected then
-    if not (Event.CharCode in ['0'..'9']) then
-      SelEnd := 0;
-  if  (Event.What = evKeyDown) and (Event.KeyCode = kbUp) then
-    ClearEvent(Event);
   inherited HandleEvent(Event);
   if WasKey then
     begin
@@ -310,9 +310,15 @@ procedure TCalcLine.HandleEvent;
   else if (Event.What = evCommand) then
     case Event.Command of
       cmCalcValue:
+        begin
+        ClearEvent(Event);
         SetValues(True);
+        end;
       cmGetName:
+        begin
         PString(Event.InfoPtr)^:= GetString(dlCalculator);
+        ClearEvent(Event);
+        end;
     end {case};
   end { TCalcLine.HandleEvent };
 
@@ -340,7 +346,6 @@ procedure TCalcLine.SetValues;
     R: CReal;
     S: String;
   begin
-  ResultSelected := False;
   GetData(S);
   //  DelSpace(S);
   if S = '' then
@@ -369,17 +374,7 @@ procedure TCalcLine.SetValues;
       begin
       GetData(S);
       HistoryAdd(hsCalcLine, S);
-      Str(R: 0: 20, S);
-      while S[Length(S)] = '0' do
-        SetLength(S, Length(S)-1);
-      if S[Length(S)] = '.' then
-        SetLength(S, Length(S)-1);
-      SetData(S);
-      SelStart := 0;
-      SelEnd := Length(Data);
-      CurPos := SelEnd;
-      DrawView;
-      ResultSelected := True;
+      SetData(PIndicator(PDialog(Owner)^.DirectLink[3])^.SResult);
       end;
     end;
   end { TCalcLine.SetValues };
@@ -390,30 +385,21 @@ procedure InsertCalc;
     var
       Dlg: PDialog;
       R: TRect;
-      Control, Labl, Histry: PView;
+      Indicator: PIndicator;
     begin
     Dlg := PDialog(LoadResource(dlgCalculator));
     R.Move(10, 5);
     Dlg^.Number := GetNum;
 
-    R.Assign(2, 3, Dlg^.Size.X-6, 4);
-    Control := New(PCalcLine, Init(R, 250));
-    Control^.Options := Control^.Options or ofFramed or ofPostProcess;
-    Dlg^.Insert(Control);
-
-    R.Assign(Dlg^.Size.X-5, 3, Dlg^.Size.X-2, 4);
-    Histry := New(PHistory, Init(R, PInputline(Control), hsCalcLine));
-    Histry^.Options := Histry^.Options or ofFramed;
-    Dlg^.Insert(Histry);
-
-    R.Assign(2, 2, 13, 3);
-    Labl := New(PLabel, Init(R, GetString(dlCalcEx_p_ression), Control));
-    Dlg^.Insert(Labl);
+    ObjChangeType(Dlg^.DirectLink[1], TypeOf(TCalcLine));
 
     R.Assign(12, 6, Dlg^.Size.X-2, 12);
-    Control := New(PIndicator, Init(R));
-    Control^.Options := Control^.Options or ofFramed;
-    Dlg^.Insert(Control);
+    New(Indicator, Init(R));
+    Indicator^.Options := Indicator^.Options or ofFramed;
+    Indicator^.CalcLine := PCalcLine(Dlg^.DirectLink[1]);
+    Indicator^.Radio := PRadioButtons(Dlg^.DirectLink[2]);
+    Dlg^.Insert(Indicator);
+    Dlg^.DirectLink[3] := Indicator;
 
     MakeDialog := Dlg;
     end { MakeDialog: };

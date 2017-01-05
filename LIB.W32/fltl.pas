@@ -12,7 +12,8 @@ interface
 
 type
   TDrvTypeNew = ( dtnFloppy, dtnHDD, dtnInvalid,
-    dtnCDRom, dtnLAN, dtnUnknown, dtnOptical, dtnProgram, dtRamDisk);
+    dtnCDRom, dtnLAN, dtnUnknown, dtnOptical
+    , dtnProgram, dtRamDisk, dtnSubst);
 
 function GetBytesPerCluster(Path: PChar): LongInt;
 procedure CopyEAs(FFromName, FToName: String);
@@ -37,6 +38,7 @@ procedure GetSerFileSys(Drive: Char; var SerialNo: Longint;
 
 function GetFSString(Dr: Char): String; {JO}
 function GetShare(Drive: Char): string; {AK155}
+function GetSubst(Drive: Char): string; {AK155}
 function GetDriveTypeNew(Drive: Char): TDrvTypeNew; {JO} {<fltl.001>}
 //JO: Функция, которую следует использовать в исходниках DN/2
 //    вместо неудачной штатной для VP RTL функции SysGetDriveType,
@@ -372,6 +374,18 @@ function GetShare(Drive: Char): string;
     Result := StrPas(PREMOTE_NAME_INFO(@Buf)^.lpConnectionName);
   end;
 
+function GetSubst(Drive: Char): string; {AK155}
+  const
+    Root: Array[0..3] of char = 'C:'#0;
+  begin
+  Root[0] := Drive;
+  SetLength(Result, QueryDosDevice(Root, @Result[1], 255));
+  if Copy(Result, 1, 4) = '\??\' then
+    Result := Copy(Result, 5, 255)
+  else
+    Result := '';
+  end;
+
 function GetDriveTypeNew(Drive: Char): TDrvTypeNew; {<fltl.001>}
 const
   Root: Array[0..4] of char = 'C:\'#0;
@@ -381,7 +395,12 @@ begin
   Result := dtnInvalid;
   case GetDriveType(Root) of
     Drive_Fixed:
-      Result := dtnHDD;
+      begin
+      if GetSubst(Drive) <> '' then
+        Result := dtnSubst
+      else
+        Result := dtnHDD;
+      end;
     Drive_Removable:
       Result := dtnFloppy;
     Drive_CDRom:

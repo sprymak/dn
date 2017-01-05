@@ -298,17 +298,13 @@ DIALOG dlgCountrySetup, 54, 22, 'Country information'
     Label 36, 2, 'Cu~r~rency format'
     InputLine 46, 9, 52, 10, 4, 0
     Label 28, 9, '~C~urrency symbol'
-    InputLine 36, 11, 50, 12, 79, 0
-    History 50, 11, hsKbdToggleLayot
+    InputLine 36, 11, 50, 12, 79, hsKbdToggleLayot
     Label 26, 11, '~K~eyboard'
-    InputLine 36, 13, 50, 14, 79, 0
-    History 50, 13, hsWinCodeTable
+    InputLine 36, 13, 50, 14, 79, hsWinCodeTable
     Label 16, 13, 'Alphabetic Sorting'
-    InputLine 36, 15, 50, 16, 79, 0
-    History 50, 15, hsABCSortTable
+    InputLine 36, 15, 50, 16, 79, hsABCSortTable
     Label 30, 15, '~W~IN:'
-    InputLine 2, 17, 50, 18, 255, 0
-    History 50, 17, hsCodeTables
+    InputLine 2, 17, 50, 18, 255, hsCodeTables
     Label 1, 16, 'Additional codetabl~e~s'
     Button 27, 6, 37, 8, '~S~ystem', cmYes
     Button 7, 19, 17, 21, 'O~K~', cmOK, bfDefault
@@ -1682,11 +1678,9 @@ END
 
 DIALOG dlgAdvanceSearch, 55, 15, 'Advanced search'
     HELPCTX hcAdvanceSearch
-    InputLine 18, 2, 37, 3, 17, 0
-    History 37, 2, hsFindAfter, ofPostProcess
+    InputLine 18, 2, 37, 3, 17, hsFindAfter
     Label 2, 2, 'Date is ~a~fter', ofPostProcess, ofPreProcess
-    InputLine 18, 4, 37, 5, 17, 0
-    History 37, 4, hsFindBefore, ofPostProcess
+    InputLine 18, 4, 37, 5, 17, hsFindBefore
     Label 2, 4, 'Date is ~b~efore', ofPostProcess, ofPreProcess
     InputLine 25, 6, 39, 7, 12, 0
     Label 2, 6, 'Size is ~g~reater than', ofPostProcess, ofPreProcess
@@ -1716,13 +1710,11 @@ END
 
 DIALOG dlgArchiveFiles, 64, 21, 'Archive files'
     HELPCTX hcArchiveFiles
-    InputLine 15, 2, 58, 3, 255, 0
-    History 58, 2, hsFileCopyName, ofPostProcess
+    InputLine 15, 2, 58, 3, 255, hsFileCopyName
     Label 3, 2, 'Archiv~e~ to', ofPostProcess, ofPreProcess
     InputLine 3, 5, 15, 6, 40, 0, ofSecurity
     Label 3, 4, 'Pass~w~ord', ofPostProcess, ofPreProcess
-    InputLine 19, 5, 36, 6, 80, 0
-    History 36, 5, hsAddOptions, ofPostProcess
+    InputLine 19, 5, 36, 6, 80, hsAddOptions
     Label 19, 4, 'A~d~ditional options', ofPostProcess, ofPreProcess
     CheckBoxes 40, 4, 61, 11, ofPostProcess, ofPreProcess
       ITEM 'Store path~n~ames'
@@ -2064,28 +2056,32 @@ DIALOG dlgEditDirectory, 44, 13, 'Edit Phone Group'
     Button 32, 10, 42, 12, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgPrinterSetup, 48, 12, 'Printer Setup'
+DIALOG dlgPrinterSetup, 48, 14, 'Printer Setup'
     HELPCTX hcPrinterSetup
-    RadioButtons 2, 3, 22, 8, ofPostProcess, ofPreProcess
+    RadioButtons 2, 3, 26, 9, ofPostProcess, ofPreProcess
       ITEM 'LPT~1~'
       ITEM 'LPT~2~'
       ITEM 'LPT~3~'
       ITEM 'LPT~4~'
       ITEM '~F~ile'
+      ITEM '~N~UL'
       ITEM 'COM1'
       ITEM 'COM2'
       ITEM 'COM3'
       ITEM 'COM4'
-      ITEM '~N~UL'
+      ITEM 'Custom 1:'
+      ITEM 'Custom 2:'
     END
-    Label 2, 2, 'Port', ofPostProcess, ofPreProcess
-    InputLine 24, 3, 46, 4, 80, 0
-    Label 24, 2, '~I~nit string', ofPostProcess, ofPreProcess
-    InputLine 24, 6, 46, 7, 80, 0
-    Label 24, 5, '~E~nding string', ofPostProcess, ofPreProcess
-    Button 14, 9, 24, 11, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 25, 9, 35, 11, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
-    Button 36, 9, 46, 11, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
+    Label 2, 2, 'Device', ofPostProcess, ofPreProcess
+    InputLine 26, 7, 46, 8, 255, 0
+    InputLine 26, 8, 46, 9, 255, 0
+    InputLine 26, 3, 46, 4, 255, 0
+    Label 26, 2, '~I~nit string', ofPostProcess, ofPreProcess
+    InputLine 26, 5, 46, 6, 255, 0
+    Label 26, 4, '~E~nding string', ofPostProcess, ofPreProcess
+    Button 14, 10, 24, 12, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 25, 10, 35, 12, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
+    Button 36, 10, 46, 12, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgGameSetup, 53, 15, 'Setup game'
@@ -2118,8 +2114,7 @@ END
 
 DIALOG dlgDbFind, 55, 12, 'Search'
     HELPCTX hcDBSearch
-    InputLine 18, 2, 50, 3, 250, 0
-    History 50, 2, hsdbSearch, ofPostProcess
+    InputLine 18, 2, 50, 3, 250, hsdbSearch
     Label 2, 2, '~T~ext to search', ofPostProcess, ofPreProcess
     CheckBoxes 12, 4, 32, 5, ofPostProcess, ofPreProcess
       ITEM '~C~ase sensitive'
@@ -2143,11 +2138,9 @@ END
 
 DIALOG dlgReplaceCell, 52, 17, 'Replace in spreadsheet'
     HELPCTX hcReplaceCell
-    InputLine 3, 3, 45, 4, 240, 0, ofFramed
-    History 46, 3, hsFindCellPattern, ofFramed, ofPostProcess
+    InputLine 3, 3, 45, 4, 240, hsFindCellPattern, ofFramed
     Label 3, 2, '~P~attern', ofPostProcess, ofPreProcess
-    InputLine 3, 6, 45, 7, 240, 0, ofFramed
-    History 46, 6, hsReplacePattern, ofFramed, ofPostProcess
+    InputLine 3, 6, 45, 7, 240, hsReplacePattern, ofFramed
     Label 3, 5, '~R~eplace to', ofPostProcess, ofPreProcess
     RadioButtons 3, 9, 18, 11, ofFramed, ofPostProcess, ofPreProcess
       ITEM '~S~tring'
@@ -2168,8 +2161,7 @@ END
 
 DIALOG dlgFindCell, 49, 13, 'Find in spreadsheet'
     HELPCTX hcFindCell
-    InputLine 3, 3, 42, 4, 240, 0, ofFramed
-    History 43, 3, hsFindCellPattern, ofFramed, ofPostProcess
+    InputLine 3, 3, 42, 4, 240, hsFindCellPattern, ofFramed
     Label 3, 2, '~P~attern', ofPostProcess, ofPreProcess
     RadioButtons 3, 6, 18, 8, ofFramed, ofPostProcess, ofPreProcess
       ITEM '~S~tring'
@@ -2188,8 +2180,7 @@ END
 
 DIALOG dlgGotoCellNumber, 41, 7, 'Go to Cell Number'
     HELPCTX hcGotoCellNumber
-    InputLine 27, 2, 35, 3, 6, 0
-    History 35, 2, hsGotoCell, ofPostProcess
+    InputLine 27, 2, 35, 3, 6, hsGotoCell
     Label 4, 2, '~E~nter new cell number', ofPostProcess, ofPreProcess
     Button 2, 4, 12, 6, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 15, 4, 25, 6, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
@@ -2227,58 +2218,47 @@ END
 DIALOG dlgHighlightGroups, 78, 18, 'Highlight groups'
     HELPCTX hcHighlight
 
-    InputLine 12, 2, 35, 3, 250, 0
-    History 35, 2, hsCustoms, ofPostProcess
+    InputLine 12, 2, 35, 3, 250, hsCustoms
     Label 1, 2, 'Custom ~1~', ofPostProcess, ofPreProcess
     ColorPoint 11, 2, 175
 
-    InputLine 12, 4, 35, 5, 250, 0
-    History 35, 4, hsCustoms, ofPostProcess
+    InputLine 12, 4, 35, 5, 250, hsCustoms
     Label 1, 4, 'Custom ~2~', ofPostProcess, ofPreProcess
     ColorPoint 11, 4, 176
 
-    InputLine 12, 6, 35, 7, 250, 0
-    History 35, 6, hsCustoms, ofPostProcess
+    InputLine 12, 6, 35, 7, 250, hsCustoms
     Label 1, 6, 'Custom ~3~', ofPostProcess, ofPreProcess
     ColorPoint 11, 6, 177
 
-    InputLine 12, 8, 35, 9, 250, 0
-    History 35, 8, hsCustoms, ofPostProcess
+    InputLine 12, 8, 35, 9, 250, hsCustoms
     Label 1, 8, 'Custom ~4~', ofPostProcess, ofPreProcess
     ColorPoint 11, 8, 180
 
-    InputLine 12, 10, 35, 11, 250, 0
-    History 35, 10, hsCustoms, ofPostProcess
+    InputLine 12, 10, 35, 11, 250, hsCustoms
     Label 1, 10, 'Custom ~5~', ofPostProcess, ofPreProcess
     ColorPoint 11, 10, 181
 
-    InputLine 50, 2, 73, 3, 250, 0
-    History 73, 2, hsCustoms, ofPostProcess
+    InputLine 50, 2, 73, 3, 250, hsCustoms
     Label 39, 2, 'Custom ~6~', ofPostProcess, ofPreProcess
     ColorPoint 49, 2, 192
 
-    InputLine 50, 4, 73, 5, 250, 0
-    History 73, 4, hsCustoms, ofPostProcess
+    InputLine 50, 4, 73, 5, 250, hsCustoms
     Label 39, 4, 'Custom ~7~', ofPostProcess, ofPreProcess
     ColorPoint 49, 4, 193
 
-    InputLine 50, 6, 73, 7, 250, 0
-    History 73, 6, hsCustoms, ofPostProcess
+    InputLine 50, 6, 73, 7, 250, hsCustoms
     Label 39, 6, 'Custom ~8~', ofPostProcess, ofPreProcess
     ColorPoint 49, 6, 194
 
-    InputLine 50, 8, 73, 9, 250, 0
-    History 73, 8, hsCustoms, ofPostProcess
+    InputLine 50, 8, 73, 9, 250, hsCustoms
     Label 39, 8, 'Custom ~9~', ofPostProcess, ofPreProcess
     ColorPoint 49, 8, 195
 
-    InputLine 50, 10, 73, 11, 250, 0
-    History 73, 10, hsCustoms, ofPostProcess
+    InputLine 50, 10, 73, 11, 250, hsCustoms
     Label 39, 10, 'Custom 1~0~', ofPostProcess, ofPreProcess
     ColorPoint 49, 10, 196
 
-    InputLine 12, 12, 73, 13, 250, 0
-    History 73, 12, hsCustoms, ofPostProcess
+    InputLine 12, 12, 73, 13, 250, hsCustoms
     Label 1, 12, '~A~rchives', ofPostProcess, ofPreProcess
     ColorPoint 11, 12, 174
 
@@ -2289,8 +2269,7 @@ END
 
 DIALOG dlgGotoLine, 34, 7, 'Goto Line'
     HELPCTX hcGotoLine
-    InputLine 16, 2, 28, 3, 10, 0
-    History 28, 2, hsdbSearch, ofPostProcess
+    InputLine 16, 2, 28, 3, 10, hsdbSearch
     Label 3, 2, '~L~ine number', ofPostProcess, ofPreProcess
     Button 2, 4, 12, 6, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 12, 4, 22, 6, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
@@ -2299,8 +2278,7 @@ END
 
 DIALOG dlgGotoAddress, 34, 7, 'Goto Address'
     HELPCTX hcGotoAddress
-    InputLine 12, 2, 28, 3, 8, 0
-    History 28, 2, hsdbSearch, ofPostProcess
+    InputLine 12, 2, 28, 3, 8, hsdbSearch
     Label 3, 2, '~A~ddress', ofPostProcess, ofPreProcess
     Button 2, 4, 12, 6, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 12, 4, 22, 6, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
@@ -2350,8 +2328,7 @@ DIALOG dlgEditorFind, 55, 16, 'Find'
     Button 22, 13, 32, 15, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 32, 13, 42, 15, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
     Button 42, 13, 52, 15, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
-    InputLine 17, 2, 49, 3, 250, 0
-    History 49, 2, hsFindText, ofPostProcess
+    InputLine 17, 2, 49, 3, 250, hsFindText
     Label 3, 2, '~T~ext to find', ofPostProcess, ofPreProcess
     HexLine 17, 3, 49, 4
     Label 3, 3, '  ~H~ex string', ofPostProcess, ofPreProcess
@@ -2389,14 +2366,12 @@ DIALOG dlgEditorReplace, 55, 18, 'Replace'
     Button 16, 15, 32, 17, 'Change ~a~ll', cmYes, ofPostProcess, ofPreProcess
     Button 32, 15, 42, 17, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
     Button 42, 15, 52, 17, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
-    InputLine 17, 2, 49, 3, 250, 0
+    InputLine 17, 2, 49, 3, 250, hsFindText
     Label 3, 2, '~T~ext to find', ofPostProcess, ofPreProcess
-    History 49, 2, hsFindText, ofPostProcess
     HexLine 17, 3, 49, 4
     Label 3, 3, '  ~H~ex string', ofPostProcess, ofPreProcess
-    InputLine 17, 4, 49, 5, 250, 0
+    InputLine 17, 4, 49, 5, 250, hsFindText
     Label 7, 4, '~N~ew text', ofPostProcess, ofPreProcess
-    History 49, 4, hsFindText, ofPostProcess
     HexLine 17, 5, 49, 6
     Label 3, 5, '  He~x~ string', ofPostProcess, ofPreProcess
     SelectBack
@@ -2406,15 +2381,13 @@ DIALOG dlgEditorReplace, 55, 18, 'Replace'
 END
 
 ;{-$VIV 14.05.99}
-DIALOG dlgFileFind, 54, 19, 'Find File'
+DIALOG dlgFileFind, 56, 19, 'Find File'
     HELPCTX hcFileFind
-    InputLine 16, 2, 51, 3, 255, 0
+    InputLine 16, 2, 51, 3, 255, hsFindMask
     Label 2, 2, '   ~F~ile mask', ofPostProcess, ofPreProcess
-    History 49, 2, hsFindMask, ofPostProcess
-    InputLine 16, 4, 51, 5, 255, 0
+    InputLine 16, 4, 51, 5, 255, hsFindText
     Label 2, 4, '~T~ext to find', ofPostProcess, ofPreProcess
-    History 49, 4, hsFindText, ofPostProcess
-    HexLine 16, 5, 49, 6
+    HexLine 16, 5, 51, 6
     Label 2, 5, '  ~H~ex string', ofPostProcess, ofPreProcess
     CheckBoxes 3, 7, 51, 11, ofPostProcess, ofPreProcess
       ITEM 'Adva~n~ced search'
@@ -2445,9 +2418,8 @@ END
 
 DIALOG dlgArcFileFind, 52, 11, 'Find File in Archive'
     HELPCTX hcArcFileFind
-    InputLine 16, 2, 49, 3, 255, 0
+    InputLine 16, 2, 49, 3, 255, hsFindMask
     Label 2, 2, '   ~F~ile mask', ofPostProcess, ofPreProcess
-    History 47, 2, hsFindMask, ofPostProcess
     InputLine 1, 1, 1, 1, 255, 0
     CheckBoxes 3, 5, 49, 7, ofPostProcess, ofPreProcess
       ITEM 'Adva~n~ced search'
@@ -2463,12 +2435,10 @@ END
 
 DIALOG dlgFoundFileFind, 56, 18, 'Find File in '
     HELPCTX hcFoundFileFind
-    InputLine 16, 2, 53, 3, 255, 0
+    InputLine 16, 2, 53, 3, 255, hsFindMask
     Label 2, 2, '   ~F~ile mask', ofPostProcess, ofPreProcess
-    History 51, 2, hsFindMask, ofPostProcess
-    InputLine 16, 4, 53, 5, 255, 0
+    InputLine 16, 4, 53, 5, 255, hsFindText
     Label 2, 4, '~T~ext to find', ofPostProcess, ofPreProcess
-    History 51, 4, hsFindText, ofPostProcess
     HexLine 16, 5, 51, 6
     Label 2, 5, '  ~H~ex string', ofPostProcess, ofPreProcess
     CheckBoxes 3, 7, 53, 11, ofPostProcess, ofPreProcess
@@ -2499,9 +2469,8 @@ END
 
 DIALOG dlgFoundArcFileFind, 52, 11, 'Find File in '
     HELPCTX hcFoundArcFileFind
-    InputLine 16, 2, 49, 3, 255, 0
+    InputLine 16, 2, 49, 3, 255, hsFindMask
     Label 2, 2, '   ~F~ile mask', ofPostProcess, ofPreProcess
-    History 47, 2, hsFindMask, ofPostProcess
     InputLine 1, 1, 1, 1, 255, 0
     CheckBoxes 3, 5, 49, 7, ofPostProcess, ofPreProcess
       ITEM 'Adva~n~ced search'
@@ -2516,8 +2485,7 @@ END
 
 DIALOG dlgMkDir, 69, 7, 'Make directory'
     HELPCTX hcMkDir
-    InputLine 2, 2, 64, 3, 255, 0
-    History 64, 2, hsMakeDir, ofPostProcess
+    InputLine 2, 2, 64, 3, 255, hsMakeDir
     Label 2, 1, '~D~irectory name', ofPostProcess, ofPreProcess
 ;$IFDEF UPLOWSTRSINDLG
     Button 2, 4, 12, 6, '~U~pStr', cmYes, ofPostProcess, ofPreProcess
@@ -2530,8 +2498,7 @@ END
 
 DIALOG dlgRenFl, 70, 7, 'Quick file rename'
     HelpCtx hcRenameFile
-    InputLine 15, 2, 66, 3, 255, 0
-    History 66, 2, hsRenameFil, ofPostProcess
+    InputLine 15, 2, 66, 3, 255, hsRenameFil
     Label 2, 2, '~F~ile name...', ofPostProcess, ofPreProcess
 ;$IFDEF UPLOWSTRSINDLG
     Button 2, 4, 12, 6, '~U~pStr', cmYes, ofPostProcess, ofPreProcess
@@ -2544,8 +2511,7 @@ END
 
 DIALOG dlgRenameDialog, 78, 13, 'Rename/move'
     HELPCTX hcCopyDialog
-#1  InputLine 2, 2, 74, 3, 255, 0
-    History 74, 2, hsFileCopyName, ofPostProcess
+#1  InputLine 2, 2, 74, 3, 255, hsFileCopyName
     RadioButtons 3, 4, 36, 9, ofPostProcess, ofPreProcess
       ITEM '~O~verwrite all existing files'
       ITEM 'A~p~pend to all existing files'
@@ -2575,8 +2541,7 @@ END
 
 DIALOG dlgCopyDialog, 78, 13, 'Copy'
     HELPCTX hcCopyDialog
-#1  InputLine 2, 2, 74, 3, 255, 0
-    History 74, 2, hsFileCopyName, ofPostProcess
+#1  InputLine 2, 2, 74, 3, 255, hsFileCopyName
     RadioButtons 3, 4, 36, 9, ofPostProcess, ofPreProcess
       ITEM '~O~verwrite all existing files'
       ITEM 'A~p~pend to all existing files'
@@ -2924,9 +2889,8 @@ DIALOG dlgCompareDirs, 40, 17, 'Compare directories'
     END
     Label 3, 2, 'Options', ofPostProcess, ofPreProcess
 ; {-$VOL begin}
-    InputLine 3, 10, 35, 11, 255, 0
+    InputLine 3, 10, 35, 11, 255, hsFindMask
     Label 3, 9, '~F~ile masks', ofPostProcess, ofPreProcess
-    History 35, 10, hsFindMask, ofPostProcess
 ; {-$VOL end}
     RadioButtons 3, 13, 28, 15, ofPostProcess, ofPreProcess
       ITEM 'S~e~lect '
@@ -2948,10 +2912,21 @@ DIALOG dlgSetPassword, 39, 7, 'Enter Password'
     Button 27, 4, 37, 6, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
 END
 
+DIALOG dlgLoginPassword, 44, 10, 'Enter User name and Password'
+    HELPCTX hcNoContext
+    InputLine 13, 2, 42, 3, 255, 0
+    Label 1, 2, '~U~ser name:', ofPostProcess, ofPreProcess
+    InputLine 13, 4, 42, 5, 255, 0, ofSecurity
+    Label 2, 4, '~P~assword:', ofPostProcess, ofPreProcess
+#1  StaticText 2, 5, 42, 6, ^C'Wrong name or password'
+    Button 7, 7, 17, 9, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 17, 7, 27, 9, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
+    Button 27, 7, 37, 9, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
+END
+
 DIALOG dlgExtract, 49, 14, 'Extract files'
     HELPCTX hcExtract
-    InputLine 14, 2, 45, 3, 255, 0
-    History 45, 2, hsFileCopyName, ofPostProcess
+    InputLine 14, 2, 45, 3, 255, hsFileCopyName
     Label 2, 2, 'E~x~tract to', ofPostProcess, ofPreProcess
     CheckBoxes 3, 4, 47, 8, ofPostProcess, ofPreProcess
       ITEM 'Extract with ~p~ath names'
@@ -2978,23 +2953,26 @@ END
 
 DIALOG dlgDirectoryHistory, 78, 17, 'Directories History'
     HELPCTX hcDirHistory
-    Button 14, 14, 25, 16, '~G~o to', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 31, 14, 48, 16, '~D~elete record', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
-    Button 54, 14, 64, 16, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
+    Button 13, 14, 24, 16, '~G~o to', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 25, 14, 42, 16, '~D~elete record', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
+    Button 43, 14, 55, 16, '~S~tand at', cmNo, bfBroadcast, ofPostProcess, ofPreProcess
+    Button 56, 14, 66, 16, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgEditHistory, 78, 17, 'File Edit History'
     HELPCTX hcEditHistory
     Button 14, 14, 24, 16, '~O~pen', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 31, 14, 48, 16, '~D~elete record', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
-    Button 54, 14, 64, 16, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
+    Button 25, 14, 42, 16, '~D~elete record', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
+    Button 43, 14, 55, 16, '~S~tand at', cmNo, bfBroadcast, ofPostProcess, ofPreProcess
+    Button 56, 14, 66, 16, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgViewHistory, 78, 17, 'File View History'
     HELPCTX hcViewHistory
     Button 14, 14, 24, 16, '~O~pen', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 31, 14, 48, 16, '~D~elete record', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
-    Button 54, 14, 64, 16, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
+    Button 25, 14, 42, 16, '~D~elete record', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
+    Button 43, 14, 55, 16, '~S~tand at', cmNo, bfBroadcast, ofPostProcess, ofPreProcess
+    Button 56, 14, 66, 16, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgSetupArc, 78, 22, 'Archiver Setup'
@@ -3078,9 +3056,8 @@ END
 
 DIALOG dlgSelect, 27, 9, 'Select'
     HELPCTX hcSelect
-#1  InputLine 2, 2, 21, 3, 255, 0
+#1  InputLine 2, 2, 21, 3, 255, hsSelectBox
     Label 2, 1, '~F~ile mask', ofPostProcess, ofPreProcess
-    History 21, 2, hsSelectBox, ofPostProcess
     CheckBoxes 2, 4, 25, 5, ofPostProcess, ofPreProcess
       ITEM '~E~xcept mask'
     END
@@ -3090,9 +3067,8 @@ END
 
 DIALOG dlgUnselect, 27, 9, 'Unselect'
     HELPCTX hcUnselect
-#1  InputLine 2, 2, 21, 3, 255, 0
+#1  InputLine 2, 2, 21, 3, 255, hsSelectBox
     Label 2, 1, '~F~ile mask', ofPostProcess, ofPreProcess
-    History 21, 2, hsSelectBox, ofPostProcess
     CheckBoxes 2, 4, 25, 5, ofPostProcess, ofPreProcess
       ITEM '~E~xcept mask'
     END
@@ -3102,8 +3078,7 @@ END
 
 DIALOG dlgUUDecode, 49, 11, 'UU Decode'
     HELPCTX hcUUDecode
-    InputLine 3, 2, 45, 3, 255, 0
-    History 45, 2, hsUUDecode, ofPostProcess
+    InputLine 3, 2, 45, 3, 255, hsUUDecode
     Label 3, 1, 'Target ~d~irectory', ofPostProcess, ofPreProcess
     CheckBoxes 3, 4, 45, 7, ofPostProcess, ofPreProcess
       ITEM '~C~heck existing files'
@@ -3119,8 +3094,7 @@ END
 
 DIALOG dlgUUEncode, 60, 17, 'UU Encode'
     HELPCTX hcUUEncode
-    InputLine 14, 2, 54, 3, 255, 0
-    History 54, 2, hsUUEncode, ofPostProcess
+    InputLine 14, 2, 54, 3, 255, hsUUEncode
     Label 3, 2, '~E~ncode to', ofPostProcess, ofPreProcess
     CheckBoxes 2, 5, 31, 8, ofPostProcess, ofPreProcess
       ITEM '~F~ile creation date&time'
@@ -3136,9 +3110,8 @@ DIALOG dlgUUEncode, 60, 17, 'UU Encode'
       ITEM 'Advanced ~6~4-bit'
     END
     Label 32, 4, '~C~hecksum level', ofPostProcess, ofPreProcess
-    InputLine 21, 9, 28, 10, 5, 0
+    InputLine 21, 9, 28, 10, 5, hsUULines
     Label 2, 9, '~L~ines per section', ofPostProcess, ofPreProcess
-    History 28, 9, hsUULines, ofPostProcess
 
     RadioButtons 2, 12, 31, 13, ofPostProcess, ofPreProcess
       ITEM '~D~OS <CR>+<LF>'
@@ -3172,16 +3145,17 @@ END
 DIALOG dlgManualDial, 47, 7, 'Manual Dial'
   HELPCTX hcManualDial
   InputLine 16, 2, 42, 3, 255, hsManualPhone
-  History 42, 2, hsManualPhone, ofPostProcess
   Label 2, 2, '~P~hone number', ofPostProcess, ofPreProcess
   Button 8, 4, 18, 6, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
   Button 18, 4, 28, 6, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
   Button 28, 4, 38, 6, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgCalculator, 49, 16, 'Calculator'
+DIALOG dlgCalculator, 52, 16, 'Calculator'
   HELPCTX hcCalculator
-  RadioButtons 2,6,11,12, 0, 0
+#1 InputLine 2, 3, 48, 4, 250, hsCalcLine, ofPreProcess
+   Label 2, 2, 'Ex~p~ression', ofPostProcess, ofPreProcess
+#2 RadioButtons 2,6,11,12, 0, 0
     ITEM '~D~EC'
     ITEM '~H~EX'
     ITEM '~B~IN'
@@ -3189,7 +3163,7 @@ DIALOG dlgCalculator, 49, 16, 'Calculator'
     ITEM '~E~XP'
     ITEM '~T~IME'
   END
-  Label 2,5, 'Copy ~A~s', ofPostProcess, ofPreProcess
+  Label 2,5, '~F~orm', ofPostProcess, ofPreProcess
   Button 3,13,15,15, '~E~valuate', cmCalcValue, bfDefault, ofPostProcess, ofPreProcess
   Button 15,13,25,15, '~C~opy', cmCopyClip, bfBroadcast, ofPostProcess, ofPreProcess
   Button 25,13,35,15, 'Close', cmCancel, bfBroadcast, ofPostProcess, ofPreProcess
@@ -3228,7 +3202,6 @@ END
 DIALOG dlgTetrisWinner, 50, 7, 'You have entered Top Ten!'
   HELPCTX hcTetrisWinner
   InputLine 20, 2, 45, 3, 30, hsTetris
-  History 45, 2, hsTetris, ofPostProcess
   Label 2, 2, 'Enter your name:', ofPostProcess, ofPreProcess
   Button 17, 4, 27, 6, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
   Button 27, 4, 37, 6, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
@@ -3238,7 +3211,6 @@ END
 DIALOG dlgSplitFile, 50, 15, 'Split file'
   HELPCTX hcSplitDialog
   InputLine 2, 3, 46, 2, 255, hsFBBCopy
-  History 46, 3, hsFBBCopy, ofPostProcess
   Label 2, 2, 'To ~d~irectory/file', ofPostProcess, ofPreProcess
   CheckBoxes 2, 5, 48, 8, ofPostProcess, ofPreProcess
     ITEM '~B~inary splitting only'
@@ -3246,11 +3218,9 @@ DIALOG dlgSplitFile, 50, 15, 'Split file'
     ITEM '~S~tore long file name'
   END
   InputLine 25, 9, 46, 10, 10, hsFBBCopySize
-  History 46, 9, hsFBBCopySize, ofPostProcess
   Label 2, 9, 'Section s~i~ze:', ofPostProcess, ofPreProcess
 
   InputLine 25, 10, 46, 11, 10, hsFBBCopyNum
-  History 46, 10, hsFBBCopyNum, ofPostProcess
   Label 2, 10, 'Number of sections:', ofPostProcess, ofPreProcess
 
   Button 8, 12, 18, 14, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
@@ -3262,7 +3232,6 @@ END
 DIALOG dlgCombineFile, 50, 8, 'Combine file'
   HELPCTX hcCombineDialog
   InputLine 2, 3, 46, 4, 255, hsFBBCopy
-  History 46, 3, hsFBBCopy, ofPostProcess
   Label 2, 2, 'To ~d~irectory/file', ofPostProcess, ofPreProcess
   Button 8, 5, 18, 7, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
   Button 18,5, 28, 7, 'Cancel', cmCancel, bfNormal, ofPostProcess, ofPreProcess
@@ -3273,7 +3242,6 @@ END
 DIALOG dlgNextSection, 76, 8, 'File recombination'
   HELPCTX hcPath
   InputLine 2, 3, 72, 2, 255, hsFBBCopy
-  History  72, 3, hsFBBCopy, ofPostProcess
   Label 2, 2, 'Section %D is required. Replace media and/or modify the path below', ofPostProcess, ofPreProcess
   Button 34, 5, 44, 7, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
   Button 44, 5, 54, 7, 'Cancel', cmCancel, bfNormal, ofPostProcess, ofPreProcess
@@ -3590,12 +3558,10 @@ END
 
 DIALOG dlgArvidFileFind, 50, 13, 'Find File in ARVID'
     HELPCTX hcFileFind
-    InputLine 15, 2, 45, 3, 255, 0
+    InputLine 15, 2, 45, 3, 255, hsFindMask
     Label 2, 2, '  ~F~ile mask', ofPostProcess, ofPreProcess
-    History 45, 2, hsFindMask, ofPostProcess
-    InputLine 15, 4, 45, 5, 255, 0
+    InputLine 15, 4, 45, 5, 255, hsFindText
     Label 2, 4, '~D~escription', ofPostProcess, ofPreProcess
-    History 45, 4, hsFindText, ofPostProcess
     CheckBoxes 3, 7, 47, 9, ofPostProcess, ofPreProcess
       ITEM '~A~dvanced search'
       ITEM '~S~earch in other ARVID catalogs'
@@ -4779,11 +4745,9 @@ END
 ;{--- start -------- Eugeny Zvyagintzev ---- 31-07-2002 ----}
 DIALOG dlgDBFGoto, 41, 9, 'Go to row/column'
     HELPCTX hcDBFGoto
-    InputLine 17, 2, 35, 3, 10, 0
-    History 35, 2, hsDBFGotoRow, ofPostProcess
+    InputLine 17, 2, 35, 3, 10, hsDBFGotoRow
     Label 3, 2, '~R~ow number', ofPostProcess, ofPreProcess
-    InputLine 17, 4, 35, 5, 10, 0
-    History 35, 4, hsDBFGotoCol, ofPostProcess
+    InputLine 17, 4, 35, 5, 10, hsDBFGotoCol
     Label 3, 4, '~C~olumn name', ofPostProcess, ofPreProcess
     Button  9, 6, 19, 8, 'Ž~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 19, 6, 29, 8, 'Cancel', cmCancel, ofPostProcess, ofPreProcess

@@ -238,6 +238,7 @@ procedure TTARArchive.GetFile;
     Exit
     end;
   FileInfo.Last := 0;
+  FileInfo.Attr := 0;
   FileInfo.FName := Hdr.FName+#0;
   SetLength(FileInfo.FName, PosChar(#0, FileInfo.FName)-1);
   if FileInfo.FName = '' then

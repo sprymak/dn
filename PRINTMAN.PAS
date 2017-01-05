@@ -53,8 +53,8 @@ interface
 {$IFDEF PrintManager}
 uses
   Lfn, {DataCompBoy}
-  Objects2, Views, Drivers, DNApp, Advance, Advance1, Advance2,
-  Dialogs, Dos, Messages, Commands, Collect
+  Objects2, Streams, Defines, Views, Drivers, DNApp, Advance, Advance1,
+  Advance2, Dialogs, Dos, Messages, Commands, Collect
   ;
 
 type
@@ -120,6 +120,7 @@ implementation
 {$IFDEF PrintManager}
 uses
   RStrings, Startup, DNHelp
+  , VpSysLow {для Open_Access_ReadOnly}
   ;
 
 procedure TStringCol.FreeItem;
@@ -229,11 +230,14 @@ constructor TPrintManager.Init;
 
 function TPrintManager.SetDestination;
   var
-    S: String;
+    S, S1: String;
     P: Boolean;
     OldP: PDosStream;
+    hFile: LongInt;
+    NotDev: Boolean;
   begin
   SetDestination := False;
+  NotDev := False;
   P := Paused;
   Paused := True;
   case RPrinterSetup.Device of
@@ -246,16 +250,20 @@ function TPrintManager.SetDestination;
     3:
       S := 'LPT4';
     5:
-      S := 'COM1';
-    6:
-      S := 'COM2';
-    7:
-      S := 'COM3';
-    8:
-      S := 'COM4';
-    9:
       S := 'NUL';
-    else {case}
+    6:
+      S := 'COM1';
+    7:
+      S := 'COM2';
+    8:
+      S := 'COM3';
+    9:
+      S := 'COM4';
+   10:
+      S := RPrinterSetup.CustomDev1;
+   11:
+      S := RPrinterSetup.CustomDev2;
+    else {4:} {case}
       begin
       S := '';
       if InputBox(GetString(dlPrintOut), GetString(dlFileName), S, 80,
@@ -264,15 +272,63 @@ function TPrintManager.SetDestination;
         Exit;
       end;
   end {case};
-  OldP := PrintDevice;
-  PrintDevice := New(PDosStream, Init(S, stCreate));
-  if PrintDevice^.Status <> stOK then
+
+  S1 := S + #0;
+
+  //JO: чтобы не нагадить в какой-либо файл на диске
+  if RPrinterSetup.Device in [10,11] then
+    if {$IFDEF DPMI32}LfnVP.{$ENDIF}SysFileOpen(@S1[1],
+       Open_Access_ReadOnly or open_share_DenyNone, hFile) = 0
+    then
+      begin
+      if SysFileIsDevice(hFile) and $FF = 0 then
+        //AK155: 'and $FF' необходимо, так как хелп к SysFileIsDevice
+        //       неправдивый; см. хелп к DosQueryHType
+        NotDev := True;
+      SysFileClose(hFile);
+      end;
+
+  if NotDev then
     begin
-    PrintDevice := OldP;
-    MessageBox(GetString(dlPrintNoInit), nil, mfError+mfOKButton);
-    PrintDevice^.Status := 0;
+    MessageBox(GetString(dlNotPrinter), nil, mfError+mfOKButton);
+    if PrintDevice <> nil then
+      PrintDevice^.Status := 0;
     Exit;
     end;
+
+  OldP := PrintDevice;
+  PrintDevice := New(PDosStream, Init(S, stCreate));
+
+//JO: для расшаренных сетевых принтеров статус не будет stOK, т.к.
+//    для них не работает SysFileSeek, вызываемая в TDOSStream.Init,
+//    что тем не менее не мешает производить на них запись. Ситуацию
+//    можно отловить по коду ошибки 87 (проверено по крайней мере под Win XP)
+  if (PrintDevice^.Status <> stOK)
+      and (PrintDevice^.ErrorInfo = 87) then
+    PrintDevice^.Status := stOK;
+
+  if PrintDevice^.Status <> stOK then
+    begin
+    MessageBox(GetString(dlPrintNoInit) + ^M^C'RC=' +
+               ItoS(PrintDevice^.ErrorInfo), nil, mfError+mfOKButton);
+    PrintDevice := OldP;
+    if PrintDevice <> nil then
+      PrintDevice^.Status := 0;
+    Exit;
+    end;
+
+  if (RPrinterSetup.Device in [10,11])
+      and (SysFileIsDevice(PrintDevice^.Handle) and $FF = 0) then
+    begin
+    MessageBox(GetString(dlNotPrinter), nil, mfError+mfOKButton);
+    Dispose(PrintDevice, Done);
+    EraseByName(S);
+    PrintDevice := OldP;
+    if PrintDevice <> nil then
+      PrintDevice^.Status := 0;
+    Exit;
+    end;
+
   if OldP <> nil then
     Dispose(OldP, Done);
   OldP := nil;
@@ -294,10 +350,16 @@ constructor TPrintManager.Load;
   BufSize := MaxBufCount;
   GetMem(Buffer, BufSize);
   isValid := True;
+
+//JO: см. комментарий к TPrintManager.SetDestination;
+  if (PrintDevice^.Status <> stOK)
+      and (PrintDevice^.ErrorInfo = 87) then
+    PrintDevice^.Status := stOK;
   if PrintDevice^.Status <> stOK then
     begin
     isValid := False;
-    MessageBox(GetString(dlPrintNoInit), nil, mfError+mfOKButton);
+    MessageBox(GetString(dlPrintNoInit)+ ^M^C'RC=' +
+               ItoS(PrintDevice^.ErrorInfo), nil, mfError+mfOKButton);
     PrintDevice^.Status := 0;
     Exit;
     end;
@@ -421,10 +483,12 @@ procedure TPrintManager.PrintFile;
   end;
 
 procedure TPrintManager.InitPrinter;
-  var
-    Hndl: Word;
+//JO: под многозадачками принтер инициализировать не надо;
+//    нужно будет переписать эту процедуру для DPMI32
+ {var
+    Hndl: Word;}
   begin
-  Hndl := PrintDevice^.Handle;
+(* Hndl := PrintDevice^.Handle;
   asm
     MOV  BX, Hndl
     MOV  AX,4400H   { IOCTL, GET DEV ATTR }
@@ -439,11 +503,11 @@ procedure TPrintManager.InitPrinter;
     MOV  AX,4401H     {; IOCTL, SET DEV ATTR}
     INT  21H
    @@100:
- end;
+ end; *)
   end;
 
 function TPrintManager.GetStatus: Byte;
-  assembler;
+{ assembler;
 asm
     mov ah, 2
     mov al, $90
@@ -452,7 +516,9 @@ asm
     jnc @@1
     int 17h
     mov al, ah
-   @@1:
+   @@1: }
+begin
+  Result := $90; //временно! Доделать!
 end;
 
 function TPrintManager.PrintBuffer;

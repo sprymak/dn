@@ -101,14 +101,15 @@ dlAutoDialer                'Набiр номера'
 dlBootSector,               'Boot Сектор'
 dlBytes,                    ' байт'
 dlBytesIn,                  '~ байт в ~'
-dlCalcCopy_a_s              'Копiювати ~в~'
-dlCalcEx_p_ression          '~В~ираз'
 dlCalculator                'Калькулятор'
 dlCanNotWrite,              ^C'Не можу записати'^M^C'%s'
 dlCancelButton,             'Вiдмiна'
 dlCantPrint                 ^C'Менеджер друку не може записати'^M^C'в вихiдний пристрiй - перевiрте його.'+
                             ^M^C'Друк зупинений.'
 dlCantPrintFile             ^C'Неможливо друкувати файл'^M^C
+;JO+
+dlNotPrinter                ^C'Вихiдний пристрiй не є принтером'
+;JO-
 dlCellAsIs,                 '~Я~к є'
 dlCellBool,                 '~Л~огiчний'
 dlCellComma,                'Ко~м~а'
@@ -1198,16 +1199,17 @@ dl_Failed_to_set_volume_label  'Вибачте, не можу задати мiтку тома'
 ;JO-
 
 ;X-Man >>>
-sdtError      = 'Невiдомий';
-sdtFixed      = 'Жорсткий';
-sdtRemovable  = 'Змiнний';
-sdtRemote     = 'Мережевий ';
-sdtProgram    = 'Програмн.';
-sdtCDROM      = 'CD-ROM';
-sdtRAMDrive   = 'RAM';
+sdtError      = ' Невiдомий';
+sdtFixed      = ' Жорсткий';
+sdtRemovable  = ' Змiнний';
+sdtRemote     = ' Мережевий';
+sdtProgram    = ' Програмний';
+sdtCDROM      = ' CD-ROM';
+sdtRAMDrive   = ' RAM ';
+sdtSubst      = ' Subst ';
 ;X-Man <<<
 ;JO+
-sdtOptical    = 'Оптичний ';
+sdtOptical    = ' Оптичний';
 dlDoes_Not_Exist = 'не iснує'
 dlCmdLineTooLong = 'Командний рядок задовгий'
 dlCantLoad = 'Не можу завантажити '
@@ -1319,4 +1321,6 @@ dlInFound 'знайденому'
 dlInBranchOfArchive 'гiлцi архiву'
 dlInFoundInArchive 'знайденому в архiвi'
 dlInList 'списку'
+dlNetworkError 'Помилка мережи'
+dlNoNetworkPath 'Мережевий шлях недоступний'
 ;JO-

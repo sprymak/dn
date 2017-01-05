@@ -402,10 +402,11 @@ const
 
   {$IFDEF PRINTMANAGER}
   RPrinterSetup: record
-    Device: AWord;
-    InitPrinter, AfterFile: String;
+    Device: Word;
+    CustomDev1, CustomDev2, InitPrinter, AfterFile: String;
     end =
-    (Device: 0; InitPrinter: ''; AfterFile: #12);
+    (Device: 0; CustomDev1: 'PRN'; CustomDev2: '';
+     InitPrinter: ''; AfterFile: #12);
   {$ENDIF}
 
   TetrisRec: TTetrisRec =

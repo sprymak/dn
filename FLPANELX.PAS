@@ -90,6 +90,10 @@ type
       Введены только для ускорения доступа. `}
     LFNLonger250: Boolean;
       {` Поле имени широкое и должно быть последним `}
+    DriveLetter: Char;
+      {` Для выбора обозначения диска в линейке дисков и меню дисков;
+        Обычно это Drive^.GetDriveLetter, но в процессе перемещении по полосе
+        дисков может временно быть и другое. `}
     PrevPresetNum: Byte;
     PrevPanelSetupSet: TPanelSetupSet;
 
@@ -419,6 +423,8 @@ destructor TFilePanelRoot.Done;
 
 procedure TFilePanelRoot.SetState(AState: Word; Enable: Boolean);
    {По существу это используется при смене на нефайловую панель и обратно}
+  var
+    SortEn: Boolean;
   begin
   inherited SetState(AState, Enable);
   if AState = sfVisible then
@@ -426,7 +432,13 @@ procedure TFilePanelRoot.SetState(AState: Word; Enable: Boolean);
     if DirView <> nil then
       DirView^.SetState(AState, Enable);
     if SortView <> nil then
-      SortView^.SetState(AState, Enable);
+      begin
+      if (AState = sfVisible) then
+        SortEn := Enable and ((FMSetup.Show and fmsSortIndicator) <> 0)
+      else
+        SortEn := Enable;
+      SortView^.SetState(AState, SortEn);
+      end;
     if DriveLine <> nil then
       DriveLine^.SetState(AState, Enable);
     if Enable and Loaded then
@@ -668,7 +680,8 @@ procedure TFilePanelRoot.RedrawPanelInfoDir;
   if DirView <> nil then
     DirView^.DrawView;
   if SortView <> nil then
-    SortView^.DrawView;
+    SortView^.SetState(sfVisible, (FMSetup.Show and fmsSortIndicator) <> 0);
+      { испоьзуется, например, при загрузке десктора }
   end;
 
 {-DataCompBoy-}
@@ -697,7 +710,13 @@ procedure TFilePanelRoot.ReadDirectory;
   ClrIO;
   FreeSpace := '';
   if Files <> nil then
+    begin
     Dispose(Files, Done);
+//JO: если нижележащего присвоения nil здесь не делать, то при вызове
+//    любого диалога изнутри Drive^.GetDirectory с большой вероятностью
+//    происходит падение после его закрытия
+    Files := nil;
+    end;
   Files := PFilesCollection(Drive^.GetDirectory(
          PanSetup^.FileMask, TotalInfo));
 
@@ -960,7 +979,16 @@ procedure TFilePanelRoot.CommandHandle;
     IncDrawDisabled;
     OldDirectory := Dr;
     DeltaX := 0;
+    DirectoryName := Drive^.GetDir;
     Drive^.lChDir(Dr); {AK155, was Drive^.lChDir(DirectoryName);}
+{JO: не перечитываем сетевой каталог, из которого не вышли}
+    if (Drive^.DriveType = dtNet)
+       and (DirectoryName = Drive^.GetDir) then
+      begin
+      DecDrawDisabled;
+      Exit;
+      end;
+{/JO}
     DirectoryName := Drive^.GetDir;
 {JO: переходим с панельки Network на шару}
     if (Drive^.DriveType = dtNet)
@@ -1005,6 +1033,19 @@ WrongArc:
     else
       Name := Nm+Xt;
     if Name = '.' then Name := '';{directory name '.' bugfix by piwamoto}
+{$IFDEF NetBrowser}
+{JO: чтобы корректно вставать на нужную шару при выходе из неё в панель шар}
+    if TypeOf(Drive^) = TypeOf(TNetDrive) then
+      begin
+      for I := Length(FileName) downto 1 do
+        if Copy(FileName, I, 3) = '\\\' then
+          begin
+          Name := Copy(FileName, I + 1, MaxStringLength);
+          Break;
+          end;
+      end;
+{/JO}
+{$ENDIF}
     GotoSingle(Name);
     end { GotoFile };
 
@@ -1122,6 +1163,7 @@ WrongArc:
     begin
     if ChangeLocked or (Event.InfoPtr = nil) then
       Exit;
+    DriveLetter := Drive^.GetDriveLetter;
     if  (PDrive(Event.InfoPtr)^.DriveType = dtTemp) and
         (Drive^.DriveType = dtTemp)
     then
@@ -1320,8 +1362,6 @@ WrongArc:
     end { MakeFName };
 
   procedure DoChange(SS: String);
-    var
-      SR: lSearchRec;
     begin
     ClrIO;
     if SS = '' then
@@ -1440,13 +1480,7 @@ WrongArc:
     else
       MPos.Y := Origin.Y+1; {-$X-Man}
     Owner^.MakeGlobal(MPos, MPos);
-    if  (DirectoryName[2] = ':') then
-      S[1] := DirectoryName[1]
-    else if (Drive^.DriveType = dtLink) then
-      S[1] := '+'
-    else
-      S[1] := CurrentDirectory[1];
-    S := SelectDrive(MPos.X, MPos.Y, S[1], True);
+    S := SelectDrive(MPos.X, MPos.Y, DriveLetter, True);
     if S = cTEMP_ then
       begin
       Event.InfoPtr := New(PTempDrive, Init);
@@ -1513,6 +1547,8 @@ WrongArc:
       AddToDirectoryHistory(DirectoryName, Integer(Drive^.DriveType));
       DecDrawDisabled;
       end;
+    DriveLetter := Drive^.GetDriveLetter;
+    DriveLine^.DrawView;
     RedrawPanelInfoDir;
     end { _ChangeDrive };
 
@@ -1553,6 +1589,8 @@ WrongArc:
     {S:=GetNormPath(S);} {removed by AK155}
     MakeNoSlash(S);
     DoChange(S);
+    DriveLetter := Drive^.GetDriveLetter;
+    DriveLine^.DrawView;
     end { _ChangeDrv };
 
   procedure _DoDirHistory;
@@ -1631,83 +1669,23 @@ WrongArc:
 
   procedure _DoCtrl;
     var
-      DriveLetter: Char;
+      OldDriveLetter: Char;
     begin
     if  ( (ShiftState and 3 <> 0) or (CmdLine.Str = ''))
       and (FMSetup.Show and fmsDriveLine <> 0)
     then
       begin
-      {Cat: Для тех типов панелей, которые не отображаются в полоске
-           (сетевые диски, Network), наверное, лучше будет не
-           тупо брать первую букву от псевдо-каталога, а использовать
-           "*:", как и для временной панели. При этом ни одна буква
-           не оказывается подсвеченной, при нажатии Ctrl-Right мы
-           попадём на самый первый диск, а при нажатии Ctrl-Left
-           на самый последний диск в списке}
-      if  (DirectoryName = cTEMP_) then
-        DirectoryName[1] := '*'
-    {$IFDEF NetBrowser}
-      else if (Copy(DirectoryName, 1, Length(cNET_)) = cNET_) then
-        DirectoryName[1] := '@'
-    {$ENDIF}
-      else if Drive^.DriveType = dtArc then
-        DirectoryName[1] := PArcDrive(Drive)^.ArcName[1]
-          {JO}
-          {$IFDEF ARVID}
-      else if Drive^.DriveType = dtArvid then
-        DirectoryName[1] := PArvidDrive(Drive)^.Name^[1]
-          {$ENDIF}
-      else if DirectoryName[2] <> ':' then
-        begin
-        lGetDir(0, DirectoryName);
-        {/JO}
-        {Cat}
-        if DirectoryName[2] <> ':' then
-          DirectoryName[1] := '*';
-        {/Cat}
-        end;
-      DriveLetter := DirectoryName[1];
-      DirectoryName[2] := ':';
+      OldDriveLetter := DriveLetter;
       repeat
         if Event.What = evKeyDown then
           begin
           case Event.KeyCode of
             kbCtrlLeft, kbCtrlShiftLeft:
-              begin
-              PDriveLine(DriveLine)^.Refresh; {AK155 - набор букв мог измениться }
-              repeat
-                if DirectoryName[1] > #65 then
-                  Dec(DirectoryName[1])
-                else if DirectoryName[1] = #65 then
-              {$IFDEF NetBrowser}
-                  DirectoryName[1] := '@'
-                else if DirectoryName[1] = '@' then
-              {$ENDIF}
-                  DirectoryName[1] := '*'
-                else
-                  DirectoryName[1] := 'Z';
-              until ValidDrive(DirectoryName[1])
-                 or (DirectoryName[1] = '*')
-{$IFDEF NetBrowser} or (DirectoryName[1] = '@') {$ENDIF};
-              end;
+              if DriveLine <> nil then
+                PDriveLine(DriveLine)^.ShiftLetter(-1);
             kbCtrlRight, kbCtrlShiftRight:
-              begin
-              PDriveLine(DriveLine)^.Refresh; {AK155 - набор букв мог измениться }
-              repeat
-                if DirectoryName[1] in ['A'..'Y'] then
-                  Inc(DirectoryName[1])
-                else if DirectoryName[1] = 'Z' then
-                  DirectoryName[1] := '*'
-              {$IFDEF NetBrowser}
-                else if DirectoryName[1] = '*' then
-                  DirectoryName[1] := '@'
-              {$ENDIF}
-                else
-                  DirectoryName[1] := 'A';
-              until ValidDrive(DirectoryName[1])
-                 or (DirectoryName[1] = '*')
-{$IFDEF NetBrowser} or (DirectoryName[1] = '@') {$ENDIF};
-              end;
+              if DriveLine <> nil then
+                PDriveLine(DriveLine)^.ShiftLetter(+1);
           end {case};
           DriveLine^.DrawView;
           end;
@@ -1715,12 +1693,17 @@ WrongArc:
         if Event.What = evNothing then
           TinySlice;
       until ShiftState and kbCtrlShift = 0;
-      if DriveLetter <> DirectoryName[1] then
+      if DriveLetter <> OldDriveLetter then
         begin
-          if DirectoryName[1] = '*' then DirectoryName := cTEMP_;
+          if DriveLetter = chTempDrive then DirectoryName := cTEMP_
         {$IFDEF NetBrowser}
-          if DirectoryName[1] = '@' then DirectoryName := cNET_;
+          else if DriveLetter = chNetDrive then DirectoryName := cNET_
         {$ENDIF}
+          else
+            begin
+            DirectoryName[1] := DriveLetter;
+            DirectoryName[2] := ':';
+            end;
           Message(@Self, evCommand, cmChangeDrv, @DirectoryName);
           Drive^.SizeX := Size.X;
           DirectoryName := Drive^.GetDir;
@@ -2179,15 +2162,13 @@ WrongArc:
         end;
       kbCtrlBSlash:
         begin
-        if  (Drive^.DriveType = dtDisk)
-          and (Length(Drive^.CurDir) > 3)
-        then
+        if  (Drive^.DriveType = dtDisk) then
+          begin
           {JO: сохраняем в S имя каталога верхнего уровня для текущего}
-          s := Copy(Drive^.CurDir, 4,
-              PosChar('\', Copy((Drive^.CurDir+'\'), 4,
-                  MaxStringLength))-1)
-        else
-          s := '';
+          s := Drive^.CurDir+'\';
+          l := GetRootStart(s)+1;
+          s := Copy(s, l, PosChar('\', Copy(s, l, MaxStringLength))-1);
+          end;
         Drive^.ChangeRoot;
         ReadDirectory;
         AddToDirectoryHistory(DirectoryName, Integer(Drive^.DriveType));
@@ -2938,6 +2919,11 @@ WrongArc:
           Self.ChDir(PString(Event.InfoPtr)^);
           CE;
           end;
+        cmStandAt:
+          begin
+          GotoFile(PString(Event.InfoPtr)^);
+          CE;
+          end;
         cmChangeDir:
           begin
           FreeStr := CM_ChangeDirectory(@Self);
@@ -2977,6 +2963,10 @@ WrongArc:
           end;
         cmFindFile:
           begin
+{$IFDEF DualName}
+          ShortNameSearch :=
+            (PanSetup^.Show.ColumnsMask and psLFN_InColumns) = 0;
+{$ENDIF}
           Drive^.DrvFindFile(GetSelection(@Self, False));
           CE
           end;
@@ -3254,6 +3244,7 @@ procedure TFilePanelRoot.ChDir;
     Exit;
   MakeNoSlash(Dir);
   Drive^.lChDir(Dir);
+  DriveLetter := Drive^.GetDriveLetter;
   IncDrawDisabled;
   ReadDirectory;
   AddToDirectoryHistory(DirectoryName, Integer(Drive^.DriveType));
@@ -3520,6 +3511,7 @@ procedure TFilePanelRoot.GetEmpty(var B; SC: Word; Scroll: Boolean);
 
 procedure TFilePanelRoot.SetupPanelFromDrive;
   begin
+  DriveLetter := Drive^.GetDriveLetter;
   PanSetup := @PanelSetupSet[dt2pc[Drive^.DriveType]];
   PInfoView(InfoView)^.CompileShowOptions;
   LFNLen := SToI(PanSetup^.Show.LFNLen);
@@ -3623,6 +3615,8 @@ procedure TFilePanelRoot.Rebound;
   R.A.Y := 1;
   R.B.Y := Owner^.Size.Y-1;
   ChangeBounds(R);
+  SortView^.SetState(sfVisible, (FMSetup.Show and fmsSortIndicator) <> 0);
+    { используется при смене видимости индикатора в setups.FMSetup }
   Owner^.Redraw;
   end;
 

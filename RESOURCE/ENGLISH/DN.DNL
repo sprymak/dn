@@ -509,8 +509,6 @@ dlSS_T_ime                  '~T~ime'
 dlSSUse_M_ouse              'Use ~m~ouse to call saver'
 
 dlCalculator                'Calculator'
-dlCalcEx_p_ression          'Ex~p~ression'
-dlCalcCopy_a_s              'Copy ~a~s'
 
 dlUnknownWindowType         'Unknown window type'
 
@@ -654,7 +652,9 @@ dlCantPrint                ^C'Print manager could not write'^M+
                            ^C'to output device - please check it.'^M+
                            ^C'Printing paused.'
 dlCantPrintFile            ^C'Could not print file'^M^C
-
+;JO+
+dlNotPrinter               ^C'Output device is not a printer'
+;JO-
 dlTermProtocol             'Protocol : '
 dlTermProtocolFile         'File : '
 dlTermProtocolRece         'Received : '
@@ -1258,16 +1258,17 @@ dl_Failed_to_set_volume_label  'Sorry, can''t set volume label'
 ;JO-
 
 ;X-Man >>>
-sdtError      = 'Unknown';
-sdtFixed      = 'Fixed';
-sdtRemovable  = 'Remov.';
-sdtRemote     = 'Remote ';
-sdtProgram    - 'Program';
-sdtCDROM      = 'CD-ROM';
-sdtRAMDrive   = 'RAM';
+sdtError      = ' Unknown';
+sdtFixed      = ' Fixed';
+sdtRemovable  = ' Removable';
+sdtRemote     = ' Remote';
+sdtProgram    - ' Program';
+sdtCDROM      = ' CD-ROM';
+sdtRAMDrive   = ' RAM';
+sdtSubst      = ' Subst';
 ;X-Man <<<
 ;JO+
-sdtOptical    = 'Optical';
+sdtOptical    = ' Optical';
 dlDoes_Not_Exist = 'does not exist'
 dlCmdLineTooLong = 'Command line too long'
 dlCantLoad = 'Can''t load '
@@ -1379,4 +1380,6 @@ dlInFound 'Found'
 dlInBranchOfArchive 'Branch of Archive'
 dlInFoundInArchive 'Found in Archive'
 dlInList 'List'
+dlNetworkError 'Network error'
+dlNoNetworkPath 'Network path is not accessible'
 ;JO-

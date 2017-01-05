@@ -82,7 +82,7 @@ type
     OtherPanel: PView{PFilePanelRoot};
       { Файловая панель, с которой связана данная панель информации }
     DriveView: PDriveView;
-      { Диск/шара в верхней рамке. См. InsertDriveView }
+      { Диск/шара в верхней рамке. См. InsertDriveView и Done }
     constructor Init(R: TRect; Panel: PView{PFilePanelRoot});
     constructor Load(var S: TStream);
     procedure Store(var S: TStream); virtual;
@@ -97,7 +97,9 @@ type
     end;
 
   TDriveView = object(TTopView)
+    InfoPanel: PDiskInfo;
     function GetText(MaxWidth: Integer): String; virtual;
+    destructor Done; virtual;
     end;
 
 function CountDirLen(const Dir: String; Recurse: Boolean;
@@ -270,6 +272,13 @@ function TDriveView.GetText(MaxWidth: Integer): String;
     end;
   end;
 
+destructor TDriveView.Done;
+  begin
+  if InfoPanel <> nil then
+    InfoPanel^.DriveView := nil;
+  inherited Done;
+  end;
+
 procedure DispInfo(var Info: TDiskInfoRec);
   begin
   with Info do
@@ -336,20 +345,28 @@ procedure TDiskInfo.InsertDriveView;
   New(DriveView, Init(R));
   DriveView^.Panel := @Self;
   Owner^.Insert(DriveView);
-  MakeFirst; {Теперь Next=DriveView, см. Done }
+  DriveView^.Panel := @Self;
   end;
 
 { При явном закрытии панели информации, например, при повторном Ctrl-L,
 DriveView тоже надо закрывать явно. А при завершении менеджера
-DriveView явно завершать не надо - он будет завершён, как член группы
-менеджера. Если его попытаться завершить и явно тоже, это будет
-ошибка обращения к памяти. Различаем эти две ситуации по полю
-Next. См. InsertDriveView. }
+DriveView явно завершать нельзя - он будет завершён, как член
+группы менеджера. При этом в каком порядке будут завершаться DriveView
+и DiskInfo - неизвестно. А если после неявного освобожения DriveView
+попытаться завершить и явно тоже, это будет ошибка обращения к памяти
+и DN будети падать при закрытии менеджера.
+  Чтобы избежать повторных завершений, снабжаем DriveView и DiskInfo
+взаимными ссылками, которые обнуляем при завершении адресата ссылки.
+См. также TDriveView.Done;
+}
 destructor TDiskInfo.Done;
   begin
   DispInfo(Info);
-  if Next = DriveView then
+  if DriveView <> nil then
+    begin
+    DriveView^.InfoPanel := nil;
     DriveView^.Free;
+    end;
   inherited Done;
   end;
 
@@ -773,26 +790,26 @@ procedure ReadDiskInfo(Dr: String; var B: TDiskInfoRec);
 
   B.InfoFile := ifDirInfo;
   B.DirInfo := New(PStringCollection, Init($10, $10, False));
-  F := New(PTextReader, Init(MakeNormName(S, sDirinfo)));
+  F := New(PTextReader, Init(MakeNormName(Dr, sDirinfo)));
   if F = nil then
     begin
     B.InfoFile := ifFileID;
-    F := New(PTextReader, Init(MakeNormName(S, sFileID)));
+    F := New(PTextReader, Init(MakeNormName(Dr, sFileID)));
     end;
   if F = nil then
     begin
     B.InfoFile := ifReadMe;
-    F := New(PTextReader, Init(MakeNormName(S, sReadMe)));
+    F := New(PTextReader, Init(MakeNormName(Dr, sReadMe)));
     end;
   if F = nil then
     begin
     B.InfoFile := ifReadTxt;
-    F := New(PTextReader, Init(MakeNormName(S, sReadTxt)));
+    F := New(PTextReader, Init(MakeNormName(Dr, sReadTxt)));
     end;
   if F = nil then
     begin
     B.InfoFile := ifReadMeTxt;
-    F := New(PTextReader, Init(MakeNormName(S, sReadMeTxt)));
+    F := New(PTextReader, Init(MakeNormName(Dr, sReadMeTxt)));
     end;
   if F = nil then
     B.InfoFile := ifFileID; {JO}

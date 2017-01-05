@@ -960,7 +960,7 @@ function TXFileEditor.HandleCommand;
       PS: PLongString;
       Cancel: Boolean;
       LL: array[1..3] of LongInt;
-      {SR: lSearchRec;}
+      SR: lSearchRec;
       FName: String;
     label 1;
     begin
@@ -992,16 +992,15 @@ function TXFileEditor.HandleCommand;
     Desktop^.Insert(P);
     ClrIO;
     Cancel := False;
-    {  for I := 1 to 1000 do
-     begin
-       FName := SwpDir+'$DN'+SStr(I, 4, '0')+'$.PRN';
-       ClrIO;
-       lFindFirst(FName, Archive, SR);
-       if DOSError <> 0 then Break;
-       lFindClose(SR);
-     end;
-   lFindClose(SR);}
-    FName := 'PRN'; {временно}
+    for I := 1 to 1000 do
+      begin
+      FName := SwpDir+'$DN'+SStr(I, 4, '0')+'$.PRN';
+      ClrIO;
+      lFindFirst(FName, Archive, SR);
+      if DOSError <> 0 then Break;
+      lFindClose(SR);
+      end;
+    lFindClose(SR);
     S.Init(FName, stCreate);
     if S.Status <> stOK then
       begin
@@ -1027,8 +1026,9 @@ function TXFileEditor.HandleCommand;
         M := PS^;
       M := M+#13#10;
       S.Write(M[1], Length(M));
-      {DispatchEvents(P, Cancel);
-     if Cancel or Abort then Goto 1;}
+      DispatchEvents(P, Cancel);
+      if Cancel or Abort then
+        Goto 1;
       end;
     if not Block then
       begin
@@ -1036,7 +1036,7 @@ function TXFileEditor.HandleCommand;
       S.Write(M[1], 1);
       end;
     S.Done;
-    {Message(Application, evCommand, cmFilePrint, @FName);}
+    Message(Application, evCommand, cmFilePrint, @FName);
 1:
     P^.Free;
     if Block then

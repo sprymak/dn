@@ -309,8 +309,9 @@ procedure MyApp.Idle;
   then
     {JO}
     begin
-    NotifyAsk(NewNotify);
-    if  (NewNotify <> OldNotify) and (OldNotify <> '') then
+    if NotifyAsk(NewNotify) and
+       (NewNotify <> OldNotify) and (OldNotify <> '')
+    then
       {$IFDEF OS2}
       FileChanged(OldNotify);
       {$ELSE}

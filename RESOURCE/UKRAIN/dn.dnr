@@ -298,17 +298,13 @@ DIALOG dlgCountrySetup, 54, 22, 'Iнформацiя про країну'
     Label 38, 2, '~Ф~ормат валюти'
     InputLine 46, 9, 52, 10, 4, 0
     Label 28, 9, '~В~алютний символ'
-    InputLine 36, 11, 50, 12, 79, 0
-    History 50, 11, hsKbdToggleLayot
+    InputLine 36, 11, 50, 12, 79, hsKbdToggleLayot
     Label 24, 11, '~К~лавiатура'
-    InputLine 36, 13, 50, 14, 79, 0
-    History 50, 13, hsWinCodeTable
+    InputLine 36, 13, 50, 14, 79, hsWinCodeTable
     Label 14, 13, 'Абеткове сортування'
-    InputLine 36, 15, 50, 16, 79, 0
-    History 50, 15, hsABCSortTable
+    InputLine 36, 15, 50, 16, 79, hsABCSortTable
     Label 30, 15, 'WIN:'
-    InputLine 2, 17, 50, 18, 255, 0
-    History 50, 17, hsCodeTables
+    InputLine 2, 17, 50, 18, 255, hsCodeTables
     Label 1, 16, 'Додатковi коду~в~ання'
     Button 25, 6, 36, 8, '~С~истема', cmYes
     Button 7, 19, 17, 21, 'O~K~', cmOK, bfDefault
@@ -335,8 +331,7 @@ END
 
 DIALOG dlgGotoAddress, 34, 7, 'Пеpехiд на адpесу'
     HELPCTX hcGotoAddress
-    InputLine 12, 2, 28, 3, 8, 0
-    History 28, 2, hsdbSearch, ofPostProcess
+    InputLine 12, 2, 28, 3, 8, hsdbSearch
     Label 3, 2, '~А~дpеса', ofPostProcess, ofPreProcess
     Button 2, 4, 10, 6, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 10, 4, 21, 6, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
@@ -345,11 +340,9 @@ END
 
 DIALOG dlgAdvanceSearch, 55, 15, 'Розширений пошук'
     HELPCTX hcAdvanceSearch
-    InputLine 18, 2, 37, 3, 17, 0
-    History 37, 2, hsFindAfter, ofPostProcess
+    InputLine 18, 2, 37, 3, 17, hsFindAfter
     Label 2, 2, 'З датою ~п~iсля', ofPostProcess, ofPreProcess
-    InputLine 18, 4, 37, 5, 17, 0
-    History 37, 4, hsFindBefore, ofPostProcess
+    InputLine 18, 4, 37, 5, 17, hsFindBefore
     Label 2, 4, 'З датою ~д~о', ofPostProcess, ofPreProcess
     InputLine 25, 6, 39, 7, 12, 0
     Label 2, 6, 'З розмiром ~б~iльше  ', ofPostProcess, ofPreProcess
@@ -379,13 +372,11 @@ END
 
 DIALOG dlgArchiveFiles, 68, 21, 'Архiвування файлiв'
     HELPCTX hcArchiveFiles
-    InputLine 16, 2, 58, 3, 255, 0
-    History 58, 2, hsFileCopyName, ofPostProcess
+    InputLine 16, 2, 58, 3, 255, hsFileCopyName
     Label 2, 2, '~З~апакувати в', ofPostProcess, ofPreProcess
     InputLine 3, 5, 15, 6, 40, 0, ofSecurity
     Label 3, 4, '~П~ароль', ofPostProcess, ofPreProcess
-    InputLine 19, 5, 36, 6, 80, 0
-    History 36, 5, hsAddOptions, ofPostProcess
+    InputLine 19, 5, 36, 6, 80, hsAddOptions
     Label 19, 4, 'Дод. уст~а~новки', ofPostProcess, ofPreProcess
     CheckBoxes 40, 4, 66, 11, ofPostProcess, ofPreProcess
       ITEM 'Запам''ятовувати ~ш~ляхи'
@@ -724,28 +715,32 @@ DIALOG dlgEditDirectory, 44, 13, 'Редагування роздiлу'
 END
 
 
-DIALOG dlgPrinterSetup, 48, 12, 'Hастpойки пpинтеpа'
+DIALOG dlgPrinterSetup, 48, 13, 'Hастройки принтера'
     HELPCTX hcPrinterSetup
-    RadioButtons 2, 3, 22, 8, ofPostProcess, ofPreProcess
+    RadioButtons 2, 3, 26, 9, ofPostProcess, ofPreProcess
       ITEM 'LPT~1~'
       ITEM 'LPT~2~'
       ITEM 'LPT~3~'
       ITEM 'LPT~4~'
       ITEM '~Ф~айл'
+      ITEM '~N~UL'
       ITEM 'COM1'
       ITEM 'COM2'
       ITEM 'COM3'
       ITEM 'COM4'
-      ITEM '~N~UL'
+      ITEM 'Корист.1:'
+      ITEM 'Корист.2:'
     END
-    Label 2, 2, 'Порт', ofPostProcess, ofPreProcess
-    InputLine 24, 3, 46, 4, 80, 0
-    Label 24, 2, '~Р~ядок iнiцiалiзацiї', ofPostProcess, ofPreProcess
-    InputLine 24, 6, 46, 7, 80, 0
-    Label 24, 5, '~З~авершувальний рядок', ofPostProcess, ofPreProcess
-    Button 8, 9, 20, 11, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 21, 9, 33, 11, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
-    Button 34, 9, 46, 11, 'Допомо~г~а', cmHelp, ofPostProcess, ofPreProcess
+    Label 2, 2, 'Пристрiй', ofPostProcess, ofPreProcess
+    InputLine 26, 7, 46, 8, 255, 0
+    InputLine 26, 8, 46, 9, 255, 0
+    InputLine 26, 3, 46, 4, 255, 0
+    Label 25, 2, '~Р~ядок iнiцiалiзацiї', ofPostProcess, ofPreProcess
+    InputLine 26, 5, 46, 6, 255, 0
+    Label 25, 4, '~З~авершувальний рядок', ofPostProcess, ofPreProcess
+    Button  8, 10, 20, 12, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 21, 10, 33, 12, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
+    Button 34, 10, 46, 12, 'Допомо~г~а', cmHelp, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgGameSetup, 53, 15, 'Установки гри'
@@ -778,8 +773,7 @@ END
 
 DIALOG dlgDbFind, 55, 12, 'Пошук'
     HELPCTX hcDBSearch
-    InputLine 19, 2, 50, 3, 250, 0
-    History 50, 2, hsdbSearch, ofPostProcess
+    InputLine 19, 2, 50, 3, 250, hsdbSearch
     Label 2, 2, 'Шукати ~т~екст', ofPostProcess, ofPreProcess
     CheckBoxes 12, 4, 32, 5, ofPostProcess, ofPreProcess
       ITEM '~Р~озрiзняти рег.'
@@ -804,11 +798,9 @@ END
 
 DIALOG dlgReplaceCell, 52, 17, 'Замiна'
     HELPCTX hcReplaceCell
-    InputLine 3, 3, 45, 4, 240, 0, ofFramed
-    History 46, 3, hsFindCellPattern, ofFramed, ofPostProcess
+    InputLine 3, 3, 45, 4, 240, hsFindCellPattern, ofFramed
     Label 3, 2,'~З~разок', ofPostProcess, ofPreProcess
-    InputLine 3, 6, 45, 7, 240, 0, ofFramed
-    History 46, 6, hsReplacePattern, ofFramed, ofPostProcess
+    InputLine 3, 6, 45, 7, 240, hsReplacePattern, ofFramed
     Label 3, 5, '~З~амiнити на', ofPostProcess, ofPreProcess
     RadioButtons 3, 9, 18, 11, ofFramed, ofPostProcess, ofPreProcess
       ITEM '~Р~ядки'
@@ -830,8 +822,7 @@ END
 
 DIALOG dlgFindCell, 49, 13, 'Пошук'
     HELPCTX hcFindCell
-    InputLine 3, 3, 42, 4, 240, 0, ofFramed
-    History 43, 3, hsFindCellPattern, ofFramed, ofPostProcess
+    InputLine 3, 3, 42, 4, 240, hsFindCellPattern, ofFramed
     Label 3, 2,'~З~разок', ofPostProcess, ofPreProcess
     RadioButtons 3, 6, 18, 8, ofFramed, ofPostProcess, ofPreProcess
       ITEM '~Р~ядок'
@@ -850,8 +841,7 @@ END
 
 DIALOG dlgGotoCellNumber, 41, 7, 'Перейти до клiтини'
     HELPCTX hcGotoCellNumber
-    InputLine 27, 2, 35, 3, 6, 0
-    History 35, 2, hsGotoCell, ofPostProcess
+    InputLine 27, 2, 35, 3, 6, hsGotoCell
     Label 4, 2, '~Н~овий номер клiтини', ofPostProcess, ofPreProcess
     Button 2, 4, 12, 6, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 14, 4, 26, 6, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
@@ -889,58 +879,47 @@ END
 DIALOG dlgHighlightGroups, 78, 18, 'Видiлення груп'
     HELPCTX hcHighlight
 
-    InputLine 12, 2, 35, 3, 250, 0
-    History 35, 2, hsCustoms, ofPostProcess
+    InputLine 12, 2, 35, 3, 250, hsCustoms
     Label 1, 2, 'Група ~1~', ofPostProcess, ofPreProcess
     ColorPoint 11, 2, 175
 
-    InputLine 12, 4, 35, 5, 250, 0
-    History 35, 4, hsCustoms, ofPostProcess
+    InputLine 12, 4, 35, 5, 250, hsCustoms
     Label 1, 4, 'Група ~2~', ofPostProcess, ofPreProcess
     ColorPoint 11, 4, 176
 
-    InputLine 12, 6, 35, 7, 250, 0
-    History 35, 6, hsCustoms, ofPostProcess
+    InputLine 12, 6, 35, 7, 250, hsCustoms
     Label 1, 6, 'Група ~3~', ofPostProcess, ofPreProcess
     ColorPoint 11, 6, 177
 
-    InputLine 12, 8, 35, 9, 250, 0
-    History 35, 8, hsCustoms, ofPostProcess
+    InputLine 12, 8, 35, 9, 250, hsCustoms
     Label 1, 8, 'Група ~4~', ofPostProcess, ofPreProcess
     ColorPoint 11, 8, 180
 
-    InputLine 12, 10, 35, 11, 250, 0
-    History 35, 10, hsCustoms, ofPostProcess
+    InputLine 12, 10, 35, 11, 250, hsCustoms
     Label 1, 10, 'Група ~5~', ofPostProcess, ofPreProcess
     ColorPoint 11, 10, 181
 
-    InputLine 50, 2, 73, 3, 250, 0
-    History 73, 2, hsCustoms, ofPostProcess
+    InputLine 50, 2, 73, 3, 250, hsCustoms
     Label 39, 2, 'Група ~6~', ofPostProcess, ofPreProcess
     ColorPoint 49, 2, 192
 
-    InputLine 50, 4, 73, 5, 250, 0
-    History 73, 4, hsCustoms, ofPostProcess
+    InputLine 50, 4, 73, 5, 250, hsCustoms
     Label 39, 4, 'Група ~7~', ofPostProcess, ofPreProcess
     ColorPoint 49, 4, 193
 
-    InputLine 50, 6, 73, 7, 250, 0
-    History 73, 6, hsCustoms, ofPostProcess
+    InputLine 50, 6, 73, 7, 250, hsCustoms
     Label 39, 6, 'Група ~8~', ofPostProcess, ofPreProcess
     ColorPoint 49, 6, 194
 
-    InputLine 50, 8, 73, 9, 250, 0
-    History 73, 8, hsCustoms, ofPostProcess
+    InputLine 50, 8, 73, 9, 250, hsCustoms
     Label 39, 8, 'Група ~9~', ofPostProcess, ofPreProcess
     ColorPoint 49, 8, 195
 
-    InputLine 50, 10, 73, 11, 250, 0
-    History 73, 10, hsCustoms, ofPostProcess
+    InputLine 50, 10, 73, 11, 250, hsCustoms
     Label 39, 10, 'Група 1~0~', ofPostProcess, ofPreProcess
     ColorPoint 49, 10, 196
 
-    InputLine 12, 12, 73, 13, 250, 0
-    History 73, 12, hsCustoms, ofPostProcess
+    InputLine 12, 12, 73, 13, 250, hsCustoms
     Label 1, 12, '~А~pхiви  ', ofPostProcess, ofPreProcess
     ColorPoint 11, 12, 174
 
@@ -951,8 +930,7 @@ END
 
 DIALOG dlgGotoLine, 38, 7, 'Перейти до рядка'
     HELPCTX hcGotoLine
-    InputLine 18, 2, 30, 3, 10, 0
-    History 30, 2, hsdbSearch, ofPostProcess
+    InputLine 18, 2, 30, 3, 10, hsdbSearch
     Label 3, 2, '~Н~омер рядка', ofPostProcess, ofPreProcess
     Button 1, 4, 12, 6, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 12, 4, 24, 6, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
@@ -1003,8 +981,7 @@ DIALOG dlgEditorFind, 57, 16, 'Пошук'
     Button 16, 13, 28, 15, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 28, 13, 40, 15, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
     Button 40, 13, 52, 15, 'Допомо~г~а', cmHelp, ofPostProcess, ofPreProcess
-    InputLine 17, 2, 49, 3, 250, 0
-    History 49, 2, hsFindText, ofPostProcess
+    InputLine 17, 2, 49, 3, 250, hsFindText
     Label 3, 2, 'Шукати ~т~екст', ofPostProcess, ofPreProcess
     HexLine 17, 3, 49, 4
     Label 3, 3, '        Код~и~', ofPostProcess, ofPreProcess
@@ -1043,14 +1020,12 @@ DIALOG dlgEditorReplace, 57, 18, 'Замiна'
     Button 13, 15, 27, 17, 'Зам. ~в~се', cmYes, ofPostProcess, ofPreProcess
     Button 28, 15, 40, 17, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
     Button 41, 15, 53, 17, 'Допомо~г~а', cmHelp, ofPostProcess, ofPreProcess
-    InputLine 17, 2, 49, 3, 250, 0
+    InputLine 17, 2, 49, 3, 250, hsFindText
     Label 3, 2, 'Шукати ~т~екст', ofPostProcess, ofPreProcess
-    History 49, 2, hsFindText, ofPostProcess
     HexLine 17, 3, 49, 4
     Label 3, 3, '        Код~и~', ofPostProcess, ofPreProcess
-    InputLine 17, 4, 49, 5, 250, 0
+    InputLine 17, 4, 49, 5, 250, hsFindText
     Label 4, 4, '~Н~овий текст', ofPostProcess, ofPreProcess
-    History 49, 4, hsFindText, ofPostProcess
     HexLine 17, 5, 49, 6
     Label 3, 5, '        Коди', ofPostProcess, ofPreProcess
     SelectBack
@@ -1060,15 +1035,13 @@ DIALOG dlgEditorReplace, 57, 18, 'Замiна'
 END
 
 ;{-$VIV 14.05.99}
-DIALOG dlgFileFind, 54, 19, 'Пошук файла'
+DIALOG dlgFileFind, 56, 19, 'Пошук файла'
     HELPCTX hcFileFind
-    InputLine 16, 2, 51, 3, 255, 0
+    InputLine 16, 2, 51, 3, 255, hsFindMask
     Label 2, 2, 'Маска ~Ф~айла', ofPostProcess, ofPreProcess
-    History 49, 2, hsFindMask, ofPostProcess
-    InputLine 16, 4, 51, 5, 255, 0
+    InputLine 16, 4, 51, 5, 255, hsFindText
     Label 2, 4, '~Ш~укати текст', ofPostProcess, ofPreProcess
-    History 49, 4, hsFindText, ofPostProcess
-    HexLine 16, 5, 49, 6
+    HexLine 16, 5, 51, 6
     Label 2, 5, '        Код~и~', ofPostProcess, ofPreProcess
     CheckBoxes 3, 7, 51, 11, ofPostProcess, ofPreProcess
       ITEM 'Р~о~зширений пошук'
@@ -1099,9 +1072,8 @@ END
 
 DIALOG dlgArcFileFind, 55, 11, 'Пошук файла в архiвi'
     HELPCTX hcArcFileFind
-    InputLine 16, 2, 52, 3, 255, 0
+    InputLine 16, 2, 52, 3, 255, hsFindMask
     Label 2, 2, 'Маска ~Ф~айла', ofPostProcess, ofPreProcess
-    History 50, 2, hsFindMask, ofPostProcess
     InputLine 1, 1, 1, 1, 255, 0
     CheckBoxes 3, 5, 51, 7, ofPostProcess, ofPreProcess
       ITEM 'Р~о~зширений пошук'
@@ -1117,12 +1089,10 @@ END
 
 DIALOG dlgFoundFileFind, 54, 18, 'Пошук файла у '
     HELPCTX hcFoundFileFind
-    InputLine 16, 2, 51, 3, 255, 0
+    InputLine 16, 2, 51, 3, 255, hsFindMask
     Label 2, 2, 'Маска ~Ф~айла', ofPostProcess, ofPreProcess
-    History 49, 2, hsFindMask, ofPostProcess
-    InputLine 16, 4, 51, 5, 255, 0
+    InputLine 16, 4, 51, 5, 255, hsFindText
     Label 2, 4, '~Ш~укати текст', ofPostProcess, ofPreProcess
-    History 49, 4, hsFindText, ofPostProcess
     HexLine 16, 5, 49, 6
     Label 2, 5, '        Код~и~', ofPostProcess, ofPreProcess
     CheckBoxes 3, 7, 51, 11, ofPostProcess, ofPreProcess
@@ -1153,9 +1123,8 @@ END
 
 DIALOG dlgFoundArcFileFind, 55, 11, 'Пошук файла у '
     HELPCTX hcFoundArcFileFind
-    InputLine 16, 2, 52, 3, 255, 0
+    InputLine 16, 2, 52, 3, 255, hsFindMask
     Label 2, 2, 'Маска ~Ф~айла', ofPostProcess, ofPreProcess
-    History 50, 2, hsFindMask, ofPostProcess
     InputLine 1, 1, 1, 1, 255, 0
     CheckBoxes 3, 5, 51, 7, ofPostProcess, ofPreProcess
       ITEM 'Р~о~зширений пошук'
@@ -1170,8 +1139,7 @@ END
 
 DIALOG dlgMkDir, 69, 7, 'Створити каталог'
     HELPCTX hcMkDir
-    InputLine 2, 2, 64, 3, 255, 0
-    History 64, 2, hsMakeDir, ofPostProcess
+    InputLine 2, 2, 64, 3, 255, hsMakeDir
     Label 2, 1, '~I~м''я каталога', ofPostProcess, ofPreProcess
 ;$IFDEF UPLOWSTRSINDLG
     Button 2, 4, 16, 6, '~В~еликими', cmYes, ofPostProcess, ofPreProcess
@@ -1185,8 +1153,7 @@ END
 
 DIALOG dlgRenFl, 70, 7, 'Швидке пеpейменування'
     HelpCtx hcRenameFile
-    InputLine 16, 2, 66, 3, 255, 0
-    History 66, 2, hsRenameFil, ofPostProcess
+    InputLine 16, 2, 66, 3, 255, hsRenameFil
     Label 2, 2, '~I~м''я файла...', ofPostProcess, ofPreProcess
 ;$IFDEF UPLOWSTRSINDLG
     Button 2, 4, 16, 6, '~В~еликими', cmYes, ofPostProcess, ofPreProcess
@@ -1199,8 +1166,7 @@ END
 
 DIALOG dlgRenameDialog, 78, 13, 'Перейменування/перемiщення'
     HELPCTX hcCopyDialog
-#1  InputLine 2, 2, 74, 3, 255, 0
-    History 74, 2, hsFileCopyName, ofPostProcess
+#1  InputLine 2, 2, 74, 3, 255, hsFileCopyName
     RadioButtons 2, 4, 44, 9, ofPostProcess, ofPreProcess
       ITEM 'Переписати всi i~с~нуючi файли'
       ITEM 'Додавати до ~в~сiх iснуючих файлiв'
@@ -1230,8 +1196,7 @@ END
 
 DIALOG dlgCopyDialog, 78, 13, 'Копiювання'
     HELPCTX hcCopyDialog
-#1  InputLine 2, 2, 74, 3, 255, 0
-    History 74, 2, hsFileCopyName, ofPostProcess
+#1  InputLine 2, 2, 74, 3, 255, hsFileCopyName
     RadioButtons 2, 4, 44, 9, ofPostProcess, ofPreProcess
       ITEM 'Переписати всi i~с~нуючi файли'
       ITEM 'Додавати до ~в~сiх iснуючих файлiв'
@@ -1574,9 +1539,8 @@ DIALOG dlgCompareDirs, 42, 17, 'Порiвняти каталоги'
     END
     Label 3, 2, 'Опцiї', ofPostProcess, ofPreProcess
 ; {-$VOL}
-    InputLine 3, 10, 36, 11, 255, 0
+    InputLine 3, 10, 36, 11, 255, hsFindMask
     Label 3, 9, 'Маски ~Ф~айлiв', ofPostProcess, ofPreProcess
-    History 36, 10, hsFindMask, ofPostProcess
 ; {-$VOL}
     RadioButtons 3, 13, 28, 15, ofPostProcess, ofPreProcess
       ITEM '~В~iдмiтити '
@@ -1589,7 +1553,7 @@ DIALOG dlgCompareDirs, 42, 17, 'Порiвняти каталоги'
     Button 26, 13, 40, 15, 'Допомо~г~а', cmHelp, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgSetPassword, 39, 7, 'Введи пароль'
+DIALOG dlgSetPassword, 39, 7, 'Введiть пароль'
     HELPCTX hcSetPassword
     InputLine 12, 2, 37, 3, 40, 0, ofSecurity
     Label 2, 2, '~П~ароль', ofPostProcess, ofPreProcess
@@ -1598,10 +1562,21 @@ DIALOG dlgSetPassword, 39, 7, 'Введи пароль'
     Button 26, 4, 38, 6, 'Допомо~г~а', cmHelp, ofPostProcess, ofPreProcess
 END
 
+DIALOG dlgLoginPassword, 50, 10, 'Введiть iм''я користувача та пароль'
+    HELPCTX hcNoContext
+    InputLine 20, 2, 48, 3, 255, 0
+    Label 1, 2, 'I~м~''я користувача:', ofPostProcess, ofPreProcess
+    InputLine 20, 4, 48, 5, 255, 0, ofSecurity
+    Label 11, 4, '~П~ароль:', ofPostProcess, ofPreProcess
+#1  StaticText 2, 5, 47, 6, ^C'Невiрне iм''я або пароль'
+    Button 9, 7, 19, 9, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 19, 7, 30, 9, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
+    Button 30, 7, 42, 9, 'Допомо~г~а', cmHelp, ofPostProcess, ofPreProcess
+END
+
 DIALOG dlgExtract, 51, 14, 'Добути файли'
     HELPCTX hcExtract
-    InputLine 13, 2, 46, 3, 255, 0
-    History 46, 2, hsFileCopyName, ofPostProcess
+    InputLine 13, 2, 46, 3, 255, hsFileCopyName
     Label 2, 2, '~Д~обути в', ofPostProcess, ofPreProcess
     CheckBoxes 3, 4, 47, 8, ofPostProcess, ofPreProcess
       ITEM 'Добути з iменем ~ш~ляху'
@@ -1628,23 +1603,26 @@ END
 
 DIALOG dlgDirectoryHistory, 78, 17, 'Iстоpiя змiни каталогiв'
     HELPCTX hcDirHistory
-    Button 12, 14, 26, 16, '~П~еpейти', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 30, 14, 50, 16, 'В~и~далити запис', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
-    Button 54, 14, 66, 16, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
+    Button  8, 14, 22, 16, '~П~еpейти', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 23, 14, 43, 16, 'В~и~далити запис', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
+    Button 44, 14, 57, 16, 'В~с~тати на', cmNo, bfBroadcast, ofPostProcess, ofPreProcess
+    Button 58, 14, 70, 16, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgEditHistory, 78, 17, 'Iстоpiя редагування файлiв'
     HELPCTX hcEditHistory
-    Button 12, 14, 26, 16, '~В~iдкpити', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 30, 14, 50, 16, 'В~и~далити запис', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
-    Button 54, 14, 66, 16, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
+    Button  8, 14, 22, 16, '~В~iдкpити', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 23, 14, 43, 16, 'В~и~далити запис', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
+    Button 44, 14, 57, 16, 'В~с~тати на', cmNo, bfBroadcast, ofPostProcess, ofPreProcess
+    Button 58, 14, 70, 16, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgViewHistory, 78, 17, 'Iстоpiя перегляду файлiв'
     HELPCTX hcViewHistory
-    Button 12, 14, 26, 16, '~В~iдкpити', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 30, 14, 50, 16, 'В~и~далити запис', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
-    Button 54, 14, 66, 16, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
+    Button  8, 14, 22, 16, '~В~iдкpити', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 23, 14, 43, 16, 'В~и~далити запис', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
+    Button 44, 14, 57, 16, 'В~с~тати на', cmNo, bfBroadcast, ofPostProcess, ofPreProcess
+    Button 58, 14, 70, 16, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgSetupArc, 78, 22, 'Установки архiватора'
@@ -1728,9 +1706,8 @@ END
 
 DIALOG dlgSelect, 27, 9, 'Вибiр'
     HELPCTX hcSelect
-    InputLine 2, 2, 21, 3, 255, 0
+    InputLine 2, 2, 21, 3, 255, hsSelectBox
     Label 2, 1, '~М~аска', ofPostProcess, ofPreProcess
-    History 21, 2, hsSelectBox, ofPostProcess
     CheckBoxes 2, 4, 25, 5, ofPostProcess, ofPreProcess
       ITEM 'В~и~ключити'
     END
@@ -1740,9 +1717,8 @@ END
 
 DIALOG dlgUnselect, 27, 9, 'Вiдмiна'
     HELPCTX hcUnselect
-    InputLine 2, 2, 21, 3, 255, 0
+    InputLine 2, 2, 21, 3, 255, hsSelectBox
     Label 2, 1, '~М~аска', ofPostProcess, ofPreProcess
-    History 21, 2, hsSelectBox, ofPostProcess
     CheckBoxes 2, 4, 25, 5, ofPostProcess, ofPreProcess
       ITEM 'В~и~ключити'
     END
@@ -2931,7 +2907,6 @@ END
 DIALOG dlgManualDial, 47, 7, 'Набiр телефонного номера'
   HELPCTX hcManualDial
   InputLine 9, 2, 42, 3, 255, hsManualPhone
-  History 42, 2, hsManualPhone, ofPostProcess
   Label 2, 2, '~Н~омер', ofPostProcess, ofPreProcess
   Button 2, 4, 14, 6, 'O~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
   Button 14, 4, 26, 6, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
@@ -2940,7 +2915,9 @@ END
 
 DIALOG dlgCalculator, 52, 16, 'Калькулятор'
   HELPCTX hcCalculator
-  RadioButtons 2,6,11,12, 0, 0
+#1 InputLine 2, 3, 48, 4, 250, hsCalcLine, ofPreProcess
+   Label 2, 2, '~В~ираз', ofPostProcess, ofPreProcess
+#2 RadioButtons 2,6,11,12, 0, 0
     ITEM '~D~EC'
     ITEM '~H~EX'
     ITEM '~B~IN'
@@ -2988,7 +2965,6 @@ END
 DIALOG dlgTetrisWinner, 55, 7, 'Ви потрапили в десятку кращих!'
   HELPCTX hcTetrisWinner
   InputLine 21, 2, 50, 3, 30, hsTetris
-  History 50, 2, hsTetris, ofPostProcess
   Label 2, 2, 'Введiть Ваше iм''я:', ofPostProcess, ofPreProcess
   Button 16, 4, 28, 6, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
   Button 28, 4, 40, 6, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess
@@ -2998,7 +2974,6 @@ END
 DIALOG dlgSplitFile, 50, 15, 'Розрiзати файл'
   HELPCTX hcSplitDialog
   InputLine 2, 3, 46, 2, 255, hsFBBCopy
-  History 46, 3, hsFBBCopy, ofPostProcess
   Label 2, 2, 'У к~а~талог/файл', ofPostProcess, ofPreProcess
 
   CheckBoxes 2, 5, 48, 8, ofPostProcess, ofPreProcess
@@ -3008,11 +2983,9 @@ DIALOG dlgSplitFile, 50, 15, 'Розрiзати файл'
   END
 
   InputLine 20, 9, 46, 10, 10, hsFBBCopySize
-  History 46, 9, hsFBBCopySize, ofPostProcess
   Label 2, 9, 'Ро~з~мip секцiї:', ofPostProcess, ofPreProcess
 
   InputLine 20, 10, 46, 11, 10, hsFBBCopyNum
-  History 46, 10, hsFBBCopyNum, ofPostProcess
   Label 2, 10, '~Ч~исло секцiй:', ofPostProcess, ofPreProcess
 
   Button 2,  12, 13, 14, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
@@ -3024,7 +2997,6 @@ END
 DIALOG dlgCombineFile, 50, 8, 'Склеїти файл'
   HELPCTX hcCombineDialog
   InputLine 2, 3, 46, 4, 255, hsFBBCopy
-  History 46, 3, hsFBBCopy, ofPostProcess
   Label 2, 2, 'У к~а~талог/файл', ofPostProcess, ofPreProcess
   Button 2,  5, 13, 7, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
   Button 13, 5, 24, 7, 'Вiдмiна', cmCancel, bfNormal, ofPostProcess, ofPreProcess
@@ -3035,7 +3007,6 @@ END
 DIALOG dlgNextSection, 76, 8, 'Склеювання файла'
   HELPCTX hcPath
   InputLine 2, 3, 72, 2, 255, hsFBBCopy
-  History  72, 3, hsFBBCopy, ofPostProcess
   Label 2, 2, 'Необхiдна секцiя %D. Змiнiть носiй та/або поправте шлях:', ofPostProcess, ofPreProcess
   Button 26, 5, 38, 7, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
   Button 38, 5, 50, 7, 'Вiдмiна', cmCancel, bfNormal, ofPostProcess, ofPreProcess
@@ -3057,8 +3028,7 @@ END
 
 DIALOG dlgUUDecode, 49, 11, 'Pозкодування UU-файлiв'
     HELPCTX hcUUDecode
-    InputLine 3, 2, 45, 3, 255, 0
-    History 45, 2, hsUUDecode, ofPostProcess
+    InputLine 3, 2, 45, 3, 255, hsUUDecode
     Label 3, 1, '~П~омiщати декодованi файли до каталогу', ofPostProcess, ofPreProcess
     CheckBoxes 3, 4, 45, 7, ofPostProcess, ofPreProcess
       ITEM 'Пе~р~евiряти iснуючi файли'
@@ -3073,8 +3043,7 @@ END
 
 DIALOG dlgUUEncode, 60, 17, 'UU-кодування'
     HELPCTX hcUUEncode
-    InputLine 16, 2, 55, 3, 255, 0
-    History 55, 2, hsUUEncode, ofPostProcess
+    InputLine 16, 2, 55, 3, 255, hsUUEncode
     Label 2, 2, '~К~одувати в', ofPostProcess, ofPreProcess
     CheckBoxes 2, 5, 31, 8, ofPostProcess, ofPreProcess
       ITEM 'Час та дата ство~р~ення'
@@ -3090,9 +3059,8 @@ DIALOG dlgUUEncode, 60, 17, 'UU-кодування'
       ITEM 'Розширенi (~6~4-бiт)'
     END
     Label 32, 4, 'Контрольнi сум~и~ (CRC)', ofPostProcess, ofPreProcess
-    InputLine 18, 9, 25, 10, 5, 0
+    InputLine 18, 9, 25, 10, 5, hsUULines
     Label 2, 9, '~Р~ядкiв в секцiї', ofPostProcess, ofPreProcess
-    History 25, 9, hsUULines, ofPostProcess
 
      RadioButtons 2, 12, 31, 13, ofPostProcess, ofPreProcess
       ITEM '~D~OS <CR>+<LF>'
@@ -3406,12 +3374,10 @@ END
 
 DIALOG dlgArvidFileFind, 52, 13, 'Пошук файла'
     HELPCTX hcFileFind
-    InputLine 16, 2, 47, 3, 255, 0
+    InputLine 16, 2, 47, 3, 255, 109
     Label 2, 2, 'Маска ~Ф~айла', ofPostProcess, ofPreProcess
-    History 47, 2, 109, ofPostProcess
-    InputLine 16, 4, 47, 5, 255, 0
+    InputLine 16, 4, 47, 5, 255, 110
     Label 2, 4, '~О~пис', ofPostProcess, ofPreProcess
-    History 47, 4, 110, ofPostProcess
     CheckBoxes 3, 7, 49, 9, ofPostProcess, ofPreProcess
       ITEM 'Р~о~ширений пошук'
       ITEM '~П~ошук в iнших каталогах ARVID'
@@ -4595,11 +4561,9 @@ END
 ;{--- start -------- Eugeny Zvyagintzev ---- 31-07-2002 ----}
 DIALOG dlgDBFGoto, 41, 9, 'Перейти до рядка/поля'
     HELPCTX hcDBFGoto
-    InputLine 17, 2, 35, 3, 10, 0
-    History 35, 2, hsDBFGotoRow, ofPostProcess
+    InputLine 17, 2, 35, 3, 10, hsDBFGotoRow
     Label 3, 2, '~Н~омер рядка', ofPostProcess, ofPreProcess
-    InputLine 17, 4, 35, 5, 10, 0
-    History 35, 4, hsDBFGotoCol, ofPostProcess
+    InputLine 17, 4, 35, 5, 10, hsDBFGotoCol
     Label 3, 4, '~И~м''я поля', ofPostProcess, ofPreProcess
     Button  9, 6, 19, 8, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 19, 6, 29, 8, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess

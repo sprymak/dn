@@ -242,6 +242,7 @@ asm
         XOR     ECX,ECX
         MOV     CL,AL
         REP     MOVSB
+        CLD // MS Windows do not like the direction flag (AK155)
  end;
   {$ELSE}
   var

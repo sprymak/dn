@@ -80,9 +80,12 @@ procedure EraseTempFile(S: String); {piwamoto}
 {JO}
 function ValidDrive(dr: Char): Boolean;
 function GetDrive: Byte;
+  {` Дать номер диска активной панели (0..25).
+    Для сетевых путей получится 27 ('\'-'A') `}
 procedure GetMask(var m: String);
 function GetCurDrive: Char;
-
+  {` Дать букву диска активной панели ('A'..'Z').
+    Для сетевых путей получится '\' `}
 function GetExt(const s: String): String;
   {` s - имя файла, возможно, с путём. Результат - расширение,
    начинающееся с точки. Если расширения нет - результат '.' `}
@@ -416,11 +419,8 @@ function ValidDrive(dr: Char): Boolean;
   end;
 
 function GetDrive: Byte;
-  var
-    S: String;
   begin
-  GetDir(0, S);
-  GetDrive := Byte(S[1])-Byte('A');
+  Result := Byte(ActiveDir[1])-Byte('A');
   end;
 
 procedure GetMask(var m: String);

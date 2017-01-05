@@ -9,7 +9,8 @@ interface
 type
 {<fltl.001>}
   TDrvTypeNew = ( dtnFloppy, dtnHDD, dtnInvalid,
-    dtnCDRom, dtnLAN, dtnUnknown, dtnOptical, dtnProgram, dtRamDisk);
+    dtnCDRom, dtnLAN, dtnUnknown, dtnOptical
+    , dtnProgram, dtRamDisk, dtnSubst);
 
 const
 
@@ -58,6 +59,7 @@ function SetEAString(const Filename, Name, Value: string): Integer;
 procedure SetEALongname(Filename: String);
 function GetFSString(Drive: Char): String; {AK155}
 function GetShare(Drive: Char): String; {AK155}
+function GetSubst(Drive: Char): string; {AK155}
 function GetDriveTypeNew(Drive: Char): TDrvTypeNew; {JO} {<fltl.001>}
 //JO: Функция, которую следует использовать в исходниках DN/2
 //    вместо неудачной штатной для VP RTL функции SysGetDriveType,
@@ -494,6 +496,11 @@ function GetShare(Drive: Char): string;
     if pulBytesAvail <> 0 then
       Result := StrPas(PChar(@buf.ui0_remote[SizeOf(buf)+4-pulBytesAvail]));
     end;
+  end;
+
+function GetSubst(Drive: Char): string; {AK155}
+  begin
+  Result := '';
   end;
 
 {JO}

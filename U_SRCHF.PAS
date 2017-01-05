@@ -140,7 +140,7 @@ function FindFileWithSPF(pFileName: String; Info: PWhileView): String;
     P, I: Integer;
   label ex;
   begin
-  Result := ActiveDir+pFileName;
+  Result := lFExpand(pFileName);
   if ExistFile(Result) then
     Exit;
   Result := '';

@@ -3,6 +3,7 @@
 { Based on p_net plugin library by Cat (2:5030/1326.13) }
 
 {JO: 1-07-2005 - перенёс панельку броузера сети из плагина в ядро DN/2}
+{JO: 23-11-2006 - ввёл обработку пароля при входе на шару}
 
 {$I STDEFINE.INC}
 
@@ -39,7 +40,8 @@ type
     procedure AddRootResource(var NetResource: TNetResource; const DirName: String);
     procedure RemoveRootResource(var DirName: String);
     procedure GetNetList(hEnum: THandle; var Res: PNetResourceArray; var EnumCount: LongInt);
-    function AddConnection(var NetResource: TNetResource): Boolean;
+    function AddConnection(var NetResource: TNetResource;
+                           var Rs: LongInt): Boolean;
     procedure FindNetResources;
     {function GetRootName(I: LongInt): String;}
 
@@ -80,17 +82,18 @@ type
                                  PutDirs: Boolean): PDrive; virtual;
     procedure DrvFindFile(FC: PFilesCollection); virtual;
     procedure ReadDescrptions(FilesC: PFilesCollection); virtual;
+    function GetDriveLetter: Char; virtual;
+  private
+    procedure AddError(ErrorCode: Integer; ReturnCode: LongInt);
   end;
+
+const
+  chNetDrive = '@';
 
 implementation
 
-uses Lfn, Drivers, Dos, Strings, Commands, PDSetup, Advance2;
-
-procedure AddError(ErrorCode: Integer);
-begin
-{сделать локализацию!}
-  MessageBox('Network error ('+ItoS(ErrorCode)+')', nil, mfError+mfOkButton);
-end;
+uses Lfn, Drivers, Dos, Strings, Commands, PDSetup, Advance2,
+     DnApp, Dialogs, FlPanelX;
 
 procedure CopyNetResource(var Source, Dest: TNetResource);
 begin
@@ -128,6 +131,23 @@ begin
 {$IFDEF Win32}
   CharToOemBuff(@Result[1], @Result[1], Length(Result));
 {$ENDIF}
+end;
+
+procedure TNetDrive.AddError(ErrorCode: Integer; ReturnCode: LongInt);
+  var
+    RC: String;
+begin
+  if ReturnCode = 0 then
+    RC := ''
+  else
+    RC := ' (RC=' + ItoS(ReturnCode) + ')';
+  PFilePanelRoot(Panel)^.IncDrawDisabled; //см. комментарий к AddConnection
+  if ErrorCode = 0 then
+    MessageBox(^C + GetString(dlNoNetworkPath), nil, mfError+mfOkButton)
+  else
+    MessageBox(^C + GetString(dlNetworkError) + ' ' + ItoS(ErrorCode) + RC,
+                                             nil, mfError+mfOkButton);
+  PFilePanelRoot(Panel)^.DecDrawDisabled;
 end;
 
 procedure TNetDrive.ClearNetResources;
@@ -208,7 +228,7 @@ begin
       Break;
     if EnumCode <> NO_ERROR then
       begin
-        AddError(2);
+        AddError(2, EnumCode);
         Exit;
       end;
     if TempNetCount > 0 then
@@ -222,11 +242,94 @@ begin
 {$ENDIF}
 end;
 
-function TNetDrive.AddConnection(var NetResource: TNetResource): Boolean;
+function TNetDrive.AddConnection(var NetResource: TNetResource;
+                                 var Rs: LongInt): Boolean;
+{JO: 23-11-2006 - ввёл обработку пароля при входе на шару}
+  var
+      Lgn: record
+        UN: String;
+        Psw: String;
+      end;
+      S1, S2: String;
+      PS1, PS2: PChar;
+
+  procedure PrepareLPDialog(P: PDialog);
+    var
+      SI: String;
+    begin
+    with P^ do
+      if Rs <> NO_ERROR then
+        begin
+        SI := PStaticText(DirectLink[1])^.Text^;
+        DisposeStr(PStaticText(DirectLink[1])^.Text);
+        PStaticText(DirectLink[1])^.Text := NewStr(SI+' (RC='+ItoS(Rs)+')');
+        end
+      else
+        DisposeStr(PStaticText(DirectLink[1])^.Text);
+    end;
+
+  function LogonErr: Boolean;
+    begin
+    if (Rs = 86)     // ERROR_INVALID_PASSWORD The specified network password is incorrect
+      or (Rs = 1216) // ERROR_INVALID_PASSWORDNAME The format of the specified password is invalid
+      or ((Rs >= 1303) and (Rs <= 1390 )) //ошибки, связанные с логином в сеть
+    then
+      LogonErr := True;
+    end;
+
 begin
+  Lgn.UN := '';
+  Lgn.Psw := '';
 {$IFDEF Win32}
-  AddConnection := (WNetAddConnection2(NetResource, nil, nil, 0) = NO_ERROR);
+  Rs := WNetAddConnection2(NetResource, nil, nil, 0);
+  if LogonErr then
+    begin
+//JO: нижележащая строчка необходима перед вызовом любого диалога изнутри
+//    T*Drive.GetDirectory, иначе панель после закрытия диалога пытается
+//    перерисовываться, что при Files = nil чревато как минимум странными
+//    косметическими эффектами, а как максимум - падениями
+    PFilePanelRoot(Panel)^.IncDrawDisabled;
+    repeat
+      @PreExecuteDialog := @PrepareLPDialog;
+      if ExecResource(dlgLoginPassword, Lgn) <> cmOK then
+        Break;
+      if Lgn.UN = ''
+        then PS1 := nil
+      else
+        begin
+        S1 := Lgn.UN + #0;
+        PS1 := @S1[1];
+        end;
+      if Lgn.Psw = ''
+        then PS2 := nil
+      else
+        begin
+        S2 := Lgn.Psw + #0;
+        PS2 := @S2[1];
+        end;
+      Rs := WNetAddConnection2(NetResource, PS2, PS1, 0);
+    until {Rs = NO_ERROR } not LogonErr;
+    PFilePanelRoot(Panel)^.DecDrawDisabled;  //JO: см. комментарий выше
+    end;
+  if (Rs <> NO_ERROR)
+    and (Rs <> 67) // попытка повторно использовать WNetAddConnection2 под NT
+    and (Rs <> 487) // то же под W9x
+    and not LogonErr // сообщение об ошибке ужЕ было в диалоге логина
+  then
+    AddError(6, Rs);
+  AddConnection := not LogonErr; // надо будет сделать более строгое условие
+  if LogonErr then
+    Rs := NO_ERROR; // сообщение об ошибке ужЕ было в диалоге логина
 {$ELSE}
+  Rs := $FFFF;
+  PFilePanelRoot(Panel)^.IncDrawDisabled;
+  repeat
+    @PreExecuteDialog := @PrepareLPDialog;
+    if ExecResource(dlgLoginPassword, Lgn) <> cmOK then
+      Break;
+    Dec(Rs);
+  until False;
+  PFilePanelRoot(Panel)^.DecDrawDisabled;
   AddConnection := False; //вpеменно!
 {$ENDIF}
 end;
@@ -236,11 +339,18 @@ var
   hConnectedEnum: THandle;
   hEnum: THandle;
   CurResource: PNetResource;
+  RC1 : LongInt;
+  PV1: PView;
+
 begin
 {$IFDEF Win32}
-  if WNetOpenEnum(RESOURCE_CONNECTED, RESOURCETYPE_DISK, 0, nil, hConnectedEnum) <> NO_ERROR then
+  PV1 := WriteMsg(GetString(dlPleaseStandBy));
+  RC1 := WNetOpenEnum(RESOURCE_CONNECTED,
+                      RESOURCETYPE_DISK, 0, nil, hConnectedEnum);
+  if RC1 <> NO_ERROR then
     begin
-      AddError(1);
+      PV1^.Free;
+      AddError(1, RC1);
       Exit;
     end;
   GetNetList(hConnectedEnum, ConnectedResources, ConnectedCount);
@@ -251,21 +361,24 @@ begin
   else
     CurResource := @RootResources^[RootCount-1];
 
-  if WNetOpenEnum(RESOURCE_GLOBALNET, RESOURCETYPE_ANY, 0, CurResource, hEnum) <> NO_ERROR then
-    if (CurResource = nil) or not AddConnection(CurResource^) or (WNetOpenEnum(RESOURCE_GLOBALNET, RESOURCETYPE_ANY, 0, CurResource, hEnum) <> NO_ERROR) then
-      if CurResource = nil then
-        begin
-          AddError(3);
-          Exit;
-        end
-      else
-        begin
-          hEnum := 0;
-          NetCount := 0;
-          Exit;
-        end;
+  if WNetOpenEnum(RESOURCE_GLOBALNET, RESOURCETYPE_ANY, 0,
+                                CurResource, hEnum) <> NO_ERROR then
+    if CurResource = nil then
+      begin
+        PV1^.Free;
+        AddError(3, 0);
+        Exit;
+      end
+    else
+      begin
+        hEnum := 0;
+        NetCount := 0;
+        PV1^.Free;
+        Exit;
+      end;
   GetNetList(hEnum, NetResources, NetCount);
   WNetCloseEnum(hEnum);
+  PV1^.Free;
 {$ENDIF}
 end;
 
@@ -344,6 +457,9 @@ end;
 
 procedure TNetDrive.lChDir;
 
+  var
+    AddRC: LongInt;
+
   function IsReadable(const PathName: String): Boolean;
   var
     SR: lSearchRec;
@@ -370,13 +486,18 @@ procedure TNetDrive.lChDir;
                 begin
                   if not IsReadable(S) then
                     begin
-                      AddConnection(NetResources^[I]);
+                      AddConnection(NetResources^[I], AddRC);
                       if IsReadable(S) then
                         begin
                           RootDirSaved := CurDir;
                           CurDir := S;
                           RootState := False;
-                        end;
+                        end
+                      else
+                        if AddRC <> NO_ERROR then
+                          AddError(4, AddRC)
+                        else
+                          AddError(0, 0);
                     end
                   else
                     begin
@@ -387,6 +508,14 @@ procedure TNetDrive.lChDir;
                 end
               else
                 begin
+                  if not AddConnection(NetResources^[I], AddRC) then
+                    begin
+                    if AddRC <> NO_ERROR then
+                      AddError(5, AddRC)
+                    else
+                      AddError(0, 0);
+                    Continue;
+                    end;
                   CurDir := ADir;
                   AddRootResource(NetResources^[I], CurDir);
                 end;
@@ -468,6 +597,8 @@ var
   I: LongInt;
 {$IFDEF OS2} {отладочный код временно!!!}
   SR: lSearchRec;
+  TempResource: TNetResource;
+  AddRC: LongInt;
 const
   TempStr: String = 'D:\';
 {$ENDIF}
@@ -493,6 +624,9 @@ begin
     end;
 
 {$IFDEF OS2} {отладочный код временно!!!}
+
+  AddConnection(TempResource, AddRC);
+
   lFindFirst('D:\*', (Directory shl 8) or Directory, SR);
   while (DosError = 0) do
     begin
@@ -581,4 +715,8 @@ procedure TNetDrive.ReadDescrptions(FilesC: PFilesCollection);
   begin
   end;
 
+function TNetDrive.GetDriveLetter: Char;
+  begin
+  Result := chNetDrive;
+  end;
 end.

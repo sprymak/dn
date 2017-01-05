@@ -185,6 +185,7 @@ type
                                  PutDirs: Boolean): PDrive; virtual;
     procedure DrvFindFile(FC: PFilesCollection); virtual;
     procedure ReadDescrptions(FilesC: PFilesCollection); virtual;
+    function GetDriveLetter: Char; virtual;
     end;
 
   PTempDrive = ^TTempDrive;
@@ -203,10 +204,21 @@ type
     procedure ChangeRoot; virtual;
     procedure GetDirInfo(var B: TDiskInfoRec); virtual;
     destructor Done; virtual;
+    function GetDriveLetter: Char; virtual;
     end;
 
 procedure CopyToTempDrive(AFiles: PCollection; Own: PView;
      ArchiveName: String);
+
+const
+  chTempDrive = '*';
+
+{$IFDEF DualName}
+var
+  ShortNameSearch: Boolean;
+    {` Поиск выполнять по коротким именам. Присваивается панелью
+     перед поиском в соотвествии с режимом отображения панели.`}
+{$ENDIF}
 
 implementation
 uses
@@ -380,7 +392,20 @@ function FindFiles(var Files: PFilesCollection;
     begin
     Pnl := Message(Desktop, evBroadcast, cmInsertDrive, Drv);
     if Pnl <> nil then
-      PFilePanel(Pnl)^.ChangeLocked := True;
+        begin
+        PFilePanel(Pnl)^.ChangeLocked := True;
+{$IFDEF DualName}
+       {AK155 Показ длинных/коротких имён привести в соответствие с режимом
+        поиска, то есть он будет таким же, как у родительской панели }
+        with PFilePanel(Pnl)^.PanSetup^.Show do
+          begin
+          if ShortNameSearch then
+            ColumnsMask := ColumnsMask and not psLFN_InColumns
+          else
+            ColumnsMask := ColumnsMask or psLFN_InColumns;
+          end;
+{$ENDIF}
+        end;
     end;
 
   procedure DispatchEvents;
@@ -439,6 +464,7 @@ function FindFiles(var Files: PFilesCollection;
     var
       PDir: PString;
       SR: lSearchRec;
+      PName: PString; //AK155 В SR имя для сравнения с маской
       P: PFileRec;
       I: Byte;
       D: DateTime;
@@ -464,6 +490,11 @@ function FindFiles(var Files: PFilesCollection;
 
     if CancelSearch then
       Exit;
+    PName := @SR.FullName;
+    {$IFDEF DualName}
+    if ShortNameSearch then // в панели короткие имена
+      PName := @SR.SR.Name;
+    {$ENDIF}
     LongWorkBegin;
     New(DirCol, Init($10, $10, False));
     DirCol^.Insert(NewStr(Path));
@@ -500,7 +531,7 @@ function FindFiles(var Files: PFilesCollection;
         do
           begin
           if not IsDummyDir(SR.SR.Name)
-            and (InFilter(SR.FullName, FindRec.Mask+FindRec.AddChar))
+            and (InFilter(PName^, FindRec.Mask+FindRec.AddChar))
             and ((FindRec.Options and ffoAdvanced = 0) or (SR.SR.Time >=
                  DateAfter)
               and (SR.SR.Time <= DateBefore) and (SR.FullSize >=
@@ -2547,8 +2578,19 @@ procedure TTempDrive.ChangeRoot;
   begin
   end;
 
+function TTempDrive.GetDriveLetter: Char;
+  begin
+  Result := chTempDrive;
+  end;
+
+
 procedure TFindDrive.ReadDescrptions(FilesC: PFilesCollection);
   begin
+  end;
+
+function TFindDrive.GetDriveLetter: Char;
+  begin
+  Result := Prev^.GetDriveLetter;
   end;
 
 end.

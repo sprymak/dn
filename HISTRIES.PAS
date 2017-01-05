@@ -187,6 +187,7 @@ uses
   Idlers,
   {$ENDIF}
   FViewer, CmdLine, PDSetup
+  , FlPanelX {для ActivePanel}
   ;
 
 procedure FreeLastUnmarked(C: PCollection);
@@ -731,6 +732,9 @@ procedure TTHistList.HandleEvent;
     DrawView;
     end;
 
+  var
+    DirToGo: String;
+
   begin { TTHistList.HandleEvent }
   if  (Event.What = evKeyDown) and (List <> nil) then
     case Event.KeyCode of
@@ -813,6 +817,24 @@ procedure TTHistList.HandleEvent;
           SetRange(List^.Count);
           DrawView;
           end;
+
+       cmNo: {встать на}
+          begin
+          ClearEvent(Event);
+          if Focused >= List^.Count then
+            Exit;
+          if (Dlg = dlgDirectoryHistory) then
+            DirToGo := Copy(CnvString(List^.At(Focused)), 2,
+                            MaxStringLength)
+          else
+            DirToGo := Copy(PViewRecord(List^.At(Focused))^.FName^, 2,
+                            MaxStringLength);
+          MakeNoSlash(DirToGo);
+          Message(ActivePanel, evCommand, cmStandAt, @DirToGo);
+          DrawView;
+          EndModal(cmCancel); //Не важно, какая команда, главное завершить
+          end;
+
     end {case};
   inherited HandleEvent(Event);
   end { TTHistList.HandleEvent };

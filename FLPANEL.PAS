@@ -136,6 +136,9 @@ type
        Сейчас я сделал просто, хотя и горбато: RegisterToBackground
      делается при создании и навсегда, а Update фактичсески делает
      опрос и обновление только при включённой настройке. `}
+    procedure ShiftLetter(d: Integer);
+      {` Сдвинуть Panel^.DriveLetter вправо (d=1) или влево (d=-1),
+        циклически. `}
     end;
     {`}
 
@@ -178,6 +181,9 @@ uses
   {$ENDIF} {, Crt}
   , xTime
   , PDSetup
+  {$IFDEF UUENCODE}
+  , netbrwsr
+  {$ENDIF}
   ;
 
 var
@@ -186,10 +192,6 @@ var
     (для быстрогно поиска) копия LastSuccessPos, который может изменяться
     в результате других сопоставлений с маской (например, при
     автообновлении панелей). `}
-
-const
-  chTempDrive = '*';
-  chNetDrive = '@';
 
 constructor TDriveLine.Init;
   begin
@@ -216,7 +218,6 @@ constructor TDriveLine.Load(var S: TStream);
 procedure TDriveLine.MakeDriveLine;
   var
     C: Char;
-    I: Byte;
   begin
   DriveLine := '';
   for C := 'A' to 'Z' do
@@ -282,47 +283,11 @@ procedure TDriveLine.Draw;
       ViewLine := '{'+ViewLine+'}';
       end;
     end;
-  if  (Panel^.DirectoryName[2] = ':')
-       or (Panel^.Drive^.DriveType = dtTemp)
-{$IFDEF NetBrowser}
-       or (Panel^.Drive^.DriveType = dtNet)
-{$ENDIF}
-  then
-    begin
-    if  (Panel^.Drive^.DriveType = dtTemp)
-         and (Panel^.DirectoryName = cTEMP_)
-    then
-      I := PosChar(chTempDrive, ViewLine)
-    else
-{$IFDEF NetBrowser}
-    if  (Panel^.Drive^.DriveType = dtNet)
-         and (Copy(Panel^.DirectoryName, 1, Length(cNET_)) = cNET_)
-    then
-      I := PosChar(chNetDrive, ViewLine)
-    else
-{$ENDIF}
-      I := PosChar(UpStrg(Panel^.DirectoryName)[1], ViewLine);
-    if I > 0
-    then
-      MoveCStr(B, Copy(ViewLine, 1, I-1)+'~'+
-        ViewLine[I]+'~'+Copy(ViewLine, I+1, MaxStringLength),
-        GetColor($0301))
-    else
-      MoveCStr(B, ViewLine, GetColor($0301));
-    end
-    {JO}
-  else
-    begin
-    lGetDir(0, SDir);
-    I := PosChar(SDir[1], ViewLine);
-    if I > 0 then
-      MoveCStr(B, Copy(ViewLine, 1, I-1)+'~'+
-        ViewLine[I]+'~'+Copy(ViewLine, I+1, MaxStringLength),
-        GetColor($0301))
-      {/JO}
-    else
-      MoveCStr(B, ViewLine, GetColor($0301));
-    end;
+  MoveStr(B, ViewLine, GetColor(1));
+  I := PosChar(Panel^.DriveLetter, ViewLine);
+  if I > 0 then
+    WordRec(B[I-1]).Hi := GetColor(3);
+
   WordRec(B[0]).Hi := GetColor(2);
   WordRec(B[Size.X-1]).Hi := GetColor(2);
   WriteLine(0, 0, Size.X, 1, B);
@@ -370,7 +335,7 @@ procedure TDriveLine.HandleEvent;
     end;
   { /AK155 }
 
-  begin
+  begin { TDriveLine.HandleEvent }
   inherited HandleEvent(Event);
   case Event.What of
     evBroadcast:
@@ -492,6 +457,23 @@ procedure TDriveLine.Update;
   begin
   if (FMSetup.Options and fmoAutorefreshDriveLine) <> 0 then
     Refresh;
+  end;
+
+procedure TDriveLine.ShiftLetter(d: Integer);
+  var
+    i, l: Integer;
+  begin
+  Refresh;
+  i := PosChar(Panel^.DriveLetter, DriveLine);
+  l := Length(DriveLine);
+  if i = 0 then
+    begin
+    if d < 0 then
+      i := PosChar(chTempDrive, DriveLine)
+    else
+      i := l;
+    end;
+  Panel^.DriveLetter := DriveLine[1 + (i + l - 1 + d) mod l];
   end;
 
 {                                 TFilePanel                                 }
@@ -1249,7 +1231,6 @@ function MakeTotals(IV: PInfoView): Boolean;
       else
         S := S+FStr(IV^.Panel^.TotalInfo)+'~ '+GetString(dlDIBytes);
       end;
-    MoveChar(B, ' ', C, Size.X+Panel^.DeltaX);
     I := Max(0, (Size.X-CStrLen(S)) div 2);
     DnD.TotalY := Y;
     end;
@@ -1290,30 +1271,11 @@ function MakeFreeSpace(IV: PInfoView): Boolean;
   with IV^ do
     begin
     C := GetColor($0706);
-    MoveChar(B, ' ', C, IV^.Size.X+Panel^.DeltaX);
     S := Panel^.FreeSpace;
     I := Max(0, (Size.X-CStrLen(S)) div 2);
     end;
   MoveCStr(B[I], S, C);
   Result := True;
-  end;
-
-function MakeFreeSpaceBrief(IV: PInfoView): Boolean;
-  var
-    S: String;
-    I: Integer;
-  begin
-  with IV^ do
-    begin
-    S := FStr(FreeSpc);
-    I := IV^.Size.X - Length(S);
-    if BriefL1 < I then
-      begin
-      MoveStr(B[I], S, CDivdier);
-      BriefL1 := IV^.Size.X;
-      end;
-    end;
-  Result := False;
   end;
 
 function MakePathDecr(IV: PInfoView): Boolean;
@@ -1663,7 +1625,7 @@ procedure TInfoView.CompileShowOptions;
       end;
     Compile(LFN_InFooter, MakeLongName, nil);
     Compile(TotalsInfo, MakeTotals, MakeTotalsBrief);
-    Compile(FreeSpaceInfo, MakeFreeSpace, MakeFreeSpaceBrief);
+    Compile(FreeSpaceInfo, MakeFreeSpace, nil);
     if (FilterInfo in [1..MaxFooterHeight]) and
        (ElNumber[FilterInfo] = 1) and
        (Panel^.PanSetup^.FileMask = x_x)

@@ -526,14 +526,8 @@ procedure PrintFiles;
   if J = 0 then
     Exit;
   if Files^.Count = 1 then
-    begin
-    {$IFNDEF OS2}
-    S := GetString(dlDIFile)
-        +' '+Cut(GetLFN(PFileRec(Files^.At(0))^.Lfn), 40)
-    {$ELSE}
-    S := GetString(dlDIFile)+' '+Cut(PFileRec(Files^.At(0))^.Name, 40)
-      {$ENDIF}
-    end
+    S := GetString(dlDIFile)+' '+
+         Cut(PFileRec(Files^.At(0))^.FlName[True], 40)
   else
     S := ItoS(Files^.Count)+' '+GetString(dlDIFiles);
   if MessageBox(GetString(dlPM_Print)+S+'?', nil, mfYesNoConfirm)
@@ -545,11 +539,7 @@ procedure PrintFiles;
     PF := Files^.At(I);
     if PF^.Attr and Directory = 0 then
       begin
-      {$IFNDEF OS2}
-      S := MakeNormName(PF^.Owner^, GetLFN(PF^.Lfn));
-      {$ELSE}
-      S := MakeNormName(PF^.Owner^, PF^.Name);
-      {$ENDIF}
+      S := MakeNormName(PF^.Owner^, PF^.FlName[True]);
       Message(Own, evCommand, cmCopyUnselect, PF);
       Message(Application, evCommand, cmFilePrint, @S);
       end;

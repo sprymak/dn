@@ -1469,6 +1469,9 @@ procedure InitPath;
     Inc(P[1]);
     end;
   GetDir(0, StartDir);
+  StartDir[1] := Upcase(StartDir[1]);
+     //piwamoto: w32 shortcut may have c:\ as directory
+     //but DN needs C:\ for internal use
   lChDir(StartDir);
   end;
 
