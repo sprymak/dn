@@ -501,7 +501,6 @@ begin
     if UserParams^.Active = nil then ts := '' {KSNK}
     else
     ts:=UserParams^.Active^.FlName[true];
-    if HandleTildes then Replace('~', #0'~', ts);
     NameAndExt(HandleTildes, ts, '#', S);
    end;
 

@@ -511,6 +511,13 @@ type
     CreationTime: Longint;
     LastAccessTime: Longint;
     Filler: packed array[0..3] of Char;
+{$IFDEF OS2}
+//JO: Внимание! размер FindBuf должен быть согласован с размером аналогичной
+//    переменной в VpSysLo2.TOSSearchRecNew
+    FindBuf: array[0..2*1024-1] of byte;
+    FindCount: integer;
+    FindPtr: Pointer;
+{$ENDIF}
     {$IFDEF WIN32}
     ShortName: ShortString;
     ExcludeAttr: Longint;

@@ -1327,17 +1327,23 @@ WrongArc:
         begin
           case Event.KeyCode of
             kbCtrlLeft, kbCtrlShiftLeft:
+                       begin
+                         DriveLine^.Update; {AK155 - набор букв мог измениться }
                          repeat
                           if DirectoryName[1] > #65 then Dec(DirectoryName[1])
                            else if DirectoryName[1] = #65 then DirectoryName[1] := '*'
                                                     else DirectoryName[1] := 'Z';
                          until ValidDrive(DirectoryName[1]) or (DirectoryName[1] = '*');
+                       end;
             kbCtrlRight, kbCtrlShiftRight:
+                       begin
+                         DriveLine^.Update; {AK155 - набор букв мог измениться }
                           repeat
                            if DirectoryName[1] in ['A'..'Y'] then INC(DirectoryName[1])
                             else if DirectoryName[1] = 'Z' then DirectoryName[1] := '*'
                                                      else DirectoryName[1] := 'A';
                           until ValidDrive(DirectoryName[1]) or (DirectoryName[1] = '*');
+                       end;
           end;
           DriveLine^.DrawView;
         end;
@@ -2007,6 +2013,7 @@ end;
  var
    PrgBuf: array[0..511] of Char;
    ArgBuf: array[0..511] of Char;
+   Arg: PChar;
  begin
    {$IFNDEF RecodeWhenDraw}
    if RecodeCyrillicNames = 1 then
@@ -2016,7 +2023,12 @@ end;
    if Copy(PathName, Length(PathName)-2, 3) = '\..' then
      StrPCopy(@ArgBuf, '"'+Copy(PathName, 1, Length(PathName)-3)+'"')
    else
-     StrPCopy(@ArgBuf, '/select,"'+PathName+'"');
+     begin
+       Arg := @ArgBuf;
+       if PathName[length(PathName)] <> '\' then
+         Arg := StrECopy(@ArgBuf, '/select,');
+       StrPCopy(Arg, '"'+PathName+'"');
+     end;
    SysExecute(@PrgBuf, @ArgBuf, nil, True, nil, -1, -1, -1);
  end;
  {$ENDIF}
@@ -2243,7 +2255,11 @@ begin
 {$IFDEF Win32} {Cat: в windows содание ярлыка пока не работает}
               cmOpenWPSWindow:
                 begin
-                  _OpenExplorerWindow(MakeNormName(PF^.Owner^, PF^.FlName[True]));
+                  if PF <> nil then
+                    _OpenExplorerWindow(MakeNormName(PF^.Owner^,
+                      PF^.FlName[true]))
+                  else if DirectoryName <> 'TEMP:' then
+                    _OpenExplorerWindow(DirectoryName);
                   CE;
                 end;
 {$ENDIF}

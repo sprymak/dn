@@ -157,6 +157,8 @@ procedure w95QuitInit;     {Gimly}
 function  w95QuitCheck:boolean; {Gimly}
 procedure w95QuitCancel;
 {$ENDIF}
+procedure ClearSelection(AFP: Pointer{PFilePanelRoot};
+  FC: Pointer{PFilesCollection - файлы к разотметке });
 
 const w95locked:boolean=FALSE; {Gimly}
 
@@ -2767,6 +2769,26 @@ begin
     ExecString(@S, '');
    end
  end;
+end;
+
+procedure ClearSelection(AFP: Pointer; FC: Pointer);
+
+  procedure UnSelect(P: PFileRec);
+  stdcall;
+  begin
+    if P^.Selected then
+      Dec(PFilePanelRoot(AFP)^.SelNum);
+    P^.Selected := False;
+  end;
+
+begin
+  PFilesCollection(FC)^.ForEach(@UnSelect);
+  with PFilePanelRoot(AFP)^ do
+    begin
+      DrawView;
+      if InfoView <> nil then
+        InfoView^.DrawView;
+    end;
 end;
 
 end.

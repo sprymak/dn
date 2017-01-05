@@ -138,6 +138,9 @@ function lfGetLongFileName(const Name: String): String;
         { Name correction routine }
 procedure lTrueName(const Name: String; var S: String);
 
+{AK155 22-11-2003 Найти конец шары в пути. 0 - если это не UNC-путь}
+function GetShareEnd(const S: String): integer;
+
 
    { Basic file operation routines. To use IO functions from standard units,
               specify lFile.F or lText.T }
@@ -411,9 +414,41 @@ end;
 procedure lTrueName(const Name: String; var S: String);
  begin S:=FExpand(Name); end;
 
+{AK155 22-11-2003 Найти конец шары в пути. 0 - если это не UNC-путь
+}
+function GetShareEnd(const S: String): integer;
+  var
+    SlashFound: Boolean;
+  begin
+  result := 0;
+  if Copy(S, 1, 2) <> '\\' then
+    Exit;
+  { ищем '\' после '\\', и далее до конца или до второго '\' }
+  result := 3;
+  SlashFound := false;
+  while result < Length(S) do
+    begin
+    if S[result+1] = '\' then
+      begin
+      if SlashFound then
+        exit; // Успех. Сейчас Copy(S, 1, i) - это '\\server\share'
+      SlashFound := true;
+      end;
+    inc(result);
+    end;
+  if not SlashFound then
+    result := 0;
+      { Неправильный это путь: '\\' в начале есть,
+      а '\' потом - нет. Надо бы как-то признак ошибки выставить,
+      но непонятно как и для кого. }
+  end;
+{/AK155 22-11-2003}
+
+
+{AK155 22-11-2003 Доработано с учётом UNC-путей }
 procedure lFSplit(const Path: String; var Dir, Name, Ext: String);
 var
-  HasColon: Boolean;
+  DriveEnd: integer;
   DotPos, SlashPos, B: Byte;
   D:String;
   N:String;
@@ -425,18 +460,27 @@ begin
         Ext := '';
         DotPos := 0;
         SlashPos := 0;
-        HasColon := (Length(Path) > 1) and (Path[2] = ':');
+        if (Length(Path) > 1) and (Path[2] = ':') then
+          DriveEnd := 2
+        else
+          DriveEnd := GetShareEnd(Path);
 
-        for B := Length(Path) downto 1 do
+        for B := Length(Path) downto DriveEnd+1 do
         begin
-          if (Path[B] = '.') and (DotPos = 0) {and (B>1)} then DotPos := B; {JO: имена могут состоять только из расширения}
-          if ((Path[B] = ':') or (Path[B] = '\')) and (SlashPos = 0) and
-             ((B > 2) or not HasColon) then SlashPos := B;
-          if (DotPos <> 0) and (SlashPos <> 0) then Break;
+          if (Path[B] = '.') and (DotPos = 0) then
+          begin
+            DotPos := B; {JO: имена могут состоять только из расширения}
+            if SlashPos <> 0 then Break;
+          end;
+          if (Path[B] = '\') and (SlashPos = 0) then
+          begin
+            SlashPos := B;
+            if DotPos <> 0 then Break;
+          end;
         end;
 
         if DotPos + SlashPos = 0 then
-          if HasColon then Dir := Path
+          if DriveEnd <> 0 then Dir := Path
           else Name := Path
         else
         begin

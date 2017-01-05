@@ -341,7 +341,6 @@ function ExecAndDisposeMenu(Menu: PMenu): Integer;
 function NewStatusDef(AMin, AMax: Word; AItems: PStatusItem; ANext: PStatusDef): PStatusDef;
 function GetActivePanel: Pointer;
 function GetPassivePanel: Pointer;
-procedure ClearSelection(AFP: Pointer; FC: Pointer);
 function OpenRezX(const PluginName: String): LongInt;
 
 const
@@ -2004,26 +2003,6 @@ begin
           GetPassivePanel := nil
   else
     GetPassivePanel := nil;
-end;
-
-procedure ClearSelection(AFP: Pointer; FC: Pointer);
-
-  procedure UnSelect(P: PFileRec);
-  stdcall;
-  begin
-    if P^.Selected then
-      Dec(PFilePanelRoot(AFP)^.SelNum);
-    P^.Selected := False;
-  end;
-
-begin
-  PFilesCollection(FC)^.ForEach(@UnSelect);
-  with PFilePanelRoot(AFP)^ do
-    begin
-      DrawView;
-      if InfoView <> nil then
-        InfoView^.DrawView;
-    end;
 end;
 
 function OpenRezX(const PluginName: String): LongInt;

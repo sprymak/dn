@@ -21,3 +21,4 @@
  <Ctrl-Num5>, <Ctrl-A> - Select whole text in editor;
  <Ctrl-H> - hide/show selection in editor (the same as Ctrl-K, H);
  <F11> - Task list (currently used only in OS/2 version)
+ <Ctrl-Shift-Up/Dn> scroll and select in editor

@@ -244,14 +244,11 @@ var
   SR: lSearchRec;
 begin
   ClrIO; ExpPath := lFExpand(Path); if Abort then Exit;
-  if Length(ExpPath) <= 3 then PathValid := ValidDrive(ExpPath[1])
-  else
-  begin
-    if ExpPath[Length(ExpPath)] = '\' then SetLength(ExpPath, Length(ExpPath)-1);
-    lFindFirst(ExpPath, Directory+Hidden+SysFile+ReadOnly+Archive, SR);
-    PathValid := (DosError = 0) and (SR.SR.Attr and Directory <> 0);
-    lFindClose(SR);
-  end;
+  if ExpPath[Length(ExpPath)] = '\' then
+    SetLength(ExpPath, Length(ExpPath)-1);
+  lFindFirst(ExpPath+'\*.*', AnyFile, SR);
+  PathValid := DosError = 0;
+  lFindClose(SR);
 end;
         {-DataCompBoy-}
 
@@ -1343,7 +1340,8 @@ begin
              end
             else FileList^.Select;
         end
-      end else if ValidFileName(lFName) then Valid := True
+      end
+      else if ValidFileName(lFName) then Valid := True
       else
       begin
         ErrMsg(erInvalidFileName);

@@ -34,6 +34,16 @@ type
     CreationTime: Longint;
     LastAccessTime: Longint;
     Filler: array[0..3] of Char;
+{$IFDEF OS2}
+ {AK155 Читаем по DosFindNext по много файлов за раз.
+   Буфер на 2k при именах средней длины позволяет прочитать
+   штук по 40 записей каталога}
+//JO: Внимание! размер FindBuf должен быть согласован с размером аналогичной
+//    переменной в _Defines.lSearchRec
+    FindBuf: array[0..2*1024-1] of byte;
+    FindCount: integer; {число необработанных записей}
+    FindPtr: ^FileFindBuf3; {первая необработанная запись}
+{$ENDIF}
 {$IFDEF WIN32}
     ShortName: ShortString;
     ExcludeAttr: Longint;
@@ -202,16 +212,18 @@ end;
 {$ENDIF}
 
 {$IFDEF OS2}
+
 function SysFindFirstNew(Path: PChar; Attr: Longint; var F: TOSSearchRecNew; IsPChar: Boolean): Longint;
 var
   Count: Longint;
-  SR: FileFindBuf3;
   Path2: array[0..259] of char;
 begin
   Attr := Attr and not $8; // No VolumeID under OS/2
   Count := 1;
   F.Handle := hdir_Create;
-  Result := DosFindFirst(Path, F.Handle, Attr, SR, SizeOf(SR), Count, fil_Standard);
+  F.FindPtr := @F.FindBuf;
+  Result := DosFindFirst(Path, F.Handle, Attr,
+    F.FindBuf, SizeOf(F.FindBuf), Count, fil_Standard);
 
   // If a specific error occurs, and the call is to look for directories, and
   // the path is a UNC name, then retry
@@ -222,13 +234,13 @@ begin
     begin
       DosFindClose(F.Handle);
       StrCat(StrCopy(Path2,Path), '\*.*');
-      Result := DosFindFirst(Path2, F.Handle, Attr, SR, SizeOf(SR), Count, fil_Standard);
-      if (Result = 0) and (Count <> 0) then
-        Result := 0;
+      Result := DosFindFirst(Path2, F.Handle, Attr,
+        F.FindBuf, SizeOf(F.FindBuf), Count, fil_Standard);
+      F.FindPtr := @F.FindBuf;
     end;
 
   if Result = 0 then
-    with F,SR do
+    with F, F.FindPtr^ do
     begin
       Attr := attrFile;
       TDateTimeRec(Time).FTime := ftimeLastWrite;
@@ -242,20 +254,24 @@ begin
         StrPCopy(PChar(@Name), achName)
       else
         Name := achName;
+      FindCount := 0;
     end
   else
     F.Handle := hdir_Create;
 end;
 
 function SysFindNextNew(var F: TOSSearchRecNew; IsPChar: Boolean): Longint;
-var
-  Count: Longint;
-  SR: FileFindBuf3;
 begin
-  Count := 1;
-  Result := DosFindNext(F.Handle, SR, SizeOf(SR), Count);
-  if Result = 0 then
-    with F,SR do
+  if F.FindCount = 0 then
+    begin
+    F.FindCount := 100;
+    Result := DosFindNext(F.Handle, F.FindBuf,
+      SizeOf(F.FindBuf), F.FindCount);
+    if result <> 0 then
+      exit;
+    F.FindPtr := @F.FindBuf;
+    end;
+  with F, F.FindPtr^ do
     begin
       Attr := attrFile;
       TDateTimeRec(Time).FTime := ftimeLastWrite;
@@ -269,6 +285,9 @@ begin
         StrPCopy(PChar(@Name), achName)
       else
         Name := achName;
+      dec(FindCount);
+      inc(PChar(FindPtr), oNextEntryOffset);
+      result := 0;
     end;
 end;
 

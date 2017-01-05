@@ -1796,6 +1796,8 @@ begin
   S := lFExpand(S);
   if Abort then Exit;
   I := PosChar(':',S);
+  if I = 0 then
+    I := GetShareEnd(S); //AK155 22-11-2003
   if I = 0 then Exit;
   Inc(I);
   while I < Length(S) do

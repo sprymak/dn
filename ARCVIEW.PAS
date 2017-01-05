@@ -687,7 +687,7 @@ begin
    case Command of
     cmDBFView: C := '=';
     cmWKZView: C := '>';
-    cmTextView: C := '<';
+    cmTextView, cmViewText: C := '<';
     cmHexView: C := '|';
     cmIntFileView: C := '-';
     else C := '+';
@@ -1155,6 +1155,9 @@ TryAgain:
   lGetDir(0, DirToChange);
   Inhr := CreateDirInheritance(ExtrDir, True);
   CreateDirInheritance(TempExtrDir, False);
+//JO: если каталог назначения не создался (напpимеp, если диск доступен
+//    только на чтение), то нет смысла и вызывать аpхиватоp
+  if not PathExist(TempExtrDir) then Exit;
   Advance2.lChDir(TempExtrDir);
   Exec(Unp ,{$IFDEF RecodeWhenDraw}OemToCharStr{$ENDIF}(s), SS, B);
 {JO}

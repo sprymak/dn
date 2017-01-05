@@ -1077,6 +1077,9 @@ TryAgain:
     end;
    Inhr := CreateDirInheritance(ExtrDir, True);
    CreateDirInheritance(TempExtrDir, False);
+//JO: если каталог назначения не создался (напpимеp, если диск доступен
+//    только на чтение), то нет смысла и вызывать аpхиватоp
+   if not PathExist(TempExtrDir) then Exit;
 {/JO}
 
    ExtrChar := CnvString(AType^.ExtractWP);
@@ -1251,8 +1254,12 @@ begin
            end;
           ArcFile^.Seek(MZExeRec.NewExe + $28*PEhdrRec.MaxObjNum + $0D0); {offset 2 object with MaxOffset}
           ArcFile^.Read(PEobjRec, SizeOf(PEobjRec));
-          ArcPos := PEobjRec.Offset;
-          if PEobjRec.Name <> '_winzip_' then ArcPos := ArcPos + PEobjRec.Size;
+          if PEobjRec.Name = '_winzip_' then
+            begin
+             ArcFile^.Seek(ArcFile^.GetPos - 2*SizeOf(PEobjRec));
+             ArcFile^.Read(PEobjRec, SizeOf(PEobjRec));
+            end;
+          ArcPos := PEobjRec.Offset + PEobjRec.Size;
          end;
         $454e :
          begin {NE}

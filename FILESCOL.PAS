@@ -509,28 +509,27 @@ function TFilesCollection.Compare;
     end;
 
     function    CmpEXT(S1, S2: String): Integer;
-    var E1, E2: String;
-        B, K: Byte;
+    var E1, E2: PString;
+        B: Byte;
+    const
+        D1: Char = #0;
     begin
-
      For B := Length(S1) downto 1 do if S1[B]='.' then break;
      if (B > 1) or (S1[1]='.') then begin
-      K := Length(S1)-B+1;
-      Move(S1[B], E1[1], K);
-      SetLength(E1, K);
+      E1 := @S1[B];
+      SetLength(E1^, Length(S1)-B);
       SetLength(S1, B-1);
-     end else E1 := '.';
+     end else E1 := @D1;
 
      For B := Length(S2) downto 1 do if S2[B]='.' then break;
      if (B > 1) or (S2[1]='.') then begin
-      K := Length(S2)-B+1;
-      Move(S2[B], E2[1], K);
-      SetLength(E2, K);
+      E2 := @S2[B];
+      SetLength(E2^, Length(S2)-B);
       SetLength(S2, B-1);
-     end else E2 := '.';
+     end else E2 := @D1;
 
-     if E1>E2 then CmpEXT := +1 else
-     if E1<E2 then CmpEXT := -1 else
+     if E1^>E2^ then CmpEXT := +1 else
+     if E1^<E2^ then CmpEXT := -1 else
      if S1>S2 then CmpEXT := +1 else
      if S1<S2 then CmpEXT := -1 else
                    CmpEXT := 0;
@@ -659,14 +658,15 @@ begin
     {UpLowStr(P1^.Name);} {JO}
 
   {далее C1 используется для сортировки файлов в панелях}
-     begin
+     if not (SM in [psmLongName, psmLongExt]) then
+      begin
        if Name1 < Name2 then
          C1 := -1
        else if Name1 = Name2 then
          C1 := 0
        else
          C1 := 1;
-     end;
+      end;
 
      if (Owner <> nil) and not (SM in [psmSize, psmTime {$IFNDEF DPMI32}, psmCrTime, psmLATime {$ENDIF}]) then
      if PanelFlags and fmiExeBeforeArc <> 0 then
@@ -978,9 +978,18 @@ FullS := FullS + GetDriveTypeString(C) + ' ';
        end
        else if DriveNum <= 2 then FullS := FullS + GetString(sdtRemovable) + '    ';
       {$IFDEF VIRTUALPASCAL}
+       {$IFDEF WIN32}
        if (InterfaceData.DrvInfType and ditShowVolume <> 0) and not DrInvalid and
          not ((InterfaceData.DrvInfType and ditSkipFloppy <> 0) and (DriveNum <= 2)) then
-         FullS := FullS + {$IFDEF WIN32}CharToOemStr{$ENDIF}(GetVolumeLabel(C)); {Cat}
+           if RecodeCyrillicNames = 1 then
+             FullS := FullS + CharToOemStr(GetVolumeLabel(C)) {Cat}
+           else
+             FullS := FullS + GetVolumeLabel(C);
+       {$ELSE}
+       if (InterfaceData.DrvInfType and ditShowVolume <> 0) and not DrInvalid and
+         not ((InterfaceData.DrvInfType and ditSkipFloppy <> 0) and (DriveNum <= 2)) then
+         FullS := FullS + GetVolumeLabel(C);
+       {$ENDIF}
       {$ENDIF}
       {$IFDEF NETINFO}
       Get_drive_connection_id(DriveNum, Server_num);

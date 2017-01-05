@@ -6,6 +6,104 @@
   [*] A bug fixed and/or functionality improved
 
 
+   Version 1.51.10b14
+  ---------------------------------------------------------------------
+
+Alexey Korop
+
+ak30902a.dif
+[-] Now the contens of drive band is automatically updated if necessary
+    during navigation by Ctrl-Right, Ctrl-Left hotkeys.
+
+ak30917a.dif
+[-] The system folder window opening (Ctrl-F) on the empty disk or TEMP-disk
+    caused Win32 version to crash
+
+ak30919a.dif
+[-] Copy to clipboard and paste from clipboard hotkeys did not work during
+    quick file rename (Alt-F6). The bug introduced by ak30812a.dif patch.
+
+ak30922a.dif
+[-]  If the title of user menu topic contained '#' or '.#' macros (in OS/2
+    version  -  '!' or '.!' macros too) and current file name contained the
+    '~'  character in corresponding part, then  this  character  was not
+    dispayed in the menu line but toggled the highlighting instead.
+
+ak31006a.dif
+[-]  In  the editor the forward searching in the vertical block did not
+    work correct for short lines. In some cases (f.e. when emty lines were
+    present) DN crashed.
+[*] The searching in the block in the editor is slightly optimised.
+
+ak31122a.dif
+[-]  The directory creation (F7) didn't work in the root of network share
+    (\\SERVER\SHARE\) .
+[-] The directory copying to the root of network share caused first directory
+    level to be lost (f.e. the DIR1\DIR2 copying to the \\SERVER\SHARE\
+    resulted in the \\SERVER\SHARE\DIR2  but not in the
+    \SERVER\SHARE\DIR1\DIR2 be copied).
+[-]  The error message appeared if the new file name was entered into the
+     new file editing dialog (Shift-F4) in the root of network share.
+
+ak31206a.dif
+[-] The '> ' and '< ' combinations in the Calculator and Spreadsheet
+    work as '>>' and '<>' respectively.
+
+ak31221a.dif
+[-] The Alt-Shift-F3 hotkey (forced text view) did not work in the
+    archive panel
+
+ak40102a.dif
+[-] The new editor hotkeys Ctrl-Up/Down, Ctrl-Shift-Up/Down are introdused.
+    These hotkeys are analogous to Up/Down, Shift-Up/Down, but produce
+    the text scrolling instead of the cursor movement.
+
+Alexey Korop, Jaroslaw Osadtchiy
+
+ak30522.dif jo30615b.dif
+[*] Directory reading speed up under OS/2.
+              Attention! The big directory on the RAMFS virtual disk could
+    be read incompletely (some file entries may be skipped) by DN/2 due to
+    small bug in ramfs.ifs. This bug is fixed in the ramfs version 1.10
+    (2003-06-16) released by Andrew Belov.
+
+ak40103a.dif
+[-]  The file list creation worked impermissible slow in case of big amount
+     (thousands) of files.
+
+Jaroslaw Osadtchiy
+
+jo30529a.dif
+[*] Small optimization of speed of file sorting by extension and name
+
+jo30916a.dif
+[*]  When  attempt  was  done  to  unarchive something through temporary
+    directory  to  read  only  drive  the message about impossibility to
+    create  temporary  directory  was  shown  first,  then  archiver was
+    executed  useless,  and  finally  the message about impossibility to
+    remove  unexisted  temporary  directory was shown. Now in such cases
+    only  the  massage about impossibility to create temporary directory
+    will be shown and archiver will not be executed.
+
+jo31118b.dif
+[-]  When  RecodeCyrillicNames=0  was set in DN.INI in Win32 version the
+    volume  label  containing cyrillic letters was shown wrong in change
+    drive menu
+
+\DOC\ENGLISH\dnini.txt
+[+] The description of the dn.ini parameters in English
+
+Max Piwamoto
+
+wzipdet.rar
+[*] WinZIP SFX detection.
+
+Eugeny Zvyagintzev
+menus.dif
+[-] Now menus drawing is optimized.
+
+
+
    Version 1.51.10b13
   ---------------------------------------------------------------------
         Pavel Borodin, Alexey Korop

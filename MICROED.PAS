@@ -1143,6 +1143,23 @@ begin
   Search := false; F := true;
   Prompt := (SearchData.What <> #0) and (SearchData.Options and efoReplacePrompt <> 0); {запрос на замену}
   D.Assign(StartX, StartY);
+{AK155 6-10-2003}
+ { при поиске в выделении сдвигаем точку старта поиска
+  в направлении поиска к соответствующему концу выделения }
+  if SearchData.Scope = 1 then
+    begin
+      if (SearchData.Dir = 0) then
+        begin {вперёд}
+          if (OldMark.A.Y > D.Y) then
+            D := OldMark.A;
+        end
+      else
+        begin {назад}
+          if (OldMark.B.Y < D.Y) then
+            D := OldMark.B;
+        end;
+    end;
+{/AK155}
   W := SearchData.Line;
   if W = '' then
     goto LExit;
@@ -1214,7 +1231,8 @@ begin
                 if StX < Mark.A.X then
                   StX := Mark.A.X + 1;
               if (D.Y = Mark.B.Y) or VertBlock then
-                TrX := Mark.B.X;
+                if TrX > Mark.B.X then
+                  TrX := Mark.B.X;
             end;
           if TrX < StX then
             I := 0 {-$VIV 14.05.99}
@@ -3377,9 +3395,11 @@ begin
               cmOpenFileAtCursor: OpenFileAtCursor; {-$VIV 18.05.99--}
              end;
   evKeyDown:
+       begin
+         case Event.KeyCode of
+
    {JO: по Ctrl-Alt-Shift-цифра переходим к закладкам с пометкой текста}
    {    от текущего места до закладки                                  }
-         case Event.KeyCode of
            kbCtrlAltShift1: Message(@Self, evCommand, cmGotoMarker1, nil);
            kbCtrlAltShift2: Message(@Self, evCommand, cmGotoMarker2, nil);
            kbCtrlAltShift3: Message(@Self, evCommand, cmGotoMarker3, nil);
@@ -3389,6 +3409,28 @@ begin
            kbCtrlAltShift7: Message(@Self, evCommand, cmGotoMarker7, nil);
            kbCtrlAltShift8: Message(@Self, evCommand, cmGotoMarker8, nil);
            kbCtrlAltShift9: Message(@Self, evCommand, cmGotoMarker9, nil);
+
+
+           {AK155 27-12-2003
+           CtrlUp, kbCtrlShiftUp  скроллируют текст с сохранением
+           позиции курсора относительно окна. Down - аналогично}
+           kbCtrlUp, kbCtrlShiftUp:
+            begin
+             UnMark := (Event.KeyCode = kbCtrlUp);
+             Dec(Pos.Y);
+             ChangeLine; {John_SW}
+             ScrollTo(Delta.X, Delta.Y-1); DrawView;
+             CED;        {John_SW}
+            end;
+           kbCtrlDown, kbCtrlShiftDown:
+            begin
+             UnMark := (Event.KeyCode = kbCtrlDown);
+             Inc(Pos.Y);
+             ChangeLine; {John_SW}
+             ScrollTo(Delta.X, Delta.Y+1); DrawView;
+             CED;        {John_SW}
+            end;
+            {/AK155}
          else
           if (Event.KeyCode <> kbCtrlAltX) then
           if (Event.KeyCode = kbCtrlU) then WordEnd else {-$VIV}
@@ -3446,7 +3488,8 @@ begin
                               and (KeyCode and $40000 = 0)
                            then InputChar;
             end;
-      end;
+       end;
+       end;
   evBroadcast: case Event.Command of
                 cmFindEdit:
                   if PString(Event.InfoPtr)^=EditName then begin

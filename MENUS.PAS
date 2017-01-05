@@ -1078,6 +1078,7 @@ var
   Y: Integer;
   P: PMenuItem;
   B: TDrawBuffer;
+  TopIndex: Integer;
 
 Function PastEnd: boolean;
 var P: PMenuItem;
@@ -1113,6 +1114,8 @@ begin
   Inc(Y);
 end;
 
+{--- start -------- Eugeny Zvyagintzev ---- 28-09-2003 ----}
+{Procedure was optimized: multiple recursion calls are removed}
 begin
   CNormal := GetColor($0301);
   CSelect := GetColor($0604);
@@ -1123,20 +1126,21 @@ begin
   FrameLine(0);
   DrawLine;
 
-  if Menu <> nil then
+  if (Menu <> nil) And (Menu^.Items <> Nil) then
   begin
     P:=Menu^.Items;
-    while (P <> nil) and
-          (P <> Current) and
-          (P <> TopItem) do P:=P^.Next;
-    if (P <> nil) and (P = Current) and (P <> TopItem) then begin
-     TopItem := P;
-     DrawView;
-     Exit;
-    end;
+    If TopItem = Nil Then TopItem:=Menu^.Items;
+    TopIndex:=MenuIndexOf(Menu,TopItem);
+    If Current <> Nil Then Y:=MenuIndexOf(Menu,Current)
+    Else Y:=0;
+    If TopIndex > Y Then TopIndex:=Y;
+    If (Y - TopIndex) >= Size.Y-2 Then TopIndex:=Y-Size.Y+3;
+    TopItem:=LookUpMenu(Menu,TopIndex,dfByPosition);
+    Y:=0; FrameLine(0); DrawLine;
 
     P := TopItem;
-    while P <> nil do
+    Y:=1;
+    while (Y < Size.Y-1) do
     begin
       Color := CNormal;
       if P^.Name = nil then FrameLine(15) else
@@ -1154,12 +1158,7 @@ begin
             MoveStr(B[Size.X - 3 - Length(P^.Param^)],
               P^.Param^, Byte(Color));
       end;
-      If (Y < Size.Y-1) then DrawLine
-      else if P = Current then begin
-       TopItem := TopItem^.Next;
-       DrawView;
-       Exit;
-      end;
+      DrawLine;
       P := P^.Next;
     end;
   end;
@@ -1167,6 +1166,7 @@ begin
   FrameLine(5);
   DrawLine;
 end;
+{--- finish -------- Eugeny Zvyagintzev ---- 28-09-2003 ----}
 
 procedure TMenuBox.GetItemRect(Item: PMenuItem; var R: TRect);
 var

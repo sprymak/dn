@@ -56,11 +56,14 @@ procedure MakeListFile(APP: Pointer; Files: PCollection);
 function  ParseAddress(Address: String; var Zone, Net, Node, Point: Word): Boolean;
 
 implementation
-uses Startup, Lfn, Messages, objects, filescol, advance2, advance1, usermenu,
+uses
+  Startup, Lfn, Messages, objects, filescol, advance2, advance1, usermenu,
      advance, histlist, commands, dnapp, dnutil, tree, views, drivers, drives
+    {, dnfuncs} {надо вставлять до Dos}
      {$IFDEF VIRTUALPASCAL}, Dos{$ENDIF}
-     , ErrMess
+     , ErrMess, flpanelx
      ;
+
 
 function ParseAddress(Address: String; var Zone, Net, Node, Point: Word): Boolean;
   var I,J: Integer;
@@ -322,7 +325,10 @@ AddrError:
   begin
     P := Files^.At(I-1);
     UPr.Active:=P;
+{AK155 23-09-2003: разотметка по одному файлу тормозит страшно при
+большом числе файлов
     Message(APP, evCommand, cmCopyUnselect, P);
+/AK155}
     BB := False;
     SR := P^.Owner^;
     Replace('!', #0, SR);
@@ -365,6 +371,11 @@ AddrError:
      end;
  end;
  Close(T.T);
+{ AK155 23-09-2003 Теперь скопом снимаем всю отметку. Делать это надо
+обязательно до RereadDirectory, так как она страшно тормзит при большом
+числе отмеченных файлов. }
+ ClearSelection(APP, PFilePanelRoot(APP)^.Files);
+{/AK155}
  RereadDirectory(Dr);
  GlobalMessage(evCommand, cmRereadInfo, nil);
  GlobalMessage(evCommand, cmRereadTree, @Dr);

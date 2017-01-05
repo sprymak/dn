@@ -1041,7 +1041,7 @@ begin
             kbCtrlIns:
                   if Options and ofSecurity = 0 then begin
                     S := Copy(Data^, SelStart + 1, SelEnd - SelStart);
-                    if S <> '' then Message(Owner^.Owner^.Owner, evCommand, cmPutInClipboard, @S);
+                    if S <> '' then Message(Application, evCommand, cmPutInClipboard, @S);
                     ClearEvent(Event); Exit;
                   end;
             kbCtrlLeft: begin
@@ -1061,7 +1061,7 @@ begin
             kbShiftDel:
                   begin
                     S := Copy(Data^, SelStart + 1, SelEnd - SelStart);
-                    if S <> '' then Message(Owner^.Owner^.Owner, evCommand, cmPutInClipboard, @S);
+                    if S <> '' then Message(Application, evCommand, cmPutInClipboard, @S);
                     DeleteSelect; SelEnd := SelStart; DrawView; ClearEvent(Event);
                     Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
                     Exit;
@@ -1070,7 +1070,7 @@ begin
                   begin
                     ClearEvent(Event);
                     S := ''; DeleteSelect;
-                    Message(Owner^.Owner^.Owner, evCommand, cmGetFromClipboard, @S);
+                    Message(Application, evCommand, cmGetFromClipboard, @S);
                     if S = '' then Exit;
                     SelStart := CurPos; SelEnd := CurPos + Length(S);
                     OldData := Data^;
