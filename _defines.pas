@@ -648,7 +648,7 @@ type
     InfoFile: Byte;
   end;
 
-  TDriveType = (dtUndefined, dtDisk, dtFind, dtTemp, dtList, dtArc, dtLink, dtArvid);
+  TDriveType = (dtUndefined, dtDisk, dtFind, dtTemp, dtList, dtArcFind, dtArc, dtLink, dtArvid);
   TAvdType = (avdTdr, avdAvt);
   TLineType = (ltNormal, ltOS2FullScreen, ltOS2Window, ltTimer);
 

@@ -22,8 +22,8 @@ end;
 procedure MessFileNotRename(const s1, s2: string; ErrCode: longint);
 begin
   MessageBox(GetString(dlFCNoRename1)+GetString(dlDIFile)
-      {$IFDEF SHOWRC} + ^M^C'(RC=%d)' {$ENDIF} + ^M^C  + Cut(S1,20)
-      +GetString(dlFCNoRename2)+Cut(S2,20),
+      {$IFDEF SHOWRC} + ^M^C'(RC=%d)' {$ENDIF} + ^M^C  + Cut(S1,60)
+      +GetString(dlFCNoRename2)+Cut(S2,60),
       @ErrCode, mfError+mfOKButton)
 end;
 

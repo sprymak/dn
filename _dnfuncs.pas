@@ -295,7 +295,7 @@ type
     DragMover: procedure(AP: Pointer; Text: String; AFC, AC: Pointer);
     CM_AdvancedFilter: procedure(AFP: Pointer);
     CM_ArchiveFiles: procedure(AFP: Pointer);
-    CM_Branch: procedure(AFP: Pointer);
+   {CM_Branch: procedure(AFP: Pointer);}
     CM_ChangeDirectory: function(AFP: Pointer): string;
     CM_ChangeCase: procedure(AFP: Pointer);
     CM_CompareDirs: procedure(AFP, IP: Pointer);

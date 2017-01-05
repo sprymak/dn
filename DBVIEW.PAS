@@ -581,7 +581,7 @@ procedure TDBViewer.HandleEvent;
 
   R.Assign(1,1,30,10);
   New(V, Init(R));
-  V^.Top := GetString(dlSearching) + '"' + Cut(SearchRec.S, 40) + '"' ;
+  V^.Top := GetString(dlSearching) + ' "' + Cut(SearchRec.S, 40) + '"' ;
   V^.Write(1, GetString(dlPercentComplete));
   Desktop^.Insert(V);
   Abort:=False;

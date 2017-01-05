@@ -2788,7 +2788,8 @@ type
     KillUse: procedure(Obj: Pointer);
     lChDir: procedure(ADir: String; Obj: Pointer);
     GetDir: function(Obj: Pointer): String;
-    GetDirectory: function(SortMode, PanelFlags: Integer; const FileMask: String; var FreeSpace, TotalInfo: String; Obj: Pointer): PCollection;
+    GetDirectory: function(SortMode, PanelFlags: Integer; const FileMask: String;
+      var TotalInfo: TSize; var FreeSpace: String; Obj: Pointer): PCollection;
     CopyFiles: procedure(Files: PCollection; Own: PView; MoveMode: Boolean; Obj: Pointer);
     CopyFilesInto: procedure(Files: PCollection; Own: PView; MoveMode: Boolean; Obj: Pointer);
     EraseFiles: procedure(Files: PCollection; Obj: Pointer);
@@ -2826,7 +2827,8 @@ type
     KillUse: procedure(Obj: Pointer);
     lChDir: procedure(ADir: String; Obj: Pointer);
     GetDir: function(Obj: Pointer): String;
-    GetDirectory: function(SortMode, PanelFlags: Integer; const FileMask: String; var FreeSpace, TotalInfo: String; Obj: Pointer): PCollection;
+    GetDirectory: function(SortMode, PanelFlags: Integer; const FileMask: String;
+      var TotalInfo: TSize; var FreeSpace: String; Obj: Pointer): PCollection;
     CopyFiles: procedure(Files: PCollection; Own: PView; MoveMode: Boolean; Obj: Pointer);
     CopyFilesInto: procedure(Files: PCollection; Own: PView; MoveMode: Boolean; Obj: Pointer);
     EraseFiles: procedure(Files: PCollection; Obj: Pointer);
@@ -2864,7 +2866,8 @@ type
     KillUse: procedure(Obj: Pointer);
     lChDir: procedure(ADir: String; Obj: Pointer);
     GetDir: function(Obj: Pointer): String;
-    GetDirectory: function(SortMode, PanelFlags: Integer; const FileMask: String; var FreeSpace, TotalInfo: String; Obj: Pointer): PCollection;
+    GetDirectory: function(SortMode, PanelFlags: Integer; const FileMask: String;
+      var TotalInfo: TSize; var FreeSpace: String; Obj: Pointer): PCollection;
     CopyFiles: procedure(Files: PCollection; Own: PView; MoveMode: Boolean; Obj: Pointer);
     CopyFilesInto: procedure(Files: PCollection; Own: PView; MoveMode: Boolean; Obj: Pointer);
     EraseFiles: procedure(Files: PCollection; Obj: Pointer);
@@ -2902,7 +2905,8 @@ type
     KillUse: procedure(Obj: Pointer);
     lChDir: procedure(ADir: String; Obj: Pointer);
     GetDir: function(Obj: Pointer): String;
-    GetDirectory: function(SortMode, PanelFlags: Integer; const FileMask: String; var FreeSpace, TotalInfo: String; Obj: Pointer): PCollection;
+    GetDirectory: function(SortMode, PanelFlags: Integer; const FileMask: String;
+      var TotalInfo: TSize; var FreeSpace: String; Obj: Pointer): PCollection;
     CopyFiles: procedure(Files: PCollection; Own: PView; MoveMode: Boolean; Obj: Pointer);
     CopyFilesInto: procedure(Files: PCollection; Own: PView; MoveMode: Boolean; Obj: Pointer);
     EraseFiles: procedure(Files: PCollection; Obj: Pointer);
@@ -2940,7 +2944,8 @@ type
     KillUse: procedure(Obj: Pointer);
     lChDir: procedure(ADir: String; Obj: Pointer);
     GetDir: function(Obj: Pointer): String;
-    GetDirectory: function(SortMode, PanelFlags: Integer; const FileMask: String; var FreeSpace, TotalInfo: String; Obj: Pointer): PCollection;
+    GetDirectory: function(SortMode, PanelFlags: Integer; const FileMask: String;
+      var TotalInfo: TSize; var FreeSpace: String; Obj: Pointer): PCollection;
     CopyFiles: procedure(Files: PCollection; Own: PView; MoveMode: Boolean; Obj: Pointer);
     CopyFilesInto: procedure(Files: PCollection; Own: PView; MoveMode: Boolean; Obj: Pointer);
     EraseFiles: procedure(Files: PCollection; Obj: Pointer);

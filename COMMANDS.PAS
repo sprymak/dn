@@ -271,8 +271,6 @@ CONST
   kbCtrlBSlash = $042B1C; kbCtrlShiftBSlash = $072B1C;
   kbCtrlSqBracketL = $041A1B; kbCtrlShiftSqBracketL = $071A1B;
   kbCtrlSqBracketR = $041B1D; kbCtrlShiftSqBracketR = $071B1D;
-  kbCtrlSqBracketL_ = $041A85; kbCtrlShiftSqBracketL_ = $071A85; {под OS/2 при включённой русской раскладке}
-  kbCtrlSqBracketR_ = $041B8A; kbCtrlShiftSqBracketR_ = $071B8A; {под OS/2 при включённой русской раскладке}
 
   kbGrayPlus  = $004E2B; kbShiftGrayPlus  = $034E2B;
   kbGrayMinus = $004A2D; kbShiftGrayMinus = $034A2D;
@@ -2742,6 +2740,7 @@ TYPE
     dlgRenameDialog,
     dlgMkDir,
     dlgFileFind,
+    dlgArcFileFind,
     dlgEditorReplace,
     dlgEditorFind,
     dlgEditorFormat,

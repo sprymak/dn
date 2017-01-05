@@ -119,6 +119,13 @@ type
        fRightSide,
        fInSide: AInt;
        fKeyMap: TKeyMap; {-$VIV}
+       { Flash >>> }
+       fBackIndent: Boolean;
+       fAutoWrap: Boolean;
+       fOptimalFill: Boolean;
+       fTabReplace: Boolean;
+       fSmartTab: Boolean;
+       { Flash <<< }
      end;
 
      PEditHistoryCol = ^TEditHistoryCol;
@@ -183,7 +190,7 @@ procedure FreeLastUnmarked(C: PCollection);
   function IsThat(P: PEditRecord): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
   begin
     Dec(I);
-    IsThat := (P^.fName^[1] = ' ');
+    IsThat := (P^.fName <> nil) and (P^.fName^[1] = ' ');
   end;
 
 begin
@@ -428,6 +435,13 @@ begin
        fInSide        := EdOpt.InSide;
        fInsMode       := InsertMode;
        fKeyMap        := KeyMap; {-$VIV}
+       { Flash >>> }
+       fBackIndent    := EdOpt.BackIndent;
+       fAutoWrap      := EdOpt.AutoWrap;
+       fOptimalFill   := OptimalFill;
+       fTabReplace    := TabReplace;
+       fSmartTab      := EdOpt.SmartTab;
+       { Flash <<< }
     end;
   I := EditHistory^.IndexOf(R);
   if I >= 0 then begin
@@ -694,6 +708,7 @@ begin
   if DirHistory = nil then DirHistory := New(PLineCollection, Init(40, 40, False));
   if (DriveType <> integer(dtList)) and
      (DriveType <> integer(dtFind)) and
+     (DriveType <> integer(dtArcFind)) and
      (DriveType <> integer(dtArvid)) and
      (DriveType <> integer(dtArc))
   then begin

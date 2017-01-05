@@ -180,7 +180,7 @@ procedure DosReread(Files: PFilesCollection);
 {procedure ReplaceLongName(var fr: PFileRec; const NewName: string);}
 
 
- const Executables: TMaskData = (Filter: 'exe;bat;com;cmd');
+ const Executables: TMaskData = (Filter: 'exe;bat;com');
       {JO: дополнительные расширения для поиска в архивах}
        AddArchives: TMaskData = (Filter: 'exe;com;@;pk[0-9];mo[0-9];tu[0-9];we[0-9];th[0-9];fr[0-9];sa[0-9];su[0-9]');
 
@@ -499,7 +499,10 @@ function TFilesCollection.Compare;
     begin
       if S1>S2 then CmpName := +1
       else if S1<S2 then CmpName := -1
-      else if S1[1] = #22 then CmpName := +1
+// JO: в чём смысл этого условия с #22 непонятно, но оно приводит к
+//     несходимости QuickSort и зависанию/падениям при наличии NoShortName
+//     в панели при компиляции с дефайном QSort
+     {else if S1[1] = #22 then CmpName := +1}
       else if owner1>owner2 then CmpName := +1
       else if owner1<owner2 then CmpName := -1
       else CmpName := 0;
@@ -614,47 +617,28 @@ begin
      if (SM >= NumSortModes) and (SM <= NumSortModes + 31) then begin { условие используется для сравнения }
                                                                       {  каталогов по Ctrl-C }
 
-  {$IFDEF Win32}     {здесь C1 используется для сравнения каталогов по Ctrl-C}
-     if LFNActive then
+  {здесь C1 используется для сравнения каталогов по Ctrl-C}
+
+     if ((SM-NumSortModes) and 16 = 0)
+      {$IFDEF Win32}
+    {JO: регистрочувствительное сравнение по коротким именам лишено смысла}
+        or (not uLfn)
+      {$ENDIF}
+      then
        begin
-         if ((SM-NumSortModes) and 16 = 0) then {C1 := CmpName(LFN_1, LFN_2)}
-           begin
-            if Name1 > Name2 then C1 := 1 else
-              if Name1 < Name2 then C1 := -1 else
-                C1 := 0;
-           end
-          else
-             if P1^.FlName[true] < FlName[true] then
-               C1 := -1
-             else if P1^.FlName[true] = FlName[true] then
-               C1 := 0
-             else
-               C1 := 1;
+         if Name1 > Name2 then C1 := 1 else
+           if Name1 < Name2 then C1 := -1 else
+             C1 := 0;
        end
       else
-  {$ENDIF}
-  {$IFNDEF Win32} {JO: регистрочувствительное сравнение по коротким именам лишено смысла}
        begin
-         if ((SM-NumSortModes) and 16 = 0) then
-  {$ENDIF}
-           begin
-             if Name1 > Name2 then C1 := 1 else
-              if Name1 < Name2 then C1 := -1 else
-                C1 := 0;
-           end
-  {$IFNDEF Win32}
-          else
-           begin
-             if P1^.FlName[uLfn] < FlName[uLfn] then
-               C1 := -1
-             else if P1^.FlName[uLfn] = FlName[uLfn] then
-               C1 := 0
-             else
-               C1 := 1;
-           end;
-       end
-  {$ENDIF}
-       ;
+         if P1^.FlName[True] < FlName[True] then
+           C1 := -1
+          else if P1^.FlName[True] = FlName[True] then
+            C1 := 0
+           else
+             C1 := 1;
+       end;
 
        if (C1=0) and ((P1^.Attr or Attr) and Directory = 0) and
           (((SM-NumSortModes) and 1 = 0) or (P1^.Size = Size)) and
@@ -741,9 +725,9 @@ begin
           end;
 {LFN}psmLongName:
           if (P1^.Attr xor Attr) and Directory <> 0 then
-          if P1^.Attr and Directory <> 0 then C := -1 else C := 1 else begin
-          C := CmpName(Name1, Name2, P1^.Owner^, Owner^);
-         end;
+            if P1^.Attr and Directory <> 0 then C := -1
+              else C := 1
+           else C := CmpName(Name1, Name2, P1^.Owner^, Owner^);
 
      141: if (P1^.Attr xor Attr) and Directory <> 0 then
           if P1^.Attr and Directory <> 0 then C := -1 else C := 1 else
@@ -753,12 +737,13 @@ begin
 
 {LEXT}psmLongExt:
           if (P1^.Attr xor Attr) and Directory <> 0 then
-          if P1^.Attr and Directory <> 0 then C:=-1
-          else                               C:=1
-         else begin
-          C := CmpEXT(Name1, Name2);
-          If C = 0 then C := CmpName(Name1, Name2, P1^.Owner^, Owner^);
-         end;
+            if P1^.Attr and Directory <> 0 then C:=-1
+            else C:=1
+          else
+            begin
+              C := CmpEXT(Name1, Name2);
+              if C = 0 then C := CmpName(Name1, Name2, P1^.Owner^, Owner^);
+            end;
 {SIZE}psmSize:
           if (P1^.Attr xor Attr) and Directory <> 0 then
           if P1^.Attr and Directory <> 0 then C := -1 else C := 1 else
@@ -766,8 +751,7 @@ begin
            if P1^.Size < Size then C := 1 else
            if C1=-1 then C := -1
             else if C1=1 then C := 1
-             else if P1^.Owner^ < Owner^ then C := -1
-               else if P1^.Owner^ > Owner^ then C := 1;
+             else C := CmpName(Name1, Name2, P1^.Owner^, Owner^);
 {DATE}psmTime:
          begin
          if (P1^.Attr xor Attr) and Directory <> 0 then
@@ -780,8 +764,7 @@ begin
            if (P1^.Second > Second) then C := -1 else
            if C1=-1 then C := -1
             else if C1=1 then C := 1
-             else if P1^.Owner^ < Owner^ then C := -1
-               else if P1^.Owner^ > Owner^ then C := 1;
+             else C := CmpName(Name1, Name2, P1^.Owner^, Owner^);
          end;
 {JO}
 {$IFNDEF OS_DOS}
@@ -798,8 +781,7 @@ begin
            if (P1^.SecondCreat > SecondCreat) then C := -1 else
            if C1=-1 then C := -1
             else if C1=1 then C := 1
-             else if P1^.Owner^ < Owner^ then C := -1
-               else if P1^.Owner^ > Owner^ then C := 1;
+             else C := CmpName(Name1, Name2, P1^.Owner^, Owner^);
          end;
 {L.Acc.DATE}psmLATime:
          begin
@@ -813,8 +795,7 @@ begin
            if (P1^.SecondLAcc > SecondLAcc) then C := -1 else
            if C1=-1 then C := -1
             else if C1=1 then C := 1
-             else if P1^.Owner^ < Owner^ then C := -1
-               else if P1^.Owner^ > Owner^ then C := 1;
+             else C := CmpName(Name1, Name2, P1^.Owner^, Owner^);
          end;
 {$ENDIF}
 {$ENDIF OS_DOS}

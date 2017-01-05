@@ -78,11 +78,20 @@ type
      procedure DrawTop(var B); virtual;
     end;
 
+    TPanelBottomDnD = record
+       TotalY, SelectedY, CurrentY1, CurrentY2: byte;
+       end;
     PInfoView = ^TInfoView;
     TInfoView = object(THideView)
      Panel: PFilePanel;
+     DnD: TPanelBottomDnD;
      constructor Init(R: TRect);
      procedure Draw; virtual;
+       {AK155: Этот метод нагружен двумя важными побочными эффектами:
+        он в соответствии с настройками устанавливает свой Size.Y и
+        заполняет DnD координатами строк, из которых возможен D&D.
+        Первое используется в TFilePanelRoot.ChangeBounds,
+        второе в HandleEvent}
      constructor Load(var S: TStream);
      procedure Store(var S: TStream);
      function GetPalette: PPalette; virtual;
@@ -267,6 +276,7 @@ procedure TDriveLine.Draw;
   var B: TDrawBuffer;
       M: Byte absolute DriveLine;
       I: Integer;
+      SDir: String;
 begin
   I := M*2+3;
   if (Panel^.Size.X >= I) then
@@ -302,22 +312,19 @@ begin
       then MoveCStr(B, Copy(ViewLine, 1, I-1)+'~'+
                        ViewLine[I]+'~'+Copy(ViewLine, I+1, MaxStringLength),
                     GetColor($0301))
-{Cat: по-моему, это бред}
-(*
-      else begin
-       if (Panel^.Drive^.DriveType = dtTemp) and (Panel^.DirectoryName = cTEMP_)
-        then I := PosChar(chTempDrive, DriveLine)
-        else I := PosChar(UpStrg(Panel^.DirectoryName)[1], DriveLine);
-       if I = 0 then begin
-        MakeDriveLine;
-       {Draw;} Exit;
-       end else MoveCStr(B, ViewLine, GetColor($0301))
-      end;
-    end else MoveCStr(B, ViewLine, GetColor($0301));
-*)
      else MoveCStr(B, ViewLine, GetColor($0301));
-    end else MoveCStr(B, ViewLine, GetColor($0301));
-{/Cat}
+    end
+{JO}
+   else
+    begin
+     lGetDir(0, SDir);
+     I := PosChar(SDir[1], ViewLine);
+     if I > 0 then MoveCStr(B, Copy(ViewLine, 1, I-1)+'~'+
+                         ViewLine[I]+'~'+Copy(ViewLine, I+1, MaxStringLength),
+                         GetColor($0301))
+{/JO}
+      else MoveCStr(B, ViewLine, GetColor($0301));
+    end;
   WordRec(B[0]).Hi := GetColor(2);
   WordRec(B[Size.X-1]).Hi := GetColor(2);
   WriteLine(0,0,Size.X,1,B);
@@ -847,83 +854,106 @@ procedure TInfoView.HandleEvent;
  end;
 
  procedure DragTotals;
-  var N, I: LongInt;
+  var N, I, Start: LongInt;
  begin
-  N := Panel^.Files^.Count-1;
-  New(FC, Init(N, 100));
-  for I := 1 to N do with Panel^.Files^ do
-    FC^.AtInsert(I-1, CopyFileRec(PFileRec(At(I))));
+  Start := FirstNameNum(Panel)-1;
+  with Panel^.Files^ do
+    begin
+    N := Count-Start;
+    New(FC, Init(N, 100));
+    for I := Start to N + Start -1 do
+      FC^.AtInsert(FC^.Count, CopyFileRec(PFileRec(At(I))));
+    end;
   MakeGlobal(P, P);
   DragMover(@P, ItoS(N)+' '+GetString(dlDIFiles), FC, @C);
   CE;
  end;
 
-begin
+begin {TInfoView.HandleEvent}
  inherited HandleEvent(Event);
  if Event.What and (evMouseDown + evMouseAuto) <> 0 then
   begin
    if Panel^.Files^.Count = 0 then Exit;
    C.Owner := Panel;
    MakeLocal(Event.Where, P); Y := 0;
-   if FMSetup.Show and fmsDivider <> 0 then
-    begin if Y = P.Y then
-            begin
-             if Panel^.GetState(sfActive) then
-              begin
-               with Panel^ do
-                begin
-                 if not GetState(sfSelected) then Select; {AK155}
-                 if Files^.Count = 0 then Exit;
-                 MSelect := Event.Buttons and mbRightButton <> 0;
-                 if MSelect then
-                  begin
-                    SelectFlag := not PFileRec(Files^.At(ScrollBar^.Value))^.Selected;
-                    Message(Panel, evKeyDown, kbIns, nil);
-                  end;
-                end;
-               RepeatDelay := 0;
-               repeat
-                with Panel^ do
-                  PSpecScroll(ScrollBar)^.ForceScroll := not MSelect; {AK155}
-                Message(Owner, evKeyDown, kbDown, nil);
-               until not MouseEvent(Event, evMouseMove + evMouseAuto);
-               RepeatDelay := 2; Panel^.MSelect := false;
-              end;
-             Exit
-            end;
-          Inc(Y);
-    end;
-   { D&D из подвала панели }
-   with Panel^ do
+   if (FMSetup.Show and fmsDivider) <> 0 then
     begin
-     if PanelFlags and fmiCurrent <> 0 then
-      begin
-       if Y = P.Y then begin DragCurrent; Exit end;
-       Inc(Y);
-       if TypeOf(Drive^) = TypeOf(TArcDrive) then
-        begin {сжатие, показывается только вместе с тек. файлом}
-         if Y = P.Y then begin DragCurrent; Exit end;
-         inc(Y);
+     if Y = P.Y then
+      begin { мышь в разделителе }
+       if Panel^.Files^.Count = 0 then Exit;
+       if (P.X >= Panel^.SelectedInfoInDividerMin) and
+          (P.X <= Panel^.SelectedInfoInDividerMax)
+       then begin DragSelected; exit; end;  {AK155}
+       if (P.X >= Panel^.TotalInfoInDividerMin) and
+          (P.X <= Panel^.TotalInfoInDividerMax)
+       then begin DragTotals; exit; end;  {AK155}
+       if Panel^.GetState(sfActive) and not Panel^.GetState(sfSelected) then
+         Panel^.Select; {AK155}
+       if Panel^.GetState(sfActive+sfSelected) then
+        begin
+         with Panel^ do
+          begin
+           MSelect := Event.Buttons and mbRightButton <> 0;
+           if MSelect then
+            begin
+              SelectFlag := not PFileRec(Files^.At(ScrollBar^.Value))^.Selected;
+              Message(Panel, evKeyDown, kbIns, nil);
+            end;
+          end;
+         RepeatDelay := 0;
+         repeat
+          with Panel^ do
+            PSpecScroll(ScrollBar)^.ForceScroll := not MSelect; {AK155}
+          Message(self.Owner, evKeyDown, kbDown, nil);
+         until not MouseEvent(Event, evMouseMove + evMouseAuto);
+         RepeatDelay := 2; Panel^.MSelect := false;
         end;
-       end;
-     if PanelFlags and (fmiSelected or fmiFullNameInBottom) <> 0 then
-      begin {выделенные и длинное имя делят одну строку}
-       if Y = P.Y then
-         begin
-         if (PanelFlags and fmiSelected <> 0) and (SelNum <> 0) then
-           DragSelected
-         else if (PanelFlags and fmiFullNameInBottom) <> 0 then
-           DragCurrent;
-         exit;
-         end;
-       Inc(Y);
+       Exit
       end;
-     if PanelFlags and fmiTotals <> 0 then
-      begin if Y = P.Y then begin DragTotals; Exit end; Inc(Y);end;
+     Inc(Y);
     end;
+
+   { D&D из подвала панели }
+     if (P.Y = DnD.CurrentY1) or (P.Y = DnD.CurrentY2) then
+       DragCurrent
+     else if P.Y = DnD.SelectedY then
+       DragSelected
+     else if P.Y = DnD.TotalY then
+       DragTotals;
    CE;
   end;
 end;
+
+ { построение краткой строки информации о каталоге (без слов)}
+function BriefTotalString(Panel: PFilePanelRoot): string;
+var
+  S: string absolute result;
+  FilesCount: longint;
+begin
+  FilesCount := Panel^.Files^.Count - (FirstNameNum(Panel)-1);
+  S := FStr(Panel^.TotalInfo) + '(' + ItoS(FilesCount) + ')';
+end;
+
+ { построение длинной строки информации о каталоге (со словами) }
+function TotalString(Panel: PFilePanelRoot): string;
+var
+  S: string absolute result;
+  FilesCount: longint;
+begin
+  FilesCount := Panel^.Files^.Count - (FirstNameNum(Panel)-1);
+  if FilesCount = 0 then S := GetString(dlDINoFiles)
+  else
+    begin
+    S := GetString(dlTotal);
+    if FilesCount = 1 then S := S+'1~ '+GetString(dlDIFile)
+    else S := S+ItoS(FilesCount)+'~ '+GetString(dlDIFiles);
+    S := S + GetString(dlDIWith) + '~';
+    if C = 1 then
+      S := S + '1~ '+GetString(dlDIByte)
+    else S := S + FStr(Panel^.TotalInfo)+'~ '+GetString(dlDIBytes);
+    end;
+end;
+
 
         {-DataCompBoy-}
 procedure TInfoView.Draw;
@@ -938,9 +968,19 @@ procedure TInfoView.Draw;
      ShowSelected, ShowFullName: boolean;
      ShowFree, DescriptionInBottom: boolean;
 
+ { построение краткой строки информации об отмеченных файлах (без слов)}
+ function BriefSelString: string;
+  begin
+   with Panel^ do
+    begin
+     Result := '~'+FStr(SelectedLen);
+     if (Drive^.DriveType = dtArc) and (SelectedLen <> PackedLen) then
+       Result := Result + '/'+FStr(PackedLen);
+     Result := Result + '(' + ItoS(SelNum) + ')~';
+    end;
+  end;
 
-
- { построение строки информации об отмеченных файлах }
+ { построение длинной строки информации об отмеченных файлах (со словами) }
  function SelString: string;
   begin
    with Panel^ do
@@ -970,9 +1010,12 @@ procedure TInfoView.Draw;
      Result := Result + '~' + S + '~';
   end;
 
-
+const
+  NoDnD: TPanelBottomDnD =
+    (TotalY:255; SelectedY:255; CurrentY1:255; CurrentY2:255);
 begin
  if Panel^.DrawDisableLvl > 0 then Exit;
+ DnD := NoDnD;
  ShowSelected := (Panel^.PanelFlags and fmiSelected)  <> 0;
  ShowFullName := (Panel^.PanelFlags and fmiFullNameInBottom)  <> 0;
  C2 := Panel^.GetColor(2); I := Size.X;
@@ -992,31 +1035,47 @@ begin
      Inc(I, Panel^.LineLength);
      If I = Size.X+Panel^.DeltaX then B[I-1]:=(C2 and $FF00)+196;
     end;
-   WriteLine(0,Y,Size.X,1,B[Panel^.DeltaX]);
 
-   S := '';
-   {if not ShowSelected and not ShowFullName then}
-    begin { строки информации о выделенных файлах нет, поэтому
-        кое-какую информацию выводим поверх линии разделителя }
-     if not ShowSelected and (Panel^.SelNum > 0) then
-      begin { информация о выделенных файлах }
-       C3 := GetColor($0302);
-       {MoveChar(B, '─', C3, Size.X);}
+   {кое-какую информацию выводим поверх линии разделителя }
+   S := ''{выделенные}; S2 := ''{о каталоге};
+   I := 0;
+   Panel^.SelectedInfoInDividerMax := 0;
+   Panel^.TotalInfoInDividerMax := 0;
+   if not ShowSelected and (Panel^.SelNum > 0) then
+    begin { информация о выделенных файлах }
+     C3 := GetColor($0302);
+     {MoveChar(B, '─', C3, Size.X);}
+     if BriefSelectedInfo then
+       begin
+       S := BriefSelString; I := 1;
+       end
+     else
+       begin
        S := SelString;
        I := (Size.X - CStrLen(S)) div 2; if I < 0 then I := 0;
-      end
-     else if not ShowSelected and not ShowFullName and ShowFileMask and {Panel^.}QuickSearch then
-      begin { маска быстрого поиска поверх }
-       C3 := GetColor($0302);
-       S := QuickSearchString;
-       I := 0;
-      end;
+       end;
+    Panel^.SelectedInfoInDividerMin := I;
+    Panel^.SelectedInfoInDividerMax := I+CStrLen(S)-1;
+    end
+   else if not ShowSelected and not ShowFullName and ShowFileMask and {Panel^.}QuickSearch then
+    begin { маска быстрого поиска поверх }
+     C3 := GetColor($0302);
+     S := QuickSearchString;
+     I := 0;
     end;
    if S <> '' then
-     begin
      MoveCStr(B[I], S, C3);
-     WriteLine(0,Y,Size.X,1,B);
+   if BriefTotalInfo and (Panel^.PanelFlags and fmiTotals = 0) then
+     begin { информация о каталоге }
+     S2 := BriefTotalString(Panel);
+     if Panel^.SelectedInfoInDividerMax + 2 + length(S2) < Size.X then
+       begin
+       MoveStr(B[Size.X - length(S2)], S2, Panel^.GetColor(2));
+       Panel^.TotalInfoInDividerMin := Size.X - length(S2);
+       Panel^.TotalInfoInDividerMax := Size.X-1;
+       end;
      end;
+   WriteLine(0,Y,Size.X,1,B[Panel^.DeltaX]);
    Inc(Y);
   end;
 
@@ -1027,13 +1086,15 @@ begin
  C1 := GetColor(1);
  if Panel^.PanelFlags and fmiCurrent <> 0 then
   begin
+   DnD.CurrentY1 := Y;
    MoveChar(B, ' ', C1, Size.X);
    if PF <> nil then
       Panel^.Drive^.GetDown(B, C1, PF);
    WriteLine(0,Y,Size.X,1,B);
    Inc(Y);
    case Panel^.Drive^.DriveType of
-    dtFind, dtTemp, dtList:
+    dtFind, dtTemp, dtList, dtArcFind:
+     if PathInfoInBottom then
       begin
       MoveChar(B, ' ', C1, Size.X);
       if (PF <> nil) and (PF^.Owner <> nil) then
@@ -1042,6 +1103,7 @@ begin
       Inc(Y);
       end;
     dtArc:
+     if PackingInfoInBottom then
       begin
       MoveChar(B, ' ', C1, Size.X);
       C3 := GetColor($0302);
@@ -1061,11 +1123,14 @@ begin
  if ShowSelected or ShowFullName then
   begin
     S := '';
-    I := -1;
+    I := -1; { по умолчанию - центрировать }
     C3 := GetColor($0302);
     MoveChar(B, ' ', C3, Size.X);
     if ShowSelected and (Panel^.SelNum <> 0) then
-      S := SelString
+      begin
+      DnD.SelectedY := Y;
+      S := SelString;
+      end
     else if ShowFileMask and (x_x<>Panel^.FileMask) and ('*'<>Panel^.FileMask) then {-$VIV 19.05.99--}
      begin
       S := fReplace('*.', '', Panel^.FileMask);
@@ -1075,25 +1140,20 @@ begin
      end
     else if ShowFileMask and (Panel=ActivePanel) and ({Panel^.}QuickSearch) then
      begin
-      S := QuickSearchString;
-      I := 0;
+      S := QuickSearchString; I := 0; { прижать влево }
      end
     else if ShowFullName and (PF <> nil) then
-     begin
-        S2 := PF^.FlName[true];
-        if (S2 <> '..') and (S2 <> '.') then
-          begin
-          S3 := S2;
-//          if length(S2) > 14 then
- { На самом деле такое условие плохо работает под виндой. Например,
-при панелях 12.3, но с включенными длинными именами "Program files" не
-помещается в колонке, в текущем файле показано короткое имя, но длина
-меньше 14. Усложнять программу не хочется, и к тому же от юзеров было
-прямое пожелание выводить длинное имя безусловно. AK155}
-            S := FormatLongName(GetName(S3),Size.X,0,
-              flnPreferName+flnHighlight+flnHandleTildes+flnUseCutChar,
-              nfmNull,nil);
-          end;
+     begin { длинное имя прижимаем влево и обрезаем слева }
+      DnD.CurrentY2 := Y;
+      if PF^.TType <> ttUpDir then
+       begin
+        S := PF^.FlName[true]; I := 0;
+        if length(S) > Size.X then
+         begin
+          system.delete(S, 2, length(S)-Size.X); S[1] := #17;
+         end;
+        S := FormatLongName(S, Size.X, 0, flnHandleTildes, nfmNull, nil);
+       end;
      end
     else if ShowSelected then
       S := GetString(dlNoFilesSelected);
@@ -1106,10 +1166,12 @@ begin
 
  if Panel^.PanelFlags and fmiTotals <> 0 then
   begin
+    DnD.TotalY := Y;
     C3 := GetColor($0504);
     MoveChar(B, ' ', C3, Size.X);
-    I := (Size.X - CStrLen(Panel^.TotalInfo)) div 2; if I < 0 then I := 0;
-    MoveCStr(B[I], Panel^.TotalInfo, C3);
+    S2 := TotalString(Panel);
+    I := (Size.X - CStrLen(S2)) div 2; if I < 0 then I := 0;
+    MoveCStr(B[I], S2, C3);
     WriteLine(0,Y,Size.X,1,B);
     Inc(Y);
   end;
@@ -1117,7 +1179,9 @@ begin
 { Свободное место, описание текущего файла }
  ShowFree := Panel^.PanelFlags and fmiFree <> 0;
  DescriptionInBottom := Panel^.PanelFlags and fmiDescriptionInBottom <> 0;
- if DescriptionInBottom or ShowFree then
+ if (DescriptionInBottom or ShowFree) and
+    (Panel^.Drive^.DriveType = dtDisk)
+ then
   begin
   {S1: свободное место (цифры); S2: описание; S3: текст свободного места;
    I: позиция начала выдачи S1 с учетом центрирования, когда нет описания;
@@ -1202,6 +1266,7 @@ begin
     WriteLine(0,Y,Size.X,1,B);
     Inc(Y);
   end;
+  Size.Y := Y;
 end;
         {-DataCompBoy-}
 

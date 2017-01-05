@@ -2320,9 +2320,26 @@ DIALOG dlgFileFind, 52, 18, 'Find File'
     END
     Label 3, 11, 'Scope', ofPostProcess, ofPreProcess
     Button  3, 15, 13, 17, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 13, 15, 28, 17, 'Ad~v~anced...', 3223, ofPostProcess, ofPreProcess
+    Button 13, 15, 28, 17, 'Ad~v~anced...', cmSearchAdvance, ofPostProcess, ofPreProcess
     Button 28, 15, 38, 17, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
     Button 38, 15, 48, 17, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
+    InputLine 1, 1, 1, 1, 1, 0
+END
+
+DIALOG dlgArcFileFind, 52, 10, 'Find File in Archive'
+    HELPCTX hcFileFind
+    InputLine 16, 2, 49, 3, 255, 0
+    Label 2, 2, '   ~F~ile mask', ofPostProcess, ofPreProcess
+    History 47, 2, hsFindMask, ofPostProcess
+    CheckBoxes 3, 5, 49, 6, ofPostProcess, ofPreProcess
+      ITEM 'Adva~n~ced search'
+      ITEM '~R~ecursive search'
+    END
+    Label 3, 4, 'Options', ofPostProcess, ofPreProcess
+    Button  3,  7, 13,  9, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 13,  7, 28,  9, 'Ad~v~anced...', cmSearchAdvance, ofPostProcess, ofPreProcess
+    Button 28,  7, 38,  9, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
+    Button 38,  7, 48,  9, '~H~elp', cmHelp, ofPostProcess, ofPreProcess
     InputLine 1, 1, 1, 1, 1, 0
 END
 
@@ -3504,8 +3521,10 @@ EDITOR COMMANDS
     COMMAND       cmPgDn,         kbPgDn,     kbShiftPgDn,  ^C#0,      #0#0
     COMMAND       cmClose,        kbESC,       kbAltF3,     ^C#0,      #0#0
     COMMAND       cmMenu,         kbF10,         0,         #0#0,      #0#0
-    COMMAND       cmUpWord,       kbCtrlSqBracketL, kbCtrlSqBracketL_, #0#0, #0#0
-    COMMAND       cmLowWord,      kbCtrlSqBracketR, kbCtrlSqBracketR_, #0#0, #0#0
+    COMMAND       cmUpWord,       kbCtrlSqBracketL, 0,      #0#0,      #0#0
+    COMMAND       cmLowWord,      kbCtrlSqBracketR, 0,      #0#0,      #0#0
+    COMMAND       cmUpString,     kbCtrlShiftSqBracketL, 0, #0#0,      #0#0
+    COMMAND       cmLowString,    kbCtrlShiftSqBracketR, 0, #0#0,      #0#0
     COMMAND       cmCapWord,      0,             0,         ^\#0,      #0#0
     COMMAND       cmPrintBlock,   0,             0,         ^K^P,      #0#0
     COMMAND       cmClear,        kbCtrlDel,     0,         ^K^Y,      #0#0

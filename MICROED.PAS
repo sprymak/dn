@@ -318,9 +318,13 @@ begin
              end;
           udInsChar:
              begin
-               P^.Count:=Length(Str^);
-               Inc(P^.Where.X,P^.Count);
-               UndoInfo^.Insert(P);
+               if Str <> nil then
+                 begin
+                   P^.Count:=Length(Str^);
+                   Inc(P^.Where.X,P^.Count);
+                   UndoInfo^.Insert(P);
+                 end
+               else Dispose(P);
              end;
           udDelLine:
              begin
@@ -3369,10 +3373,9 @@ begin
               cmOpenFileAtCursor: OpenFileAtCursor; {-$VIV 18.05.99--}
              end;
   evKeyDown:
-  {$IFDEF OS2}
-     (*if  ShiftState in [13,14] then*){JO: поскольку хоткеи Ctrl-цифра в OS/2 не работают}
-         {begin}                       {    по непонятной причине, введены временные хоткеи}
-            case Event.KeyCode of      {    Ctrl-Alt-Shift-цифра для перехода к закладкам}
+   {JO: по Ctrl-Alt-Shift-цифра переходим к закладкам с пометкой текста}
+   {    от текущего места до закладки                                  }
+         case Event.KeyCode of
            kbCtrlAltShift1: Message(@Self, evCommand, cmGotoMarker1, nil);
            kbCtrlAltShift2: Message(@Self, evCommand, cmGotoMarker2, nil);
            kbCtrlAltShift3: Message(@Self, evCommand, cmGotoMarker3, nil);
@@ -3382,12 +3385,7 @@ begin
            kbCtrlAltShift7: Message(@Self, evCommand, cmGotoMarker7, nil);
            kbCtrlAltShift8: Message(@Self, evCommand, cmGotoMarker8, nil);
            kbCtrlAltShift9: Message(@Self, evCommand, cmGotoMarker9, nil);
-            {end;}
-          {end else}
-            else
-  {$ELSE}
-      begin
-  {$ENDIF}
+         else
           if (Event.KeyCode <> kbCtrlAltX) then
           if (Event.KeyCode = kbCtrlU) then WordEnd else {-$VIV}
             begin
@@ -3423,7 +3421,7 @@ begin
                          Break;
                    end;
                end;
-             if EvStr[2] in ['A'..'Z','a'..'z'] then EvStr[2] := Char(Ord(UpCase(EvStr[2]))-64);
+             if EvStr[2] in ['A'..']','a'..'z'] then EvStr[2] := Char(Ord(UpCase(EvStr[2]))-64);
              for I := 1 to MaxCommands do
               with EditCommands[I] do
                 if ((C1 = Event.KeyCode) or (C2 = Event.KeyCode)) and (EvStr[2]=#0) or
@@ -3577,6 +3575,23 @@ procedure OpenSmartpad;
                  For Idx:=0 To 5 Do Str:=Str+Char(SPLineChar);
                  Str:=Str+'< '+GetDateTime(false)+' '+GetDateTime(true)+' >';
                  For Idx:=0 To 35 Do Str:=Str+Char(SPLineChar);
+                 { Flash >>> }
+                 if (Copy(GetLine(FileLines^.Count-2),1,7)=Copy(Str,1,7)) and
+                    (Copy(GetLine(FileLines^.Count-2),29,37)=Copy(Str,29,37)) and
+                    (((((Delta.Y>FileLines^.Count-2) and (WorkString='')) or
+                       (Delta.Y=FileLines^.Count-2)) or
+                      (Delta.Y<FileLines^.Count-2))) and
+                    (GetLine(FileLines^.Count-1)='') then
+                 begin
+                     FileLines^.AtDelete(FileLines^.Count-2);
+                     FileLines^.AtDelete(FileLines^.Count-1);
+                 end;
+                 if ((Delta.Y>FileLines^.Count-2) and (WorkString<>'')) and not
+                    ((Copy(WorkString,1,7)=Copy(Str,1,7)) and
+                     (Copy(WorkString,29,37)=Copy(Str,29,37))) or
+                    (GetLine(FileLines^.Count-1)<>'') then
+                  FileLines^.Insert(nil);
+                 { Flash <<< }
                  FileLines^.Insert(NewLongStr(Str));
              end;
              FileLines^.Insert(nil);
@@ -3588,6 +3603,13 @@ procedure OpenSmartpad;
          end;
      end;
 
+{--- start -------- Eugeny Zvyagintzev ---------}
+Var
+  PS: PString;
+  V: PFileEditor;
+  I: Integer;
+  P: PEditRecord;
+{--- finish -------- Eugeny Zvyagintzev ---------}
 begin
   SmartWindow := SmartWindowPtr^; {Cat}
 
@@ -3610,6 +3632,53 @@ begin
       Exit;
     end;
   New(SmartWindow, Init(R, 'SmartPad'));
+{--- start -------- Eugeny Zvyagintzev ---------}
+{Now DN will save and load SmartPad edit history}
+  V:=SmartWindow^.Intern;
+  FreeStr:=V^.EditName; System.Insert(' ', FreeStr, 1); UpStr(FreeStr);
+  PS := @FreeStr;
+  if (InterfaceData.Options and ouiTrackEditors <> 0) and (EditHistory <> nil)
+      then I := EditHistory^.IndexOf(@PS) else I := -1;
+  if I >= 0 then
+    begin
+     P:=EditHistory^.At(I);
+     R.Assign(P^.fOrigin.X, P^.fOrigin.Y, P^.fOrigin.X + P^.fSize.X, P^.fOrigin.Y + P^.fSize.Y);
+     AdjustToDesktopSize(R, P^.fDeskSize);
+     SmartWindow^.Locate(R);
+     With V^, P^ Do
+      Begin
+       MarkPos                := fMarks;
+       Mark.A                 := fBlockStart;
+       Mark.B                 := fBlockEnd;
+       ScrollTo(fDelta.X, fDelta.Y);
+       Pos                    := fPos;
+       BlockVisible           := fBlockVisible;
+       VertBlock              := fVerticalBlock;
+       EdOpt.HiLite           := fHighlight;
+       EdOpt.HiliteColumn     := fHiliteColumn;
+       EdOpt.HiliteLine       := fHiliteLine;
+       EdOpt.AutoIndent       := fAutoIndent;
+       EdOpt.AutoJustify      := fAutoJustify;
+       EdOpt.AutoBrackets     := fAutoBrackets;
+       EdOpt.LeftSide         := fLeftSide;
+       EdOpt.RightSide        := fRightSide;
+       EdOpt.InSide           := fInSide;
+       InsertMode             := fInsMode;
+       KeyMap                 := fKeyMap; {-$VIV}
+       { Flash >>> }
+       EdOpt.BackIndent       := fBackIndent;
+       EdOpt.AutoWrap         := fAutoWrap;
+       OptimalFill            := fOptimalFill;
+       TabReplace             := fTabReplace;
+       EdOpt.SmartTab         := fSmartTab;
+       { Flash <<< }
+       WorkString := GetLine(fDelta.Y); {-$VIV 11.05.99}
+      End;
+   End
+  Else
+   StoreEditInfo(SmartWindow);
+{--- finish -------- Eugeny Zvyagintzev ---------}
+
   InsertInfo;
   if (PV <> Application) then
      begin

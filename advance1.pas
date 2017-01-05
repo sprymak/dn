@@ -2037,6 +2037,11 @@ end;
       end;
     {$ENDIF}
     PatSize := length(Pattern);
+    if PatSize > BuffSize then
+      begin
+        BMsearch := 0;
+        Exit;
+      end;
     Index1 := PatSize;
     Index2 := PatSize;
     repeat
@@ -2107,6 +2112,11 @@ end;
       end;
     {$ENDIF}
     PatSize := length(Pattern);
+    if PatSize > BuffSize then
+      begin
+        BackBMsearch := 0;
+        Exit;
+      end;
     Index1 := BuffSize - PatSize + 1;
     Index2 := 1;
     repeat
@@ -2116,7 +2126,7 @@ end;
         c := UpCaseArray[Buffer2[Index1]];
       if (c = Pattern[Index2]) then
         begin
-          inc(Index1);
+          if (Index1 < BuffSize) then inc(Index1);
           inc(Index2)
         end
       else

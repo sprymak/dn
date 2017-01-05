@@ -182,8 +182,8 @@ vpsyslow.pas основная часть VPSysLow
 winclpvp.pas Windows clipboard connection for VP
 xdblwnd.pas Double Window
 xtime.pas Extended time support
-doc Documentation for DN/2
-resource Resource source for DN/2
+DOC Documentation for DN/2
+RESOURCE Resource source for DN/2
 _fviewer.pas DN/2 Plugin Interface - object model
 _gauge.pas DN/2 Plugin Interface - object model
 _model2.pas DN/2 Plugin Interface - object model

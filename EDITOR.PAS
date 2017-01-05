@@ -378,7 +378,7 @@ var  LastX, LastY: LongInt;
           begin
             S := GetLine(P^.Where.Y);
             if Length(S) < P^.Where.X + 1 then S := S + LongStrg(' ', P^.Where.X - Length(S) + 1);
-            Insert(P^.Str^, S, P^.Where.X + 1);
+            if P^.Str <> nil then Insert(P^.Str^, S, P^.Where.X + 1);
             ModifyLine(P^.Where.Y, S, false);
           end;
        udDelLine:

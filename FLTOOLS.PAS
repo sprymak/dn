@@ -80,9 +80,6 @@ procedure CM_SortBy(AFP: Pointer);
 function  CM_ChangeDirectory(AFP: Pointer): string;
 procedure CM_MakeDir(AFP: Pointer);
 procedure CM_LongCopy(AFP: Pointer);
-{AK155}
-procedure CM_Branch(AFP: Pointer);
-{/AK155}
 procedure CM_ChangeCase(AFP: Pointer);
 {$IFNDEF REALMODE}
 procedure CM_SelectColumn(AFP: Pointer); {JO}
@@ -90,6 +87,12 @@ procedure CM_SelectColumn(AFP: Pointer); {JO}
 {$IFDEF EAOP} {$IFDEF OS2}
 procedure CM_SetEALongname(AFP: Pointer; CurPos: Integer); {JO}
 {$ENDIF} {$ENDIF}
+
+function FirstNameNum(P: PFilePanelRoot): longint;
+  {AK155 Получение первого номера (от 1) в коллекции файлов панели,
+  соответствующего не фиктивному имени '..', а настоящему имени.
+  Возвращает либо 1, если это корень диска и элемента '..' нет,
+  либо 2, если он есть.}
 
 IMPLEMENTATION
 uses
@@ -235,7 +238,8 @@ function GetMaskSelection: String;
 
     var
       d: PDrive;
-      fs, ti: string;
+      fs: string;
+      ti: TSize;
       fc: PFilesCollection;
     begin
       d := P^.Drive;
@@ -348,10 +352,6 @@ end;
  {messagebox(FileMask, nil, mfOKButton);}
 end;        {------------------- CM_AdvancedFilter -----------------------}
 
-{AK155 Получение первого номера в коллекции, соответствующего
-не фиктивному имени '..', а настоящему имени. Возвращает либо
-1 (если это корень диска и элемента '..' нет, либо 2, если он
-есть.}
 function FirstNameNum(P: PFilePanelRoot): longint;
   begin
   FirstNameNum := 1;
@@ -440,7 +440,7 @@ begin
      end;
 *)
    if (FMSetup.Options and fmoAlwaysCopyDesc <> 0) and (FMSetup.DIZ <> '')
-    and (P^.Drive^.DriveType < dtArc) then
+    and (P^.Drive^.DriveType < dtArcFind) then
      begin
       K := 1;
       for J := 1 to Length(FMSetup.DIZ) do
@@ -508,7 +508,7 @@ begin
      end;
 *)
    if (FMSetup.Options and fmoAlwaysCopyDesc <> 0) and (FMSetup.DIZ <> '')
-    and (P^.Drive^.DriveType < dtArc) then
+    and (P^.Drive^.DriveType < dtArcFind) then
      begin
       K := 1;
       for J := 1 to Length(FMSetup.DIZ) do
@@ -583,7 +583,9 @@ begin
 {$IFDEF Win32}
  D := PDialog(LoadResource(dlgCompareDirs));
    if D = nil then Exit;
- if (not PFilesCollection(IP)^.LFNActive) or ((P^.Drive^.Flags and psShowLongName) = 0) then
+  {JO: левое условие означает, что показ коротких имён включен в активной }
+  {    панели, правое (закомментированное) - в пассивной                  }
+ if (not PFilesCollection(IP)^.LFNActive) {or ((P^.Drive^.Flags and psShowLongName) = 0)} then
     begin  {JO: делаем недоступным чекбокс регистрочувствительности}
       P1 := D^.FirstThat(@IsCheckboxes);
       PCheckBoxes(P1)^.SetButtonState(16, False);
@@ -715,7 +717,7 @@ procedure CM_SetAttributes;
       end ;
 
 begin
- if (P^.Files^.Count = 0) or (P^.Drive^.DriveType >= dtArc) then Exit;
+ if (P^.Files^.Count = 0) or (P^.Drive^.DriveType >= dtArcFind) then Exit;
  NotifySuspend; {Cat}
  FillChar(D, Sizeof(D), 0);
  if (P^.SelNum > 0) and not Single then
@@ -1018,7 +1020,7 @@ begin
    begin
    Old := Flags;
    case DriveType of
-    dtFind, dtTemp, dtList: Idx := dlgFindParms;
+    dtFind, dtTemp, dtList, dtArcFind: Idx := dlgFindParms;
     dtArc: Idx := dlgArcParms;
     else Idx := dlgDiskParms;
    end;
@@ -1041,6 +1043,10 @@ begin
    if ((DriveType = dtDisk) or (DriveType = dtArvid))
        and ((Flags xor Old) and (psShowDescript+psShowLongDesc) <> 0)
    then P^.RereadDir;
+{$IFNDEF OS2}
+   if not (P^.Drive^.DriveType in [dtArc,dtArcFind]) then
+     P^.Files^.LFNActive := (Flags and psShowLongName) <> 0;
+{$ENDIF}
    end;
  DrawViews(P);
  P^.SendLocated;
@@ -1070,7 +1076,7 @@ procedure CM_ArchiveFiles;
     Name: NameStr;
     Ext: ExtStr;
 begin
-  if P^.Drive^.DriveType >= dtArc then Exit;
+  if P^.Drive^.DriveType >= dtArcFind then Exit;
   PC := GetSelection(P, false);
   if PC = nil then Exit;
   if PC^.Count = 1 then
@@ -1115,10 +1121,12 @@ end;
 procedure CM_ToggleLongNames;
 var P: PFilePanelRoot absolute AFP;
 begin
+if P^.Drive^.DriveType in [dtArc,dtArcFind] then Exit;
 with P^.Drive^ do
   begin
 {$IFNDEF OS2}
   Flags := Flags xor psShowLongName;
+  P^.Files^.LFNActive := (Flags and psShowLongName) <> 0;
 {$ELSE}
   ShowLogNames := not ShowLogNames;
 {$ENDIF}
@@ -1636,7 +1644,7 @@ procedure CM_LongCopy;
      P: PFilePanelRoot absolute AFP;
      PF: PFileRec;
 begin
- if (P^.Files^.Count = 0) or (P^.Drive^.DriveType >= dtArc) then Exit;
+ if (P^.Files^.Count = 0) or (P^.Drive^.DriveType >= dtArcFind) then Exit;
  PF := P^.Files^.At(P^.ScrollBar^.Value);
  if (PF^.Attr and Directory <> 0)
 {JO: для найденных в архиве файлов в панели поиска}
@@ -1655,21 +1663,6 @@ begin
   end;
 end;
         {DataCompBoy}
-
-{AK155 перенесена в flpanelx.pas и развернута в обработчик cmDirBranch}
-{}
-procedure CM_Branch;
-var PP: Pointer;
-    P: PFilePanelRoot absolute AFP;
-begin
-  if P^.Drive^.DriveType = dtDisk then
-    begin
-      PP := OpenDirectory(P^.DirectoryName);
-      if PP <> nil then
-      Message(P, evCommand, cmInsertDrive, PP);
-    end;
-end;
-{/AK155}
 
 Procedure CaseAsIs  (var S: string; b, e: byte);
 Begin
@@ -1879,7 +1872,7 @@ dtDisk,dtLink:
     end;
     PanelDescr := PanelDescrDrive;
   end;
-dtFind,dtList:
+dtFind,dtList,dtArcFind:
   begin
    for I:= 1 to 10 do
     begin
@@ -1981,7 +1974,7 @@ dtDisk,dtLink:
         ColumnsDefaultsDisk.Params[I].EXTLen+' ' {$IFNDEF OS2} +NameT[I]+' ' {$ENDIF}
                                    +ISFull[I]+Descr[I],'',kbNoKey,16000+I,0,Items);
     end;
-dtFind,dtList:
+dtFind,dtList,dtArcFind:
   for I := 10 downto 1 do
     begin
       J := 48+I; if J = 58 then J := 48;
@@ -2034,6 +2027,10 @@ Menu^.Default := LookUpMenu(PMenuBox(PV)^.Menu, P^.Drive^.Param+16000, dfByComma
                            P^.Drive^.GetParam(N);
                            P^.Owner^.ReDraw;
                          end;
+{$IFNDEF OS2}
+   if not (P^.Drive^.DriveType in [dtArc,dtArcFind]) then
+     P^.Files^.LFNActive := (P^.Drive^.Flags and psShowLongName) <> 0;
+{$ENDIF}
  end;  {JO}
 {$ENDIF}
 {$IFDEF EAOP} {$IFDEF OS2}
@@ -2042,7 +2039,7 @@ var  P: PFilePanelRoot absolute AFP;
      PF: PFileRec;
      S: String;
 begin
- if (P^.Files^.Count = 0) or (P^.Drive^.DriveType >= dtArc) then Exit;
+ if (P^.Files^.Count = 0) or (P^.Drive^.DriveType >= dtArcFind) then Exit;
  PF := P^.Files^.At(CurPos);
  If (PF^.TType = ttUpDir)
 {JO: для найденных в архиве файлов в панели поиска}

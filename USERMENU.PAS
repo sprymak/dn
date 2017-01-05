@@ -207,6 +207,21 @@ begin
  Dispose(PUserMenuItem(P));
 end;
 
+{$IFNDEF OS2}
+{AK155 17-12-2002}
+procedure ShorNameAndExt(HandleTildes: boolean; ts: string; var S: string);
+var
+  l: integer;
+begin
+  if HandleTildes then Replace('~', #0'~', ts);
+  Replace('$', #4, ts); Replace('!', #1, ts);
+  Replace('&', #2, ts); Replace('#', #3, ts);
+  l := PosLastDot(ts);
+  Replace('.!', Copy(ts, l, 255), S);
+  Replace('!', Copy(ts, 1, l-1), S);
+end;
+{$ENDIF}
+
         {-DataCompBoy-}
 {AK155 Тут была куча обкладываний строк символом #0,
 непонятно зачем нужными. В ритлабовском DN этого не было,
@@ -469,24 +484,16 @@ begin
    begin
     if UserParams^.Active = nil then ts := '' {KSNK}
     else
-    ts:=UserParams^.Active^.FlName[False];
-    if HandleTildes then Replace('~', #0'~', ts);
-    Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
-    tz:=fDelRight(Copy(ts, 9, 4));
-    if tz='.' then tz:=''; Replace('.!',tz, S);
-    Replace('!', fDelRight(Copy(ts, 1, 8)), S);
+       ts := UserParams^.Active^.FlName[False];
+    ShorNameAndExt(HandleTildes, ts, S);
    end;
 
   if (PosChar('$', S)>0) then
    begin
     if UserParams^.Passive = nil then ts := '' {KSNK}
     else
-    ts:=UserParams^.Passive^.FlName[False];
-    if HandleTildes then Replace('~', #0'~', ts);
-    Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
-    tz:=fDelRight(Copy(ts, 9, 4));
-    if tz='.' then tz:=''; Replace('.$',tz, S);
-    Replace('$', fDelRight(Copy(ts, 1, 8)), S);
+      ts:=UserParams^.Passive^.FlName[False];
+    ShorNameAndExt(HandleTildes, ts, S);
    end;
 {$ENDIF}
 

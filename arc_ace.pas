@@ -75,6 +75,16 @@ type ACEFileHdr = record
       Reserved   : AWord;
       NameLen    : AWord;
      end;
+//  HeadFlags:
+//  bit  description
+//   0   1 (ADDSIZE field present)
+//   1   presence of file comment
+//
+//   12  file continued from previous volume
+//   13  file continues on the next volume
+//   14  file encrypted with password
+//   15  solid-flag: file compressed using data
+//       of previous files of the archive
 
 var ACEVerToExtr: Byte;
 

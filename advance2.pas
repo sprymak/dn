@@ -148,6 +148,11 @@ function  PathExist(s: string): boolean; {Is path exist}
 function  PathFoundInArc(S: String): Boolean; {JO}
 
 {-DataCompBoy-}
+procedure GetFTimeSizeAttr(const A: string; var ATime: LongInt;
+                                 var ASize: TSize; var AAttr: Word);
+{-DataCompBoy-}
+
+{-DataCompBoy-}
 type TQuickSearchData = record
       Mask: string;
       NumExt: Word;
@@ -382,12 +387,25 @@ end;
 
 procedure EraseTempFile;
  var Dir: String;
+     F: lFile;
 begin
  {JO: проверочка файла на нахождение во временном каталоге не помешает}
  Dir := GetPath(S);
  if (Tempdir[Length(Tempdir)] <> '\') and (Dir[Length(Dir)] = '\') then
    SetLength(Dir, Length(Dir) - 1);
- if UpStrg(Dir) = UpStrg(Tempdir) then EraseFile(S);
+ if UpStrg(Dir) = UpStrg(Tempdir) then
+   begin
+     ClrIO;
+     FileMode := $42;
+     lAssignFile(F, S);
+     lEraseFile(F);
+     if IOResult = 5 then
+       begin
+         lSetFAttr(F, Archive);
+         lEraseFile(F);
+       end;
+     ClrIO;
+   end;
 end;
 
 function ValidDrive(dr : char) : Boolean;
@@ -1042,9 +1060,7 @@ begin
   InSpaceFilter:=true; if Pos(' ',Filter) > 0 then Filter := DelSpaces(Filter);
   UpStr(Filter); UpStr(Name);
   if Filter='' then Exit;
-{$IFNDEF OS2}
   Name:=Norm12(Name);
-{$ENDIF}
   repeat if Filter[Length(Filter)]=';' then SetLength(Filter, Length(Filter)-1);
     if Length(Filter) <> 0 then begin
       i := Length(Filter); while (i > 1) and (Filter[pred(i)]<>';') do dec(i);
@@ -1052,11 +1068,7 @@ begin
       InSpaceFilter := not B;
       if B then Delete(S, 1, 1); {DelFC(S);}
       DelLeft(S);
-{$IFNDEF OS2}
       if (S <> '') and InSpaceMask(Name, Norm12(S), true) then Exit;
-{$ELSE}
-      if (S <> '') and InSpaceMask(Name, S, true) then Exit;
-{$ENDIF}
       SetLength(Filter, pred(i));
     end
   until Length(Filter) = 0; InSpaceFilter:=false
@@ -1295,6 +1307,22 @@ begin
    PathFoundInArc := False;
 end;
 {/JO}
+
+{-DataCompBoy-}
+procedure GetFTimeSizeAttr(const A: string; var ATime: LongInt;
+                                          var ASize: TSize; var AAttr: Word);
+var
+  SR: lSearchRec;
+begin
+  ClrIO;
+  lFindFirst(A, AnyFile and not VolumeID, SR);
+  ATime := SR.SR.Time;
+  ASize := SR.Fullsize;
+  AAttr := SR.SR.Attr;
+  lFindClose(SR);
+  ClrIO;
+end;
+{-DataCompBoy-}
 
 function  InQSMask(Name, Mask: String):Boolean; {JO}
 begin

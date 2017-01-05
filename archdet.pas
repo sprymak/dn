@@ -82,7 +82,7 @@ begin
   ArcFile^.Read(FP, SizeOf(FP));
   if (ID = $04034b50) or ((FP = $06054b50) and (ArcFile^.GetPos > 4)) then
   begin
-    ZIPDetect := True;
+    if ID = $04034b50 then ZIPDetect := True;
     NullXLAT (NXL);
     FP := ArcFile^.GetPos;
     repeat
@@ -105,6 +105,7 @@ begin
         if ID = $02014B50 then
           begin {piwamoto: only if offset to Central Directory is correct}
            ArcPos := FP;
+           ZIPDetect := True;
            CentralDirRecPresent := True;
           end
          else if not Silent then messagebox(GetString(dlZIPWithoutCentralDir), nil, mfOKButton);
@@ -389,8 +390,9 @@ var
 begin
  ArcFile^.Read(W, SizeOf(W));
  TGZDetect := (ArcFile^.Status = stOK) and
-              ((W = $8b1f) or (W = $9d1f)) and
-              (InFilter(VArcFileName, '*.TAR;*.TAZ;*.TGZ;*.GZ;*.Z'));
+              ((W = $8b1f) or (W = $9d1f))
+{              and (InFilter(VArcFileName, '*.TAR;*.TAZ;*.TGZ;*.GZ;*.Z'))}
+              ;
  ArcFile^.Seek(ArcPos);
 end;
 

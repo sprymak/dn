@@ -39,6 +39,7 @@ var
   Queue: HMQ;
   hSw: LHandle;
   SwData: SwCntrl;
+  hwndDeskTop, MyWindow: HWND;
 
 function WinQueryObjectSh(pszObjectID: PChar): lHandle;
 begin
@@ -64,14 +65,13 @@ end;
 
 function IsBGWindow: Boolean; {AK155}
 var
-  ActiveWin: ULong;  // System Information Data Buffer
+  Focus: HWND;
 begin
   IsBGWindow := false;
-  if PMStatus = 3 {в окошке} then
+  if MyWindow <> 0 then
     begin
-      DosQuerySysInfo(25, 25, ActiveWin, sizeof(ActiveWin));
-      if ActiveWin <> SwData.idProcess then
-        IsBGWindow := true;
+    Focus := WinQueryFocus(hwndDeskTop);
+    IsBGWindow := Focus <> MyWindow;
     end;
 end;
 
@@ -267,6 +267,7 @@ initialization {Cat}
   if PMStatus = 0 {ещё не проверяли} then
     begin
       FillChar(SwData, SizeOf(SwData), 0);
+      MyWindow := 0;
       AddExitProc(Done);
       if DosGetInfoBlocks(Tib, Pib) = 0 then
         with Pib^ do
@@ -286,12 +287,21 @@ initialization {Cat}
                 Pib_ulType := 3;
                 Anchor := WinInitialize(0);
                 if Anchor <> 0 then
+                  begin
                   Queue := WinCreateMsgQueue(Anchor, 0);
+                  hwndDeskTop := WinQueryDesktopWindow(Anchor, NULLHANDLE);
+                  end;
                 hSw := WinQuerySwitchHandle(0, Pib_ulPid);
 
                 {AK155: получить SwData достаточно один раз }
                 if hSw <> 0 then
+                  begin
                   WinQuerySwitchEntry(hSw, @SwData);
+                  if (PMStatus = 3) and (hwndDeskTop <> 0) then
+                    MyWindow := WinQueryWindow(SwData.hwnd, QW_BOTTOM);
+                      {SwData.hwnd - это хендл рамки, а внутренность
+                       является в z-порядке последним окном в рамке}
+                  end;
               end
           end
       else

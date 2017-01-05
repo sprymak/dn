@@ -270,7 +270,7 @@ begin
   begin
    R.Assign(1,1,30,9);
    New(Info, Init(R));
-   Info^.Top := GetString(dlSearching) + '"' + Cut(SearchString.What, 40) + '"';
+   Info^.Top := GetString(dlSearching) + ' "' + Cut(SearchString.What, 40) + '"';
    NewTimer(Tmr, 2); Inserted := False;
   end;
  GetMem(Buf, BufLen); I := Pos; BPos := 0; CancelSearch := false;

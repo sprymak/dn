@@ -420,6 +420,29 @@ WriteKey:
              CharCode := #0;      // Gray Keys
         if KeyCode = $E00D then   // Gray Enter
           KeyCode := kbEnter;
+       {$IFDEF Win32}
+        if KeyCode = $b2a00 then // LAlt+LShift under Win32
+          begin
+            What := evNothing;
+            KeyCode := 0;
+          end;
+        if KeyCode = $41b1b then     // Ctrl-]  в виндах с русской раскладкой
+          KeyCode := kbCtrlSqBracketR; //       по дефолту
+        if KeyCode = $71b1b then    // Shift-Ctrl-] в виндах с русской
+          KeyCode := kbCtrlShiftSqBracketR; //  раскладкой по дефолту
+       {$ENDIF}
+       {$IFDEF OS2}
+       // ниже идут возможные варианты клавиш Ctrl-[ и Ctrl-] под OS/2
+       // при штатной русской раскладке
+        if KeyCode = $041A85 then
+           KeyCode := kbCtrlSqBracketL;
+        if (KeyCode = $041B8A) or (KeyCode = $041B91) then
+           KeyCode := kbCtrlSqBracketR;
+        if KeyCode = $071A85 then
+           KeyCode := kbCtrlShiftSqBracketL;
+        if (KeyCode = $071B8A) or (KeyCode = $071B91) then
+           KeyCode := kbCtrlShiftSqBracketR;
+       {$ENDIF}
         PrevKey := KeyCode;
         PrevKeyTime := GetTimemSec;
       end;

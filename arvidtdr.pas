@@ -62,6 +62,7 @@ procedure TdrEditDescription(AvtDr: PArvidDrive; var S, Nam: String; var PF: PFi
 procedure TdrCalcTotal(AvtDr: PArvidDrive; const Offset: LongInt; var LL: TSize);
 Function  TdrInit(AvtDr: PArvidDrive): boolean;
 {Function  TdrLoad(AvtDr: PArvidDrive; var S: TStream): boolean;}
+function  TdrMakeFileName(S: string): string; {JO}
 
 IMPLEMENTATION
 

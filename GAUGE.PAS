@@ -254,7 +254,7 @@ begin
    DrawView;
   end else
    begin
-    FillChar(S1[1], Size.X - 2, 0);
+    FillChar(S1[1], Size.X - 2, ' '); {JO}
     SetLength(S1, Size.X - 2);
     Move(S[1], S1[(Size.X - Length(S)) div 2], Length(S));
     WriteStr(1, N+1, S1, 7);

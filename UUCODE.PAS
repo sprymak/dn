@@ -880,6 +880,13 @@ end;
 procedure FlushBack;
 var s:string;
 begin
+ if POutBuf = nil then
+   exit; {AK155
+Такое бывает при массовом раскодировании, когда в одном файле был ююк
+без section, но с '`', затем встретился файл с 'M', а затем - файл с 'end',
+но без ююков (скажем, программа на Паскале). Так по этому end происходит
+вызов с POutBuf = nil. А предотвратить такое сложно, не разрушив при этом
+возможность раскодирования всяких не вполне корректных ююков}
  if KickBack=true then
  begin
   s:=StrT;StrT:=BackBuf;OutString;StrT:=s;SectCRC:=BackCRC;

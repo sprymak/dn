@@ -75,7 +75,8 @@ const
 
 IMPLEMENTATION
 uses DnStdDlg, Advance, DnApp, Commands, Lfn, Advance2, Ed2, Advance1, Views,
-     Collect, WinClp, Dos, Messages, Startup, DnIni, {SBlocks,} U_KeyMap, Macro,
+     Collect, WinClp, Dos, Messages, Startup, DnIni, CopyIni,
+     {SBlocks,} U_KeyMap, Macro,
      XTime, Memory, Drivers,
      {$IFDEF EAOP} FlTl, {$ENDIF}
      fnotify,
@@ -282,27 +283,13 @@ begin
    DoneIniEngine;
    ProbeINI(INIstoredtime,INIstoredsize,INIstoredcrc);
 
-   SystemData.Options        := SystemDataOpt;
-   InterfaceData.Options     := InterfaceDataOpt;
-   InterfaceData.DrvInfType  := DriveInfoType;
-   Startup.FMSetup.Options   := FMSetupOpt;
-   EditorDefaults.EdOpt      := EditorDefaultsOpt;
-   EditorDefaults.EdOpt2     := EditorDefaultsOpt2;
-   EditorDefaults.ViOpt      := ViewerOpt;
-   StartupData.Load          := StartupDataLoad;
-   StartupData.Unload        := StartupDataUnload;
-   StartupData.Slice2        := StartupDataSlice2;
-   Confirms                  := ConfirmsOpt;
-   SystemData.CopyLimitBuf   := CopyLimit;
-   SystemData.ForceDefArch   := ForceDefaultArchiver;
+   CopyIniVarsToCfgVars;
 
-   if HandleChDirCommand then SystemData.Options := SystemData.Options or (ossHandleChDirCommand {$IFDEF VIRTUALPASCAL}shr 3{$ENDIF})
-     else SystemData.Options := SystemData.Options xor (ossHandleChDirCommand {$IFDEF VIRTUALPASCAL}shr 3{$ENDIF});
-{$IFDEF FileNotify}
-   if DNIni.AutoRefreshPanels then NotifyInit; {JO}
-{$ENDIF}
    ConfigModified:=True;
    ShowIniErrors;
+   GlobalMessage(evCommand, cmReboundPanel, nil);
+     {AK155 Это временно, пока есть переменные, управляющие подвалом панели.
+      Конкретно - PackingInfoInBottom и PathInfoInBottom }
  end;
 end end;
         {-DataCompBoy-}

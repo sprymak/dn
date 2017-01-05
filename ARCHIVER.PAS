@@ -234,8 +234,10 @@ implementation
  uses LFN, {DnUtil, }advance, advance1, advance2, advance3, DNApp, Commands,
       Dialogs, FilesCol, FViewer, StartUp, RStrings, {Memory, Messages,}
       ArcView, FileCopy, HistList,{FStorage,} Menus, ArchDet, {UserSavr,} dnini, messages,
-{JO}  Memory, Videoman, DNExec{$IFDEF Win32}, VPSysLow{$ENDIF}; {/JO:  добавил для функции ArcExec}
-
+{JO}  Memory, Videoman, DNExec{$IFDEF Win32}, VPSysLow{$ENDIF} {/JO:  добавил для функции ArcExec}
+      , Eraser {JO: для разархивирования через временный подкаталог}
+      , UserMenu {JO: для скрывания панелей при разархивировании }
+      ;
 
 { ------------------------------- Collections ----------------------------- }
 
@@ -501,13 +503,16 @@ end;
 
 procedure TARJArchive.GetFile;
 const
-   GARBLED_FLAG      = $01;
+
+{  побитовые флаги для поля ARJ_Flags заголовка }
+   GARBLED_FLAG      = $01; // indicates passworded file
    OLD_SECURED_FLAG  = $02;
-   VOLUME_FLAG       = $04;
-   EXTFILE_FLAG      = $08;
-   PATHSYM_FLAG      = $10;
-   BACKUP_FLAG       = $20;
+   VOLUME_FLAG       = $04; // continued file to next volume (file is split)
+   EXTFILE_FLAG      = $08; // indicates file starting position field (for split files)
+   PATHSYM_FLAG      = $10; // archive name translated ("\" changed to "/")
+   BACKUP_FLAG       = $20; // obsolete
    SECURED_FLAG      = $40;
+// ALTNAME_FLAG      = $80     indicates dual-name archive
 
 var i    : AWord;
     FP   : Longint;
@@ -972,6 +977,14 @@ procedure UnarchiveFiles;
       Xt: String;
       Unp: String;
       FMod:  String;
+      DNN: Byte;
+      TempExtrDir: String;
+      TempDirUsed: Boolean;
+      FCT: PFilesCollection;
+      FRT: PFileRec;
+      OldConfirms: Word;
+      PV: PView;
+
 label ex {$IFNDEF OS2},TryAgain {$ENDIF};
 begin
    lFSplit(FName, Dr, Nm, Xt);
@@ -1012,8 +1025,34 @@ TryAgain:
    UnarchiveOpt := DT.W and not 2;
 {/JO}
    if (DT.S = '') or (DT.S = '.') then DT.S := GetPath(FName);
-   CreateDirInheritance(DT.S, true);
    ExtrDir := DT.S;
+   if ExtrDir[Length(ExtrDir)] <> '\' then ExtrDir := ExtrDir + '\';
+
+{JO}
+ // для разархивирования на дискеты и тестирования не используем
+ // временный подкаталог
+   if (UpCase(ExtrDir[1]) in ['A','B']) or (DT.W and 2 <> 0) then
+     begin
+       TempExtrDir := ExtrDir;
+       TempDirUsed := False;
+     end
+   else
+     begin
+     { даём имя временному подкаталогу в каталоге назначения}
+       DNN := DNNumber;
+       while true do
+         begin
+           TempExtrDir := ExtrDir + '$DN'+ItoS(DNN)+'$.EDR';
+           ClrIO;
+           if PathExist(TempExtrDir) then Inc(DNN) else Break;
+         end;
+       ClrIO;
+       TempExtrDir := TempExtrDir + '\';
+       TempDirUsed := True;
+     end;
+   CreateDirInheritance(TempExtrDir, True);
+{/JO}
+
    ExtrChar := CnvString(AType^.ExtractWP);
    if DT.W and 1 = 0 then ExtrChar := CnvString(AType^.Extract);
    if DT.W and 2 <> 0 then ExtrChar := CnvString(AType^.Test);
@@ -1045,8 +1084,9 @@ TryAgain:
      end};
    FMod := CnvString(AType^.ForceMode);
 {JO}
-   if (DT.W and 4 <> 0) and (FMod <> '') then FMod := FMod + ' '
-     else FMod := '';
+   if ((DT.W and 4 <> 0) or TempDirUsed) and (FMod <> '') then
+     FMod := FMod + ' '
+    else FMod := '';
 {/JO}
 {$IFNDEF OS2}
    if AType^.UseLFN then
@@ -1059,16 +1099,40 @@ TryAgain:
      ;
    if Xt = '' then S := S + '.';{piwamoto: extracting from extensionless archives}
    lGetDir(0, DirToChange);
-   Advance2.lChDir(ExtrDir);
+   Advance2.lChDir(TempExtrDir);
    DelDoubles('  ', S);
-
-   Message(Application, evCommand, cmExecString, @S);
-   Advance2.lChDir(DirToChange); DirToChange := '';
-
-   {Password := DT.Psw;
-   ExtractFiles(AFiles, ExtrDir, Own, DT.W);}
-
+   ExecStringRR(@S, '', False);
+{JO}
+  if not TempDirUsed then Goto Ex
+   else
+    begin
+    { перекидываем файлы из временного подкаталога в каталог назначения}
+      PV := New(PUserWindow, Init);
+      Desktop^.Insert(PV);
+      CopyDirContent(TempExtrDir, ExtrDir, True, (DT.W and 4 <> 0));
+      PV^.Free;
+    { удаляем временный каталог со всем, что в нём осталось}
+      SetLength(TempExtrDir, Length(TempExtrDir) - 1);
+      S := GetPath(TempExtrDir);
+      FRT := NewFileRec(GetName(TempExtrDir),
+                        {$IFNDEF OS2}
+                        GetName(TempExtrDir),
+                        {$ENDIF}
+                        0,0,0,0, Directory,
+                        @S);
+      New(FCT, Init(1,1));
+      FCT^.AtInsert(0,FRT);
+      OldConfirms := Confirms;
+      Confirms := 0;
+      Advance2.lChDir(S);
+      Eraser.EraseFiles(FCT);
+      Confirms := OldConfirms;
+      FCT^.DeleteAll;
+      Dispose(FCT, Done);
+    end;
+{/JO}
 Ex:
+   Advance2.lChDir(DirToChange); DirToChange := '';
    FreeObject(AType);
 end;
         {-DataCompBoy-}
@@ -1235,7 +1299,7 @@ begin
          (ArcFile^.EOF) or
    {ZIP} (ArcId = $04034b50 {'PK'#3#4}) or
    {RAR} (ArcId = $21726152 {'Rar!'}) or
-   {ARJ} (((ArcId and $ffff) = $ea60) and ((ArcId and $ff000000) < $b000000)) or
+   {ARJ} (((ArcId and $ffff) = $ea60) and (Byte(ArcId shr 24) < $b)) or
    {IS3} (ArcId = $8c655d13 {#$13#$5D#$65#$8C}) or
    {ZOO} (ArcId = $fdc4a7dc {#$DC#$A7#$C4#$FD}) or
    {CHZ} (ArcId = $46684353 {'SChF'}) or

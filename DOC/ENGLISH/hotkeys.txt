@@ -8,6 +8,8 @@
  <Alt-Shift-F3> - view file in text mode;
  <Alt-F7> - back search in text viewer;
  <F8> - switch character mapping in dbf viewer;
+ <Alt-S> - toggle column separarot in spreadsheet;
+ <Alt-Left>, <Alt-Right> - change column width in spreadsheet;
  <Ctrl-Enter> - in command history - copy command to the command line;
  <F6> - in editor: see DN.INI key F6_DuplicatesLine , section [Editor]
  <Alt-Home> - in Win32 version acts the same as <Alt-Enter>, i.e. calls
@@ -15,6 +17,7 @@
  <Alt-F11> - in plugin version - calls Plugin Manager;
  <Ctrl-F> - open WPS (in OS/2 version) or Explorer (in Win32 version) folder
  <Ctrl-J> - create program object for current executable on desktop (OS/2
-            version)
- <Ctrl-Num5> - Select whole text in editor
+            version);
+ <Ctrl-Num5>, <Ctrl-A> - Select whole text in editor;
+ <Ctrl-H> - hide/show selection in editor (the same as Ctrl-K, H);
  <F11> - Task list (currently used only in OS/2 version)

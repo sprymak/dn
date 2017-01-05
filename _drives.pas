@@ -40,8 +40,8 @@ type
     procedure KillUse; virtual;
     procedure lChDir(ADir: String); virtual;
     function GetDir: String; virtual;
-    function GetDirectory(SortMode, PanelFlags: Integer; const FileMask: String;
-                          var FreeSpace, TotalInfo: String): PCollection; virtual;
+    function GetDirectory: function(SortMode, PanelFlags: Integer; const FileMask: String;
+      var TotalInfo: TSize; var FreeSpace: String; Obj: Pointer): PCollection; virtual;
     procedure CopyFiles(Files: PCollection; Own: PView; MoveMode: Boolean); virtual;
     procedure CopyFilesInto(Files: PCollection; Own: PView; MoveMode: Boolean); virtual;
     procedure EraseFiles(Files: PCollection); virtual;
@@ -68,6 +68,7 @@ type
     procedure EditDescription(PF: PFileRec); virtual;
     procedure GetDirLength(PF: PFileRec); virtual;
     procedure GetParam(N: Byte); virtual;
+    function OpenDirectory(const Dir: String): PDrive; virtual;
     {destructor Done; virtual;}
   end;
 
@@ -134,6 +135,7 @@ type
     KillAfterUse:Boolean;
     FakeKillAfterUse: Boolean;
     ArcDate: LongInt;
+    ArcSize:     Comp;
     ForceRescan: Boolean;
     Password: String;
     constructor Init(const AName, VAName: String; ViewMode: Byte);
@@ -286,7 +288,8 @@ assembler;{&Frame-}
 asm
 end;
 
-function TDrive.GetDirectory(SortMode, PanelFlags: Integer; const FileMask: String; var FreeSpace, TotalInfo: String): PCollection;
+function TDrive.GetDirectory: function(SortMode, PanelFlags: Integer; const FileMask: String;
+      var TotalInfo: TSize; var FreeSpace: String; Obj: Pointer): PCollection;
 assembler;{&Frame-}
 asm
 end;
@@ -417,6 +420,11 @@ asm
 end;
 
 procedure TDrive.GetParam(N: Byte);
+assembler;{&Frame-}
+asm
+end;
+
+function TDrive.OpenDirectory(const Dir: String): PDrive; virtual;
 assembler;{&Frame-}
 asm
 end;

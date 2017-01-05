@@ -66,7 +66,7 @@ type
   {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
    Owner: Pointer;
    Prev: PDrive;
-   DriveType: ( dtUndefined, dtDisk, dtFind, dtTemp, dtList, dtArc, dtLink, dtArvid );
+   DriveType: ( dtUndefined, dtDisk, dtFind, dtTemp, dtList, dtArcFind, dtArc, dtLink, dtArvid );
    CurDir: String;          {DataCompBoy}
    DIZOwner: String;        {DataCompBoy}
    NoMemory: Boolean;
@@ -85,7 +85,7 @@ type
    procedure lChDir(ADir: String); virtual;     {DataCompBoy}
    function  GetDir: String; virtual;            {DataCompBoy}
    function  GetDirectory(SortMode, PanelFlags: Integer; const FileMask: String;
-                          var FreeSpace, TotalInfo: String): PCollection; virtual;
+               var FreeSpace: String; var TotalInfo: TSize): PCollection; virtual;
    procedure CopyFiles(Files: PCollection; Own: PView; MoveMode: Boolean); virtual;
    procedure CopyFilesInto(Files: PCollection; Own: PView; MoveMode: Boolean); virtual;
    procedure EraseFiles(Files: PCollection); virtual;
@@ -113,10 +113,10 @@ type
    procedure GetDirLength(PF: PFileRec); virtual; {DataCompBoy}
    procedure GetParam(n: byte); virtual; {DataCompBoy}
    destructor Done; virtual;
+   function OpenDirectory(const Dir: String): PDrive; virtual;
   end;
 
 procedure RereadDirectory(Dir: String);
-function CalcTotalInfo(A, B: Word; C: TSize): string;
 function GetFilesColl(
     var TotalLen: TSize;
     var TFiles: Word;
@@ -133,7 +133,8 @@ const
 
 implementation
 uses Startup, Tree, DNApp, RStrings, FileCopy, Eraser, FlPanel, Commands,
-     Dialogs, FileFind, FlPanelX, filediz, CmdLine{!!}{, Crt, Messages};
+     Dialogs, FileFind, FlPanelX, filediz, CmdLine
+     , xTime, Messages;
 
 type
         {-DataCompBoy-}
@@ -150,6 +151,13 @@ type
          procedure FreeItem(P: Pointer); virtual;
          function Compare(P1, P2: Pointer): Integer; virtual;
        end;
+
+
+function ESC_Pressed: Boolean; var E: TEvent;
+begin
+  Application^.Idle;
+  GetKeyEvent(E); ESC_Pressed := (E.What = evKeyDown) and (E.KeyCode = kbEsc)
+end;
 
         {-DataCompBoy-}
 procedure TDIZCol.FreeItem;
@@ -934,7 +942,7 @@ begin
   while true do
     begin
     { Обработка нового описания. S уже прочитана.}
-    if (S[1] in [' ',#9]) then
+    if (S[1] in [' ',#9,'>']) then
       goto ReadNextLine; { игнорируем остаток
          предыдущего многострочного описания }
 
@@ -977,18 +985,33 @@ begin
     DelLeft(S);
     S1 := S;
 
-    while true do                    {AK155: Дочитываем многострочное описание (сколько влазит в S1).        }
-      begin                          { Это нормально работает для просмотра описаний, но приводит            }
-      if not ReadNextS then          { к глюкам при попытке редактирования многострочного описания.          }
-        break;                       { Впрочем, при редактировании многострочных описаний глюки              }
-      if not (S[1] in [' ',#9]) then { будут в любом случае, так как фактически редактируется только         }
-        break;                       { первая строка. Чтобы избавиться от глюков, надо серьезно переделывать }
-      DelLeft(S);                    { и формат TDesc, и его отображение, и его редактирование. Можно        }
-      LS := length(S1);              { ввести коллекцию строк, а не одну строку, и попытаться заюзать        }
-      if LS >= 253 then              { редактор. Или вообще не заниматься самодеятельностью, а просто        }
-        break;                       { вызывать стандартный редактор для файла описаний, установив курсор    }
-                                     { на нужную строку (предварительно создав эту строку, если ее не было)  }
-      S1 := S1 + #20' ' + Copy(S, 1, 253-LS);
+{
+AK155: Дочитываем многострочное описание (сколько влазит в S1).
+Признаком дополнительной строки является побел или Tab в начале,
+а такэже '>' в начале (files. bbs вформате AllFix).
+  Это нормально работает для просмотра описаний, но приводит
+к глюкам при попытке редактирования многострочного описания.
+Впрочем, при редактировании многострочных описаний глюки
+будут в любом случае, так как фактически редактируется только
+первая строка. Чтобы избавиться от глюков, надо серьезно переделывать
+и формат TDesc, и его отображение, и его редактирование. Можно
+ввести коллекцию строк, а не одну строку, и попытаться заюзать
+редактор. Или вообще не заниматься самодеятельностью, а просто
+вызывать стандартный редактор для файла описаний, установив курсор
+на нужную строку (предварительно создав эту строку, если ее не было)
+}
+    while true do
+      begin
+      if not ReadNextS then
+        break;
+      if not (S[1] in [' ',#9,'>']) then
+        break;
+      j := 2; while (j <= length(S)) and (S[j] = ' ') do inc(j);
+      LS := length(S1);
+      if LS >= 253 then
+        break;
+
+      S1 := S1 + #20' ' + Copy(S, j, 253-LS);
       end;
  {JO: пока сделал так: "дочитанные" куски отделяются от основной части (и друг }
  {    от друга) символом #20, который ищется при редактировании и копировании}
@@ -1089,7 +1112,7 @@ begin
 {$ELSE}
 begin
 {$ENDIF}
-  TFiles:=0;
+  TFiles:=0; TotalLen := 0;
   Files := New(PFilesCollection, Init($10, $20));
   PFilesCollection(Files)^.Owner := Owner;
   PFilesCollection(Files)^.SortMode := SortMode;
@@ -1195,7 +1218,7 @@ function TDrive.GetDirectory;
      P: PFileRec;
      I,J: Integer;
      AllFiles, ShowD: Boolean;
-     FreeSpc, TotalLen: TSize;
+     FreeSpc: TSize;
      TFiles: Word;
      Descriptions: PDIZCol;
    {$IFDEF CHDIRTIMER}
@@ -1208,8 +1231,8 @@ begin
    DDTimer := Get100s;
 {$ENDIF}
  ClrIO;
- TFiles := 0; DOSError := 0; TotalLen := 0;
- DIZOwner := ''; FreeSpace := ''; TotalInfo := '';
+ TFiles := 0; DOSError := 0;
+ DIZOwner := ''; FreeSpace := '';
  Descriptions := nil;
  Abort := false;
  ShowD := (Flags and psShowDescript <> 0);
@@ -1217,12 +1240,10 @@ begin
  if ShowD or (FMSetup.Options and fmoAlwaysCopyDesc <> 0) or (SortMode = psmDIZ)
     then PrepareDIZ(CurDir, DIZOwner, Descriptions);
 
- Files := GetFilesColl(TotalLen, TFiles, PanelFlags, @CurDir, FileMask, Owner,
+ Files := GetFilesColl(TotalInfo, TFiles, PanelFlags, @CurDir, FileMask, Owner,
                  SortMode {$IFNDEF OS2}, (Flags and psShowLongName <> 0){$ENDIF});
 
  NoMemory := not MemOK;
-
- TotalInfo := CalcTotalInfo(Files^.Count, TFiles, TotalLen);
 
  if PanelFlags and fmiFree <> 0 then GetFreeSpace(FreeSpace);
 
@@ -1436,21 +1457,107 @@ begin
 end;
         {-DataCompBoy-}
 
-function CalcTotalInfo;
-var
-  S: string;
-begin
- if A = 0 then S := GetString(dlDINoFiles)
-  else begin
-        S := GetString(dlTotal);
-        if B = 1 then S := S+'1~ '+GetString(dlDIFile)
-                 else S := S+ItoS(B)+'~ '+GetString(dlDIFiles);
-        S := S + GetString(dlDIWith) + '~';
-        if C = 1 then S := S + '1~ '+GetString(dlDIByte)
-                 else S := S + FStr(C)+'~ '+GetString(dlDIBytes);
+        {-DataCompBoy-}
+function TDrive.OpenDirectory(const Dir: String): PDrive;
+  var I: LongInt;
+      PI: PView;
+      PDrv: PDrive;
+      Dirs: PStringCollection;
+      Files:PFilesCollection;
+      P: PString;
+      tmr: TEventTimer;
+      MemReq: LongInt;
+
+  procedure AddDirectory(S: String);
+  begin
+     if not MemOk then exit;
+     if S[Length(S)] <> '\' then AddStr(S, '\');
+     S[1]:=LowCase(S[1]);
+     Dirs^.Insert(NewStr(S));
+  end;
+
+  procedure ReadDir(Dr: PString);
+    var SR: lSearchRec;
+        P: PFileRec;
+        D: DateTime;
+  begin
+     ClrIO;
+     lFindFirst(Dr^+x_x, AnyFile, SR); {JO}
+     while not Abort and (DOSError = 0) and MemOk do
+       begin
+         if (SR.SR.Attr and Hidden = 0) or (not Security) then
+           if SR.SR.Attr and Directory = 0 then
+             begin
+               Files^.AtInsert(Files^.Count, NewFileRec(SR.FullName,
+                                                        {$IFNDEF OS2}
+                                                        SR.SR.Name,
+                                                        {$ENDIF}
+                                                        SR.FullSize,
+                                                        SR.SR.Time,
+                                                        SR.SR.CreationTime,
+                                                        SR.SR.LastAccessTime,
+                                                        SR.SR.Attr,
+                                                        Dr));
+               Inc(MemReq, SizeOf(TFileRec));
+               Inc(MemReq, Length(Dr^+SR.FullName)+1);
+             end else
+             if{$IFNDEF OS2}(SR.SR.Name[1] <> '.') and (SR.FullName <> '.') and (SR.FullName <> '..')
+                         {$ELSE}(SR.SR.Name <> '..') and (SR.SR.Name <> '.'){$ENDIF}
+                                     then AddDirectory(Dr^+SR.FullName);
+         lFindNext(SR);
        end;
- CalcTotalInfo := S;
+    lFindClose(SR);
+{$IFDEF OS2}
+    if DosError = 49 then messagebox(GetString(dl_CodePage_FS_Error), nil, mfError+mfOKButton);
+{$ENDIF}
+  end;
+
+begin
+  NewTimer(Tmr,0);
+  Dirs := New(PStringCollection, Init($10,$10,False));
+
+  PI := WriteMsg(GetString(dlReadingList));
+  New(Files, Init($10, $10)); Files^.SortMode := psmOrdered;
+{$IFDEF Win32}
+ Files^.LFNActive := True; {JO}
+{$ENDIF}
+  AddDirectory(lFExpand(Dir));
+  I := Dirs^.Count-1;
+  MemReq := LowMemSize;
+  Abort:=False;
+  while (I >= 0) and (not Abort) and (System.MemAvail > MemReq) and MemOk do
+    begin
+      I := Dirs^.Count-1;
+      {if Files^.Count >= 2000 then Break;}
+      while (I >= 0) and (not Abort) and (System.MemAvail > MemReq) and MemOk do
+        begin
+          UpdateWriteView(PI);
+          P := Dirs^.At(I);
+          if (P^[1] >= 'a') and (P^[1] <= 'z') then
+            begin
+              P^[1]:=UpCase(P^[1]);
+              Dirs^.AtDelete(I);
+              Dirs^.Insert(P);
+              ReadDir(P);
+              if TimerExpired(Tmr) then
+              begin
+                NewTimer(Tmr, 1);
+                if ESC_Pressed then Abort := True;
+              end;
+              Break;
+            end;
+          Dec(I);
+        end;
+    end;
+  PI^.Free;
+// JO: здесь сортировка не нужна, т.к. она делается в TFindDrive.GetDirectory
+//     и в результате мы получаем сортировку дважды
+ {Files^.Sort;}
+  PDrv := New(PFindDrive, Init(GetString( dlBranch )+Dir, Dirs, Files, FreeByte));
+  PDrv^.NoMemory := System.MemAvail <= MemReq;
+  OpenDirectory := PDrv;
 end;
+        {-DataCompBoy-}
 
 procedure RereadDirectory;
  var Event: TEvent;

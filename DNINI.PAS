@@ -184,6 +184,14 @@ const
 {}AutoRefreshDriveLine     : Boolean    = False; {Cat}
 {}AutoRefreshPanels        : Boolean    = False; {Cat}
 {}QuickSearchType          : Byte       = 0; {Cat}
+{}BriefSelectedInfo        : Boolean    = true;  {AK155}
+{}BriefTotalInfo           : Boolean    = false; {AK155}
+{}PackingInfoInBottom      : Boolean    = true; {AK155}
+{}PathInfoInBottom         : Boolean    = true; {AK155}
+{$IFDEF OS2}
+{}ExecWin32GUI             : String[30] = 'start /n /f pe';
+{}ExecWin32CUI             : String[30] = 'pec';
+{$ENDIF}
 {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
 {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
 {`.________________________;____________;____________________;___________________'}
@@ -229,6 +237,20 @@ const
 {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~;~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
 {;      Variable name      ;   Type  ; Default value  ;          Comments ;}
 {`.________________________;_________;________________;___________________'}
+{}{QuickDirs}
+{}QDirs1                   : String = '';          {Quick Dirs - 1}
+{}QDirs2                   : String = '';          {Quick Dirs - 2}
+{}QDirs3                   : String = '';          {Quick Dirs - 3}
+{}QDirs4                   : String = '';          {Quick Dirs - 4}
+{}QDirs5                   : String = '';          {Quick Dirs - 5}
+{}QDirs6                   : String = '';          {Quick Dirs - 6}
+{}QDirs7                   : String = '';          {Quick Dirs - 7}
+{}QDirs8                   : String = '';          {Quick Dirs - 8}
+{}QDirs9                   : String = '';          {Quick Dirs - 9}
+{,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~;~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
+{;      Variable name      ;   Type  ; Default value  ;          Comments ;}
+{`.________________________;_________;________________;___________________'}
+
 {}{SetupStorage}
 {}SystemDataOpt            : Longint = 75;         {SystemData.Options}
 {}InterfaceDataOpt         : Longint = 8201;       {InterfaceData.Options}
@@ -244,15 +266,6 @@ const
                               + cfMouseConfirm + cfExitConfirm + cfChaneLngWarning; {Confirms}
 {}NonVIOScreenMode         : Longint = 65535;      {JO}{последний видеорежим в полноэкранной сессии}
 {}VIOScreenMode            : Longint = 65535;      {JO}{последний видеорежим в оконной сессии}
-{}QDirs1                   : String = '';          {Quick Dirs - 1}
-{}QDirs2                   : String = '';          {Quick Dirs - 2}
-{}QDirs3                   : String = '';          {Quick Dirs - 3}
-{}QDirs4                   : String = '';          {Quick Dirs - 4}
-{}QDirs5                   : String = '';          {Quick Dirs - 5}
-{}QDirs6                   : String = '';          {Quick Dirs - 6}
-{}QDirs7                   : String = '';          {Quick Dirs - 7}
-{}QDirs8                   : String = '';          {Quick Dirs - 8}
-{}QDirs9                   : String = '';          {Quick Dirs - 9}
 {,'~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`~~~~~~~~~~~~`,}
 {;                   This is end of parameters definitions                       ;}
 {`.______________________________________________________________________________'}
@@ -313,6 +326,7 @@ const
  CSTaskList             :PChar = 'TaskList';
  CSLanguage             :PChar = 'Language';
  CSRegExp               :PChar = 'RegExp';
+ CSQuickDirs            :PChar = 'QuickDirs';
  CSSetupStorage         :PChar = 'SetupStorage';
 
 type
@@ -493,6 +507,14 @@ begin
   RegisterVar(CSFilePanels,'AutoRefreshDriveLine', ikBool, SizeOf(AutoRefreshDriveLine), @AutoRefreshDriveLine); {Cat}
   RegisterVar(CSFilePanels,'AutoRefreshPanels',    ikBool, SizeOf(AutoRefreshPanels),    @AutoRefreshPanels); {Cat}
   RegisterVar(CSFilePanels,'QuickSearchType',      ikUInt, SizeOf(QuickSearchType),      @QuickSearchType); {Cat}
+  RegisterVar(CSFilePanels,'BriefSelectedInfo',    ikBool, SizeOf(BriefSelectedInfo),    @BriefSelectedInfo); {AK155}
+  RegisterVar(CSFilePanels,'BriefTotalInfo',       ikBool, SizeOf(BriefTotalInfo),       @BriefTotalInfo); {AK155}
+  RegisterVar(CSFilePanels,'PackingInfoInBottom',  ikBool, SizeOf(PackingInfoInBottom),  @PackingInfoInBottom); {AK155}
+  RegisterVar(CSFilePanels,'PathInfoInBottom',     ikBool, SizeOf(PathInfoInBottom),     @PathInfoInBottom); {AK155}
+{$IFDEF OS2}
+  RegisterVar(CSFilePanels,'ExecWin32GUI',         ikStr,  SizeOf(ExecWin32GUI),         @ExecWin32GUI);
+  RegisterVar(CSFilePanels,'ExecWin32CUI',         ikStr,  SizeOf(ExecWin32CUI),         @ExecWin32CUI);
+{$ENDIF}
   {NetInfo}
   RegisterVar(CSNetInfo,   'NoLevelsInfo',         ikBool, SizeOf(NoLevelsInfo),         @NoLevelsInfo);
   {TaskList}
@@ -517,6 +539,16 @@ begin
   RegisterVar(CSRegExp,    'RegExpStr8',           ikStr,  SizeOf(RegExpStr8),           @RegExpStr8);        {PZ}
   RegisterVar(CSRegExp,    'RegExpStr9',           ikStr,  SizeOf(RegExpStr9),           @RegExpStr9);        {PZ}
 {$ENDIF}
+  {QuickDirs}
+  RegisterVar(CSQuickDirs, 'QDirs1',               ikStr,  SizeOf(QDirs1),               @QDirs1);
+  RegisterVar(CSQuickDirs, 'QDirs2',               ikStr,  SizeOf(QDirs2),               @QDirs2);
+  RegisterVar(CSQuickDirs, 'QDirs3',               ikStr,  SizeOf(QDirs3),               @QDirs3);
+  RegisterVar(CSQuickDirs, 'QDirs4',               ikStr,  SizeOf(QDirs4),               @QDirs4);
+  RegisterVar(CSQuickDirs, 'QDirs5',               ikStr,  SizeOf(QDirs5),               @QDirs5);
+  RegisterVar(CSQuickDirs, 'QDirs6',               ikStr,  SizeOf(QDirs6),               @QDirs6);
+  RegisterVar(CSQuickDirs, 'QDirs7',               ikStr,  SizeOf(QDirs7),               @QDirs7);
+  RegisterVar(CSQuickDirs, 'QDirs8',               ikStr,  SizeOf(QDirs8),               @QDirs8);
+  RegisterVar(CSQuickDirs, 'QDirs9',               ikStr,  SizeOf(QDirs9),               @QDirs9);
   {SetupStorage}
   RegisterVar(CSSetupStorage, 'SystemDataOpt',     ikSInt, SizeOf(SystemDataOpt),        @SystemDataOpt);
   RegisterVar(CSSetupStorage, 'InterfaceDataOpt',  ikSInt, SizeOf(InterfaceDataOpt),     @InterfaceDataOpt);
@@ -531,15 +563,6 @@ begin
   RegisterVar(CSSetupStorage, 'ConfirmsOpt',       ikSInt, SizeOf(ConfirmsOpt),          @ConfirmsOpt);
   RegisterVar(CSSetupStorage, 'NonVIOScreenMode',  ikSInt, SizeOf(NonVIOScreenMode),     @NonVIOScreenMode);
   RegisterVar(CSSetupStorage, 'VIOScreenMode',     ikSInt, SizeOf(VIOScreenMode),        @VIOScreenMode);
-  RegisterVar(CSSetupStorage, 'QDirs1',            ikStr,  SizeOf(QDirs1),               @QDirs1);
-  RegisterVar(CSSetupStorage, 'QDirs2',            ikStr,  SizeOf(QDirs2),               @QDirs2);
-  RegisterVar(CSSetupStorage, 'QDirs3',            ikStr,  SizeOf(QDirs3),               @QDirs3);
-  RegisterVar(CSSetupStorage, 'QDirs4',            ikStr,  SizeOf(QDirs4),               @QDirs4);
-  RegisterVar(CSSetupStorage, 'QDirs5',            ikStr,  SizeOf(QDirs5),               @QDirs5);
-  RegisterVar(CSSetupStorage, 'QDirs6',            ikStr,  SizeOf(QDirs6),               @QDirs6);
-  RegisterVar(CSSetupStorage, 'QDirs7',            ikStr,  SizeOf(QDirs7),               @QDirs7);
-  RegisterVar(CSSetupStorage, 'QDirs8',            ikStr,  SizeOf(QDirs8),               @QDirs8);
-  RegisterVar(CSSetupStorage, 'QDirs9',            ikStr,  SizeOf(QDirs9),               @QDirs9);
 end;
 
 function IniVarToStr ( Kind : TIniItemKind; Size : Word; PVar : Pointer ) : string;
@@ -795,7 +818,6 @@ begin
         INItime:=SR.SR.Time;
         INIsize := 0; {AK155 на случай DPMI, где Size: longint}
         move(SR.SR.Size, INIsize, SizeOf(SR.SR.Size));{AK155 Size: comp}
-        INIcrc :=0;
         {F.Init(SourceDir+'DN.INI', stOpenRead);
         S := Min(INIsize, 32767);
         if S>0 then begin

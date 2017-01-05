@@ -186,12 +186,6 @@ function OemToCharStr(OemS: String): String;
 function CharToOemStr(CharS: String): String;
 {$ENDIF}
 
-implementation
-
-uses
-  {$IFDEF WIN32} Windows, {$ENDIF}
-  Strings, Commands{Cat};
-
 {$IFDEF WIN32}
 const
   NoShortName: string[12] = #22#22#22#22#22#22#22#22'.'#22#22#22;
@@ -212,6 +206,12 @@ const
 честнее, чем с обрезанным именем, под которым файл недоступен.
 }
 {$ENDIF}
+
+implementation
+
+uses
+  {$IFDEF WIN32} Windows, {$ENDIF}
+  Strings, Commands{Cat};
 
  Function StrPas_(S: Array Of Char): String;
   var ss: string;

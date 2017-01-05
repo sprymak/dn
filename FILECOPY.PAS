@@ -79,6 +79,10 @@ function  CopyDialog(var CopyDir: String; var Mask: String; {DataCompBoy}
                      MoveMode: Boolean; Files: PCollection;
                      FromTemp: Byte; Owner: PView; Link: Boolean): Boolean;
 
+procedure CopyDirContent(Source, Destination: String;
+                         MoveMode, Forced: Boolean); {JO}
+
+
 implementation
 uses DNApp, Startup, Memory, Messages, HistList, Commands,
      xTime, Validate,
@@ -164,20 +168,6 @@ function MaxAvail: LongInt;
 begin
   MaxAvail := MemAdjust(System.MaxAvail);
 end;
-
-        {-DataCompBoy-}
-procedure GetFTimeSizeAttr(const A: string; var ATime: LongInt; var ASize: TSize; var AAttr: Word);
-var
-  SR: lSearchRec;
-begin
-  ClrIO;
-  lFindFirst(A, AnyFile and not VolumeID, SR);
-  ATime := SR.SR.Time;
-  ASize := SR.Fullsize;
-  AAttr := SR.SR.Attr;
-  lFindClose(SR);
-end;
-        {-DataCompBoy-}
 
         {-DataCompBoy-}
 procedure TCopyCollection.FreeItem;
@@ -596,7 +586,8 @@ end;
 
         {-DataCompBoy-}
 procedure FilesCopy(Files: PCollection; Owner: PView;
-                    const CopyDir, Mask: String; CopyMode, CopyOptions: Word; CopyPrn: Boolean);
+                    const CopyDir, Mask: String; CopyMode, CopyOptions: Word;
+                    CopyPrn, RR: Boolean);
 
 var  ReadStream:  lfile;
      WriteStream: lfile;
@@ -1529,7 +1520,7 @@ lbStartWrite:
 
    begin { CopyFile }
 {JO: !!! не копируем файлы найденные в архивах  }
-      if PathFoundInArc(FName) then Exit;
+     {if PathFoundInArc(FName) then Exit;}
 {/JO}
       if CopyPrn then
       begin
@@ -1687,6 +1678,7 @@ lbStartWrite:
       {Info^.DrawView;}
       Ln:=FileSize(ReadStream.F); {-$VOL}
       repeat
+        if CopyQueue^.Count > 400 then MaxWrite; {John_SW  06-11-2002}
         SkipRequested := false;
         WW := {Cat:warn} Round(Ln - Rd);
         if WW > BSize then WW := BSize;
@@ -1771,7 +1763,6 @@ FileRead:
         end;
 
         P^.Write(B^);
-        if CopyQueue^.Count > 400 then MaxWrite; {John_SW  06-11-2002}
         CopyQueue^.Insert(P);
         if Abort or CopyCancel then Break;
         EOF := EOF and not eoStart;
@@ -2383,7 +2374,7 @@ qqqq:
         GlobalMessage(evCommand, cmRereadTree, @SSS);
       end;
   SSS := Copy(lFExpand(CopyDir), 1, Inhr);
-  if (Inhr <> 0) then RereadDirectory(SSS);
+  if (Inhr <> 0) and RR then RereadDirectory(SSS);
   Message(Owner, evCommand, cmRecountDirs, nil);
  {$IFDEF OS_DOS}
   if Flush then
@@ -2422,7 +2413,7 @@ function CopyDialog;
     hFile: longint;
     SR: lSearchRec;
     Idx: TDlgIdx;
-    I: Integer;
+    I, l: Integer;
     SSS: string;
     C: char;
     DEr: Boolean;
@@ -2539,22 +2530,39 @@ begin
    {$ENDIF}
    S := DT.S3; CopyMode := DT.WW; CopyOpt := DT.WW1;
    DelRight(S); DelLeft(S); {AK155}
-  {JO: заменяем все '.\' и '\\' в середине и конце пути на '\' }
-   while True do
+{AK155 22-12-2002
+   Следующий странный фрагмент посвящен, прежде всего, борьбе с
+завуалированной эквивалентностью целевого каталога исходному
+(при копировании каталога). Без этого при существующей реализации
+копирования каталогов при наличии такой эквивалентности на диске
+возникает зацикленная структура каталогов. Например, попробуйте
+закомментировать этот кусок, стать на каталог D, нажать F5 и ввести
+'D.' или 'D.\.\' . Лучше делать это на RAM-диске :)
+Плохо также, когда задается дурацкий вопрос о перезаписи при
+копировании файла типа 'f' в 'f..'
+   С другой стороны, точки и слэши могут встречаться во вполне
+осмысленных сочетаниях типа '..' (ввести руками, чтобы скопировать
+вовне) или D:\D\..\file.ext (D&D одиночного файла на '..') или
+D:\D\.. (D&D нескольких файлов на '..')
+   К этому вопросу прикладывали руки многие, в частности, JO, Cat,
+AK155. При этом то восстанавливалось зацикливание, то становилось
+невозможным какое-то осмысленное копирование. Данная коррекция
+вызвана тем, что в b09 перестал работать D&D одиночного файла
+на точечки UpDir.
+}
+   I := Length(S);
+   while true do
      begin
-       for I := Length(S)-1 downto 1 do
-         if (Copy(S, I, 2) = '.\') or (Copy(S, I, 2) = '\\') then Break;
-       if (I > 1) then Delete(S, I, 1)
-         else Break;
+     if GetName(S) = '..' then break;
+     l := I;
+     while S[I]='.' do dec(I);
+     while S[I] = '\' do dec(I);
+     if l=I then
+       break;
+     SetLength(S,I);
      end;
-   if Copy(S, 1, 2) = '.\' then S := '.' + S;
-  {/JO}
-   if not IsDummyDir(GetName(S)) then
-     {AK155, JO: без GetName глючит D&D выделенных или всех файлов на '..'}
-     begin I := Length(S); while S[I]='.' do dec(I); SetLength(S,I); end;
-       {JO: иначе зацикливаемся с копированием каталога типа 'D' в 'D.'}
-       {Cat: иначе задается дурацкий вопрос о перезаписи при копировании
-         файла типа 'f' в 'f..'}
+{/AK155 22-12-2002}
+
    ccCopyMode := DT.WW; ccCopyOpt := DT.WW1;
 
    if (FMSetup.Options and fmoAlwaysCopyDesc = 0) and (Owner <> nil) and
@@ -2705,7 +2713,7 @@ begin
 {$IFDEF FileNotify}
    NotifySuspend; {Cat}
 {$ENDIF}
-   FilesCopy(Files, Owner, CopyDir, Mask, CopyMode, CopyOpt, CopyPrn);
+   FilesCopy(Files, Owner, CopyDir, Mask, CopyMode, CopyOpt, CopyPrn, True);
 {$IFDEF FileNotify}
    NotifyResume; {Cat}
 {$ENDIF}
@@ -2719,5 +2727,56 @@ begin
    Application^.PutEvent(ev);
 {$ENDIF}
 end;
+
+{JO}
+procedure CopyDirContent(Source, Destination: String;
+                         MoveMode, Forced: Boolean);
+ Var SR: lSearchRec;
+     FC: PFilesCollection;
+     FR: PFileRec;
+begin
+   if (Source[Length(Source)] <> '\') and (Source <> '') then
+     Source := Source + '\';
+   New(FC, Init($10,$10));
+   ClrIO;
+   lFindFirst(Source+x_x, AnyFile and not VolumeID, SR);
+   while (DOSError = 0) and not Abort do
+     begin
+       if not IsDummyDir(SR.FullName) then
+         FC^.AtInsert(FC^.Count, NewFileRec(SR.FullName,
+                                           {$IFNDEF OS2}
+                                            SR.SR.Name,
+                                           {$ENDIF}
+                                            SR.FullSize,
+                                            SR.SR.Time,
+                                            SR.SR.CreationTime,
+                                            SR.SR.LastAccessTime,
+                                            SR.SR.Attr,
+                                            @Source));
+       lFindNext(SR);
+     end;
+   lFindClose(SR);
+   ClrIO;
+   FC^.Pack;
+   if FC^.Count <= 0 then begin Dispose(FC, Done); Exit; end;
+
+   if (Destination[Length(Destination)] <> '\') and (Destination <> '') then
+    Destination := Destination+'\';
+   Inc(SkyEnabled);
+   if (StartupData.Slice2 and osuReleaseCopy = 0) then Application^.BFSpeed;
+{$IFDEF FileNotify}
+   NotifySuspend;
+{$ENDIF}
+   FilesCopy(FC, nil, Destination, x_x, cpmAskOver*Byte(not Forced),
+             cpoMove*Byte(MoveMode), False, False);
+{$IFDEF FileNotify}
+   NotifyResume;
+{$ENDIF}
+   if (StartupData.Slice2 and osuReleaseCopy = 0) then Application^.EFSpeed;
+   Dec(SkyEnabled);
+   FC^.DeleteAll;
+   Dispose(FC, Done);
+end;
+{/JO}
 
 end.

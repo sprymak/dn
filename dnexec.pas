@@ -59,6 +59,10 @@ uses
 procedure SaveDsk;
 {$ENDIF}
 procedure ExecString(S: PString; WS: String);
+procedure ExecStringRR(S: PString; WS: String; RR: Boolean); {JO}
+    {JO:  отличается от ExecString наличием булевской переменной RR, которая}
+    {     указывает, перечитывать панель после выполнения или нет           }
+
 function  SearchExt(FileRec: PFileRec; var HS: String): Boolean; {DataCompBoy}
 function  ExecExtFile(const ExtFName: string; UserParams: PUserParams; SIdx: TStrIdx): Boolean; {DataCompBoy}
 procedure ExecFile(const FileName: string); {DataCompBoy}
@@ -72,7 +76,7 @@ implementation
 
 uses
 {$IFDEF OS2}
-  Os2Base,
+  Os2Base, dnini,
 {$ENDIF}
 {$IFDEF WIN32}
   Windows,
@@ -135,7 +139,6 @@ end;
 {$ENDIF}
 {/JO}
 
-{$IFDEF Win32}
 {AK155 30-12-2001
 Это попытка определить тип вызываемой программы, чтобы GUI-программу
 вызывать без ожидания завершения, а все прочие - с ожиданием.
@@ -148,7 +151,8 @@ Path, так как это трудно сделать не криво. Например, если запускается
 так. Запишите в текщий каталог notepad.cmd и введите в комстроке notepad.
 А потом нажмите Enter  на этом самом notepad.cmd.
 }
-function GUIProgram(S: PString): boolean;
+{Результат - код подсистемы или 0}
+function Win32Program(S: PString): SmallWord;
   const
     PETag = $00004550; {'PE'#0#0}
   var
@@ -170,7 +174,7 @@ function GUIProgram(S: PString): boolean;
       end;
     l: longint;
   begin
-  GUIProgram := false;
+  result := 0;
   FSplit(S^, Dir, Name, Ext);
   UpStr(Ext);
   if Ext <> '.EXE' then
@@ -203,10 +207,15 @@ function GUIProgram(S: PString): boolean;
         close(f); {Cat}
         exit;
       end;
-    if Subsystem = 2 {IMAGE_SUBSYSTEM_WINDOWS_GUI} then
-      GUIProgram := true;
+    result := Subsystem;
     end;
   close(f);
+  end;
+
+{$IFDEF Win32}
+function GUIProgram(S: PString): boolean;
+  begin
+  result := Win32Program(S) = 2 {IMAGE_SUBSYSTEM_WINDOWS_GUI};
   end;
 {$ENDIF}
 
@@ -255,7 +264,7 @@ end;
 {$ENDIF}
 
         {-DataCompBoy-}
-procedure ExecString(S: PString; WS: String);
+procedure ExecStringRR(S: PString; WS: String; RR: Boolean);
  var I: Integer;
 {$IFNDEF VIRTUALPASCAL}
      F1: lText;
@@ -332,7 +341,15 @@ begin
   fExec := True;
 {$IFNDEF DPMI32}
   if GUIProgram(S) then
-    S^ := 'start ' + S^;
+    S^ := 'start ' + S^
+  {$IFDEF OS2}
+  else
+    case Win32Program(S) of
+     2 {IMAGE_SUBSYSTEM_WINDOWS_GUI}:  S^ := ExecWin32GUI + ' ' + S^;
+     3 {IMAGE_SUBSYSTEM_WINDOWS_CUI}:  S^ := ExecWin32CUI + ' ' + S^;
+    end {case};
+  {$ENDIF}
+    ;
 {$ENDIF}
   AnsiExec(GetEnv('COMSPEC'),'/c '+S^);
   fExec := False;
@@ -366,8 +383,13 @@ begin
   InitEvents;
   InitSysError;
   Application^.Redraw;
-  GlobalMessage(evCommand, cmPanelReread, nil);
-  GlobalMessage(evCommand, cmRereadInfo, nil);
+ {JO}
+  if RR then
+    begin
+      GlobalMessage(evCommand, cmPanelReread, nil);
+      GlobalMessage(evCommand, cmRereadInfo, nil);
+    end;
+ {/JO}
 {$ENDIF}
 
 {AK155 без этого курсор комстроки не становится на место}
@@ -383,6 +405,12 @@ begin
 end;
         {-DataCompBoy-}
 
+{JO}
+procedure ExecString(S: PString; WS: String);
+begin
+  ExecStringRR(S, WS, True);
+end;
+{/JO}
         {-DataCompBoy-}
 function SearchExt(FileRec: PFileRec; var HS: String): Boolean;
 var

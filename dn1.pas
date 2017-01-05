@@ -72,7 +72,7 @@ uses
   {$IFDEF WIN95_HIGHPRIORITY} Windows,  {Cat for SetPriority} {$ENDIF}
   Advance, Advance1, Advance2, Advance3, Advance4, Startup, Objects,
   Setups, DnUtil, Drivers, commands, dnApp, Messages, Lfn, Dos, FlPanelX,
-  UserMenu, cmdline, filescol, views, arcview, dnini, archiver,
+  UserMenu, cmdline, filescol, views, arcview, dnini, CopyIni, archiver,
   U_MyApp, Microed, ArchSet, Advance6, RegAll, DnExec, Histries, Menus, VideoMan,
   fnotify,
   {$IFNDEF DPMI32} Killer, {$ENDIF}
@@ -650,74 +650,25 @@ var
   end;
 
   procedure ReadINI;
-  var INIavailtime,INIavailsize,INIavailcrc:longint;
-      S:TBufStream;
-      I: Byte;
-      VirginIni: Boolean; {JO}
-  begin
-      VirginIni := not ProbeINI(INIavailtime,INIavailsize,INIavailcrc);
-      if VirginIni or
-         (INIdatapos<0) or
-         (INIavailtime<>INIstoredtime) or
-         (INIavailsize<>INIstoredsize) {or
-         (INIavailcrc <>INIstoredcrc )} then begin
-          {-$VIV start}
-          LoadDnIniSettings;
-          if DnIni.AutoSave then SaveDnIniSettings(nil);
-          DoneIniEngine; {-$VIV stop}
-          ProbeINI(INIstoredtime,INIstoredsize,INIstoredcrc);
-
-          if Virgin and not VirginIni then
-            begin
-              SystemData.Options        := SystemDataOpt;
-              InterfaceData.Options     := InterfaceDataOpt;
-              InterfaceData.DrvInfType  := DriveInfoType;
-              Startup.FMSetup.Options   := FMSetupOpt;
-              EditorDefaults.EdOpt      := EditorDefaultsOpt;
-              EditorDefaults.EdOpt2     := EditorDefaultsOpt2;
-              EditorDefaults.ViOpt      := ViewerOpt;
-              StartupData.Load          := StartupDataLoad;
-              StartupData.Unload        := StartupDataUnload;
-              StartupData.Slice2        := StartupDataSlice2;
-              Confirms                  := ConfirmsOpt;
-              SystemData.CopyLimitBuf   := CopyLimit;
-              SystemData.ForceDefArch   := ForceDefaultArchiver;
-              for I := 0 to 8 do DisposeStr(DirsToChange[I]);
-              DirsToChange[0]           := NewStr(QDirs1);
-              DirsToChange[1]           := NewStr(QDirs2);
-              DirsToChange[2]           := NewStr(QDirs3);
-              DirsToChange[3]           := NewStr(QDirs4);
-              DirsToChange[4]           := NewStr(QDirs5);
-              DirsToChange[5]           := NewStr(QDirs6);
-              DirsToChange[6]           := NewStr(QDirs7);
-              DirsToChange[7]           := NewStr(QDirs8);
-              DirsToChange[8]           := NewStr(QDirs9);
-            end;
-
-          if HandleChDirCommand then SystemData.Options := SystemData.Options or (ossHandleChDirCommand {$IFDEF VIRTUALPASCAL}shr 3{$ENDIF})
-            else SystemData.Options := SystemData.Options xor (ossHandleChDirCommand {$IFDEF VIRTUALPASCAL}shr 3{$ENDIF});
-          UpdateConfig; WriteConfig
-      end else begin
-          S.Init(SourceDir+'DN'+GetEnv('DNCFG')+'.CFG', stOpenRead, 16384);
-          S.Seek(INIdatapos);
-          S.Read(iniparamblock_START,Ofs(iniparamblock_END)-Ofs(iniparamblock_START));
-          S.Done;
-      end;
-{$IFDEF Win32}
-      RecodeAnsiNames := (RecodeCyrillicNames = 1); {AK155}
-
-    {$IFNDEF RecodeWhenDraw}
-      if RecodeCyrillicNames = 0 then
-        Windows.SetFileApisToOEM
-           {AK155 18-10-2001
-            Если не задано никаких фокусов, то с файлами работаем просто
-            в кодировке OEM, пусть система перекодирует, если ей надо.
-           }
-      else
-    {$ENDIF}
-        Windows.SetFileApisToANSI;
-{$ENDIF}
-  end;
+    var INIavailtime,INIavailsize,INIavailcrc:longint;
+    begin
+    if ProbeINI(INIavailtime,INIavailsize,INIavailcrc) then
+      begin {ini есть}
+      LoadDnIniSettings;
+      DoneIniEngine;
+      CopyIniVarsToCfgVars;
+      if (INIdatapos>=0) and
+         (INIavailtime=INIstoredtime) and (INIavailsize=INIstoredsize)
+      then
+        exit; { ini не изменился, читать не нужно }
+      if DnIni.AutoSave then
+        SaveDnIniSettings(nil);
+      ConfigModified:=True;
+      end
+    else
+      SaveDnIniSettings(nil); {создаем ini}
+    ProbeINI(INIstoredtime,INIstoredsize,INIstoredcrc); {новые дата размер}
+    end;
 
 begin
   InitMaskData;

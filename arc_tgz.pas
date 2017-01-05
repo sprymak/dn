@@ -151,27 +151,35 @@ begin
 end;
 
 Procedure TTGZArchive.GetFile;
+type
+    GZipHdr = record
+     ID:   Aword;
+     Flag: AWord;
+     Time: Longint;
+    end;
 var
-    Time: Longint;
+    P:    GZipHdr;
     DT:   DateTime;
-    Flag: Byte;
     C:    Char;
 begin
- ArcFile^.Read(Time, SizeOf(Time));
+ ArcFile^.Read(P, SizeOf(P));
  if ArcFile^.EOF then begin FileInfo.Last := 1; Exit; end;
- Flag := Time shr 24;
- ArcFile^.Read(Time, SizeOf(Time));
- GetUNIXDate(Time, DT.Year, DT.Month, DT.Day, DT.Hour, DT.Min, DT.Sec);
+ GetUNIXDate(P.Time, DT.Year, DT.Month, DT.Day, DT.Hour, DT.Min, DT.Sec);
  PackTime(DT, FileInfo.Date);
  FileInfo.FName := '';
- if Flag and 8 = 0 then FileInfo.FName := GetSName(VArcFileName)
+ if (P.Flag and $800 = 0) or (P.ID = $9d1f)
+   then if {(UpStrg(GetExt(ArcFileName)) = '.GZ') or}
+           (UpCase(ArcFileName[Length(ArcFileName)]) = 'Z')
+{gzip changes last char of extension to 'z' or adds '.gz' extension}
+          then FileInfo.FName := GetSName(ArcFileName)
+          else FileInfo.FName := GetName(ArcFileName)
    else begin
-    if Flag and 4 = 0 then Time := 10{skip 10 bytes}
+    if P.Flag and $400 = 0 then P.Time := 10{skip 10 bytes}
       else begin
-       ArcFile^.Read(Time, SizeOf(Time));
-       Time := Time shr 16 + 12;
+       ArcFile^.Read(P.Time, SizeOf(P.Time));
+       P.Time := P.Time shr 16 + 12;
       end;
-    ArcFile^.Seek(ArcPos + Time);
+    ArcFile^.Seek(ArcPos + P.Time);
     repeat
      ArcFile^.Read(C, 1);
      if C <> #0 then FileInfo.FName := FileInfo.FName + C else Break;

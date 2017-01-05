@@ -196,7 +196,7 @@ type
       procedure lChDir(ADir: String); virtual;
       function GetDir: String; virtual;
       function GetDirectory(SortMode, PanelFlags: Integer; const FileMask: String;
-                            var FreeSpace, TotalInfo: String ): PCollection; virtual;
+                  var FreeSpace: String; var TotalInfo: TSize): PCollection; virtual;
 {      constructor Load(var S: TStream);
       procedure Store(var S: TStream); virtual;}
       procedure RereadDirectory(S: String); virtual;
@@ -219,6 +219,7 @@ type
       procedure GetParam(n: byte); virtual; {DataCompBoy}
       destructor Done; virtual;
       procedure SeekDirectory;
+      function OpenDirectory(const Dir: String): PDrive; virtual;
     private
       procedure Kill;
    end;
@@ -348,7 +349,7 @@ begin
   FC^.LFNActive := False;
 {$ENDIF}
   if ArvidWithDN then GetFreeSpace(FreeSpace);
-  TotalInfo := ''; TotFiles := 0; TotLen := 0;
+  TotFiles := 0; TotLen := 0;
 
   GetDirectory := FC;
   ShowD := (Flags and psShowDescript <> 0);
@@ -361,7 +362,7 @@ begin
 
   if CurDir = '' then P := Name else P := @CurDir;
 
-  if ArvidWithDN then TotalInfo:=CalcTotalInfo(FC^.Count, TotFiles, TotLen);
+  TotalInfo := TotLen;
 {$IFNDEF OS2}
   FC^.AtInsert(0, NewFileRec('..', '..', 0, CurDate, 0, 0, Directory, P));
 {$ELSE}
@@ -877,11 +878,7 @@ procedure TArvidDrive.HandleCommand;
         I, J: LongInt;
         Lv0: Boolean;
         LastLv: Integer;
-        {$IFNDEF OS2}
         SS: String[12];
-        {$ELSE}
-        SS: String;
-        {$ENDIF}
   begin
     Lv0:=false; LastLv:=0;
     LP:=D.DirTableOfs;
@@ -898,11 +895,7 @@ procedure TArvidDrive.HandleCommand;
       SS:=DD.Name;
 {$ENDIF}
       Insert('.', SS, 9);
-      {$IFNDEF OS2}
-      if DD.Level > LastLv then Dr:=MakeNormName(Dr, MakeFileName(SS))
-      {$ELSE}
-      if DD.Level > LastLv then Dr:=MakeNormName(Dr, SS)
-      {$ENDIF}
+      if DD.Level > LastLv then Dr:=MakeNormName(Dr, TdrMakeFileName(SS))
          else if DD.Level <= LastLv then
                 begin
                   repeat
@@ -911,11 +904,7 @@ procedure TArvidDrive.HandleCommand;
                     Dec(LastLv);
                   until DD.Level > LastLv;
                   if Dr = '' then Dr:='\';
-                  {$IFNDEF OS2}
-                  Dr:=MakeNormName(Dr, MakeFileName(SS))
-                  {$ELSE}
-                  Dr:=MakeNormName(Dr, SS)
-                  {$ENDIF}
+                  Dr:=MakeNormName(Dr, TdrMakeFileName(SS))
                 end;
       LastLv:=DD.Level;
       WasDir:=false;
@@ -971,11 +960,7 @@ procedure TArvidDrive.HandleCommand;
                     ((Attr = 0) or (FF.Attr and Attr <> 0)))
                  then
                     begin
-                      {$IFNDEF OS2}
-                      Add(New(PFindFile, Init(MakeFileName(SS), FF.Size, FF.Time)),Name);
-                      {$ELSE}
-                      Add(New(PFindFile, Init(SS, FF.Size, FF.Time)),Name);
-                      {$ENDIF}
+                      Add(New(PFindFile, Init(TdrMakeFileName(SS), FF.Size, FF.Time)),Name);
                     end;
               end;
           end;
@@ -1210,7 +1195,8 @@ begin
        P^.Free;
        if FindList = nil then
           begin
-            ErrMsg(dlNoFilesFound);
+            MessageBox(^C+GetString(dlNoFilesFound), nil,
+                        mfInformation + mfOkButton);
             Exit;
           end;
 1:
@@ -1240,5 +1226,8 @@ begin
   CurDir:=SaveDir;
   SeekDirectory;
 end;
+
+function TArvidDrive.OpenDirectory(const Dir: String): PDrive;
+  begin OpenDirectory := nil; end;
 
 END.

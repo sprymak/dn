@@ -7,6 +7,237 @@
 
 
 
+   Version 1.51.10b10
+  ---------------------------------------------------------------------
+DN OSP team
+
+
+ak21205c
+[-] Not all editor options for a certain file have been saving in the
+    history. (Sergey Biryukov)
+[*] The logic of adding the string with date and time is changed in
+    SmartPad. (Sergey Biryukov)
+[*] Now DN will save and load SmartPad edit history (Eugeny Zvyagintzev)
+
+dn2-b9b10p-archive_fix.patch (Max Vasiliev) jo21212b
+[-] More strict ARJ detection
+[-] Fixed .Z processing.
+[-] bugfixed .GZ detection
+[-] AnyFile.gz contents was not shown properly in some cases.
+[-] View file with 2 spaces in filename from archive.
+[-] More strict ZIP detection
+
+
+
+Aleksej Kozlov
+
+cat21219
+[-] In Win32 version LeftSuxx and RightSuxx keys were recognized as
+    MenuSuxx
+
+
+
+Alexey Korop
+
+ak21122a
+[*] Now the method of Win32 applications' running can be controlled by
+    ini-variables ExecWin32GUI and ExecWin32CUI
+
+ak21124a
+[*] Now the long file name in panel bottom is left aligned and left
+    truncated
+
+ak21126a
+[-] Now in the archive panel the archive is reread only if its date/time
+    or size have been changed
+
+ak21205b
+[+] The ini-variables BriefSelectedInfo and BriefTotalInfo are introduced.
+    These variables enable showing in a brief form the information about
+    selected files and directory totals in panel Info Divider. D&D is
+    introduced from Info Divider
+
+ak21206a
+[-] D&D operations of all files from disk's root didn'n applied to the
+    first file/directory
+
+ak21210a ak21215a
+[*] The ini-variables that enable showing files packing information in
+    archive panel bottom (PackingInfoInBottom) and in search/branch/list
+    panel bottom path information (PathInfoInBottom) are introduced. Now
+    it is possible to shrink the panel bottom by setting one or both these
+    variables to 0.
+[-] Some small bugs in matching of panel bottom vertical size and
+    information blocks' showing are fixed.
+[-] Some optimisations of works with panel bottom, including D&D.
+
+ak21211a
+[-] UU-decoding of many files may result in DN crash
+
+ak21215b
+[-] Now first character of line of BSO-list is recognized more strict
+
+ak21215c
+[*] Now AllFix style multiline desriptions (first character is '>') are
+    recognized in description files
+
+ak21216a
+[-] 'Gray' cursor movement keys didn't work on some computers under Win 9x
+    when keyb.com is loaded.
+
+ak21217a
+[-] In Win32 version macros ! and .! works improperly when SFN is shorter
+    then 8 characters
+
+ak21218a
+[-] Now in OS/2 version DN/2 have no reaction on Ctrl, Shift and Alt keys
+    in inactive VIO window
+
+ak21222a
+[-] D&D of single file to the UpDir didn't work. Bug is intoduced
+    in beta 09
+
+
+
+Jaroslaw Osadtchiy
+
+jo21122a
+[-] The #0 symbold was drawn in progression indicators instead spaces
+
+jo21122b
+[-] The "Compare case" checkbox accessibility in compare directories
+    dialog in Win32 version will correspond to file names type, which used
+    for comraring (i.e. checkbox is accessible for long names only)
+[*] The TFilesCollection.Compare funktion is slightly simplified and
+    optimizes in part of case-sensitive comparing
+
+jo21122c
+[*] Now current drive letter will be highlited in drives bar not only in
+    directory panel, but also for other panel types (arcive, arvid,
+    search, list etc.)
+[-] The changing from temporary panel by Ctrl-arrows is fixed
+
+jo21122d
+[*] Now the temporary file used to view file in archive will be rewritten
+    by archiver without confirmation requesting
+[-] If temporary file used to view file in archive already exist in
+    directory, and it's name and time are the same as name and time of
+    file in archive, then this file will be used to view file in archive
+    (old behaviour restored)
+[-] When attempt to remove locked temporary file was done, the error
+    message appeared
+[-] In Win32 version it was impossible to view with F3 from file search
+    panel files with long names found in archives, if short names mode was
+    current for file search panel
+
+jo21123a
+[-] In Win32 version wrong file names appeared in file search panel for
+    files with long names found in archives if short names mode was
+    current for file search panel
+
+jo21123b
+[-] Fixed error appearing after trying to view from file find panel the
+    file found in archive with a password containing spaces
+
+jo21204c
+[*] Now when after unarchiving files are moved from temporary directory,
+    overwrite dialogue is shown over the user screen with archiver
+    messages
+
+jo21205c
+[-] Fixed error appearing after trying to unarchive file from archive
+    panel with a password containing spaces
+
+jo21205d
+[-] Files with .cmd extension were shown under w9x as executables
+
+jo21206a
+[-] When archive opening with Ctrl-H or search in archive vas done, the
+    resulting panel always had 1-st type of columns settings
+
+jo21206b
+[-] After cat21109b.dif patch it was impossible to change drive in file
+    dialog
+
+jo21207a
+[-] During the file search in some archive types the directories appeared
+    in file search panel as files with empty names
+
+jo21207c
+[-] If switching to file search panel was done during file search, then
+    after finishing file searching and panel rereading tha file cursor
+    position was lost
+
+jo21207d
+[-] DN/2 halted after attempt to make Redo of spaces added to end of line
+
+jo21207e
+[-] DN/2 halted during reverse searching single letter as whole word
+
+jo21209a
+[-] During file search in archives the directories was not found which
+    have no own entryes in archive and present only as a paths to files
+
+jo21209b
+[-] The usability of QuickSort method for panels sorting restored and
+    compiling with define QSort now will be possible
+
+jo21210a
+[-] After file search on disk or after directory branch opening on disk
+    the file list sorting was done twice
+
+jo21211b
+[*] In Win32 version in editor now it is possible to go to bookmark with
+    text marking from current position to bookmark using hotkeys
+    Ctrl-Alt-Shift-number , the same as it was always possible in OS/2
+    version
+
+jo21211c
+[-] Hotkeys Ctrl-K,\ , Ctrl-K,[ , Ctrl-K,] , Ctrl-Shift-\ , Ctrl-Shift-[ ,
+    Ctrl-Shift-] were declared in editor menu, but did not work indeed
+
+jo21218b
+[-] After cat21104.dif patch the size of opened panels (file managers,
+    editoes etc.) was not set in correspondence with current video mode.
+    This could cause wrong winows size if the different videomode set for
+    fullscreen and windowed sessions
+
+jo21218c
+[-] Under Win32 the left Alt key pressing followed by left Shift key
+    pressing caused user screen to be closed with panels, and this was a
+    reason of impossibility to use screen grabber
+[-] Under Win32 Ctrl-] and Shift-Ctrl-] keys did not work if Russian
+    keyboard layout was set in Windows as default
+[-] Under OS/2 Ctrl-], Ctrl-[, Shift-Ctrl-] and Shift-Ctrl-[ if some
+    standard Russian layout were used
+
+jo21219a
+[-] DN/2 crashed during multiple text search/replace operations
+
+
+
+Jaroslaw Osadtchiy, Alexey Korop
+
+
+ak21205a
+[*] Now functions Panel/Directory Branch and File/Find works in archives
+    too
+[-] File Find in Arvid drive didn't work
+[*] When copying from archive files are extracted first to the temporary
+    directory created in destination directory and next files are moved to
+    the destination directory and temporary directory is removed. This
+    method improve user interface: standard overwrite dialog used and
+    directories tree is recreated from current point and not from the
+    arcive root. For floppyes (i.e. A: and B:) old method used.
+
+ak21213a ak21207b ak21208a
+[*] The ini-variables QDirs1-QDirs9 (Quick dirs) are moves from
+    [SetupStorage] section to new section [QuickDirs]
+[*] Now [SetupStorage] section is always imported at DN start and at
+    saving of edited dn.ini.
+
+
+
    Version 1.51.10b9
   ---------------------------------------------------------------------
 

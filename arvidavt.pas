@@ -1207,9 +1207,10 @@ var
  var
    I:  Integer;
    PC: PCollection;
+   Dummy: TSize;
  begin with AvtDr^ do begin
    PD^.lChDir(S2);
-   PC:=PD^.GetDirectory(141, 0, x_x, FreeStr, FreeStr);
+   PC:=PD^.GetDirectory(141, 0, x_x, FreeStr, Dummy);
    for I:=0 to PC^.Count - 1 do begin
      PF:=PC^.at(i);
      S3 := MakeNormName(S1, PF^.FlName[true]);

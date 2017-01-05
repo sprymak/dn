@@ -747,7 +747,9 @@ end; { checkos }
 {$ELSE}
 begin
   {$IFDEF OS2}    opSys := opOS2;    {$ENDIF}
-  {$IFDEF WIN32}  opSys := opWin;    {$ENDIF}
+  {$IFDEF WIN32}
+  if SysPlatformId = 1 then opSys := opWin else opSys := opWNT;
+  {$ENDIF}
   {$IFDEF DPMI32} opSys := opDPMI32; {$ENDIF}
 end;
 {$ENDIF}

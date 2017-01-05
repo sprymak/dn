@@ -224,7 +224,7 @@ const
 
      dlAbout = {$IFDEF VIRTUALPASCAL} #13#3'DN/2 Open Source'+
      #13#3'Version %s, %s'+
-     #13#3'http://os2.ru/projects/dn2/'#13+
+     #13#3'http://www.dnosp.ru/'#13+
      #13#3'Based on: '+ {$ELSE}#13#3+{$ENDIF}
      'Dos Navigator Open Source 1.51.08'#13+
      {$IFDEF LITE}+#3'Light version'#13+{$ENDIF}
@@ -1129,14 +1129,6 @@ begin
      if R.A.X>(ScreenWidth shr 1) then Inc(R.A.X,3) else Dec(R.B.X,3);
     Clock^.Locate(R);
     {S^.Read(ArcFlags, 4);}
-    If BB then
-       begin
-         R.Assign(0, Byte( InterfaceData.Options and ouiHideMenu = 0 ), Size.X, Size.Y
-                  - Byte( InterfaceData.Options and ouiHideStatus = 0 )
-                  - Byte( not HideCommandLine) );
-         Desktop^.ChangeBounds(R);
-         Desktop^.Show;
-       end;
 {$IFDEF TrashCan}
     if TrashCan^.ImVisible then
      begin
@@ -1147,6 +1139,16 @@ begin
 {$ENDIF}
     if PreserveMenuPositions then LoadMenuDefaults(MenuBar^.Menu, S^);
     LoadDesktop(S^);
+// JO: нижележащий кусок должен _обязательно_ быть _после_ LoadDesktop,
+//     иначе размер панелей не подстраивается под видеорежим
+    If BB then
+       begin
+         R.Assign(0, Byte( InterfaceData.Options and ouiHideMenu = 0 ), Size.X, Size.Y
+                  - Byte( InterfaceData.Options and ouiHideStatus = 0 )
+                  - Byte( not HideCommandLine) );
+         Desktop^.ChangeBounds(R);
+         Desktop^.Show;
+       end;
   end;
   Desktop^.Redraw;
   GetBounds(R);
@@ -1532,6 +1534,13 @@ begin
                     EdOpt.InSide           := fInSide;
                     InsertMode             := fInsMode;
                     KeyMap                 := fKeyMap; {-$VIV}
+                    { Flash >>> }
+                    EdOpt.BackIndent       := fBackIndent;
+                    EdOpt.AutoWrap         := fAutoWrap;
+                    OptimalFill            := fOptimalFill;
+                    TabReplace             := fTabReplace;
+                    EdOpt.SmartTab         := fSmartTab;
+                    { Flash <<< }
                     WorkString := GetLine(fDelta.Y); {-$VIV 11.05.99}
                   end;
               end else StoreEditInfo(W);

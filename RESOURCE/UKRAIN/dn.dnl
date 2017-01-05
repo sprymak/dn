@@ -207,7 +207,7 @@ dlDIWith,                   '  '
 dlDIXMSFree,                '~К байт вiльної XMS пам''ятi '
 dlDITemporary         'Псевдодиск'
 dlDIFileFind          'Результат пошуку'
-dlDIFFMask            '~Маска: ~'
+dlDIFFMask            'Маска: '
 dlDICurArchive        'Поточний архiв:'
 dlDIArcTotalFiles     'Всього файлiв: ~'
 dlDIPackedSize        'Розмiр архiву: ~'
@@ -300,8 +300,8 @@ dlFCNoRename2,              ^M^C'на '
 dlFCNotDiskSpace,           ^C'Недостатньо мiсця на диску'
 dlFCNotOverDir              ^C'Неможливо переписати каталог'^M^C
 dlFCOver,                   ^M^C'вже є в каталозi призначення'^M +
-                            ^M^C'   Копiюється:   %s   %s байт' +
-                            ^M^C' Iснуючий:   %s   %s байт'
+                            ^M^C' Копiюється:   %s   %s байт' +
+                            ^M^C'   Iснуючий:   %s   %s байт'
 dlFCRename                  'Перейменувати файл'
 dlFCRenameNew               '~Н~ове iм''я'
 dlFCVerifyFailed             ^C'Помилка перевiрки файла'^M^C
@@ -543,7 +543,7 @@ dlSaveFileAsName,          '~З~аписати в'
 dlSavefileAs,              'Запис у файл'
 dlScanningDirs             ^M^M^C'Сканую каталоги'
 dlScreenSaverSetup         'Установка екранних заставок'
-dlSearching                'Пошук '
+dlSearching                'Пошук'
 dlSector,                  'Сектор'
 dlSectorRange,             'Вибiр дiапазону секторiв'
 dlSelectDirectory          'Виберiть каталог'

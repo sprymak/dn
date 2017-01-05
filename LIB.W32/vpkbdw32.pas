@@ -300,8 +300,11 @@ begin
       else
         Result := (ScanCode + 46) shl 8;
 
-    91..93:
-      // Cat: LeftSuxx, RightSuxx, MenuSuxx
+    91: // Cat: LeftSuxx
+      Result := $EC00;
+    92: // Cat: RightSuxx
+      Result := $ED00;
+    93: // Cat: MenuSuxx
       Result := $EE00;
   end; // Case ScanCode
 end;
@@ -511,11 +514,15 @@ begin
             if bKeyDown then
               begin
                 skeKeyCode:=0;
-                if not(
-                        (SysPlatform = 1)
+{AK155 Под Win9x 'дочитывание' при помощи readConsole необходимо для
+"нормальных" символов, недопустимо для Shift-Tab, а для стрелок, Home,
+End и т.п. на _некоторых_ компьютерах тоже недопустимо при использовании
+стандартной переключалки keyb (от чего это зависит - неизвестно,
+возможно, от BIOS. Условие wVirtualKeyCode >= $30, вроде, накрывает все.}
+                if not( (SysPlatform = 1)
+                    and (wVirtualKeyCode >= $30){AK155}
                     and (AsciiChar <> #0)
                     and ((dwControlKeyState and AltCtrl_Pressed) = 0)
-                    and (AsciiChar <> #9) {AK155: for Shift-Tab}
                     and  ReadConsole(SysFileStdIn, @UnicodeChar, 1, EventCount,nil)
                    )
                 then
