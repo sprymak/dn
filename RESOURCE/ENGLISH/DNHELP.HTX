@@ -123,17 +123,16 @@ Sorry, no help available for this context.
   ≥ About Navigator and €
   ≥    its authors      €
   ¿‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹€
-
+; /portions by Deleter/ 07.02.2003
 
 Navigator is a DOS shell that combines a wide set of useful features.
-The later include {copying:CopyFiles}, {moving:CopyFiles}, {editing:Editor}
-and {viewing:View} files, {formatting floppies:Format}, {recovering deleted files:Reanimator},
-{directly editing data in disk sectors:DiskEditor}, {personal phone book:Phone},
-{modem:Terminal} and {COM-link:NavyLink} functions, {spreadsheeting:SpreadSheet},
-managing {archives:Archives}, {audio CD player:CDplayer}, and more.
+They include {copying:CopyFiles}, {moving:CopyFiles}, {editing:Editor}
+and {viewing:View} files, {personal phone book:Phone}, {modem:Terminal} and
+{COM-link:NavyLink} functions, {spreadsheeting:SpreadSheet}, managing
+{archives:Archives}, {audio CD player:CDplayer}, and more.
 
 These functions' power and convenience in conjunction with a variety of
-{options:Configuration} allow Navigator to make your DOS sessions highly
+{options:Configuration} allow Navigator to make your work highly
 effective and comfortable.
 {Here:FeaturesOverview} you can study a more detailed overview of Navigator's features.
 
@@ -163,7 +162,6 @@ echo area or to these addresses:
  ˘ {Phone Book:Phone}
  ˘ {SpreadSheet:SpreadSheet}
  ˘ {File Panels:FilePanel} of {File Manager:FileManager}
- ˘ {Direct Disk Access:DirectDiskAccess} to Standard DOS devices
  ˘ {Calculator:Calculator}
  ˘ {Make List File:MakeListFile}
  ˘ {Screen Savers:Savers}
@@ -177,6 +175,7 @@ echo area or to these addresses:
 
 .topic HotOverview=7
 .title Hotkey Overview
+; /portions by Deleter/ 07.02.2003
 
         ---        Shift       Ctrl          Alt
 
@@ -185,12 +184,12 @@ echo area or to these addresses:
   F3    {View       :View}{Phonebook   :Phone}{New manager   :ManagerCommands}{Altern View   :View}
   F4    {Edit       :Editor}{Open        :_}{Close window  :WindowsFeature}{Altern Edit   :Editor}
   F5    {Copy       :CopyFiles}{Split       :SplitFiles}{Move window   :WindowsFeature}{User screen   :_}
-  F6    {Move       :RenameMove}{Reanimator  :Reanimator}{Calculator    :Calculator}{Enter command :_}
+  F6    {Move       :RenameMove}{Calculator    :Calculator}{Quick rename :_}
   F7    {Mkdir      :MkDir}{Format      :Format}{UU Encode     :UUEncode}{Find file     :FileFind}
   F8    {Delete     :DeleteFiles}{Single Del  :_}{UU Decode     :UUDecode}{Cmd history   :CmdHistory}
   F9    {Next Wnd   :WindowsFeature}{Prev Wnd    :WindowsFeature}{Print         :PrintManager}{Game          :Game}
   F10   {Main Menu  :MainMenu}{Ega Lines   :_}{VideoMode 1   :_}{VideoMode 2   :_}
-  F11              {Sprdsheet   :SpreadSheet}{CD player     :CDPlayer}{Link          :NavyLink}
+  F11              {Spreadsheet :SpreadSheet}{CD player     :CDPlayer}{Link          :NavyLink}
 
 
          Alt                        Ctrl
@@ -225,11 +224,23 @@ echo area or to these addresses:
 
 .topic EditorFeature=8
 .title Text Editor
+; /Deleter/ 07.02.2003
+
+The text editor supports block processing (horizontal and vertical),
+multilevel undo in case of mistake, paragraph aligning, search & replace,
+quick case changing, highlighting of current line and column, syntax
+highlighting.
+
+See also:
+  {Text editor:Editor}
+  {Editor commands:EditorCommands}
+  {Editor window:EditorWindow}
 
 .topic MainMenu=9
 .title Main menu
+; /portions by Deleter/ 07.02.2003
 
-  {:MenuBox}         - From this menu is possible to call some
+  {:MenuBox}         - From this menu it is possible to call some
   additional functions and to view information about Navigator version.
   {File:FileMenu}      - Menu with file operations.
   {Disk:DiskMenu}      - Here you find some utilities to work with
@@ -242,15 +253,19 @@ echo area or to these addresses:
 
 .topic MenuBox=10
 .title Menu 
+; /portions by Deleter/  Feb 2003
 
 {About...:_} - Information about the current version of DN: the name of
-the program, the version-number, date of creation of current version,
-information about current user (who has registered this version).
+the program, the version-number, date of creation of current version.
 
 {Refresh display:_} - Redraw all windows in Navigator, if screen
 was messed up.
 
 {Screen rest:_} - Activate the current Screen Saver immediately
+
+{Change language:_} - Changes interface language to selected. Help language
+is also changed to it, if the {HelpLanguageOverride:_} in the {DN.INI:IniFile}
+file is set to empty.
 
 {Screen Grabber:_} - Activate Screen Grabber - a tool helping to
 copy a portion of the screen to the Clipboard (mostly it is called
@@ -261,9 +276,17 @@ via hotkey)
 {Output window:_} - Same as {User screen:_} but in separate window.
 
 {SmartPad:_} - Bring up SmartPad(TM) - a small editor available in
-most palces in DN which helps to make some notes.
+most places in DN which helps to make some notes that are saved in the
+smartpad.dn file in the Navigator's directory.
+
+{Show Clipboard:_} - view and edit the system {Clipboard:Clipboard} (or DN's
+internal, depending of
+{Options|Configuration|System Setup|Use system clipboard:_} setting)
 
 {Trashcan on/off:_} - Make Trashcan visible or hide it away from the Desktop.
+
+{Execute OS command:_} - Executes a command using the command interpreter.
+Useful if the command line was disabled in {Options|Configuration|Interface:_}.
 
 {EGA/VGA lines:_} - Switch video mode to 43/50 lines on screen
 (This function is available only on EGA/VGA and compatible adapters).
@@ -281,26 +304,31 @@ most palces in DN which helps to make some notes.
 
 .topic FileMenu=12
 .title Menu File
+; /portions by Deleter/  Feb 2003
 
 You can access the available operations on files and directories from
 this menu.
 
   {View:View} - View a file. Submenu indicates its type:
-    {As is         :_} - According to extension
+    {Main viewer     :_} - According to extension
+    {Alternate viewer:_} - Alternate, according to extension
     {As Text       :_} - View as text
     {As Hex        :_} - View in hexadecimal format
     {As DataBase   :_} - View as database
     {As Spreadsheet:_} - View as a spreadsheet
-    {Alternate view:_} - View the file using the external viewing window.
 
   {Edit:Editor} - Edit file submenu.
-    {Edit           :_} - Edit file using external editor
-    {Alternate edit :_} - Edit file using internal editor
+    {Edit           :_} - Edit file using the primary editor for the extension.
+    {Alternate edit :_} - Edit file using the alternative editor.
     {Edit new file  :_} - Create & edit new file
+
+Note that the primary and the alternative editors can be swapped by the
+{Options|Configuration|System Setup|Use Internal Editor:_} option.
 
   {Find           :FileFind} - Search for a file.
   {Copy           :CopyFiles} - Copy current or selected file(s).
   {Rename/Move    :RenameMove} - Rename/Move the file/directory to another disk/directory.
+  {Change name case:_}
   {Copy to archive:ArchiveFiles} - Copy files to external archive
   {Extract archive:Extract} - Extract files from external archive
   {Split/Combine  :SplitFiles} - Split/Combine multiple file volumes.
@@ -308,8 +336,11 @@ this menu.
   {Make directory :MkDir} - Create a new directory, group of directories.
   {Delete         :DeleteFiles} - Delete file or directory.
   {File Attributes:FileAttr} - Set file or directory attributes.
-  {UU Encode file :UUEncode} - Encode binary file before sending via E-Mail
-  {UU Decode file :UUDecode} - Decode file, received by E-Mail
+  {Single file attributes:_}
+  {Copy single file:_}
+  {Move single file:_}
+  {Delete single file:_}
+  {Edit EA .LONGNAME:_}
 
   {Exit:_} - Exit from Navigator.
 
@@ -318,22 +349,19 @@ this menu.
 
 .topic DiskMenu=14
 .title Menu Disk
+; /portions by Deleter/ 07.02.2003
 
 This menu offers you various functions for working with disks.
 
-  {Format disk   :Format} - Format a diskette in the background
-                      (Available only if you are working in
-                      Dos Navigator).
   {Volume label  :VolLabel} - Set volume label of disk.
-  {Reanimator    :Reanimator} - Restore (undelete) erased files.
-  {Disk editor   :DiskEditor} - Editing data on disk directly.
-                      WARNING!! Improper using the Disk Editor
-                      can seriously damage your data!
+  {Unpack diskette images:_}
+
   {Directory Tree:DirTree} - Open a new File Manager using Directory
                       Tree dialog box.
 
 .topic UtilMenu=15
 .title Menu Utilities
+; /portions by Deleter/  Feb 2003
 
   {Memory Information:MemoryInfo} - Information about programs,
                            system drivers and buffers in memory.
@@ -341,11 +369,16 @@ This menu offers you various functions for working with disks.
   {System Information:_} - Information about the machine, on which
                            Navigator is running
 
+  {Task list:TaskList}
+
   {Calculator        :Calculator} - Use calculator.
+  {Calendar:Calendar}
   {ASCII Table       :AsciiChart} - Show ASCII table, emulate key-press if
                            a character is chosen.
   {Phone Book        :Phone} - Telephone book
   {Open spreadsheet  :SpreadSheet} - Create/open spreadsheet
+  {UU Encode         :UUEncode} - encode files for E-mail/FidoNet transfer
+  {UU Decode         :UUDecode} - decode files arrived in E-mail/FidoNet message.
   {CD Player         :CDPlayer} - Opens CD Player.
 
   {Terminal          :Terminal} - Open terminal window.
@@ -354,23 +387,34 @@ This menu offers you various functions for working with disks.
   {Disconnect        :_} - Modem goes on hook and cancels dialing
                            of telephone number.
 
+  {Edit OS Environment:EnvEditor} - Edit/View OS environment variables
   {User Menu         :UserMenu} - Show user menu, if there is no local
                            menu present in the current directory,
                            show global menu.
-  {DOS Environment   :EnvEditor} - Edit/View OS environment variables
+
+  {History of directories:_}
   {Commands History  :CmdHistory} - Show History window: list of previously
-                           used DOS commands.
+      used OS commands.
   {File Edit History :_}
   {File View History :_}
 
+  {Plugin Manager    :_} - adding and removing plug-ins.
+
 .topic PanelMenu=16
 .title Menu Panel
+; /portions by Deleter/  Feb 2003
 
 {Make list file:_} - Create a list of the marked filenames.
+
+{Read file list:_} - Load the file list into Navigator's "List" panel.
 
 {Compare directories:CompareDirs} - Compare two directories.
 
 {Count directory length:_} - Calculate size of directory
+
+{Directory branch:_} - List all files of the {current:_} directory and all
+its subdirectories in a "Branch" panel.
+
 
 {Setup columns:_} - Select the details you want to be shown in the
 current file panel (size, date, time, description).
@@ -379,13 +423,15 @@ current file panel (size, date, time, description).
 
 {Sort by:_} - Choose file Sort order.
 
+{Advanced Filter:AdvancedFilter} - Select the filter of the current panel
+
+
 {Select group:_} - Mark a group of files.
 
 {Unselect group:_} - Remove marks for a group of files.
 
 {Invert selection:_} - Invert the current selection.
 
-{Advanced Filter:AdvancedFilter} - Select the filter of the current panel
 
 {Change drive:_} - Change the drive for the current panel.
 
@@ -395,9 +441,6 @@ Directory Tree dialog box.
 {Re-read:_} - Re-read the current directory.
 
 {Quick dirs:QuickDirs} - Call the menu of quick access directories
-
-{History of directories:_} - Select one of the directories visited
-previously
 
 .topic QuickRun=17
 .title Quick Run
@@ -442,6 +485,7 @@ executed when the batch is called.
   {Load palette:_} - Read DN color palette from file.
 
 .topic NavigatorsWindows=19
+; /portions by Deleter/ 07.02.2003
                ⁄ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ
    ⁄ƒƒƒƒƒƒƒƒƒƒƒ¥Navigator windows€ƒƒƒƒƒƒƒƒƒƒ
    ≥           ¿‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹€          €
@@ -451,12 +495,10 @@ executed when the batch is called.
    ≥ {File Manager:FileManager}                           €
    ≥ {Viewing text and binary files:View}          €
    ≥ {Text editor:Editor}                            €
-   ≥ {Disk editor:DiskEditor}                            €
    ≥ {Directory tree:DirTree}                         €
    ≥ {SpreadSheet:SpreadSheet}                            €
    ≥ {Calculator:Calculator}                             €
    ≥ {Terminal:Terminal}                               €
-   ≥ {Files reanimator:Reanimator}                       €
    ≥ {Telephone book:Phone}                         €
    ¿‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹€
 
@@ -505,6 +547,7 @@ See also { "File Manager Commands":ManagerCommands}
 
 .topic ManagerCommands=21
 .title File Manager Commands
+; /portions by Deleter/  Feb 2003
 
 These commands are accessible from the Manager menu. They can be used
 to configure the Manager window for the users needs.
@@ -526,6 +569,9 @@ highlighted file.
 {Show/hide left panel:_} - Shows/Hides left Manager panel.
 
 {Show/hide right panel:_} - Shows/Hides right Manager panel.
+
+{Show/hide inactive panel:_}
+
 
 {Change drive left:_} - Change disk of left panel without activating
 it. If the panel was not visible, it becomes visible after choosing
@@ -611,11 +657,10 @@ and directories:
 
 .topic DeleteFiles=25
 .title Erasing of files
+; /portions by Deleter/ 07.02.2003
 
 Navigator allows you to delete the files and directories, which are not
-empty. This is possible with the command File|Delete. If you have
-enabled {direct disk access:DirectDiskAccess} in the configuration, erasing, is
-considerably faster! However, it is not supported on network drives.
+empty. This is possible with the command File|Delete.
 
 When trying to erase a non-empty directory Navigator will prompt you
 about that:
@@ -754,6 +799,7 @@ current part of the file will be written to this disk.
 
 .topic CopyFiles=29
 .title Copying/moving of files
+; /portions by Deleter/ 07.02.2003
 
 Navigator allows to copy both files and directories with its contents.
 This can be done with the command File|Copy, when a file panel of
@@ -762,7 +808,7 @@ File Manager is active.
 Moving of files and directories is done by the command File|{Rename/Move:RenameMove}.
 It is executed within the limits of one disk, as from disk on disk.
 
-When copying, Navigator can use available EMS/XMS memory if
+When copying, Navigator can use system 'copy' function if
 `Advanced copy' option is switched on in System Setup dialog box.
 
  See also {"Copying dialog box":CopyDialog}
@@ -986,17 +1032,11 @@ Another feature of the editor is multilevel undo.
 
 .topic DiskOperations=10006
 .title Working with disks
+; /portions by Deleter/ 07.02.2003
 
 Navigator performs following operations with disks:
 
-  - {Format a diskette:Format}
   - {Install a volume label:VolLabel}
-  - {Restore an erased file:Reanimator}
-  - {Editing disk by direct access:DiskEditor}
-
-All these operations (except for formatting) are available ONLY
-if the option "{Direct disk access:DirectDiskAccess}" in the
-configuration dialog box is enabled!
 
 .topic FilePanel=1100
 .title File Panel
@@ -1338,40 +1378,6 @@ To close all directories - {gray -:_}
 
 See also:{"Types of windows":WindowsType}
 
-.topic Reanimator=11008
-.title Reanimation of erased files
-
-Reanimator allows you to restore erased files or directories. Unfortunately,
-it is not always possible to restore an erased file, since the information
-on disk can be overwritten with other data.
-
-The reanimator window appears as follows:
-
-
-  NB: Reanimator works only when                   {Chance to recover the file:_}
-  {Direct disk access:DirectDiskAccess} is on                             {to its original state:_}
-                                                                        {≥:_}
- {When restoring,                                       good - possible  ≥:_}
- {DN asks you for ⁄ƒƒƒƒName of files                    average - 50/50  ≥:_}
- {the first letter≥    and information                  poor - impossible≥:_}
- …{≥:_}[˛]ÕÕÕÕÕÕÕÕÕÕÕ{≥:_}ÕÕÕÕÕÕÕÕÕÕÕ Reanimator ÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕª  {≥:_}
- ∫{≥:_}              {≥:_}                                                   ∫  {≥:_}
- ∫{≥:_} Name         {≥:_}   Size    {Attr:FileAttr}   Date   Time   Cluster Prognosis {ƒƒƒƒŸ:_}
- ∫{¿ƒ:_}?age dat     {≥:_}    89,352 -a--  8-10-93  9:05  19,640  average   ∫
- ∫  ?fds     bat     187,792 -a--  8-10-93  9:07 19,684   poor     ˛ ∫
- ∫  ?om-book arj   1,328,816 -a--  8-10-93  9:43 16,540   average  ± ∫
- ∫  ?ook     arj   1,333,339 -a--  8-10-93  9:32 15,869   poor     ± ∫
- ∫  ?pnet    exe      61,334 -a-- 12-09-93 17:06 16,385   good      ∫
- ∫                                                                   ∫
- ∫         Drive... ‹   View...‹   Reanimate ‹   Cancel ‹    Help ‹  ∫
- ∫         ﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂ   ﬂﬂﬂﬂﬂﬂﬂﬂ   ﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂ   ﬂﬂﬂﬂﬂﬂﬂﬂ   ﬂﬂﬂﬂﬂﬂﬂ  ∫
- »ÕÕÕÕÕÕÕÕÕÕÕ{≥:_}ÕÕÕÕÕÕÕÕÕÕÕÕÕ{≥:_}ÕÕÕÕÕÕÕÕÕÕÕÕ{≥:_}ÕÕÕÕÕÕÕÕÕÕÕ{≥:_}ÕÕÕÕÕÕÕÕÕÕÕ{≥:_}ÕÕÕÕº
-             {≥             ≥            ≥           ≥           ≥:_}
- {Change Disk Ÿ      Show the        Restore File    ≥          Help:_}
-                    {contents of the file            ≥:_}{Cancel the action:_}
-
-See also:{"Types of windows":WindowsType}
-
 .topic Format=11009
 .title Formatting of disks
 
@@ -1415,6 +1421,7 @@ See also:{"Types of windows":WindowsType}
 
 .topic VolLabel=11010
 .title Volume Label
+; /portions by Deleter/ 07.02.2003
 
 DOS Navigator allows you to edit the volume label of a disk. The window
 for changing the volume label is easy to use:
@@ -1429,50 +1436,6 @@ for changing the volume label is easy to use:
          {≥:_}
 
        {Desired volume label:_}
-
-
-NB: Editing a volume label is only possible if the option
-{Direct disk access:DirectDiskAccess} is turned on!
-
-.topic DiskEditor=11011
-.title Disk Editor
-
-With the Disk Editor you can edit the structure of a disk directly.
-NB: The disk editor is only active if the option {Direct disk access:DirectDiskAccess}
-is turned on!
-
-  !!! WARNING !!!
-  If you don't know anything about the structure of a disk,
-  you should be VERY careful with the disk editor!
-  With the disk editor you can severely damage your data,
-  or even make a complete disk in-accessible!
-
-You can work with the following logical disk structures (in menu{Area:_}):
-
-     {File:_}- Files
-     {Directory:_}- Directory
-     {Drive:_}- Change disk
-     {Cluster:_}- Clusters
-     {Sector:_}- Sectors
-
-In menu {View:_} it is possible to choose the desired display form and
-edit form:
-
-     {As Hex:_}- hexadecimal dump
-     {As Dir:_}- directories
-     {As Text:_}- text format
-     {As FAT:_}- file allocation table
-
-It is possible to perform the following editing operations
-(in menu {Edit:_}):
-
-     {Undo            :_}- undo last operation(s)
-     {Copy            :_}- copy
-     {Paste over      :_}- replace with contents of clipboard
-     {Copy to         :_}- copy to
-     {Fill            :_}- fill are with specific string
-     {Search for      :_}- search for a specific string
-     {Continue search :_}- continue searching
 
 .topic Communication=11012
 .title Communication
@@ -2182,6 +2145,20 @@ have to zoom the CD Player.
 
 .topic EnvEditor=16559
 .title Edit OS Environment
+;/Deleter/  Mar 2003
+
+  You can need to edit or add new environment variables. Often you need to
+change PATH or, say, BLASTER.
+
+  In the center of the window you see all variables list, one of them is
+highlighted by cursor. The variable's value is shown in the bottom line.
+There you can edit this value. To add/edit/renam environment variables you
+can use the buttons in the right side of the window.
+
+WARNING: While the length of environment variable value in DN/2 is limited to
+255 characters (it works for 1.51.10b11 and lower; for newer versions see
+whatsnew.txt), when you press OK button, all longer variables are cut to 255
+characters!
 
 .topic NetInfo=16560
 .title Network Information Panel
@@ -2364,16 +2341,6 @@ To untag files in the current directory set a file mask.
 
 .topic SystemInfo=16592
 .title System Information
-
-.topic DirectDiskAccess=16593
-.title Direct Disk Access
-Direct Disk Access is designed to approach disk without using a file system,
-through direct (logical, not physical) sector reading and writing. Faster,
-is possible {the undeleting of files:Reanimator} etc., but
-conflicts are possible with Network, RAM, SUBST etc. drives.
-
-.topic DirectAccessDenied=16594
-.title Direct Access Denied
 
 .topic AsciiChart=16595
 .title ASCII Chart
@@ -2684,7 +2651,37 @@ of files in the current panel, so you can specify particular files to be shown
 .title Extract files from archive
 Enter the target {directory:_} for extract. If the directory does not exist,
 it will be created automatically.
-NB: by default a 'Extract with path names' option is enabled.
+
+Options:
+
+{Extract with path names:_}: extract files from archive with keeping
+                          the structure of directories stored in
+                          archive
+
+{Test only:_}: Test files integrity in archive without extracting
+
+{Force mode:_}: Extract without archiver's requests of confirmations
+             to any actions (such as files overwriting)
+
+{Through temporary directory:_}: Extract files to temporary
+                subdirectory in destination directory and move
+                them to destionation directory.
+                The benefits of this method are:
+                 - The standard file overvrite confirmation dialogs
+                   will be shown with possibility to rename new file
+                   or append it to old file
+                 - Files will be extracted from subdirectories in
+                   archive with directories structure creation from
+                   current path inside archive, but not from archive
+                   root, even in case if it is impossible to do by
+                   mean of archiver itself
+                This option has no effect in cases when it is
+                obsolete, i.e. if extration to empty or non-existing
+                directory from archive root (or from any directory
+                in archive of type with non-empty "Set path inside"
+                archiver setting) takes place
+
+ Set {Password:_} if archive is password-protected
 
 .topic ArchiveFiles=48031
 .title Archive Files
@@ -2731,20 +2728,17 @@ The <{Full:_}> button is turned ON all of these fields
 
 You can specify a special settings for a different panels. The default
 settings({New Manager:_}) is defined in {Options|File Manager|Column defaults...:_}
+
 .topic DrivesSetup=48035
 .title Drives Setup
-To speed up some disk operation and enable the {Reanimator:Reanimator} and the
-{Disk Editor:DiskEditor} you have to set ON a {direct disk access:DirectDiskAccess}
-for current drive.
+; /portions by Deleter/ 07.02.2003
 
 All of these options are being setup for each drive
-  {Direct access:_}
   {Store tree information:_}
   {Verify writes:_}
   {Check free space:_}
 
 These are global options for all drives
-  Test {Direct Disk Access:DirectDiskAccess}
   {Clear Read-Only from CD:_}
 
 .topic FileMgrSetup=48036
@@ -2765,7 +2759,96 @@ These are global options for all drives
 .topic SystemSetup=48037
 .title System Setup
 
-Attention! Changes of LFN container will used after restart.
+
+ {[X] Internal editor:_}      - To use internal editor with F4 and
+                            external with Alt-F4; when switched off
+                            - external editor will be used with F4
+                            and internal with Alt-F4
+
+ {[X] Use system clipboard:_} - When switched on, the text copied in
+                            the Navigator will be possible to insert
+                            into any another task in your system, and
+                            any text copied in another task will be
+                            available in DN. In this mode the #0
+                            symbols will be replaced with spces when
+                            string is placed to clipboard
+
+ {[X] Show hidden files:_}   - To show files with "hidden" attribute
+                           in file panels
+
+ {[X] Clear R/O flag from CDRom:_} - The read only attribute will be
+                                 cleared from files when they copied
+                                 from CD-ROM
+
+ {[X] Advanced copy:_} - When files copying proceeds, the files will
+                     be read into common copy buffer and written
+                     afterward from this buffer (the size of copy
+                     buffer can be set by "Copy buffer limit" option
+                     of current dialog). If this option switched off,
+                     files will be copied subsequently one-by-one.
+
+ {[X] Handle "CD" Command:_} - DN will treat the "cd path" and "D:"
+                           commands directly without command
+                           processor running.
+
+
+ {Video Mode 1:_} ¬ User-defined videomodes, which can be
+ {Video Mode 2:_} Ÿ switched by <Alt-F10> and <Ctrl-F10>.
+                    The standard videomodes can be set as
+                    a number, which looks in hexadecimal
+                    view as:
+                    $<N><N>
+                     where the 1-st <N> can be:
+                      8 - modes 40 x ??
+                      9 - modes 80 x ??
+                     the 2-nd <N>:
+                      0 - ?? x 12
+                      1 - ?? x 14
+                      2 - ?? x 25
+                      3 - ?? x 30
+                      4 - ?? x 34
+                      5 - ?? x 43
+                      6 - ?? x 50
+                      7 - ?? x 60
+                    Custom videomodes can be set as
+                    Colmns*256 + Rows , where Columns is
+                    a columns number, and Rows is a rows
+                    number in console
+
+ {Temporary directory:_} - The name and path of directory, in which
+                        the temporary files will be placed
+
+  The disks options:
+   Choose drive here    Here you can set options of disk choosen
+ ⁄ƒƒƒƒƒƒƒƒƒ¡ƒƒƒƒƒƒƒƒƒƒø ⁄ƒƒƒƒƒƒƒƒƒƒƒƒƒ¡ƒƒƒƒƒƒƒƒƒƒƒƒƒø
+ Drives                  Current drive options
+
+ A:                    {[X] Store tree information:_} - store tree
+ B:                   ˛                       of directories in a
+ C:                   ±                       special file
+ D:                   ± {[X] Verify disk writes:_} - to check file
+ E:                   ±                       integrity after writing
+ F:                   ± {[X] Check free space  :_} - to check is there
+ G:                   ±                       enough free space on
+ H:                                          destination drive
+                                              to copy selected files
+                                              to this drive
+                        {[X] Unpack to drive directly:_} - when set,
+                                    the "Through temporary directory"
+                                    option will be cleared in
+                                    "Extract files" dialog when
+                                    unarchiving to this drive
+                                    performed, otherwice this
+                                    option will be preset
+
+ {Copy buffer limit:_} - The limit of copy buffer in kilobytes
+
+ {Force default archiver:_} - Can be set to name of one of the
+                          archive types supported (see files
+                          archiving dialog) or to empty string.
+                          When set to name of archive type,
+                          this type always will be set as
+                          default archiver
 
 .topic OptionsStartup=48038
 .title Startup Options
@@ -2828,13 +2911,6 @@ directory.
 
 .topic EditorDefaults=48040
 .title Internal Editor and Viewer Defaults
-
-.topic FloppyFormat=48041
-.title Diskette Format
-
-.topic AdvancedFloppyFormat=48042
-.title Advanced Floppy Format
-These are options for professional users.
 
 .topic ScrollBack=48043
 .title Scroll Back
@@ -3308,9 +3384,10 @@ only).
 
 .topic TaskList=48100 ; [C] /JO/ 11.11.2002
 .title Task List
+; /portions by Deleter/ 07.02.2003
 
  í†sk list has some useful options which can be set by keys in
-section {[Tasklist] :_} of {dn.ini :_} file:
+section {[Tasklist] :_} of {dn.ini:IniFile} file:
 
 {ShowExePaths (Boolean) :_} When set to 0 , the names of processes'
                         executables will appear in Task list dialog
@@ -3332,3 +3409,53 @@ section {[Tasklist] :_} of {dn.ini :_} file:
                         excluded from task list if FilteredList parameter
                         is set to 1 . Use "#" symbol to separate
                         executable file names
+
+.topic IniFile=48092
+.title Navigator startup parameters (DN.INI)
+; /Deleter/ 07.02.2003
+
+DN.INI is a text configuration file of DOS Navigator.
+Many global variables of DN are set up here and you won't need to change them
+often. Pay attention to editing of this file, enter valid values!
+
+Initialisation parameters of DN can be in this types:
+
+  * bool - parameter can be: false/true, 0/1, no/yes
+  * str  - string parameter
+  * long - parameter of type longint
+
+Full but Russian description of all the parameters is in
+%DN%\Doc\Russian\dnini.txt file.
+
+.topic ZIPWithoutCentralDir=22000
+.title ZIP archive without central directory
+
+ All ZIP-archives must have special data block called central directory at
+the end of archive file. It is impossible to extract any files from archive
+without central directory. Current archive has no central directory (possibly,
+because of uncompleted download of archive file). The viewing of current
+archive contents is possible, but reparing of archive is necessary to extract
+files. The original archive file will be kept unchanged, and new repared
+file with new name will be created, usually "pkfixed.zip".
+ No corrupted data will be recovered after such reparation, but all intact
+data will be accessible for extracting.
+ This operation is not integrated into DN/2 and must be performed manually.
+
+ In case you are using {pkzip 2.5:_} for OS/2 or Win32, please enter such
+command in command line:
+
+pkzip /fix <archive name>
+
+ or just try extract something from archive - archiver will prompt for
+automatical archive reparing.
+
+ In case you are using {pkzip / pkunzip:_} version 2.0x for OS/2 or version
+up to 2.5 for DOS, please use PKZIPFIX utility to repare archive. Using of
+earlier versions of PKZIPFIX for DOS in not recommended because it can cause
+long names corruption.
+
+ If you are using Infozip {unzip / zip:_}, please enter such
+command in command line:
+
+ zip -f <archive name>.
+

@@ -1135,8 +1135,7 @@ begin
       end
     else if ShowFileMask and (x_x<>Panel^.FileMask) and ('*'<>Panel^.FileMask) then {-$VIV 19.05.99--}
      begin
-      S := fReplace('*.', '', Panel^.FileMask);
-      S := fReplace(' ', '', S);
+      S := fReplace(' ', '', Panel^.FileMask);
       if Copy(S, 1, 1) = ';' then Delete(S, 1, 1);
       S := GetString(dlFileMask) + S;
      end
@@ -1648,7 +1647,11 @@ GotoKB:
                                Message(@Self, evCommand, cmPanelErase, nil);
                      kbShiftDel: if ((CmdLine.Str = '') and (FMSetup.Options and fmoDelErase <> 0)) then
                                Message(@Self, evCommand, cmSingleDel, nil);
-                     kbHome: begin CE; DeltaX := 0; OldDelta := -1; ScrollBar^.SetValue(0); DrawView end;
+                     { Flash >>> }
+                     kbCtrlHome: begin CE; DeltaX := 0; OldDelta := -1; Owner^.ReDraw end;
+                     kbCtrlEnd: begin CE; DeltaX := LineLength - Size.X - 1; OldDelta := -1; Owner^.ReDraw end;
+                     kbHome: begin CE; OldDelta := -1; ScrollBar^.SetValue(0); Owner^.ReDraw end;
+                     { Flash <<< }
                      kbEnd: begin CE; OldDelta := -1; ScrollBar^.SetValue(Files^.Count-1) end;
                      kbUp, kbDown, kbCtrlUp, kbCtrlDown, kbCtrlShiftUp, kbCtrlShiftDown, kbUpUp, kbDownUp
                           : begin

@@ -31,6 +31,7 @@ var
   DN_XClipCanPaste : function: Boolean;
   DN_WinSwitchToProgram : function(Pid: LongInt): Longint;
   DN_WinQueryTaskTitle : function(PSessId: LongInt; var Title: String): Longint;
+  DN_IconFile: string;
 
 implementation
 
@@ -195,8 +196,8 @@ begin
   DN_proc('WinSwitchToProgramSh', @DN_WinSwitchToProgram);
   DN_proc('WinQueryTaskTitleSh', @DN_WinQueryTaskTitle);
 
-  S := StartupDir+'dn_pm.ico'#0;
-  DN_WinSetTitleAndIcon('DN/2', @S[1]);
+  DN_IconFile := StartupDir+'dn_pm.ico'#0;
+  DN_WinSetTitleAndIcon('DN/2', @DN_IconFile[1]);
   {действует только если программа запускается командой "start dn.exe"
    или в VIO окне из программного объекта,
    если запускать в Full Screen из программного объекта - не действует}

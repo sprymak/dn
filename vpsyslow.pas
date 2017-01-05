@@ -29,6 +29,8 @@ var
 {$IFDEF WIN32}
 var
   RecodeAnsiNames: Boolean; {Cat, AK155}
+  hExtCmd: THandle;
+procedure InitialiseKeyboardHandler;
 {$ENDIF}
 
 type

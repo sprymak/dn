@@ -1326,7 +1326,6 @@ type
     Dirs: PSortedCollection;
     ListFile: PString;
     UpFile: PFileRec;
-    AllowPack: Boolean;
     AMask, AWhat: PString;
   end;
 
@@ -1355,7 +1354,6 @@ type
     Dirs: PSortedCollection;
     ListFile: PString;
     UpFile: PFileRec;
-    AllowPack: Boolean;
     AMask, AWhat: PString;
   end;
 

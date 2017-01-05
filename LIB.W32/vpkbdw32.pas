@@ -88,6 +88,7 @@ begin
   OSVersionInfo.dwOSVersionInfoSize := SizeOf(OSVersionInfo);
   GetVersionEx(OSVersionInfo);
   SysPlatform := OSVersionInfo.dwPlatformId;
+  SetConsoleMode(SysFileStdIn, ENABLE_MOUSE_INPUT); {Alexey Suhinin}
 end;
 
 { Translate Windows CtrlKeys field to the low byte of OS/2-compatible

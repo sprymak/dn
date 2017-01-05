@@ -299,6 +299,7 @@ dlFCVerifyFailed      ^C'File verify error'^M^C
 dlBranch              'Branch: '
 dlUpDir               '<UP--DIR>'
 dlSubDir              '<SUB-DIR>'
+dlSymLink             '<SymLink>'
 dlNoFilesSelected,    ' No files selected '
 dlBytesIn,            ' ~bytes in ~'
 dlSelectedFiles,      ' selected files'
@@ -1453,7 +1454,6 @@ dlWkzWarningClearCell ^C'Really clear cell?'
 dlWkzWarningCellTypeChange ^C'Really cell type is changed?'
 ;AK155-
 ;JO+
-dlZIPWithoutCentralDir ^C'ZIP archive without central directory'^M^C'use fixing utility (PKZIPFIX or ZIP with -F key) to fix archive'
 dlArcEncrypted ^C'Archive with encrypted headers'^M^C'use Shift-F2 to unpack entire archive'
 ;JO-
 ;AK155+
@@ -1479,3 +1479,6 @@ dlSwitchButton 'Switch'
 ;Flash+
 dlSpacesInPassword = 'The password cannot contain spaces.'
 ;Flash-
+;JO+
+dlPressF1 ^M^C'Press F1 for more detailed information'
+;JO-

@@ -426,6 +426,7 @@ dlNoFilesSelected,         ' Файлы не отмечены '
 dlBranch                   'Ветвь: '
 dlUpDir                    '>Каталог<'
 dlSubDir                   '<Каталог>'
+dlSymLink                  '<Ссылка >'
 dlNoModemPort              ^C'Не могу найти COM порт'
 dlNoPossibleName           ^C'Невозможно найти имя'
 dlNotRenameDir             ^C'Невозможно переименовать каталог'^M^C
@@ -1363,7 +1364,6 @@ dlWkzWarningClearCell ^C'Действительно очистить ячейку?'
 dlWkzWarningCellTypeChange ^C'Действительно изменить тип ячейки?'
 ;AK155-
 ;JO+
-dlZIPWithoutCentralDir ^C'ZIP архив без центрального каталога'^M^C'используйте ремонтную утилиту (PKZIPFIX или ZIP с параметром -F)'^M^C' для восстановления архива'
 dlArcEncrypted ^C'Архив с зашифрованными заголовками'^M^C'используйте Shift-F2 для распаковки архива целиком'
 ;JO-
 ;AK155+
@@ -1389,3 +1389,6 @@ dlSwitchButton 'Перейти'
 ;Flash+
 dlSpacesInPassword = 'Пароль не должен содержать пробелов.'
 ;Flash-
+;JO+
+dlPressF1 ^M^C'Hажмите F1 для более подpобной инфоpмации'
+;JO-

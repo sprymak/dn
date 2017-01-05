@@ -1409,7 +1409,7 @@ DIALOG dlgExtract, 51, 14, 'Добути файли'
       ITEM 'П~р~искорено'
       ITEM 'Чеpез тимчасо~в~ий каталог'
     END
-    InputLine 10, 8, 46, 10, 30, 0, ofSecurity
+    InputLine 10, 9, 46, 10, 30, 0, ofSecurity
     Label 2, 9, '~П~ароль', ofPostProcess, ofPreProcess
     Button  2, 11, 13, 13, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 13, 11, 25, 13, 'Вiдмiна', cmCancel, ofPostProcess, ofPreProcess

@@ -139,6 +139,7 @@ VAR
 IMPLEMENTATION
 
 uses
+  VPSysLow,
   Messages, DnApp, DnHelp, Startup, Commands, Histries, HistList, FlTools,
   FileFind, CmdLine, ArcView, Archiver, DiskImg, DiskInfo, FileCopy, DnUtil,
   DnIni {-$VIV}
@@ -325,7 +326,23 @@ begin
    R := Bounds;
    R.A.Y := R.B.Y; inc(R.B.Y);
    DriveLine^.SetBounds(R);
-   DriveLine^.SetState(sfVisible, FMSetup.Show and fmsDriveLine <> 0);
+{AK155 22-01-2003}
+   if GetState(sfVisible) <> (FMSetup.Show and fmsDriveLine <> 0) then
+{/AK155 22-01-2003}
+     DriveLine^.SetState(sfVisible, FMSetup.Show and fmsDriveLine <> 0);
+{ Добавление этого условия вызвано вовсе не желанием повысить
+быстродействие. Раньше тут был развесистый условный оператор,
+в котором вызывались, в конечном итоге, Show и Hide. Заменивший
+их SetState, вроде, выглядит вполне эквивалентным, но после этой
+замены если погасить и зажечь одну из двух панелей, то строка дисков
+в ней стала пропадать. Причина этого в том, что для HideView
+(которым является панель) зачем-то устанавливается нулевая ширина,
+притом не после, а до гашения sfVisible. Ну а DriveLine^.SetState
+приводит к вызову TDrivrLine.Draw, который подстравивает свою
+ширину к этому нулю. IMHO THideView лишен какого-либо смысла
+и его надо вообще убрать, но страшно, поэтому и введено это условие,
+при наличии которого SetState в опасном случае не вызывается.
+}
    end;
  if InfoView <> nil then
    begin
@@ -2009,14 +2026,21 @@ end;
 {/JO}
 {Cat}
  {$IFDEF WIN32}
- procedure _OpenWPSWindow(DirName: String);
+ procedure _OpenExplorerWindow(PathName: String);
+ var
+   PrgBuf: array[0..511] of Char;
+   ArgBuf: array[0..511] of Char;
  begin
-  {$IFNDEF RecodeWhenDraw}
-  if RecodeCyrillicNames = 1 then
-    DirName := OemToCharStr(DirName);
-  {$ENDIF}
-  DirName := 'explorer.exe "'+ DirName + '"';
-  Message(Application, evCommand, cmExecString, @DirName);
+   {$IFNDEF RecodeWhenDraw}
+   if RecodeCyrillicNames = 1 then
+     PathName := OemToCharStr(PathName);
+   {$ENDIF}
+   StrPCopy(@PrgBuf, GetEnv('windir')+'\explorer.exe');
+   if Copy(PathName, Length(PathName)-2, 3) = '\..' then
+     StrPCopy(@ArgBuf, '"'+Copy(PathName, 1, Length(PathName)-3)+'"')
+   else
+     StrPCopy(@ArgBuf, '/select,"'+PathName+'"');
+   SysExecute(@PrgBuf, @ArgBuf, nil, True, nil, -1, -1, -1);
  end;
  {$ENDIF}
  {$ENDIF}
@@ -2232,12 +2256,19 @@ begin
                               end;
               cmAdvFilter: begin CM_AdvancedFilter(@Self); CE end;
 {$IFDEF USEWPS}
+{$IFDEF OS2}
               cmOpenWPSWindow: begin _OpenWPSWindow(DirectoryName); CE; end; {JO}
-{$IFDEF OS2} {Cat: в windows содание ярлыка пока не работает}
               cmCreateWPSObject: begin if (PF <> nil) and (Drive^.DriveType < dtArcFind) then
                                  _CreateWPSObject(MakeNormName(PF^.Owner^, PF^.FlName[true]), (InExtFilter(PF^.FlName[true], Executables) and (PF^.Attr and Directory = 0)));
                                  CE;
                                  end;
+{$ENDIF}
+{$IFDEF Win32} {Cat: в windows содание ярлыка пока не работает}
+              cmOpenWPSWindow:
+                begin
+                  _OpenExplorerWindow(MakeNormName(PF^.Owner^, PF^.FlName[True]));
+                  CE;
+                end;
 {$ENDIF}
 {$ENDIF}
              end;

@@ -58,7 +58,7 @@ uses
 {$ENDIF}
      profile, objects, advance, advance1, advance2;
 
-function DetectArchive(Silent: Boolean): PARJArchive;
+function DetectArchive: PARJArchive;
 function GetArchiveTagBySign(Sign: TStr4): Byte;
 function GetArchiveByTag (ID: Byte): PARJArchive;
 
@@ -68,7 +68,7 @@ implementation
 uses {$IFDEF PLUGIN} Plugin, {$ENDIF} Messages,
      FViewer, U_Keymap, DNApp, Commands; {JO}
 
-function ZIPDetect(Silent: Boolean): Boolean;
+function ZIPDetect: Boolean;
 var
  ID, FP: LongInt;
     nxl: TXLat;
@@ -108,9 +108,11 @@ begin
            ZIPDetect := True;
            CentralDirRecPresent := True;
           end
-         else if not Silent then messagebox(GetString(dlZIPWithoutCentralDir), nil, mfOKButton);
+         else
+           MsgHelpCtx := hcZIPWithoutCentralDir;
       end
-    else if not Silent then messagebox(GetString(dlZIPWithoutCentralDir), nil, mfOKButton);
+    else
+      MsgHelpCtx := hcZIPWithoutCentralDir;
   end;
   ArcFile^.Seek(ArcPos);
 end;
@@ -548,7 +550,7 @@ begin
  if  HADetect   then DetectArchive:=New(PHAArchive,   Init) else
  if LHADetect   then DetectArchive:=New(PLHAArchive,  Init) else
  if RARDetect   then DetectArchive:=New(PRARArchive,  Init) else
- if ZIPDetect(Silent) then DetectArchive:=New(PZIPArchive,  Init) else
+ if ZIPDetect   then DetectArchive:=New(PZIPArchive,  Init) else
 {$IFNDEF MINARCH}
  if AINDetect   then DetectArchive:=New(PAINArchive,  Init) else
  if ARCDetect   then DetectArchive:=New(PARCArchive,  Init) else

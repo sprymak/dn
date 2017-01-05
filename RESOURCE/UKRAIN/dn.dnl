@@ -426,6 +426,7 @@ dlNoFilesSelected,         ' Файли не вiдмiченi '
 dlBranch                   'Гiлка: '
 dlUpDir                    '>Каталог<'
 dlSubDir                   '<Каталог>'
+dlSymLink                  '<SymLink>'
 dlNoModemPort              ^C'Не можу знайти COM порт'
 dlNoPossibleName           ^C'Неможливо знайти iм''я'
 dlNotRenameDir             ^C'Неможливо перейменувати каталог'^M^C
@@ -1363,7 +1364,6 @@ dlWkzWarningClearCell ^C'Справдi очистити клiтину?'
 dlWkzWarningCellTypeChange ^C'Справдi змiнити тип клiтини?'
 ;AK155-
 ;JO+
-dlZIPWithoutCentralDir ^C'ZIP архiв без центрального каталогу'^M^C'застосуйте ремонтну утiлiту (PKZIPFIX або ZIP з параметром -F)'^M^C'для вiдновлення архiву'
 dlArcEncrypted ^C'Архiв з зашифрованими заголовками'^M^C'застосуйте Shift-F2 для розпаковки архiву цiлком'
 ;JO-
 ;AK155+
@@ -1389,3 +1389,6 @@ dlSwitchButton 'Перейти'
 ;Flash+
 dlSpacesInPassword = 'Пароль не повинен мати пробiлiв.'
 ;Flash-
+;JO+
+dlPressF1 ^M^C'Hатиснiть F1 для докладнiшої iнфоpмацiї'
+;JO-

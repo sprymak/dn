@@ -79,7 +79,6 @@ type
     Dirs: PSortedCollection;
     ListFile: PString;
     UpFile: PFileRec;
-    AllowPack: Boolean;
     AMask, AWhat: PString;
     constructor Init(const AName: String; ADirs: PCollection; AFiles: PFilesCollection; Num: Byte);
     constructor InitList(const AName: String);

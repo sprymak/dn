@@ -7,6 +7,160 @@
 
 
 
+   Version 1.51.10b12
+  ---------------------------------------------------------------------
+ak30123a.dif
+[-] The drive line in the panel bottom was hided after hiding and showing
+    of this panel. This bug is intoduced in beta 10 by ak21215a.dif patch.
+
+ak30129a.dif ak30218a.dif ak30301a.dif
+[-] The exe-files with spaces in filename didn't recognised as GUI exe.
+[-] The Win16 exe-files (NE) didn't recognised as GUI exe in Win32
+    version.
+[-] The executable file of application currently being executed failed to
+    be recognized as Win32 GUI;
+[-] Presence of spaces after executable file name prevented this file to
+    be recognized as Win32 GUI;
+
+ak30207a.dif
+[-] The "Temporary directory" setting (System Setup) worked correctly only
+    in case when it referred to environment variable, but was ignored when
+    the precise full path was specified;
+
+ak30301b.dif
+[-] Win32-console initialisation now will be more correct. This does not
+    affect DN/2 itself, but it is important for console applications using
+    Crt unit; It is recommended to recompile vpkbdw32.dll .
+
+ak30301c.dif ak30302b.dif
+[*] In Win32 version in case when DN/2 is waiting (with black screen) for
+    exiting application which was failed to be recognized as executing in
+    separate window now it is possible to stop this waiting with
+    Ctrl-Break in DN/2 window. The command processor used to run this
+    application will be closed in this case, the console will be closed
+    and new console will be opened instead. When Ctrl-Break pressed during
+    execution of external console or DOS-programm (if it works too long),
+    the current console will continue to be used for this programm, and
+    new console will be created for DN/2 to continue it's work.
+
+ak30305a.dif
+[-] In the spreadsheet the operations requiring coordinates correction
+    (collumns and raws insertions and deletions, inserting from clipboard)
+    worked unpredictable;
+
+ak30314a.dif jo30330a.dif jo30330c.dif jo30411a.dif vk30419a.dif
+[*] The messagebox about zip-archive with broken or absent central
+    directory will not appear any more. The detailed information
+    describing this situation will appear in help for "Bad archive"
+    messagebox instead. The global variable introduced for this purpose,
+    allowing to specify appropriate help context for error messagebox. The
+    new text "Press F1 for more detailed information" will appear in
+    messagebox in this case.
+
+ak30322a.dif
+[-] In Win32-version under NT the symbolic links (ReparsePoint, Junction)
+    now wil be appropriately indicated in pannel bottom and will be
+    removed without confirmation if "Delete file" operation (F8) will be
+    applied to them (the original directory will not be applied in this
+    case);
+[-] When attempt to remove directory was done, but user decided to cancel
+    this operation in confirmation dialog, the description of the
+    directory was removed anyway.
+
+ak30325a.dif
+[-] The text viewer position was not restored correctly from history when
+    big files were viewed. The format of record in file viewer history
+    will be changed after this correction.
+
+ak30327a.dif ak30408b.dif
+[+] Now Alt-Up and Alt-Down keys will cause juming to closest
+    non-removable ("frozen") item in all histories.
+[*] The moving of items (Shift-Up, Shift-Down) in some histories
+    (directories history, viever history, editor history and history of
+    commands) is optimized
+
+ak30408a.dif
+[-] The highliting of "frozen" items did not work properly in editor and
+    viewer histories;
+
+ak30415a.dif
+[-] The current coding did not show in editor window border in case of
+    setting FastBookmark=0 in dn.ini
+
+ak30422a.dif
+[-] In Win32 version external application file which was to be recognized
+    as executing in separate window did not close in some cases
+
+ak30504a.dif
+[-] Under OS/2 the icon of the DN/2 window didn't redraw after external
+    VIO program call.
+
+ak30513a.dif
+[-] The small bugfix of the ukrainian resources (the unpack dialog)
+
+as30207a.dif as30219a.dif
+[*] Information about features that used Direct Disk Access, deleted from
+    context help. Other changes of help.
+
+as30303a.dif
+[*] Added English help for Environment variables editor. A comment in
+    Russian help.
+
+cat30127.dif
+[*] The "FormatStr" function now can work with PChar. The corresponding
+    macros is "%z" ;
+
+cat30128.dif
+[*] The method of opening directory in Windows Explorer (Ctrl-F) is
+    improved in Win32 version: the situations when DN/2 stays frozen until
+    closing of directory window will not occure anymore. The shell program
+    execution will be more hidden now: file panels will not be redrawn,
+    the confirmations to save file in editor will not appear etc. The file
+    cursor positioning for file which is current in DN/2 file panel will
+    be done in Explorer window;
+
+ez30127a.dif
+[*] "Description in bottom" did not work in panel settings when "Always
+    copy descriptions" setting was not set in File Manager Settings;
+
+ff_empty.rar
+[-] DN/2 crashed when file search panel was empty and external programm was
+    executed;
+
+jo30119a.dif
+[*] Context help items "System Setup" and "Extract files from archive" are
+    expanded and made corresponding to today's reality
+
+jo30224a.dif
+[-] When some "unhappy" columns settings were set (for example 244-249
+    symbols for file name and file size switched on) some bugs appeared
+    (such as obsolete columns separators) and somtimes crashes occured
+
+jo30303a.dif
+[-] Now in columns setup the file name length will be limited to 252
+    symbols and extension name length will be limited to 247 symbols
+
+jo30309a.dif
+[*] If file names mask set in file panel, then this mask will be shown in
+    panel bottom "as is", without "*." substring removing, that allows to
+    avoid wrong appearance of masks which are different from "*.ext"
+
+jo30314a.dif
+[-] Info Divider not always had been redrawed after pressing "Home"
+    button;
+[-] Hotkeys Ctrl-End and Ctrl-Home added to scroll to end and back to
+    beginning of column which is wider than panel
+
+jo30509a.dif jo30510a.dif jo30512a.dif
+[*] The method of checking for necessary amount of memory is optimized in
+    operations of directory reading (entering directories on disk,
+    entering archives, file search and branch opening (Ctrl-H) on disk and
+    inside archives), that makes these operations significantly quicker
+
+mv30202a.dif
+[*] Arvid's streamer TDR file detection.
+
+
    Version 1.51.10b11
   ---------------------------------------------------------------------
         Alexey Korop

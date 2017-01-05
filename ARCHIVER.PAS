@@ -996,7 +996,7 @@ begin
     end;
    ArcPos := 0;
    SkipSFX;
-   AType := DetectArchive(false);
+   AType := DetectArchive;
    FreeObject(ArcFile);
    if AType = nil then Exit;
    ExtrDir := '';

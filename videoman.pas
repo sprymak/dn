@@ -1526,8 +1526,19 @@ var
    mov edi,UserScreen
    mov ecx,UserScreenSize
 @@1:
-   lodsw
+   lodsw  { символ в AL, мусор в AH }
    stosb
+
+{AK155 нам не нужна шапка-невидимка, когда атрибуты нулевые
+ (такое бывает под W98 при чтении экрана новой консоли) }
+   lodsw  { атрибут в AL, мусор в AH }
+   dec  ecx
+   or  AL,AL
+   jnz  @@2
+   mov  al, 7
+@@2:
+   stosb
+
    loop @@1
   end;
 {$ENDIF}
@@ -1588,7 +1599,8 @@ end;
 procedure DoneVideo;
 begin
   FillChar(ScreenBuffer^, ScreenWidth * ScreenHeight * 2, 0); {JO: нужно, чтобы куски панелей не "линяли" в UserScreen}
-  Move(UserScreen^, ScreenBuffer^, UserScreenSize);
+  if UserScreen <> nil then
+    Move(UserScreen^, ScreenBuffer^, UserScreenSize);
   FreeMem(UserScreen, UserScreenSize); {Cat}
   UserScreen := nil; {Cat}
   ScreenSaved := False; {Cat}

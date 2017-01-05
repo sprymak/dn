@@ -386,27 +386,59 @@ begin
 end;
 
 function SetupColumnDefaultsDisk: Boolean;
+  var I: Byte;
 Begin
  SetupColumnDefaultsDisk :=
   ExecResource(dlgSetupColumnsDisk, ColumnsDefaultsDisk) = cmOK;
+  for I := 1 to 10 do
+   begin
+    if StoI(ColumnsDefaultsDisk.Params[I].LFNLen) > 252 then
+      ColumnsDefaultsDisk.Params[I].LFNLen := '252';
+    if StoI(ColumnsDefaultsDisk.Params[I].EXTLen) > 247 then
+      ColumnsDefaultsDisk.Params[I].EXTLen := '247';
+   end;
 end;
 
 function SetupColumnDefaultsFind: Boolean;
+  var I: Byte;
 Begin
  SetupColumnDefaultsFind :=
   ExecResource(dlgSetupColumnsFind, ColumnsDefaultsFind) = cmOK;
+  for I := 1 to 10 do
+   begin
+    if StoI(ColumnsDefaultsFind.Params[I].LFNLen) > 252 then
+      ColumnsDefaultsFind.Params[I].LFNLen := '252';
+    if StoI(ColumnsDefaultsFind.Params[I].EXTLen) > 247 then
+      ColumnsDefaultsFind.Params[I].EXTLen := '247';
+   end;
 end;
 
 function SetupColumnDefaultsTemp: Boolean;
+  var I: Byte;
 Begin
  SetupColumnDefaultsTemp :=
   ExecResource(dlgSetupColumnsTemp, ColumnsDefaultsTemp) = cmOK;
+  for I := 1 to 10 do
+   begin
+    if StoI(ColumnsDefaultsTemp.Params[I].LFNLen) > 252 then
+      ColumnsDefaultsTemp.Params[I].LFNLen := '252';
+    if StoI(ColumnsDefaultsTemp.Params[I].EXTLen) > 247 then
+      ColumnsDefaultsTemp.Params[I].EXTLen := '247';
+   end;
 end;
 
 function SetupColumnDefaultsArch: Boolean;
+  var I: Byte;
 Begin
  SetupColumnDefaultsArch :=
   ExecResource(dlgSetupColumnsArch, ColumnsDefaultsArch) = cmOK;
+  for I := 1 to 10 do
+   begin
+    if StoI(ColumnsDefaultsArch.Params[I].LFNLen) > 252 then
+      ColumnsDefaultsArch.Params[I].LFNLen := '252';
+    if StoI(ColumnsDefaultsArch.Params[I].EXTLen) > 247 then
+      ColumnsDefaultsArch.Params[I].EXTLen := '247';
+   end;
 end;
 
 function SetupColumnDefaultsArvd: Boolean;
@@ -422,6 +454,13 @@ Begin
 {/JO}
  SetupColumnDefaultsArvd :=
   ExecResource(dlgSetupColumnsArvd, ColumnsDefaultsArvd) = cmOK;
+  for I := 1 to 10 do
+   begin
+    if StoI(ColumnsDefaultsArvd.Params[I].LFNLen) > 252 then
+      ColumnsDefaultsArvd.Params[I].LFNLen := '252';
+    if StoI(ColumnsDefaultsArvd.Params[I].EXTLen) > 247 then
+      ColumnsDefaultsArvd.Params[I].EXTLen := '247';
+   end;
 {JO}
   with ColumnsDefaultsArvd do
     begin

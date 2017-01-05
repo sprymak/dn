@@ -1838,7 +1838,7 @@ function ReformFormula(const S: string; LX,LY, DX,DY: integer): String;
   result := '='; I := 2;
   While (I <= Length(S)) do
     begin
-    S1 := '';
+    S1 := ''; S2 := '';
     While (I <= Length(S)) and  (S[I] in Signs) do
       begin result := result + S[I]; Inc(I) end;
     While (I <= Length(S)) and not (S[I] in Signs) do

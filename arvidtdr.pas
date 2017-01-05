@@ -65,6 +65,8 @@ Function  TdrInit(AvtDr: PArvidDrive): boolean;
 function  TdrMakeFileName(S: string): string; {JO}
 
 IMPLEMENTATION
+uses Archiver{TdrInit:_Cardinal}{piwamoto}
+     ;
 
 function TdrMakeFileName(S: string): string;
 var I: Integer;
@@ -333,6 +335,7 @@ begin with AvtDr^ do begin
   Stream^.Seek(0);
   Stream^.Read(D, SizeOf(D));
   if Stream^.Status <> stOK then exit;
+  if _Cardinal(D.PosTableOfs) > Stream^.GetSize then Exit;{piwamoto: reject invalid TDRs}
   TapeFmt:=D.TapeFmt;
   TapeTotalTime:=D.TapeLen;
   PosTableOfs:=D.PosTableOfs;

@@ -140,7 +140,14 @@ function FmtStrId(Id: TStrIdx; const S: string): string;
 function FmtFileId(Id: TStrIdx; const FName: string): string;
 
 
-const MsgActive : Boolean = False;
+const
+  MsgActive : Boolean = False;
+  MsgHelpCtx: word = 0; {AK155}
+    {Это контекст хелпа, устанавливаемый заранее извне для
+использования вместо подразумеваемого контекста. 'Пустое'
+значение - нулевое. При выполнении MessageBoxRect (и,
+следовательно, MessageBox и прочих производных от MessageBoxRect
+процедур) MsgHelpCtx автоматически обнуляется. }
 
 implementation
 
@@ -251,15 +258,22 @@ end;
 begin
   Dialog := New(PDialog,
     Init(R, GetString(TStrIdx(Integer(dlMsgWarning)+AOptions and $7))));
-  If AOptions and $7 = mfAbout
-    then Dialog^.HelpCtx := hcAboutDialog
-    else
-  If AOptions and mfAllButton <> 0
-    then Dialog^.HelpCtx := hcAllContainingDialog
-    else
-  If AOptions and ( mfYesButton + mf2YesButton ) <> 0
-    then Dialog^.HelpCtx := hcYesNoDialog + Byte( AOptions and mfCancelButton <> 0 )
-    else Dialog^.HelpCtx := hcWarningDialog + ( AOptions and $7 );
+  if MsgHelpCtx <> 0 then
+    begin
+    Dialog^.HelpCtx := MsgHelpCtx; MsgHelpCtx := 0;
+    end
+  else
+    begin
+    If AOptions and $7 = mfAbout
+      then Dialog^.HelpCtx := hcAboutDialog
+      else
+    If AOptions and mfAllButton <> 0
+      then Dialog^.HelpCtx := hcAllContainingDialog
+      else
+    If AOptions and ( mfYesButton + mf2YesButton ) <> 0
+      then Dialog^.HelpCtx := hcYesNoDialog + Byte( AOptions and mfCancelButton <> 0 )
+      else Dialog^.HelpCtx := hcWarningDialog + ( AOptions and $7 );
+    end;
   if AOptions and $7 = mfError then Dialog^.Palette := dpRedDialog;
   with Dialog^ do
   begin

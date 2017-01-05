@@ -60,6 +60,11 @@ const
      dsActive      = 0 ;
      dsInvalid     = 1 ;
 
+{$IFDEF Win32}
+const
+  FILE_ATTRIBUTE_REPARSE_POINT = $400;
+{$ENDIF}
+
 type
   PDrive = ^TDrive;
   TDrive = object(TObject)
@@ -135,6 +140,9 @@ implementation
 uses Startup, Tree, DNApp, RStrings, FileCopy, Eraser, FlPanel, Commands,
      Dialogs, FileFind, FlPanelX, filediz, CmdLine
      , xTime, Messages;
+
+const
+  LowMemSize = $4000;  {Local setting}
 
 type
         {-DataCompBoy-}
@@ -414,7 +422,7 @@ procedure TDrive.GetFull;
 {$ELSE}
      S1,S2,S3: String[40];
 {$ENDIF}
-     X: Byte;
+     X: AWord;
   NFM: TNameFormatMode;
   OPT: Word;
   LogName: String;
@@ -498,6 +506,7 @@ Longer250:
   {$IFNDEF OS2}if Flags and psShowLongName <> 0 then {$ENDIF} Inc(X, LFNLen)
   {$IFNDEF OS2}  else Inc(X, 12) {$ENDIF}
   ;
+  if X >= 255 then Exit;
 {-----------}
   if LFNLonger250 then goto Longer250_1;
 {JO: не понял, зачем DataCompBoy ввёл условие                                }
@@ -510,6 +519,7 @@ Longer250:
       SC := SC and $00FF + C shl 8;
     end;
   Inc(X);
+  if X >= 255 then Exit;
   TWordArray(B)[X-1]:=SC;
  end {условие 250 символов}
   else if P^.Selected then
@@ -523,6 +533,10 @@ Longer250:
     then S := FileSizeStr( P^.Size )
     else if P^.TType = ttUpDir
       then S := GetString( dlUpDir )
+{$IFDEF Win32}
+      else if P^.Attr and FILE_ATTRIBUTE_REPARSE_POINT <> 0 then
+        S := GetString(dlSymLink)
+{$ENDIF}
       else S := GetString( dlSubDir );
   for LS := 1 to (9 - Length(S) + CountryInfo.TimeFmt) do S := ' ' + S; {JO}
   with TDate4(P^.FDate) do
@@ -537,42 +551,49 @@ Longer250:
    begin
     MoveStr(TWordArray(B)[X], S, C);
     X := X + 10 + CountryInfo.TimeFmt;
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowDate <> 0 then
    begin
     MoveStr(TWordArray(B)[X], Copy(S1,1,8), C);
     Inc(X, 9);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowTime <> 0 then
    begin
     MoveStr(TWordArray(B)[X], Copy(S1,10,6-CountryInfo.TimeFmt), C);
     Inc(X, 7 - CountryInfo.TimeFmt);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowCrDate <> 0 then
    begin
     MoveStr(TWordArray(B)[X], Copy(S2,1,8), C);
     Inc(X, 9);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowCrTime <> 0 then
    begin
     MoveStr(TWordArray(B)[X], Copy(S2,10,6-CountryInfo.TimeFmt), C);
     Inc(X, 7 - CountryInfo.TimeFmt);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowLADate <> 0 then
    begin
     MoveStr(TWordArray(B)[X], Copy(S3,1,8), C);
     Inc(X, 9);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowLATime <> 0 then
    begin
     MoveStr(TWordArray(B)[X], Copy(S3,10,6-CountryInfo.TimeFmt), C);
     Inc(X, 7 - CountryInfo.TimeFmt);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if LFNLonger250 then begin C := CO; goto Longer250; end;
@@ -588,48 +609,55 @@ end;
 
 procedure TDrive.GetEmpty;
  var
-  X: Byte;
+  X: AWord;
 begin
   if (LFNLen < 250) {$IFNDEF OS2} or (Flags and psShowLongName = 0){$ENDIF} then
    begin
   {$IFNDEF OS2} if Flags and psShowLongName <> 0 then {$ENDIF}
                                            X:=LFNLen+1{$IFNDEF OS2} else X:=13{$ENDIF};
-
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end else X := 0;
   if Flags and psShowSize <> 0 then
    begin
     X := X + 10 + CountryInfo.TimeFmt;
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowDate <> 0 then
    begin
     Inc(X, 9);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowTime <> 0 then
    begin
     Inc(X, 7 - CountryInfo.TimeFmt);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowCrDate <> 0 then
    begin
     Inc(X, 9);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowCrTime <> 0 then
    begin
     Inc(X, 7 - CountryInfo.TimeFmt);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowLADate <> 0 then
    begin
     Inc(X, 9);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowLATime <> 0 then
    begin
     Inc(X, 7 - CountryInfo.TimeFmt);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
 end;
@@ -1091,6 +1119,9 @@ begin
 end;
         {-DataCompBoy-}
 
+var
+  NoMem: Boolean;
+
         {-DataCompBoy-}
 function GetFilesColl;
 var
@@ -1101,6 +1132,9 @@ var
   L: TSize;
   q: Longint;
   fm: string;
+  MemReq: LongInt;
+  MAvail: LongInt;
+
 {$IFDEF CHDIRDEBUG}
  const NumCal: word = 0;
        States:Array[0..3] of char = '|/-\';
@@ -1121,8 +1155,14 @@ begin
 {$ENDIF}
   NormMask := not PackMask(FileMask, fm {$IFDEF OS_DOS}, False {$ENDIF});
 
+{JO: сначала один pаз опpеделяем объём доступной памяти, а затем по ходу дела}
+{    подсчтитываем насколько тpебования памяти pастут и не пpевысили ли они  }
+{    доступный изначально объём                                              }
+  MemReq := LowMemSize;
+  MAvail := MaxAvail;
+
   lFindFirst(MakeNormName(CurDir^,fm),AnyFile, SR); {JO}
-  While (DosError = 0) and not Abort and (IOResult = 0) {$IFNDEF VIRTUALPASCAL} and MemOK {$ENDIF} do
+  While (DosError = 0) and not Abort and (IOResult = 0) and (MAvail > MemReq) do
   begin
 {$IFDEF CHDIRDEBUG}
    PanelState^:=States[NumCal];
@@ -1157,6 +1197,11 @@ begin
       P := NewFileRec(SR.FullName {$IFNDEF OS2}, SR.SR.Name {$ENDIF}
          , SR.FullSize, SR.SR.Time, SR.SR.CreationTime
          , SR.SR.LastAccessTime, SR.SR.Attr, CurDir);
+      Inc(MemReq, SizeOf(TFileRec));
+      Inc(MemReq, Length(CurDir^+SR.FullName)+2);
+{$IFDEF Win32}
+      P^.Attr := SR.SR.FindData.dwFileAttributes; {AK155}
+{$ENDIF}
       if SR.SR.Attr and Directory = 0 then
        begin
         TotalLen := TotalLen + P^.Size;
@@ -1186,6 +1231,7 @@ begin
    lFindNext(SR);
   end;
   lFindClose(SR);
+  NoMem := (MAvail <= MemReq);
   if (Length(CurDir^) > 3) then
   if ((Files^.Count=0) or
       (PFileRec(Files^.At(0))^.TType <> ttUpDir)) then
@@ -1237,13 +1283,15 @@ begin
  Abort := false;
  ShowD := (Flags and psShowDescript <> 0);
 
- if ShowD or (FMSetup.Options and fmoAlwaysCopyDesc <> 0) or (SortMode = psmDIZ)
-    then PrepareDIZ(CurDir, DIZOwner, Descriptions);
+ if ShowD or (FMSetup.Options and fmoAlwaysCopyDesc <> 0) or
+    (SortMode = psmDIZ) or (PanelFlags and fmiDescriptionInBottom <> 0)
+ then PrepareDIZ(CurDir, DIZOwner, Descriptions);
+ NoMem := False;
 
  Files := GetFilesColl(TotalInfo, TFiles, PanelFlags, @CurDir, FileMask, Owner,
                  SortMode {$IFNDEF OS2}, (Flags and psShowLongName <> 0){$ENDIF});
 
- NoMemory := not MemOK;
+ NoMemory := NoMem;
 
  if PanelFlags and fmiFree <> 0 then GetFreeSpace(FreeSpace);
 
@@ -1302,6 +1350,10 @@ begin
       then S := FileSizeStr( FR.Size )
       else if FR.TType = ttUpDir
         then S := GetString( dlUpDir )
+{$IFDEF Win32}
+        else if FR.Attr and FILE_ATTRIBUTE_REPARSE_POINT <> 0 then
+          S := GetString(dlSymLink)
+{$ENDIF}
         else S := GetString( dlSubDir );
     with TDate4(FR.FDate) do MakeDate(DateMode, Day, Month, FR.Yr, Hour, Minute, S1);
     if FR.YrCreat <> 0 then with TDate4(FR.FDateCreat) do
@@ -1467,13 +1519,15 @@ function TDrive.OpenDirectory(const Dir: String): PDrive;
       P: PString;
       tmr: TEventTimer;
       MemReq: LongInt;
+      MAvail: LongInt;
 
   procedure AddDirectory(S: String);
   begin
-     if not MemOk then exit;
+     if MAvail <= MemReq then exit;
      if S[Length(S)] <> '\' then AddStr(S, '\');
      S[1]:=LowCase(S[1]);
      Dirs^.Insert(NewStr(S));
+     Inc(MemReq, SizeOf(ShortString));
   end;
 
   procedure ReadDir(Dr: PString);
@@ -1483,7 +1537,7 @@ function TDrive.OpenDirectory(const Dir: String): PDrive;
   begin
      ClrIO;
      lFindFirst(Dr^+x_x, AnyFile, SR); {JO}
-     while not Abort and (DOSError = 0) and MemOk do
+     while not Abort and (DOSError = 0) and (MAvail > MemReq) do
        begin
          if (SR.SR.Attr and Hidden = 0) or (not Security) then
            if SR.SR.Attr and Directory = 0 then
@@ -1499,7 +1553,7 @@ function TDrive.OpenDirectory(const Dir: String): PDrive;
                                                         SR.SR.Attr,
                                                         Dr));
                Inc(MemReq, SizeOf(TFileRec));
-               Inc(MemReq, Length(Dr^+SR.FullName)+1);
+               Inc(MemReq, Length(Dr^+SR.FullName)+2);
              end else
              if{$IFNDEF OS2}(SR.SR.Name[1] <> '.') and (SR.FullName <> '.') and (SR.FullName <> '..')
                          {$ELSE}(SR.SR.Name <> '..') and (SR.SR.Name <> '.'){$ENDIF}
@@ -1521,15 +1575,19 @@ begin
 {$IFDEF Win32}
  Files^.LFNActive := True; {JO}
 {$ENDIF}
+{JO: сначала один pаз опpеделяем объём доступной памяти, а затем по ходу дела}
+{    подсчтитываем насколько тpебования памяти pастут и не пpевысили ли они  }
+{    доступный изначально объём                                              }
+  MemReq := LowMemSize;
+  MAvail := MaxAvail;
   AddDirectory(lFExpand(Dir));
   I := Dirs^.Count-1;
-  MemReq := LowMemSize;
   Abort:=False;
-  while (I >= 0) and (not Abort) and (System.MemAvail > MemReq) and MemOk do
+  while (I >= 0) and (not Abort) and (MAvail > MemReq) do
     begin
       I := Dirs^.Count-1;
       {if Files^.Count >= 2000 then Break;}
-      while (I >= 0) and (not Abort) and (System.MemAvail > MemReq) and MemOk do
+      while (I >= 0) and (not Abort) and (MAvail > MemReq) do
         begin
           UpdateWriteView(PI);
           P := Dirs^.At(I);
@@ -1554,7 +1612,7 @@ begin
 //     и в результате мы получаем сортировку дважды
  {Files^.Sort;}
   PDrv := New(PFindDrive, Init(GetString( dlBranch )+Dir, Dirs, Files, FreeByte));
-  PDrv^.NoMemory := System.MemAvail <= MemReq;
+  PDrv^.NoMemory := MAvail <= MemReq;
   OpenDirectory := PDrv;
 end;
         {-DataCompBoy-}

@@ -1434,6 +1434,8 @@ const
   hcPrev         = $FF26;
   hcClose        = $FF27;
 
+  hcZIPWithoutCentralDir = 22000; {AK155}
+
   ofSelectable  = $0001;
   ofTopSelect   = $0002;
   ofFirstClick  = $0004;
@@ -2292,6 +2294,7 @@ TYPE
     dlDIVersionToExtract, {JO}
     dlUpDir,
     dlSubDir,
+    dlSymLink, {AK155}
     dlWKZ_Empty,
     dlPM_Print,
     dlArvid_Title,
@@ -2698,7 +2701,6 @@ TYPE
     dlWkzWarningClear,
     dlWkzWarningClearCell, {AK155}
     dlWkzWarningCellTypeChange, {AK155}
-    dlZIPWithoutCentralDir,   {JO}
     dlArcEncrypted,           {JO}
 {AK155}
     dlMissingLeftBracket,
@@ -2713,7 +2715,8 @@ TYPE
     dlTasklist,
     dlSwitchButton,
 {/JO}
-    dlSpacesInPassword { Flash >>> }
+    dlSpacesInPassword, { Flash >>> }
+    dlPressF1 {JO}
       );
 
       TDlgIdx = (

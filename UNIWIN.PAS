@@ -123,7 +123,7 @@ begin
   end else begin
    if FastBookmark
     then Inc(R.A.X,52)
-    else Inc(R.A.X,34);
+    else Inc(R.A.X,39);
    Dec(R.B.X,2);
    R.A.Y:=R.B.Y-1;
   end;

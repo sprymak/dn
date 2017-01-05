@@ -13,14 +13,11 @@ caused by this product.
  Known bugs and limitations:
 
  - Some hotkeys are not working now, such as:
-   - file panel modes switching with <Ctrl-1> - <Ctrl-0> in OS/2 version (you
-     can however use menu called with <Alt-_> instead);
-   - switching between windows with <Ctrl-Shift-1> - <Ctrl-Shift-0>;
-   - incremental search of file in file panel could not be called with single
-      Ctrl;
-   - in Win9x <Shift-Tab> doesn't work in dialog windows. Use <Shift-Tab>,
-     <Tab> instead;
-   - in WinNT <Ctrl-Shift-Enter> doesn't work.
+   - file panel modes switching with <Ctrl-1> - <Ctrl-0> in OS/2 version
+     (you can however use menu called with <Alt-_> instead)
+   - switching between windows with <Ctrl-Shift-1> - <Ctrl-Shift-0>
+   (this is not DN/2 bugs but OS/2 bug; apply patchkb.cmd for fix it);
+
  - There is no and not planned in closest future built-in utilities, working
    through the direct access to disk;
 
@@ -41,7 +38,6 @@ in project!
  New versions of DN/2 could be found at:
 
  http://www.dnosp.ru/files/dn2/
- http://os2.ru/projects/dn2/
 
  dnos2bXX.rar  (where XX - wersion number) - archives with OS/2 executables of
                beta-versions;
@@ -55,14 +51,13 @@ in project!
  New Win32 versions of DN/2 could be found at:
 
  http://www.dnosp.ru/files/dn2/
- http://os2.ru/projects/dn2/
 
  dnw32bXX.rar  (where XX - wersion number) - archives with Win32 executables
                of beta-versions;
  dnw32uXX.rar  (where XX - wersion number) - archives with ukrainian resource
                binaries for Win32;
 
- Autrors of DN/2 express a lot of thanks to all authors of DN OSP (see
+ Authors of DN/2 express a lot of thanks to all authors of DN OSP (see
 ..\DNOSP\authors.txt), and especial thanks to:
  Anton Fedorov (DataCompBoy) <2:5000/111.33; datacompboy@mail.ru>
 for his great contribution into porting of DN on 32-bit platform

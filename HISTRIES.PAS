@@ -299,8 +299,20 @@ begin
      fDeskSize := Desktop^.Size;
      if Filtr then fViewMode := ViewMode
               else fViewMode := ViewMode or vmInternal;
+
+{AK155 25-03-2003 После того, как BufPos стало longint, в
+fBufPos: AWord оно может не помещаться. Но, с другой стороны,
+непонятно, зачем вообще разделять запоминание FilePos и BufPos.
+Работают же закладки без такого разделения.  }
+(*
      fPos      := FilePos;
      fBufPos   := BufPos;
+     end;
+*)
+     fPos      := FilePos + BufPos;
+     fBufPos   := 0;
+{/AK155 25-03-2003}
+
      fXlatFile := CnvString(XlatFile);
      fFilter   := Filter;
      fHexEdit  := HexEdit;
@@ -567,7 +579,7 @@ type
 function TTHistList.IsSelected;
   var P: PString;
 begin
-  P := List^.At(I);
+  P := ItemStr(I);
   IsSelected := (P <> nil) and (P^[1] = '+');
 end;
 
@@ -612,6 +624,19 @@ procedure TTHistList.HandleEvent;
     if (I >= 0) and (I < List^.Count) then begin FocusItem(I); DrawView end;
   end;
 
+  procedure SwapItems(i: integer);
+    var
+      P: Pointer;
+    begin
+    with List^ do
+      begin
+      P := Items^[i];
+      Items^[i] := Items^[i+1];
+      Items^[i+1] := P;
+      end;
+      DrawView;
+    end;
+
 begin
   if (Event.What = evKeyDown) and (List <> nil) then
     case Event.KeyCode of
@@ -619,21 +644,13 @@ begin
          begin EndModal(cmYes); ClearEvent(Event); exit; end;
       kbDel: Goto 1;
       kbShiftDown: if {(ShiftState and 3 <> 0) and} (Focused < List^.Count - 1) then
-             begin
-               P := List^.At(Focused);
-               List^.AtDelete(Focused);
-               List^.AtInsert(Focused+1, P);
-               DrawView;
-             end;
+        SwapItems(Focused);
       kbShiftUp: if {(ShiftState and 3 <> 0) and} (Focused > 0) then
-             begin
-               P := List^.At(Focused-1);
-               List^.AtDelete(Focused-1);
-               List^.AtInsert(Focused, P);
-               DrawView;
-             end;
-      kbRight: ScanMarked(1);
-      kbLeft: ScanMarked(-1);
+        SwapItems(Focused-1);
+      kbRight, kbAltDown:
+        ScanMarked(1);
+      kbLeft, kbAltUp:
+        ScanMarked(-1);
     end else
   if (Event.What = evBroadcast) then
    case Event.Command of

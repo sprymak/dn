@@ -243,10 +243,8 @@ function GetMaskSelection: String;
       fc: PFilesCollection;
     begin
       d := P^.Drive;
-      if TypeOf(d^) = TypeOf(TFindDrive) then PFindDrive(d)^.AllowPack := False;
       fc := PFilesCollection(
         d^.GetDirectory(P^.SortMode, P^.PanelFlags, x_x, fs, ti));
-      if TypeOf(d^) = TypeOf(TFindDrive) then PFindDrive(d)^.AllowPack := True;
       if (fc <> nil) and (not d^.NoMemory) then fc^.ForEach(@DoInsert);
       Dispose(fc,Done);
     end;
@@ -1031,7 +1029,9 @@ begin
       begin
       J:=StoI(I.LFNLen);
       if J < 5 then exit;
+      if J > 252 then J := 252;
       LFNLen:=J; K:=StoI(I.EXTLen);
+      if K > 247 then K := 247;
       if (J-K>=5) then EXTLen:=K else EXTLen:=J-5;
       Flags := I.Prm;
       end;

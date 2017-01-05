@@ -108,6 +108,7 @@ procedure InvalidateTempDir;
 var
   I: Integer;
 begin
+  NoTempDir := false;
   TempDir := SystemData.Temp;
   I := PosChar('%', TempDir);
   if I > 0 then
@@ -116,8 +117,8 @@ begin
      I := PosChar('%', TempDir);
      if I > 0 then Delete(TempDir, I, 255);
      TempDir := GetEnv(TempDir);
-     if not BadTemp(TempDir) then exit;
    end;
+  if not BadTemp(TempDir) then exit;
   TempDir := GetEnv('TEMP');
   if not BadTemp(TempDir) then exit;
   TempDir := GetEnv('TMP');

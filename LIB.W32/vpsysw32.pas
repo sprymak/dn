@@ -1024,7 +1024,10 @@ begin
           PID^ := ProcessInfo.hProcess;
       end
     else
-      WaitForSingleObject(ProcessInfo.hProcess, Infinite);
+      begin
+      hExtCmd := ProcessInfo.hProcess; {AK155: для Killer}
+      WaitForSingleObject(hExtCmd, Infinite);
+      end;
 end;
 
 function SysExitCode: Longint;

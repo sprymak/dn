@@ -156,6 +156,7 @@ uses
   , CmdLine, DNIni
   {$ENDIF}
   , UserMenu {JO: для скрывания панелей при разархивировании }
+  , Arc_Zip {JO: для CentralDirRecPresent}
   ;
 
 const
@@ -167,22 +168,17 @@ begin
 end;
 
 Procedure StdMsg(MsgNo: Byte);
-var
-  si: TStrIdx;
 begin
  Application^.Redraw;
  case MsgNo of
+  1 : ErrMsg(dlArcMsg1);
   4 : MessageBox(GetString(dlArcMsg4)+''''+{$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(Cut(ArcFileName,40))+'''',NIL,mfOkButton or mfError);
   5 : Msg(dlArcMsg5,NIL,mfOkButton or mfInformation);
+  6 : if MsgHelpCtx <> 0 then
+        MessageBox(GetString(dlArcMsg6)+GetString(dlPressF1),
+                   nil,mfOkButton or mfError)
+        else MessageBox(GetString(dlArcMsg6),nil,mfOkButton or mfError);
   7 : Msg(dlArcMsg7,NIL,mfOkButton or mfInformation);
-  1, 6:
-   begin
-     case MsgNo of
-       1: si := dlArcMsg1;
-       6: si := dlArcMsg6;
-            end;
-     ErrMsg(si);
-   end;
  end;
 end;
 
@@ -301,7 +297,7 @@ begin
  end;
  ArcPos := 0;
  SkipSFX;
- AType := DetectArchive(false);
+ AType := DetectArchive;
  FreeObject(ArcFile);
 end;
         {-DataCompBoy-}
@@ -348,7 +344,7 @@ begin
      end;
    ArcPos := 0;
    SkipSFX;
-   AType := DetectArchive(false);
+   AType := DetectArchive;
    FreeObject(ArcFile);
    if AType = nil then
      begin
@@ -427,7 +423,7 @@ begin
  ArcPos := 0;
  SkipSFX;
  If AType <> nil then Dispose(AType, Done); AType:=nil; {DataCompBoy}
- AType := DetectArchive(false);
+ AType := DetectArchive;
  if AType = nil then begin FreeObject(ArcFile); Exit; end;
  New(Files, Init);
  if Files = nil then Exit; P := nil;
@@ -493,7 +489,8 @@ begin
  if P <> nil then P^.Free;
  FreeObject(ArcFile);
  CDir := '';
- if FileInfo.Last=2 then StdMsg(6);
+ if (FileInfo.Last=2) or
+   ((AType^.GetID = arcZIP) and not CentralDirRecPresent) then StdMsg(6);
  ReadArchive:=true;
  if Files^.Files=0 then begin StdMsg(7);ReadArchive:=false;end;
 end;
@@ -553,6 +550,8 @@ function TArcDrive.GetDirectory;
      FR: TFileRec;
      OW: Pointer;
      Dr: String;
+     MemReq: LongInt;
+     MAvail: LongInt;
    {$IFDEF CHDIRTIMER}
      ev: TEvent;
    {$ENDIF}
@@ -582,7 +581,12 @@ begin
 {$ENDIF}
  AFiles^.Duplicates := False;
  Files^.ResetPointer('');
- While not Files^.Last and Files^.GetNextFile and (MaxAvail > LowMemSize) do
+{JO: сначала один pаз опpеделяем объём доступной памяти, а затем по ходу дела}
+{    подсчтитываем насколько тpебования памяти pастут и не пpевысили ли они  }
+{    доступный изначально объём                                              }
+ MemReq := LowMemSize;
+ MAvail := MaxAvail;
+ While not Files^.Last and Files^.GetNextFile and (MAvail > MemReq) do
   begin
     _USize := Files^.CurFile.Size;
     _PSize := Files^.CurFile.CSize;
@@ -592,8 +596,12 @@ begin
         if Files^.CurFile.Name = '' then Continue;
         if Files^.CurFile.Name = '..' then Continue;
         with Files^.CurFile do
-         F := NewFileRec(Name,{$IFNDEF OS2}GetURZ(Name),{$ENDIF}
-                         _USize, Date, 0, 0, Attr, @CurDir);
+         begin
+          F := NewFileRec(Name,{$IFNDEF OS2}GetURZ(Name),{$ENDIF}
+                          _USize, Date, 0, 0, Attr, @CurDir);
+          Inc(MemReq, SizeOf(TFileRec));
+          Inc(MemReq, Length(CurDir+Name)+2);
+         end;
         F^.PSize := _PSize;
         TTL := TTL + _USize;
         TPL := TPL + _PSize;
@@ -617,6 +625,8 @@ begin
                     Continue;
                   end;
                 F := NewFileRec(Dr, {$IFNDEF OS2}GetURZ(Dr),{$ENDIF} _USize, ArcDate, 0, 0, $80 or Directory, @CurDir);
+                Inc(MemReq, SizeOf(TFileRec));
+                Inc(MemReq, Length(CurDir+Dr)+2);
                 F^.PSize := _PSize;
                 TTL := TTL + _USize;
                 TPL := TPL + _PSize;
@@ -628,10 +638,8 @@ begin
                              {else AFiles^.Insert(F);}
                               else AFiles^.AtInsert(si, F);
   end;
- if MaxAvail <= LowMemSize then
- begin
-   Application^.OutOfMemory;
- end;
+
+ NoMemory := MAvail <= MemReq;
  FreeSpace := '';
  TotalInfo := TTL;
 
@@ -1340,7 +1348,7 @@ procedure TArcDrive.GetFull;
 var
   S: String;
   S1: String[40];
-  X: Byte;
+  X: AWord;
   FD: TDate4;
   NFM: TNameFormatMode;
   OPT: Word;
@@ -1382,6 +1390,7 @@ Longer250:
     if P^.Selected and (FMSetup.Show and fmsTagChar=0) then S:='~'+S+'~';
   MoveCStr(TWordArray(B)[X], S, C);
   Inc(X, LFNLen);
+  if X >= 255 then Exit;
 {-----------}
   if (LFNLen >= 250) then goto Longer250_1;
 {JO: не понял, зачем DataCompBoy ввёл условие                                }
@@ -1394,6 +1403,7 @@ Longer250:
       SC:=SC and $00FF + C shl 8;
     end;
   Inc(X);
+  if X >= 255 then Exit;
   TWordArray(B)[X-1]:=SC;
  end {условие 250 символов}
   else if P^.Selected then
@@ -1414,6 +1424,7 @@ Longer250:
     for LS := 1 to (9 - Length(S) + CountryInfo.TimeFmt) do S := ' ' + S; {JO}
     MoveStr(TWordArray(B)[X], S, C);
     X := X+10+CountryInfo.TimeFmt;
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowPacked <> 0 then
@@ -1426,11 +1437,13 @@ Longer250:
      else if (CountryInfo.TimeFmt = 0) then S := ' ' + S;
     MoveStr(TWordArray(B)[X], S, C);
     Inc(X, 11);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowRatio <> 0 then
    begin
     Inc(X, 4);
+    if X >= 255 then Exit;
     if PosChar('<',S) = 0 then
      begin
       S := ZtoS(Percent(P^.Size, P^.PSize));
@@ -1443,12 +1456,14 @@ Longer250:
    begin
     MoveStr(TWordArray(B)[X], Copy(S1,1,8), C);
     Inc(X, 9);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowTime <> 0 then
    begin
     MoveStr(TWordArray(B)[X], Copy(S1,10,6), C);
     Inc(X, 7+CountryInfo.TimeFmt);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if (LFNLen >= 250) then begin C := CO; goto Longer250; end;
@@ -1457,36 +1472,42 @@ end;
 
 procedure TArcDrive.GetEmpty;
  var
-  X: Byte;
+  X: AWord;
 begin
   if (LFNLen < 250) then
     begin
       X:=LFNLen+1;
+      if X >= 255 then Exit;
       TWordArray(B)[X-1]:=SC;
     end else X := 0;
   if Flags and psShowSize <> 0 then
    begin
     X := X+10+CountryInfo.TimeFmt;
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowPacked <> 0 then
    begin
     Inc(X, 11);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowRatio <> 0 then
    begin
     Inc(X, 4);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowDate <> 0 then
    begin
     Inc(X, 9);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
   if Flags and psShowTime <> 0 then
    begin
     Inc(X, 7+CountryInfo.TimeFmt);
+    if X >= 255 then Exit;
     TWordArray(B)[X-1]:=SC;
    end;
 end;
@@ -1701,6 +1722,8 @@ function TArcDrive.OpenDirectory(const Dir: String): PDrive;
       Root: string;
       PDir: PString;
       PI: PView;
+      MemReq: LongInt;
+      MAvail: LongInt;
 begin
   NewTimer(Tmr,0);
   Dirs := New(PStringCollection, Init($10,$10,False));
@@ -1708,7 +1731,12 @@ begin
   New(Fils, Init($10, $10)); Fils^.SortMode := psmOrdered;
   Files^.ResetPointer('');
   Root := UpStrg(CurDir) + '\'; l := length(Root);
-  While not Files^.Last and Files^.GetNextFile and (MaxAvail > LowMemSize)
+{JO: сначала один pаз опpеделяем объём доступной памяти, а затем по ходу дела}
+{    подсчтитываем насколько тpебования памяти pастут и не пpевысили ли они  }
+{    доступный изначально объём                                              }
+  MemReq := LowMemSize;
+  MAvail := MaxAvail;
+  While not Files^.Last and Files^.GetNextFile and (MAvail > MemReq)
   do
    begin
      if (Root = Copy(UpStrg(Files^.LastDir), 1, l)) then
@@ -1719,8 +1747,11 @@ begin
          _USize := Size;
          _PSize := CSize;
          PDir := NewStr(Files^.LastDir);
+         Inc(MemReq, SizeOf(ShortString));
          FR := NewFileRec(Name,{$IFNDEF OS2}GetURZ(Name),{$ENDIF}
                          _USize, Date, 0, 0, Attr, PDir);
+         Inc(MemReq, SizeOf(TFileRec));
+         Inc(MemReq, Length(PDir^+Name)+2);
          end;
          if Dirs^.IndexOf(PDir) = -1 then Dirs^.Insert(PDir);
        Fils^.AtInsert(Fils^.Count, FR);
@@ -1734,6 +1765,7 @@ begin
   PI^.Free;
   PDrv := New(PFindDrive, Init(GetString( dlBranch )+Dir, Dirs, Fils,
                                                                   FreeByte));
+  PDrv^.NoMemory := MAvail <= MemReq;
   OpenDirectory := PDrv;
 end;
 
@@ -1766,6 +1798,8 @@ procedure TArcDrive.FindFile;
       SizeGreat, SizeLess: LongInt;
       Attr: Byte;
       PI: PView;
+      MemReq: LongInt;
+      MAvail: LongInt;
 
 begin
   NewTimer(Tmr,0);
@@ -1804,7 +1838,12 @@ begin
   New(Fils, Init($10, $10)); Fils^.SortMode := psmOrdered;
   Files^.ResetPointer('');
   Root := UpStrg(CurDir) + '\'; l := length(Root);
-  While not Files^.Last and Files^.GetNextFile and (MaxAvail > LowMemSize)
+{JO: сначала один pаз опpеделяем объём доступной памяти, а затем по ходу дела}
+{    подсчтитываем насколько тpебования памяти pастут и не пpевысили ли они  }
+{    доступный изначально объём                                              }
+  MemReq := LowMemSize;
+  MAvail := MaxAvail;
+  While not Files^.Last and Files^.GetNextFile and (MAvail > MemReq)
   do
    begin
      if (Root = Copy(UpStrg(Files^.LastDir), 1, l)) then
@@ -1823,8 +1862,11 @@ begin
               _USize := Size;
               _PSize := CSize;
               PDir := NewStr(Files^.LastDir);
+              Inc(MemReq, SizeOf(ShortString));
               FR := NewFileRec(Name,{$IFNDEF OS2}GetURZ(Name),{$ENDIF}
                               _USize, Date, 0, 0, Attr, PDir);
+              Inc(MemReq, SizeOf(TFileRec));
+              Inc(MemReq, Length(PDir^+Name)+2);
               if Dirs^.IndexOf(PDir) = -1 then Dirs^.Insert(PDir);
               Fils^.AtInsert(Fils^.Count, FR);
             end;
@@ -1849,8 +1891,11 @@ begin
                   then
                    begin
                      PDir := NewStr(Copy(LDir, 1, I));
+                     Inc(MemReq, SizeOf(ShortString));
                      FR := NewFileRec(DrName,{$IFNDEF OS2}GetURZ(DrName),{$ENDIF}
                                 0, ArcDate, 0, 0, $80 or Directory, PDir);
+                     Inc(MemReq, SizeOf(TFileRec));
+                     Inc(MemReq, Length(PDir^+DrName)+2);
                      if Dirs^.IndexOf(PDir) = -1 then Dirs^.Insert(PDir);
                      if Fils^.Search(FR,I) then DelFileRec(FR)
                                 else Fils^.AtInsert(I, FR);
@@ -1868,6 +1913,7 @@ begin
   PI^.Free;
   PDrv := New(PFindDrive, Init(GetString(dlFindPanel) + ArcFindRec.Mask,
                                                      Dirs, Fils, FreeByte));
+  PDrv^.NoMemory := MAvail <= MemReq;
   Message(Owner, evCommand, cmInsertDrive, PDrv);
 end;
 

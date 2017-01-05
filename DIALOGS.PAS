@@ -2352,17 +2352,53 @@ procedure THistoryViewer.HandleEvent(var Event: TEvent);
  end;
  {- $ WildCat $ -}
 
+{AK155 27-03-2003 по мотивам ScanMarked из TTHistList.HandleEvent}
+ function SearchNonDeletableItem(D, Bound: integer): boolean;
+   var
+     i: integer;
+   begin
+   result := false;
+   i := Focused;
+   while true do
+     begin
+     inc(i, D);
+     if i = Bound then
+       exit;
+     HistoryStr(HistoryID, i);
+     if HistList.CurString^[length(HistList.CurString^)] <> ' ' then
+       begin
+       FocusItem(i); DrawView;
+       result := true;
+       exit;
+       end;
+     end;
+   end;
+{/AK155 27-03-2003}
+
  begin
     if ((Event.What = evBroadcast) and (Event.Command = cmReleaseDFocus))
     or (Event.What = evMouseDown) then begin
        SearchPos := 0;
        HideCursor
-   end else if Event.What=evKeyDown then case Event.KeyCode of
+   end else if Event.What=evKeyDown then
+     case Event.KeyCode of
        kbCtrlPgDn, kbCtrlPgUp, kbPgDn, kbPgUp,
        kbEnd, kbHome, kbDown, kbUp: begin
            SearchPos:=0;
            HideCursor
-       end
+         end;
+{AK155 27-03-2003}
+       kbAltUp:
+         begin
+         SearchNonDeletableItem(-1, -1);
+         exit;
+         end;
+       kbAltDown:
+         begin
+         SearchNonDeletableItem(1, Range);
+         exit;
+         end;
+{/AK155 27-03-2003}
    end;
  if ((Event.What = evMouseDown) and (Event.Double)) or
      ((Event.What = evKeyDown) and (Event.KeyCode = kbEnter)) then

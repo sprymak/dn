@@ -52,6 +52,7 @@ interface
 uses
   files,
   UserMenu, Startup, Objects, FilesCol, Commands, TitleSet
+  {$IFDEF OS2}, dn2pmapi {$ENDIF} {AK155 для перерисовки иконки}
   {$IFDEF DPMI}, DPMI {$ENDIF}
   ;
 
@@ -151,10 +152,12 @@ Path, так как это трудно сделать не криво. Например, если запускается
 так. Запишите в текщий каталог notepad.cmd и введите в комстроке notepad.
 А потом нажмите Enter  на этом самом notepad.cmd.
 }
-{Результат - код подсистемы или 0}
+{Результат - код подсистемы для Win32 PE, или 100 для Win16 NE,
+ или 0 для прочих }
 function Win32Program(S: PString): SmallWord;
   const
     PETag = $00004550; {'PE'#0#0}
+    NETag = $454E;     {'NE'}
   var
     f: file;
     PathEnv: string;
@@ -175,11 +178,16 @@ function Win32Program(S: PString): SmallWord;
     l: longint;
   begin
   result := 0;
-  FSplit(S^, Dir, Name, Ext);
+  RealName := S^;
+  if (RealName[1] = '"') and ((RealName[length(RealName)] = '"')) then
+    RealName := Copy(RealName, 2, length(RealName)-2);
+  DelRight(RealName);
+  FSplit(RealName, Dir, Name, Ext);
   UpStr(Ext);
   if Ext <> '.EXE' then
     exit;
-  RealName := S^;
+  FileMode := open_access_ReadOnly or open_share_DenyNone;
+  ClrIO;
   assign(f, RealName); reset(f, 1);
   if (IOResult <> 0) and (Dir = '') then
     begin
@@ -200,22 +208,20 @@ function Win32Program(S: PString): SmallWord;
     end;
   Seek(f, NewExeOffs);
   BlockRead(f, NewHeader, SizeOf(NewHeader), l);
+  close(f);
   with NewHeader do
     begin
-    if (l < 70) or (Signature <> PETag) or (SizeOfOptionalHeader < 70) then
-      begin
-        close(f); {Cat}
-        exit;
-      end;
-    result := Subsystem;
+    if SmallWord(Signature) = NETag then
+      result := 100
+    else if (l >= 70) and (Signature = PETag) and (SizeOfOptionalHeader >= 70) then
+      result := Subsystem;
     end;
-  close(f);
   end;
 
 {$IFDEF Win32}
 function GUIProgram(S: PString): boolean;
   begin
-  result := Win32Program(S) = 2 {IMAGE_SUBSYSTEM_WINDOWS_GUI};
+  result := Win32Program(S) in [ 2 {IMAGE_SUBSYSTEM_WINDOWS_GUI}, 100];
   end;
 {$ENDIF}
 
@@ -234,8 +240,11 @@ function GUIProgram(S: PString): Boolean;
 var
   SS: String;
   Flags: LongInt;
+  l: integer;
 begin
-  SS := S^+#0;
+  SS := S^;
+  l := 0; while SS[1+l] = '"' do inc(l);
+  SS := Copy(SS, 1+l, length(SS)-2*l) + #0;
   if DosQueryAppType(@SS[1], Flags) <> 0 then
   { Возможные особые случаи, приводящие к ошибке, и связанные с ними проблемы:
     2    Error_File_Not_Found
@@ -339,13 +348,20 @@ begin
   fExec := True;
 {$IFNDEF DPMI32}
   if GUIProgram(S) then
-    S^ := 'start ' + S^
   {$IFDEF OS2}
+    S^ := 'start /PGM ' + S^
   else
     case Win32Program(S) of
      2 {IMAGE_SUBSYSTEM_WINDOWS_GUI}:  S^ := ExecWin32GUI + ' ' + S^;
      3 {IMAGE_SUBSYSTEM_WINDOWS_CUI}:  S^ := ExecWin32CUI + ' ' + S^;
     end {case};
+  {$ELSE}
+    begin
+    if opSys = opWNT then
+      S^ := 'start "" ' + S^
+    else
+      S^ := 'start ' + S^
+    end
   {$ENDIF}
     ;
 {$ENDIF}
@@ -376,6 +392,10 @@ begin
   InitVideo;
   InitEvents;
   InitSysError;
+{$IFDEF OS2}
+  DN_WinSetTitleAndIcon('DN/2', @DN_IconFile[1]);
+    {AK155 без этого иконка в заголовке окна не восстанавливается }
+{$ENDIF}
   Application^.Redraw;
  {JO}
   if RR then
@@ -719,11 +739,7 @@ begin
 {$ENDIF}
 
  if Pos(' ', M) <> 0 then {AK155}
-{$IFDEF OS2}
-   M := '""' + M + '""';
-{$ELSE}
    M := '"' + M + '"';
-{$ENDIF}
 
  RunCommand(true);
 ex:

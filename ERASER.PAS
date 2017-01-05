@@ -202,9 +202,23 @@ procedure EraseFiles;
         then begin Abort:=true; break; end;
        if (SR.SR.Attr and Directory)<>0 then
         begin
-         If MaxAvail<Length(MakeNormName(FreeStr, SR.FullName))+$40
-          then begin Abort:=True; Break; end;
-         DC^.AtInsert(0, NewStr(MakeNormName(FreeStr, SR.FullName)));
+         s := MakeNormName(FreeStr, SR.FullName);
+{$IFDEF Win32}
+         if SR.SR.FindData.dwFileAttributes and
+            FILE_ATTRIBUTE_REPARSE_POINT <> 0
+         then
+           begin { Симлинк: удаляем сам симлинк }
+           lRmDir(s);
+           Params.RC := IOResult;
+           if Params.RC<>0 then begin Abort:=true; break; end;
+           end
+         else
+{$ENDIF}
+           begin
+           If MaxAvail<Length(s)+$40
+            then begin Abort:=True; Break; end;
+           DC^.AtInsert(0, NewStr(s));
+           end;
         end
        else
         begin
@@ -369,7 +383,7 @@ TryDel:
       Ask: Integer;
     {$ENDIF}
     iLfn: TUseLFN;
-  label LLL;
+  label LLL, DeleteDirDIZ;
 
 begin
   if not ValidErase(Files) then Exit;
@@ -505,14 +519,26 @@ LLL:             lSetFAttr(F, Archive); ClrIO; lEraseFile(F);
         end else begin
                        InfoWrite(1,GetString(dlErasingDir));
                        InfoWrite(2,Cut(S,40));
-                       for iLfn := Low(TUseLFN) to High(TUseLFN) do
-                         DeleteDIZ(CalcDPath(PF^.DIZ, PF^.Owner), PF^.FlName[iLfn]);
                        {$IFDEF OS_DOS}
                        S := lfGetLongFileName(MakeNormName(PF^.Owner^, S));
                        {$ELSE}
                        S := MakeNormName(PF^.Owner^, S);
                        {$ENDIF}
-                       DeleteDirectory(S,0);
+{$IFDEF WIN32}
+                       if PF^.Attr and FILE_ATTRIBUTE_REPARSE_POINT <> 0 then
+                         begin { Симлинк: удаляем без подтверждений сам симлинк}
+                         lRmDir(s);
+                         if IOResult = 0 then
+                           goto DeleteDirDIZ;
+                         end
+                       else
+{$ENDIF}
+                       if DeleteDirectory(S,0) then
+                         begin
+DeleteDirDIZ:
+                         for iLfn := Low(TUseLFN) to High(TUseLFN) do
+                           DeleteDIZ(CalcDPath(PF^.DIZ, PF^.Owner), PF^.FlName[iLfn]);
+                         end;
                  end
        else Break;
      end;

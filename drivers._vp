@@ -509,9 +509,11 @@ end;
 //      display in a field of nnn characters)
 //   X  is a format character:
 //   's' means the parameter is a pointer to a string.
+//   'z' means the parameter is a pointer to an ASCIIZ string (aka PChar).
 //   'd' means the parameter is a Longint to be displayed in decimal.
 //   'c' means the low byte of the parameter is a character.
 //   'x' means the parameter is a Longint to be displayed in hexadecimal.
+//   'p' means the parameter is a Pointer to be displayed in hexadecimal.
 //   '#' sets the parameter index to nnn.
 
 procedure FormatStr(var Result: String; const Format: String; var Params);
@@ -545,6 +547,8 @@ asm
                 je      @@ConvertDec
                 cmp     dl,'P' {Cat}
                 je      @@ConvertPointer {Cat}
+                cmp     dl,'Z' {Cat}
+                je      @@ConvertPChar {Cat}
                 cmp     dl,'X'
                 jne     @@Done
 // ConvertHex
@@ -570,6 +574,20 @@ asm
                 shr     eax,4
                 cmp     ecx,8
                 jne     @@3
+                jmp     @@Done
+@@ConvertPChar:
+                test    eax,eax
+                jz      @@Done
+                push    eax
+                xor     ecx,ecx
+                mov     esi,eax
+              @@4:
+                inc     ecx
+                lodsb
+                cmp     al,0
+                jnz     @@4
+                dec     ecx
+                pop     esi
                 jmp     @@Done
 {/Cat}
 @@ConvertDec:
