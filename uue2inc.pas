@@ -1,3 +1,5 @@
+{$I STDEFINE.INC} {Cat}
+
 unit uue2inc;
 (******
 
@@ -22,9 +24,9 @@ type
 
 procedure Prepare1Str(var Sou,Dst);
 function  GetUUxlt(b:byte):char;
-function  GetLnCrc(var Buf;Size:word):Char;
-procedure cCrc(var Buf;Size:word;var PrevSum:word);
-procedure Crc64(var Buf;Size:word;var PrevSum:T64;var PrevCnt:word);
+function  GetLnCrc(var Buf;Size:longint):Char;
+procedure cCrc(var Buf;Size:longint;var PrevSum:word);
+procedure Crc64(var Buf;Size:longint;var PrevSum:T64;var PrevCnt:word);
 procedure Clear64(var n:T64);
 
 implementation
@@ -81,10 +83,10 @@ begin
   GetUUxlt:=UUxlt[b]
 end;
 
-procedure cCrc(var Buf;Size:word;var PrevSum:word);
+procedure cCrc(var Buf;Size:longint;var PrevSum:word);
 var
   buf_:array[1..65520] of byte absolute Buf;
-  i:word;
+  i:longint;
 begin
   for i:=1 to Size do
     if (PrevSum and 1)=0 then {suxx! no "ror" operation...}
@@ -93,10 +95,10 @@ begin
       PrevSum:=(PrevSum shr 1)+buf_[i]+$8000
 end;
 
-procedure Crc64(var Buf;Size:word;var PrevSum:T64;var PrevCnt:word);
+procedure Crc64(var Buf;Size:longint;var PrevSum:T64;var PrevCnt:word);
 var
   buf_:array[1..65520] of byte absolute Buf;
-  i:word;
+  i:longint;
 
   procedure AddByte(b:byte);
   near;
@@ -147,10 +149,10 @@ begin
     end
 end;
 
-function  GetLnCrc(var Buf;Size:word):Char;
+function  GetLnCrc(var Buf;Size:longint):Char;
 var
   buf_:array[1..65520] of byte absolute Buf;
-  i:word;
+  i:longint;
   dx:word;
 begin
   dx:=0;

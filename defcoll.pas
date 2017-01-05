@@ -61,11 +61,11 @@ Type
                    function  IsDef(Name: String): boolean;    {Is Name defined}
                    procedure Def  (Name: String);             {Define Name    }
                    procedure UnDef(Name: String);             {Undefine Name  }
-                   function  ProceedStr (Str: String): string;{Proceed pascal-}
+                   function  ProceedStr (Str: String): String;{Proceed pascal-}
                                                               {style string   }
                                                              (*{$.....}' and *)
                                                               {(*$.....*)     }
-                   function  ProceedStr2(Str: String): string;{Proceed RCP-   }
+                   function  ProceedStr2(Str: String): String;{Proceed RCP-   }
                                                               {style string   }
                                                               {;$.....        }
                   private
@@ -81,7 +81,7 @@ IMPLEMENTATION
 
 Constructor TDefCollection.Init(ALimit, ADelta: LongInt);
 begin
- Inherited Init(ALimit, ADelta);
+ Inherited Init(ALimit, ADelta, False);
  InComm:=0;
  SP:=0;
  DefStack[SP]:=true;
@@ -172,15 +172,14 @@ begin
  If Search(@Name, I) then AtFree(I);
 end;
 
-
-function  TDefCollection.ProceedStr(Str: String): string;
+function  TDefCollection.ProceedStr(Str: String): String;
 var i: integer;
     j: integer;
     k: integer;
     b: boolean;
     S: String;
-    Q: string;
-    Z: string;
+    Q: String;
+    Z: String;
 begin
  S:='';
  I:=0;
@@ -244,18 +243,18 @@ begin
  ProceedStr:=S;
 end;
 
-function  TDefCollection.ProceedStr2(Str: String): string;
+function  TDefCollection.ProceedStr2(Str: String): String;
 var i: integer;
     j: integer;
     k: integer;
     S: String;
-    Q: string;
-    Z: string;
+    Q: String;
+    Z: String;
 begin
  ProceedStr2:='';
  S:=Str;
- While (Str[1] = ' ') and (Str <> '') do System.Delete(Str, 1, 1);
- If (Str <> '') and (Str[1]=';') and (Str[2]='$') then begin
+ While (Str <> '') and (Str[1] = ' ') do System.Delete(Str, 1, 1);
+ If (Length(Str) >= 2) and (Str[1]=';') and (Str[2]='$') then begin
     I:=1;
     K:=I;
     Inc(I); Inc(I);

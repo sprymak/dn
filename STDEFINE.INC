@@ -1,18 +1,31 @@
+{$DEFINE DEBUG}
+
 {/$DEFINE LFNCache}
-  {$IFDEF VIRTUALPASCAL}{$DEFINE NONBP}{$DEFINE LINEPOSIT}{$ENDIF}
-  {$IFDEF FPC}{$DEFINE NONBP}{$ENDIF}
+ {$IFDEF VIRTUALPASCAL}{$DEFINE NONBP}{$DEFINE LINEPOSIT}{$ENDIF}
+ {$IFDEF FPC}{$DEFINE NONBP}{$ENDIF}
 
  {$IFNDEF VIRTUALPASCAL} {$IFNDEF DPMI} {$DEFINE REALMODE} {$ENDIF} {$ENDIF}
  {$IFNDEF REALMODE} {.$DEFINE TGZ} {$ENDIF}
+
+ {$IFDEF VIRTUALPASCAL}
+  {$DEFINE USELONGSTRING}  {Cat: использование длинных строк кое-где (в частности, в редакторе)}
+  {.$DEFINE USEANSISTRING} {Cat: использование длинных строк везде ($H+); уже компилируется,     }
+                           {     но ещё не работает; доделаю, если будет нужно, что вряд ли  ;-) }
+  { !!  при изменении этого параметра ресурсы получаются несовместимыми  !! }
+ {$ENDIF}
+
+{$IFDEF DEBUG}
+{$IFDEF VIRTUALPASCAL}
+{$DEFINE MEMUSEDATEXIT} {Cat: проверяем на выходе, сколько памяти скушалось}
+{.$DEFINE LOGOBJLOADSTORE} {Cat: пишем в лог все вызовы методов Load и Store}
+{$ENDIF}
+{$ENDIF}
 
 {$DEFINE Calendar}
 {$DEFINE Game}
 {$DEFINE TrashCan}
 {$DEFINE CHCOL}
 {$DEFINE SS}
-
-{.$DEFINE DN}
-{.$DEFINE DNPRG}
 
 {$IFDEF REALMODE}
  {$DEFINE LITE}
@@ -75,6 +88,8 @@
 {.$DEFINE Win32}     {не требуется, так как включено в _dnc.bat}
 {$IFDEF Win32}
  {$DEFINE STRINGLFN} {включает более быстрый, но жрущий много памяти алгоритм работы с виндовыми LFN}
+ {.$DEFINE RecodeWhenDraw} {кириллические имена файлов хранятся в ANSI, }
+                           {а перекодируются тодлько при использовании  }
 {$ENDIF}
 {.$DEFINE OS2}       {не требуется, так как включено в _dnc.cmd}
 {$DEFINE VPBETA}    {отключает те фишки, которые пока не работают в VP-версии}
@@ -164,3 +179,7 @@
     {$DEFINE CL_MASTER}
   {$ENDIF}
 {$ENDIF}
+
+{$IFNDEF BIT_32} {$UNDEF USEANSISTRING} {$UNDEF USELONGSTRING} {$ENDIF} {Cat}
+{$IFDEF LOGOBJLOADSTORE} {$UNDEF NoCallspcb} {$ENDIF} {Cat}
+{$IFDEF USEANSISTRING} {$H+} {$DEFINE USELONGSTRING} {$ELSE} {$H-} {$ENDIF} {Cat}

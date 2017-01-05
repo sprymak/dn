@@ -48,7 +48,7 @@
 unit Arc_ZXZ; {ZXZ}
 
 interface
- uses Archiver, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, advance1;
+uses Archiver, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, advance1;
 
 type
   PZXZArchive = ^TZXZArchive;

@@ -48,7 +48,7 @@
 unit Arc_tar; {TAR}
 
 interface
- uses Archiver, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, advance1, xtime;
+uses Archiver, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, advance1, xtime;
 
 type
     PTARArchive = ^TTARArchive;
@@ -197,10 +197,20 @@ begin
   FileInfo.LFN  := AddLFN(S);  {DataCompBoy}
 {$ENDIF}
   FileInfo.FName := S; {DataCompBoy}
+{$IFDEF USEANSISTRING}
+  SetLength(S, SizeOf(Hdr.Size));
+  System.Move(Hdr.Size, S[1], SizeOf(Hdr.Size));
+{$ELSE}
   S := Hdr.Size;
+{$ENDIF}
   FileInfo.USize := FromOct(DelSpaces(S));
   FileInfo.PSize := FileInfo.USize;
+{$IFDEF USEANSISTRING}
+  SetLength(S, SizeOf(Hdr.mTime));
+  System.Move(Hdr.mTime, S[1], SizeOf(Hdr.mTime));
+{$ELSE}
   S := Hdr.mTime;
+{$ENDIF}
   GetUNIXDate(FromOct(DelSpaces(S)), DT.Year, DT.Month, DT.Day, DT.Hour, DT.Min, DT.Sec);
   PackTime(DT, FileInfo.Date);
   L := (FileInfo.PSize div LongInt(BlkSize)) + Byte(FileInfo.PSize mod LongInt(BlkSize) <> 0);

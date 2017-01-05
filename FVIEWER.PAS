@@ -807,8 +807,8 @@ begin
  BufModified := Off;
  GetPeerViewPtr(S, SB);
  GetPeerViewPtr(S, Info);
- S.Read(FileName[0], 1); S.Read(FileName[1], Length(FileName));
- S.Read(VFileName[0], 1); S.Read(VFileName[1], Length(VFileName));
+ S.ReadStrV(FileName); {S.Read(FileName[0], 1); S.Read(FileName[1], Length(FileName));}
+ S.ReadStrV(VFileName); {S.Read(VFileName[0], 1); S.Read(VFileName[1], Length(VFileName));}
  S.Read(I, Sizeof(LongInt));
  S.Read(QuickView, 1);
  S.Read(Wrap, 1);
@@ -837,8 +837,8 @@ begin
  inherited Store(S);
  PutPeerViewPtr(S, SB);
  PutPeerViewPtr(S, Info);
- S.Write(FileName[0], 1 + Length(FileName));
- S.Write(VFileName[0], 1 + Length(VFileName));
+ S.WriteStr(@FileName); {S.Write(FileName[0], 1 + Length(FileName));}
+ S.WriteStr(@VFileName); {S.Write(VFileName[0], 1 + Length(VFileName));}
  I := FilePos + LongInt(BufPos);
  S.Write(I, Sizeof(LongInt));
  S.Write(QuickView, 1);
@@ -1053,7 +1053,7 @@ begin
              if J = HexPos then Drivers.MoveStr(B, S, C)
              else begin
               Drivers.MoveStr(B, Copy(S, 1, J*3+10), C);
-              Drivers.MoveStr(B[10+HexPos*3], Copy(S, J*3+11, 255), C);
+              Drivers.MoveStr(B[10+HexPos*3], Copy(S, J*3+11, MaxStringLength), C);
              end;
              if SearchActive then begin
               if (L <= SearchX) and (L+J > SearchX) then begin
@@ -1240,7 +1240,7 @@ begin
              SetLength(S, W-XDelta);
              XLatBuf(S[1], Length(S), XLat);
              MoveStr(B, S, C(*, Filter, TS*));
-             if Hilite then
+             if Hilite and not QuickView  then
              begin
                Highlites ( Length(S), @S[1], HiLitePar );
                C1                  := C and $F0;                 { Background }
@@ -1943,7 +1943,7 @@ DoSave:
               cmSave: begin WriteModify; CE end;
               cmSaveAll: Goto DoSave;
               cmGetName: if VFileName <> ''
-                          then PString(Event.InfoPtr)^ := GetString(dlViewFile)+' - '+VFileName
+                          then PString(Event.InfoPtr)^ := GetString(dlViewFile)+' - '+{$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(VFileName)
                           else PString(Event.InfoPtr)^ := GetString(dlViewFile);
               cmLoadViewFile: if QuickView and
                                  (UpStrg(lFExpand(PString(Event.InfoPtr)^))
@@ -2693,7 +2693,7 @@ begin
   if LastViewerBounds.Empty or (InterfaceData.Options and ouiStoreViewerPosition = 0)
     then begin Desktop^.GetExtent(LastViewerBounds); LastViewerDeskSize := Desktop^.Size; end;
   R := LastViewerBounds; AdjustToDesktopSize(R, LastViewerDeskSize);
-  TWindow.Init(R, VFileName, 0);
+  TWindow.Init(R, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(VFileName), 0);
   Flags := Flags or wfMaxi;
   Options := Options or ofTileAble;
   GetExtent(R);

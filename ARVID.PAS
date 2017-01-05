@@ -242,9 +242,9 @@ begin
   begin
    Flags := Params[n].Param;
    LFNLen:=StoI(Params[n].LFNLen);
-   if (LFNLen = 0) or (LFNLen > 253) then LFNLen := 253;
+   if (LFNLen = 0) or (LFNLen > 252) then LFNLen := 252;
    EXTLen:=StoI(Params[n].EXTLen);
-   if EXTLen > 253 then EXTLen := 253;
+   if EXTLen > 252 then EXTLen := 252;
    case FileCase of
     0: FilFLP := 0;
     1: FilFLP := flnLowCase;
@@ -280,9 +280,9 @@ begin
            else GetParam(num);
   innum:=num;
 
-  i:=PosChar(':', Copy(AName, 3, 255))+2;
+  i:=PosChar(':', Copy(AName, 3, MaxStringLength))+2;
   if i>2 then begin
-   q:=Copy(AName,I+1,255);
+   q:=Copy(AName,I+1,MaxStringLength);
    if Q[Length(Q)] in ['\','/'] then SetLength(Q, Length(Q)-1);
    Stream:=New(PBufStream, Init(Copy(AName, 1, I-1), stOpen, 2048));
   end else
@@ -544,7 +544,7 @@ begin
        Exit;
      end;
      P:=WriteMsg(GetString(dlPleaseStandBy));
-     while Length(S1) <> 1 do begin DelFC(S1); DelFC(CopyDir); end;
+     while Length(S1) <> 1 do begin Delete(S1, 1, 1); {DelFC(S1);} Delete(CopyDir, 1, 1); {DelFC(CopyDir);} end;
      S2:=CurDir;
      for I:=0 to AFiles^.Count - 1 do begin
        PF:=AFiles^.at(i);
@@ -894,7 +894,13 @@ procedure TArvidDrive.HandleCommand;
       if DD.Level = 0 then
          if Lv0 then Break
                 else Lv0:=On;
-      SS:=DD.Name; Insert('.', SS, 9);
+{$IFDEF USEANSISTRING}
+      SetLength(SS, SizeOf(DD.Name));
+      Move(DD.Name, SS[1], SizeOf(DD.Name));
+{$ELSE}
+      SS:=DD.Name;
+{$ENDIF}
+      Insert('.', SS, 9);
       {$IFNDEF OS2}
       if DD.Level > LastLv then Dr:=MakeNormName(Dr, MakeFileName(SS))
       {$ELSE}
@@ -921,6 +927,7 @@ procedure TArvidDrive.HandleCommand;
           if SDesc and (DD.Description <> 0) then
              begin
                St^.Seek(D.DescTableOfs+DD.Description-1);
+{Cat:warn AnsiString}
                St^.Read(FreeStr, 2);
                St^.Read(FreeStr[1], Length(FreeStr));
                UpStr(FreeStr);
@@ -941,13 +948,20 @@ procedure TArvidDrive.HandleCommand;
         for I:=1 to DD.NumFiles do
           begin
             St^.Read(FF, SizeOf(FF));
-            SS:=FF.Name; Insert('.', SS, 9);
+{$IFDEF USEANSISTRING}
+            SetLength(SS, SizeOf(FF.Name));
+            Move(FF.Name, SS[1], SizeOf(FF.Name));
+{$ELSE}
+            SS:=FF.Name;
+{$ENDIF}
+            Insert('.', SS, 9);
             if InSpaceFilter(SS, DT.Mask) then
               begin
                 if SDesc and (FF.Description <> 0) then
                    begin
                      J:=St^.GetPos;
                      St^.Seek(D.DescTableOfs+FF.Description-1);
+{Cat:warn AnsiString}
                      St^.Read(FreeStr, 2);
                      St^.Read(FreeStr[1], Length(FreeStr));
                      St^.Seek(J);
@@ -1158,7 +1172,7 @@ procedure TArvidDrive.HandleCommand;
               if Stream^.Status <> stOK then Goto 1;
             end;
          CurDir:=FreeStr;
-         if CurDir[1] = '\' then DelFC(CurDir);
+         if CurDir[1] = '\' then Delete(CurDir, 1, 1); {DelFC(CurDir);}
          SeekDirectory;
          F:=FindList^.At(R.A.Y);
          if F^.TT = ttFile then FreeStr:=MakeNormName(FreeStr, CnvString(PFindFile(F)^.Name));

@@ -109,7 +109,11 @@ end;
 procedure TIndicator.HandleEvent;
  var D: record
          N: Word;
+{$IFDEF USEANSISTRING}
+         S: String;
+{$ELSE}
          S: String[250];
+{$ENDIF}
         end;
 
   procedure CE; begin DrawView; ClearEvent(Event); end;
@@ -155,7 +159,11 @@ end;
 
 procedure TIndicator.Draw;
   var B: TDrawBuffer;
+{$IFDEF USEANSISTRING}
+      S: String;
+{$ELSE}
       S: String[40];
+{$ENDIF}
       C: Byte;
       L, LL: LongInt;
 

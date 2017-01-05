@@ -234,7 +234,7 @@ var
       begin
        S.Seek( 0 );
        S.Read( Chk[1], ConfigSigns[i].SignLen );
-       Chk[ 0 ] := Char( ConfigSigns[i].SignLen );
+       SetLength(Chk, ConfigSigns[i].SignLen); {Chk[0] := Char( ConfigSigns[i].SignLen );}
        if Chk=ConfigSigns[i].Sign then begin
         CfgVer:=ConfigSigns[i].SignVer;
         if ConfigSigns[i].HavVer then S.Read(CFGVer, SizeOf(VersionWord));
@@ -283,7 +283,7 @@ var
                               SystemData.Mode1   := Mode1;
                               SystemData.Mode2   := Mode2;
                               SystemData.Temp    := Temp;
-                              SystemData.LFNContainer := LFNContainer;
+                             {SystemData.LFNContainer := LFNContainer;}
                               move(Drives, SystemData.Drives, sizeof(Drives));
                              end;
                              FreeMem(p, SizeOf(TOld2SystemData));
@@ -384,31 +384,31 @@ var
                               S.Read(CustomMask1^.Filter,
                                      SizeOf(CustomMask1^.Filter));
                               Replace(#0,';',CustomMask1^.Filter);
-                              DelFC(CustomMask1^.Filter);
+                              Delete(CustomMask1^.Filter, 1, 1); {DelFC(CustomMask1^.Filter);}
                               SetLength(CustomMask1^.Filter, Length(CustomMask1^.Filter)-1);
 
                               S.Read(CustomMask2^.Filter,
                                      SizeOf(CustomMask2^.Filter));
                               Replace(#0,';',CustomMask2^.Filter);
-                              DelFC(CustomMask2^.Filter);
+                              Delete(CustomMask2^.Filter, 1, 1); {DelFC();}
                               SetLength(CustomMask2^.Filter, Length(CustomMask2^.Filter)-1);
 
                               S.Read(CustomMask3^.Filter,
                                      SizeOf(CustomMask3^.Filter));
                               Replace(#0,';',CustomMask3^.Filter);
-                              DelFC(CustomMask3^.Filter);
+                              Delete(CustomMask3^.Filter, 1, 1); {DelFC(CustomMask3^.Filter);}
                               SetLength(CustomMask3^.Filter, Length(CustomMask3^.Filter)-1);
 
                               S.Read(CustomMask4^.Filter,
                                      SizeOf(CustomMask4^.Filter));
                               Replace(#0,';',CustomMask4^.Filter);
-                              DelFC(CustomMask4^.Filter);
+                              Delete(CustomMask4^.Filter, 1, 1); {DelFC(CustomMask4^.Filter);}
                               SetLength(CustomMask4^.Filter, Length(CustomMask4^.Filter)-1);
 
                               S.Read(CustomMask5^.Filter,
                                      SizeOf(CustomMask5^.Filter));
                               Replace(#0,';',CustomMask5^.Filter);
-                              DelFC(CustomMask5^.Filter);
+                              Delete(CustomMask5^.Filter, 1, 1); {DelFC(CustomMask5^.Filter);}
                               SetLength(CustomMask5^.Filter, Length(CustomMask5^.Filter)-1);
                             end;
 
@@ -416,31 +416,31 @@ var
                               S.Read(CustomMask6^.Filter,
                                      SizeOf(CustomMask6^.Filter)); {JO}
                               Replace(#0,';',CustomMask6^.Filter);
-                              DelFC(CustomMask6^.Filter);
+                              Delete(CustomMask6^.Filter, 1, 1); {DelFC(CustomMask6^.Filter);}
                               SetLength(CustomMask6^.Filter, Length(CustomMask6^.Filter)-1);
 
                               S.Read(CustomMask7^.Filter,
                                      SizeOf(CustomMask7^.Filter));
                               Replace(#0,';',CustomMask7^.Filter);
-                              DelFC(CustomMask7^.Filter);
+                              Delete(CustomMask7^.Filter, 1, 1); {DelFC(CustomMask7^.Filter);}
                               SetLength(CustomMask7^.Filter, Length(CustomMask7^.Filter)-1);
 
                               S.Read(CustomMask8^.Filter,
                                      SizeOf(CustomMask8^.Filter));
                               Replace(#0,';',CustomMask8^.Filter);
-                              DelFC(CustomMask8^.Filter);
+                              Delete(CustomMask8^.Filter, 1, 1); {DelFC(CustomMask8^.Filter);}
                               SetLength(CustomMask8^.Filter, Length(CustomMask8^.Filter)-1);
 
                               S.Read(CustomMask9^.Filter,
                                      SizeOf(CustomMask9^.Filter));
                               Replace(#0,';',CustomMask9^.Filter);
-                              DelFC(CustomMask9^.Filter);
+                              Delete(CustomMask9^.Filter, 1, 1); {DelFC(CustomMask9^.Filter);}
                               SetLength(CustomMask9^.Filter, Length(CustomMask9^.Filter)-1);
 
                               S.Read(CustomMask10^.Filter,
                                      SizeOf(CustomMask10^.Filter));{JO}
                               Replace(#0,';',CustomMask10^.Filter);
-                              DelFC(CustomMask10^.Filter);
+                              Delete(CustomMask10^.Filter, 1, 1); {DelFC(CustomMask10^.Filter);}
                               SetLength(CustomMask10^.Filter, Length(CustomMask10^.Filter)-1);
                             end;
 
@@ -569,11 +569,11 @@ var
 
     S.Done;
     Security := SystemData.Options and ossShowHidden = 0;
-    DriveInfoType := InterfaceData.DrvInfType;
     HandleChDirCommand := ((SystemData.Options{$IFDEF VIRTUALPASCAL}shl 3{$ENDIF}) and ossHandleChDirCommand) <> 0;
 
     SystemDataOpt      := SystemData.Options;
     InterfaceDataOpt   := InterfaceData.Options;
+    DriveInfoType      := InterfaceData.DrvInfType;
     FMSetupOpt         := Startup.FMSetup.Options;
     EditorDefaultsOpt  := EditorDefaults.EdOpt;
     EditorDefaultsOpt2 := EditorDefaults.EdOpt2;
@@ -582,6 +582,8 @@ var
     StartupDataUnload  := StartupData.Unload;
     StartupDataSlice2  := StartupData.Slice2;
     ConfirmsOpt        := Confirms;
+    CopyLimit          := SystemData.CopyLimitBuf;
+    ForceDefaultArchiver := SystemData.ForceDefArch;
     QDirs1             := CnvString(DirsToChange[0]);
     QDirs2             := CnvString(DirsToChange[1]);
     QDirs3             := CnvString(DirsToChange[2]);
@@ -601,7 +603,7 @@ var
     if SwpDir = '' then
       begin
         I := FindParam('/S');
-        if I > 0 then SwpDir := Copy(ParamStr(I), 3, 255);
+        if I > 0 then SwpDir := Copy(ParamStr(I), 3, MaxStringLength);
       end;
     if SwpDir = '' then SwpDir := TempDir;
     if not (SwpDir[Length(SwpDir)] in ['\','/']) then SwpDir := SwpDir+'\'; ClrIO;
@@ -614,8 +616,10 @@ var
   var INIavailtime,INIavailsize,INIavailcrc:longint;
       S:TBufStream;
       I: Byte;
+      VirginIni: Boolean; {JO}
   begin
-      if (not ProbeINI(INIavailtime,INIavailsize,INIavailcrc)) or
+      VirginIni := not ProbeINI(INIavailtime,INIavailsize,INIavailcrc);
+      if VirginIni or
          (INIdatapos<0) or
          (INIavailtime<>INIstoredtime) or
          (INIavailsize<>INIstoredsize) {or
@@ -625,12 +629,12 @@ var
           if DnIni.AutoSave then SaveDnIniSettings(nil);
           DoneIniEngine; {-$VIV stop}
           ProbeINI(INIstoredtime,INIstoredsize,INIstoredcrc);
-          InterfaceData.DrvInfType := DriveInfoType;
 
-          if Virgin then
+          if Virgin and not VirginIni then
             begin
               SystemData.Options        := SystemDataOpt;
               InterfaceData.Options     := InterfaceDataOpt;
+              InterfaceData.DrvInfType  := DriveInfoType;
               Startup.FMSetup.Options   := FMSetupOpt;
               EditorDefaults.EdOpt      := EditorDefaultsOpt;
               EditorDefaults.EdOpt2     := EditorDefaultsOpt2;
@@ -639,6 +643,8 @@ var
               StartupData.Unload        := StartupDataUnload;
               StartupData.Slice2        := StartupDataSlice2;
               Confirms                  := ConfirmsOpt;
+              SystemData.CopyLimitBuf   := CopyLimit;
+              SystemData.ForceDefArch   := ForceDefaultArchiver;
               for I := 0 to 8 do DisposeStr(DirsToChange[I]);
               DirsToChange[0]           := NewStr(QDirs1);
               DirsToChange[1]           := NewStr(QDirs2);
@@ -755,7 +761,7 @@ begin
  end
 {$IFDEF VIRTUALPASCAL}
   else
-     WriteLn('Dos Navigator Open Source '+ VersionName + ' Based on DN (C) 1991-99 RIT Labs')
+     WriteLn('Dos Navigator /2 Open Source '+ VersionName + ' Based on DN (C) 1991-99 RIT Labs')
 {$ENDIF}
 ;
 
@@ -878,6 +884,9 @@ begin
  MyApplication.Init;
 
  if RunFirst then
+   ShowIniErrors;
+
+ if RunFirst then
   if (StartupData.Load and osuKillHistory <> 0) then ClearHistories;
  {$IFDEF OS_DOS}
  if not RunFirst then EraseFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
@@ -888,7 +897,7 @@ begin
        then Message( @MyApplication, evCommand, cmFirstTimePanel, NIL );
 
     FreeStr[1] := Char(FindParam('/P'));
-    if (FreeStr[1] > #0) then LoadPalFromFile(Copy(ParamStr(Byte(FreeStr[1])), 3, 255));
+    if (FreeStr[1] > #0) then LoadPalFromFile(Copy(ParamStr(Byte(FreeStr[1])), 3, MaxStringLength));
     if Virgin then Message( @MyApplication, evCommand, cmAbout , nil ); {JO}
     if NoTempDir then begin CreateDirInheritance(TempDir, Off); NoTempDir := False; end; {JO}
     ExecDNAutoexec;
@@ -920,6 +929,7 @@ GrabPalette;
  w95QuitInit; {Gimly}
  {$ENDIF}
  MyApplication.Run;
+ ClearIniErrors;
  GlobalMessage(evCommand, cmKillUsed, nil);
  TottalExit := On;
  MyApplication.Done;

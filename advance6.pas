@@ -154,6 +154,11 @@ end;
 
 procedure ResourceAccessError;
 begin
+{Cat}
+  if IOResult <> 0 then
+    ;
+  Writeln('Resource access error');
+{/Cat}
   RunError(219);
 end;
 

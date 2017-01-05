@@ -593,7 +593,7 @@ begin with AvtDr^ do begin
     AName:=CurDir2 + AName;
   end;
   lFSplit(AName, Dr, Nm, Xt);
-  if (Dr[1] = '\') and (Length(Dr)>1) then DelFC(Dr);
+  if (Dr[1] = '\') and (Length(Dr)>1) then Delete(Dr, 1, 1); {DelFC(Dr);}
   if CurDir2 <> Dr then begin
     CurDir:=Dr; SeekDirectory;
     CurDir2:=CurDir;
@@ -657,7 +657,7 @@ var
     while L <> 0 do begin
       for I:=1 to 36 do begin
         if Length(S) <> 0 then begin
-          T.Data[I]:=S[1]; DelFC(S);
+          T.Data[I]:=S[1]; Delete(S, 1, 1); {DelFC(S);}
         end else
           T.Data[I]:=#0;
       end;
@@ -677,7 +677,7 @@ var
       FC.Flags:=(FC.Flags and (not avtCellFormat)) or avtCell2;
       for I:=1 to 12 do begin
         if Length(S) <> 0 then begin
-          FC.Name2[I]:=S[1]; DelFC(S);
+          FC.Name2[I]:=S[1]; Delete(S, 1, 1); {DelFC(S);}
         end else
           FC.Name2[I]:=#0;
       end;
@@ -843,16 +843,16 @@ var
   begin with AvtDr^ do begin
     NewCellFailed:=False;
     Lv:=CurLevel+1; Stream^.Status:=stOK;
-    if AName[1] = '\' then DelFC(AName);
+    if AName[1] = '\' then Delete(AName, 1, 1); {DelFC(AName);}
     while AName <> '' do begin
       SS:='';
       while (AName[1] <> '\') and (AName <> '') do begin
         AddStr(SS, AName[1]);
-        DelFC(AName);
+        Delete(AName, 1, 1); {DelFC(AName);}
         if Length(SS) = 12 then Break;
       end;
       if Length(SS) = 12 then while (AName[1] <> '\') and (AName <> '') do
-        DelFC(AName);
+        Delete(AName, 1, 1); {DelFC(AName);}
       SN:=Ansi_Ascii(CurDir2+SS);
       if (SS = '.') or (SS = '..') or (Pos('?',SS)>0) or (Pos('*',SS)>0)
          or (Pos(':',SS)>0) or (SS = '')
@@ -862,7 +862,7 @@ var
       end;
       NewCurDirPos:=AvtTreeNodeInsert(CurDirPos);
       NewCellIsDir:=(AName[1] = '\') or AIsDir;
-      DelFC(AName);
+      Delete(AName, 1, 1); {DelFC(AName);}
       if NewCellFailed then begin
         if NewCellIsDir <> FailedCellIsDir then begin
           SN:=Ansi_Ascii(CurDir2+SS);
@@ -914,7 +914,7 @@ begin with AvtDr^ do begin
   if AName[1] <> '\' then begin
     AName:=CurDir2 + AName;
   end;
-  if (AName <> '') and (AName[1] = '\') then DelFC(AName);
+  if (AName <> '') and (AName[1] = '\') then Delete(Aname, 1, 1); {DelFC(AName);}
   lFSplit(AName, Dr, Nm, Xt);
   Stream^.Status:=stOK;
   if CurDir2 <> Dr then begin
@@ -931,7 +931,7 @@ begin with AvtDr^ do begin
     SN:=Copy(CurDir2,Length(SaveCurDir)+1,Length(CurDir2));
     SS:='';
     while (SN <> '\') and (SN <> '') do begin
-      AddStr(SS, SN[1]); DelFC(SN);
+      AddStr(SS, SN[1]); Delete(SN, 1, 1); {DelFC(SN);}
     end;
     if SS <> '' then begin
       SN:=CurDir; CurDir:=SaveCurDir;
@@ -969,18 +969,18 @@ begin with AvtDr^ do begin
   CurDir:=''; CurLevel:=0; Lv:=1;
   CurDirCellPos:=0;
   Stream^.Status:=stOK; SeekFailed:=False;
-  if S[1] = '\' then DelFC(S);
+  if S[1] = '\' then Delete(S, 1, 1); {DelFC(S);}
   while S <> '' do
     begin
       SS:='';
       while (S[1] <> '\') and (S <> '') do
         begin
           AddStr(SS, S[1]);
-          DelFC(S);
+          Delete(S, 1, 1); {DelFC(S);}
           if Length(SS) = 12 then Break;
         end;
-      if Length(SS) = 12 then while (S[1] <> '\') and (S <> '') do DelFC(S);
-      DelFC(S);
+      if Length(SS) = 12 then while (S[1] <> '\') and (S <> '') do Delete(S, 1, 1); {DelFC(S);}
+      Delete(S, 1, 1); {DelFC(S);}
       while True do begin
         if CurDirPos = 0 then begin SeekFailed:=True; break; end;
         Stream^.Seek(CurDirPos);
@@ -1029,17 +1029,17 @@ begin with AvtDr^ do begin
   CurDir:=''; CurLevel:=0; Lv:=1;
   CurDirCellPos:=0;
   Stream^.Status:=stOK; SeekFailed:=False;
-  if S[1] = '\' then DelFC(S);
+  if S[1] = '\' then Delete(S, 1, 1); {DelFC(S);}
   while S <> '' do
     begin
       SS:='';
       while (S[1] <> '\') and (S <> '') do
         begin
           AddStr(SS, S[1]);
-          DelFC(S);
+          Delete(S, 1, 1); {DelFC(S);}
         end;
-      while (S[1] <> '\') and (S <> '') do DelFC(S);
-      DelFC(S);
+      while (S[1] <> '\') and (S <> '') do Delete(S, 1, 1); {DelFC(S);}
+      Delete(S, 1, 1); {DelFC(S);}
       while True do begin
         if CurDirPos = 0 then begin SeekFailed:=True; break; end;
         Stream^.Seek(CurDirPos);
@@ -1430,7 +1430,7 @@ var
      while L <> 0 do begin
        for I:=1 to 36 do begin
          if Length(S) <> 0 then begin
-           T.Data[I]:=S[1]; DelFC(S);
+           T.Data[I]:=S[1]; Delete(S, 1, 1); {DelFC(S);}
          end else
            T.Data[I]:=#0;
        end;
@@ -1450,7 +1450,7 @@ var
        C.Flags:=(C.Flags and (not avtCellFormat)) or avtCell2;
        for I:=1 to 12 do begin
          if Length(S) <> 0 then begin
-           C.Name2[I]:=S[1]; DelFC(S);
+           C.Name2[I]:=S[1]; Delete(S, 1, 1); {DelFC(S);}
          end else
            C.Name2[I]:=#0;
        end;
@@ -1486,7 +1486,7 @@ begin with AvtDr^ do begin
      while L <> 0 do begin
        for I:=1 to 36 do begin
          if Length(FreeStr) <> 0 then begin
-           T.Data[I]:=FreeStr[1]; DelFC(FreeStr);
+           T.Data[I]:=FreeStr[1]; Delete(FreeStr, 1, 1); {DelFC(FreeStr);}
          end else
            T.Data[I]:=#0;
        end;

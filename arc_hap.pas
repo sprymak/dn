@@ -48,7 +48,7 @@
 unit Arc_HAP; {HAP}
 
 interface
- uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, Arc_HA;
+uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, Arc_HA;
 
 type
     PHAPArchive = ^THAPArchive;
@@ -147,7 +147,7 @@ begin
    then begin FileInfo.Last := 2;Exit;end;
  {if (P.Method > 20) then begin FileInfo.Last:=2;Exit;end;}
  FileInfo.Last := 0;
- FileInfo.Attr := P.Attr and not Hidden;;
+ FileInfo.Attr := P.Attr and not Hidden;
  FileInfo.USize := P.OriginSize;
  FileInfo.PSize := P.PackedSize;
  FileInfo.Date := P.Date;

@@ -1339,7 +1339,7 @@ begin
             Color := CSelDisabled else
             Color := CNormDisabled;
         MoveChar(B[I], ' ', Byte(Color), 1);
-        MoveCStr(B[I + 1], Copy(T^.Text^,1+Byte(FirstChar<>' '), 255), Color);
+        MoveCStr(B[I + 1], Copy(T^.Text^,1+Byte(FirstChar<>' '), MaxStringLength), Color);
         MoveChar(B[I + L + 1], ' ', Byte(Color), 1);
       end;
       Inc(I, L + 2);

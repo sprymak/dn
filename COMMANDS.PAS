@@ -51,6 +51,21 @@ UNIT Commands;
 INTERFACE
 
 CONST
+{$IFDEF USEANSISTRING}
+  MaxStringLength = 32000;
+  MaxReasonableStringLength = 32000;
+{$ELSE}
+  MaxStringLength = 255;
+  MaxReasonableStringLength = 255;
+{$ENDIF}
+{$IFDEF USELONGSTRING}
+ {MaxLongStringLength = 30000;}
+  MaxLongStringLength = 1048575;
+{$ELSE}
+  MaxLongStringLength = 254;
+{$ENDIF}
+
+CONST
   kbEsc       = $011B;  kbAltSpace  = $C200;  kbCtrlIns    = $9200;
   kbShiftIns  = $C300;  kbCtrlDel   = $9300;  kbShiftDel   = $C400;
   kbBack      = $0E08;  kbCtrlBack  = $0E7F;  kbShiftTab   = $0F00;
@@ -256,8 +271,8 @@ const
   ossCheckDDA    =  $20;
   ossRemoveCD_RO =  $40;
   ossAdvCopy     =  $80;
-  ossFlushDsk    = $100;
-  ossHandleChDirCommand = $200;
+{ ossFlushDsk    = $100; }
+  ossHandleChDirCommand = $100;
 
   ossDirectAccess   =$01;
   ossTree           =$02;
@@ -789,6 +804,10 @@ const
   cmCloseFormat        = 11041;
   cmCloseLinked        = 11042;
   cmGetUserParamsWL    = 11043;
+{Cat}
+  cmPutInClipboardLong   = 11077;
+  cmGetFromClipboardLong = 11078;
+{/Cat}
 
   cmQuickChange1       = 11100;
   cmQuickChange2       = 11101;
@@ -1343,6 +1362,7 @@ TYPE
     dlDICurDir,
     dlDINoFiles,
     dlDIFiles,
+    dlDIDirectory, {JO}
     dlDIBytes,
     dlDIFile,
     dlDIByte,

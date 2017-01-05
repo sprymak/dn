@@ -52,7 +52,7 @@ Uses LFN, {DataCompBoy}
 
 
 CONST
-  VersionName:string = '1.51.10b1/'+
+  VersionName:string = '1.51.10b2/'+
                        {$IFNDEF NONBP}{$IFDEF DPMI} +'DPMI'
                                       {$ELSE}       +'DOS'  {$ENDIF}
                        {$ELSE}        {$IFDEF WIN32}+'W32'
@@ -63,7 +63,7 @@ CONST
                        {$ENDIF}
                        ;
   VersionDate:string = '';
-  VersionWord:Aword   = 15195;
+  VersionWord:Aword   = 15196;
 
 var F : lText ;
     Day, Month, Year, DOW: word;

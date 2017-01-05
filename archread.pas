@@ -69,7 +69,7 @@ procedure ReadArcList; {changed & AIN added by piwamoto}
   label 1,2;
  begin
   S := TempFile; ID := Copy(S,1,4); Delete(S, 1, 4);
-  I := PosChar(']', S); ArcFileName := Copy(S, I+1, 255);
+  I := PosChar(']', S); ArcFileName := Copy(S, I+1, MaxStringLength);
   SetLength(S, I-1); ClrIO;
   TempFile := '';
   if (Pos(ID, 'UC2:AIN:')+3) mod 4 = 0 then

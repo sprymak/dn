@@ -72,7 +72,7 @@ type
 
 implementation
 uses MicroEd2, DnApp, Commands, dnHelp, Views,
-     Startup, Advance1, fViewer, drivers, editor, Advance;
+     Startup, Advance1, fViewer, drivers, editor, Advance{$IFDEF RecodeWhenDraw}, LFN{$ENDIF};
 
 type
        PEditSaver = ^TEditSaver;
@@ -85,6 +85,7 @@ const
       REditSaver: TStreamRec = (
        ObjType: 12335;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(TEditSaver){$IFDEF OFFS}^{$ENDIF});
+       {$IFDEF LOGOBJLOADSTORE} ObjName: 'otEditSaver'; {$ENDIF}
        Load: @TEditSaver.Load;
        Store: @TEditSaver.Store);
 
@@ -141,7 +142,7 @@ begin
     Title := NewStr('SmartPad(TM) - ' + PFileEditor(Intern)^.EditName);
   end else if PFileEditor(Intern)^.ClipBrd then begin
     Title := NewStr('Clipboard');
-  end else Title := NewStr(GetString(dlEditTitle) + ' - ' + PFileEditor(Intern)^.EditName);
+  end else Title := NewStr(GetString(dlEditTitle) + ' - ' + {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(PFileEditor(Intern)^.EditName));
  LoadCommands;
 end;
 

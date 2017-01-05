@@ -48,7 +48,7 @@
 unit Arc_bs2; {BS2}
 
 interface
- uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
+uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
 
 type
     PBS2Archive = ^TBS2Archive;

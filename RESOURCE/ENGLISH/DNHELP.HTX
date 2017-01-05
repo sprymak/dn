@@ -357,7 +357,7 @@ This menu offers you various functions for working with disks.
   {User Menu         :UserMenu} - Show user menu, if there is no local
                            menu present in the current directory,
                            show global menu.
-  {DOS Environment   :EnvEditor} - Edit/View DOS environment variables
+  {DOS Environment   :EnvEditor} - Edit/View OS environment variables
   {Commands History  :CmdHistory} - Show History window: list of previously
                            used DOS commands.
   {File Edit History :_}
@@ -2167,7 +2167,7 @@ have to zoom the CD Player.
  {3832:_} files with {221,200,115:_} bytes
 
 .topic EnvEditor=16559
-.title Edit DOS Environment
+.title Edit OS Environment
 
 .topic NetInfo=16560
 .title Network Information Panel

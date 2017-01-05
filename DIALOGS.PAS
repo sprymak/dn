@@ -630,10 +630,10 @@ constructor TInputLine.Load(var S: TStream);
 begin
   TView.Load(S);
   DrawShift := 1;
+{Cat:warn AnsiString}
   S.Read(MaxLen, SizeOf(AInt) * 5);
   GetMem(Data, MaxLen + 1);
-  S.Read(Data^[0], 1);
-  S.Read(Data^[1], Length(Data^));
+  S.ReadStrV(Data^); {S.Read(Data^[0], 1); S.Read(Data^[1], Length(Data^));}
   if Options and ofVersion >= ofVersion20 then
     Validator := PValidator(S.Get);
   Options := Options or ofVersion20;
@@ -665,7 +665,8 @@ begin
     if Validator <> nil then DSize := Validator^.Transfer(Data^, nil, vtDataSize);
     if DSize <> 0 then DataSize := DSize
                   else DataSize := MaxLen + 1;
-   end;
+   end
+  else DataSize := MaxLen + 1; {Cat}
 end;
 
 procedure TInputLine.Draw;
@@ -963,7 +964,7 @@ begin
                kbCtrlK: CtrlK:=True;
                kbAltF12: begin
                           OldData:=RusEngConv(Copy(Data^, SelStart+1, SelEnd-SelStart));
-                          Data^:=Copy(Data^, 1, SelStart)+OldData+Copy(Data^, SelEnd+1, 255);
+                          Data^:=Copy(Data^, 1, SelStart)+OldData+Copy(Data^, SelEnd+1, MaxStringLength);
                           if CurPos = SelEnd then Anchor := SelStart
                           else Anchor := SelEnd;
                           ExtendBlock:=True
@@ -1146,7 +1147,7 @@ begin
   if Data=nil then Exit;
   if (Validator = nil) or
     (Validator^.Transfer(Data^, @Rec, vtSetData) = 0) then
-    Move(Rec, Data^[0], DataSize);
+    Move(Rec, Data^{[0]}, DataSize);
   Message(Owner, evBroadcast, cmUpdateHexViews, @Self);
   SelectAll(True);
 end;
@@ -1168,6 +1169,7 @@ end;
 procedure TInputLine.Store(var S: TStream);
 begin
   TView.Store(S);
+{Cat:warn AnsiString}
   S.Write(MaxLen, SizeOf(AInt) * 5);
   S.WriteStr(Data);
   S.Put(Validator);
@@ -1469,7 +1471,7 @@ begin
     Inc(I);
     P := P^.Next;
   end;
-  Strings.Init(I,0);
+  Strings.Init(I,0,False);
   while AStrings <> nil do
   begin
     P := AStrings;
@@ -1489,6 +1491,7 @@ begin
   TView.Load(S);
   if (Options and ofVersion) >= ofVersion20 then
   begin
+{Cat:warn глюки при смене порядка полей}
     S.Read(Value, SizeOf(Longint) * 2 + SizeOf(AInt));
   end
   else
@@ -1793,6 +1796,7 @@ end;
 procedure TCluster.Store(var S: TStream);
 begin
   TView.Store(S);
+{Cat:warn глюки при смене порядка полей}
   S.Write(Value, SizeOf(Value)+SizeOf(Sel)+SizeOf(EnableMask));
   Strings.Store(S);
 end;
@@ -2383,7 +2387,7 @@ procedure THistoryViewer.HandleEvent(var Event: TEvent);
   end else if (Event.What = evKeyDown) and (Event.CharCode <> #0) and (Range>0)
   and ((Event.KeyCode<>kbCtrlEnter) or (SearchPos>0)) then begin
       Value := Focused;
-      if Value < Range then CurStr := Copy(GetText(Value, 255),2,255)
+      if Value < Range then CurStr := Copy(GetText(Value, 255),2,MaxStringLength)
       else CurStr := '';
       if Event.KeyCode = kbBack then
       begin
@@ -2440,7 +2444,7 @@ end;
 
 function THistoryWindow.GetSelection: String;
 begin
-  GetSelection := Copy(Viewer^.GetText(Viewer^.Focused,255), 2, 255);
+  GetSelection := Copy(Viewer^.GetText(Viewer^.Focused,255), 2, MaxStringLength);
 end;
 
 procedure THistoryWindow.InitViewer(HistoryId: AWord);
@@ -2692,7 +2696,7 @@ begin
                                        end;
  C := InputLine^.GetColor(1);
  MoveChar(B, ' ', C, Size.X);
- S := Copy(InputLine^.Data^, DeltaX + 1, 255);
+ S := Copy(InputLine^.Data^, DeltaX + 1, MaxStringLength);
  S := Copy(DumpStr(S[1], 0, 16, 0), 11, Length(S)*3);
  SetCursor(1 + 3 * (CurX - DeltaX) + Byte(Sec), 0); ShowCursor;
  MoveStr(B[1], Copy(S, 1, Size.X - 2), C);

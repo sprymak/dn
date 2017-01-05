@@ -34,9 +34,9 @@
 
  Новые версии DN/2 могут быть найдены на:
 
- ftp://beit.fcn.ru/pub/OS2/utils/Files/FC's/
  ftp://cdl.bmstu.ru/contrib/dnosp/
  http://os2.ru/projects/dn2/
+ http://ecomstation.ru/dn2
 
  DNOS2Bxx.RAR  (где xx - номер версии) - архивы с исполнимыми файлами
                бета-версий для OS/2;
@@ -46,6 +46,7 @@
  Новые Win32 версии DN/2 могут быть найдены на:
 
  ftp://cdl.bmstu.ru/contrib/dnosp/
+ http://os2.ru/projects/dn2/
 
  DNW32Bxx.RAR (где xx - номер версии) - архивы с исполнимыми файлами
               бета-версий для Win32;

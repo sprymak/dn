@@ -741,12 +741,11 @@ asm
               @@4:
 end;
 
-procedure MoveColor(var Buf; Num, Attr: Byte);assembler; {$USES EBX, ECX}
+procedure MoveColor(var Buf; Num: Word; Attr: Byte);assembler; {$USES EBX, ECX}
 asm
    mov    EBX,Buf
-   xor    ECX,ECX
-   mov    CL,Num
-   or     CL,CL
+   mov    ECX,Num
+   or     ECX,ECX
    jz     @End
    mov    AL,Attr
 @Rep:

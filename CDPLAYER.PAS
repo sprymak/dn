@@ -1028,7 +1028,7 @@ PROCEDURE TcdPlayer.Update;
     with Qchannel do begin
       with Tracks[ LastShuffle+1 ] do if not Reached( CMin, CSec ) then Exit;
       if not TimerExpired( NewPlay ) Then Exit;
-      DelFC(TrkPlay);
+      Delete(TrkPlay, 1, 1); {DelFC(TrkPlay);}
       if TrkPlay='' then begin
         if CheckEject then Exit;
         TrkPlay := TrkOrder ;
@@ -1308,13 +1308,13 @@ end;
           S := F^.GetStr;;
           if S<>'' then
            begin
-            if UpStrg(Copy(S,1,6))='TITLE:' then DiskTitle := NewStr(Copy(S,7,255))
+            if UpStrg(Copy(S,1,6))='TITLE:' then DiskTitle := NewStr(Copy(S,7,MaxStringLength))
             else
               if Pos(':',S)=3 then
                begin
                   T1 := Copy(S,1,2);
                   System.Delete(S,1,3);
-                  if T1[1] = '0' then DelFC(T);
+                  if T1[1] = '0' then Delete(T, 1, 1); {DelFC(T);}
                   TR := StoI(T1);
                   if (TR>0) and (TR<100) then
                    begin

@@ -112,8 +112,11 @@ type
     end;
         {-DataCompBoy-}
 
+{Cat: выкинул, теперь используется Collect.TLineCollection}
+(*
     PLineCollection = PTextCollection;
     TLineCollection = TTextCollection;
+*)
 
     PFilesCollection = ^TFilesCollection;
     TFilesCollection = object(TSortedCollection)
@@ -469,11 +472,42 @@ function TFilesCollection.Compare;
      OneIsFile: Boolean;
      ST1, ST2: String;
 
+{$IFDEF RecodeWhenDraw}
+{JO: если использовать штатную локаль через CharToOemStr, }
+{    имеем жуткие тормоза при сортировках}
+    function Ansi_To_Ascii (AnsStr: String): String;
+     var i: Byte;
+    begin
+     if Non866AsciiSorting then
+       begin
+         Ansi_To_Ascii := CharToOemStr(AnsStr);
+       end
+      else
+       begin
+         if Length(AnsStr) > 0 then
+          for i := 1 to Length(AnsStr) do
+           begin
+                   case AnsStr[i] of
+             #168: AnsStr[i] := #240;
+             #170: AnsStr[i] := #242;
+             #175: AnsStr[i] := #244;
+             #184: AnsStr[i] := #241;
+             #186: AnsStr[i] := #243;
+             #191: AnsStr[i] := #245;
+       #192..#239: AnsStr[i] := Char(Byte(AnsStr[i]) - 64);
+       #240..#255: AnsStr[i] := Char(Byte(AnsStr[i]) - 16);
+                   end;
+           end;
+         Ansi_To_Ascii := AnsStr;
+       end;
+    end;
+{$ENDIF}
+
 {$IFNDEF OS_DOS}
     function    CmpName (S1, S2: String): Integer;
     begin
   {$IFDEF Win32}
-    UpLowStr(S1); UpLowStr(S2);
+    S1 := UpLowStrg({$IFDEF RecodeWhenDraw}Ansi_To_Ascii{$ENDIF}(S1)); S2 := UpLowStrg({$IFDEF RecodeWhenDraw}Ansi_To_Ascii{$ENDIF}(S2));
   {$ENDIF}
       if S1>S2 then CmpName := +1 else
       if S1<S2 then CmpName := -1 else
@@ -485,7 +519,7 @@ function TFilesCollection.Compare;
         B, K: Byte;
     begin
   {$IFDEF Win32}
-    S1 := UpLowStrg(S1);
+    S1 := UpLowStrg({$IFDEF RecodeWhenDraw}Ansi_To_Ascii{$ENDIF}(S1));
   {$ENDIF}
      For B := Length(S1) downto 1 do if S1[B]='.' then break;
      if (B > 1) or (S1[1]='.') then begin
@@ -495,7 +529,7 @@ function TFilesCollection.Compare;
       SetLength(S1, B-1);
      end else Word(((@E1)^)) := $2E01; {E1 := '.'}
   {$IFDEF Win32}
-     S2 := UpLowStrg(S2);
+     S2 := UpLowStrg({$IFDEF RecodeWhenDraw}Ansi_To_Ascii{$ENDIF}(S2));
   {$ENDIF}
      For B := Length(S2) downto 1 do if S2[B]='.' then break;
      if (B > 1) or (S2[1]='.') then begin
@@ -557,7 +591,8 @@ function TFilesCollection.Compare;
 
     var
       C1: integer; { результат сравнения имён   // AK155}
-      Name2: string; {UpStrg(P2^.Name)  // AK155}
+      Name1, Name2: string; {UpStrg(P2^.Name)  // AK155}
+
 begin
  if Owner<>nil then PanelFlags := PFilePanel(Owner)^.PanelFlags
                else PanelFlags := PanelDefaults.Show;
@@ -579,7 +614,8 @@ begin
      if P1P and not P2P then begin Compare := -1; Exit; end;
      if P2P and not P1P then begin Compare := +1; Exit; end;
 
-     Name2 := UpLowStrg(Name); {JO}
+     Name1 := UpLowStrg({$IFDEF RecodeWhenDraw}Ansi_To_Ascii{$ENDIF}(T1.Name)); {JO}
+     Name2 := UpLowStrg({$IFDEF RecodeWhenDraw}Ansi_To_Ascii{$ENDIF}(Name)); {JO}
 
      OneIsFile:=True;
 {    if (T1.Attr and Directory <> 0) and (Attr and Directory <> 0) then
@@ -607,10 +643,9 @@ begin
          if ((SM-NumSortModes) and 16 = 0) then
   {$ENDIF}
            begin
-             UpLowStr(T1.Name);
-             if T1.Name < Name2 then
+             if Name2 < Name2 then
                C1 := -1
-             else if T1.Name = Name2 then
+             else if Name1 = Name2 then
                C1 := 0
              else
                C1 := 1;
@@ -637,10 +672,10 @@ begin
           (((SM-NumSortModes) and 4 = 0) or (T1.Attr = Attr)) and
           (((SM-NumSortModes) and 8 = 0) or
 {$IFNDEF OS2}
-                  CompareFiles(MakeNormName(T1.Owner^, MakeFileName(T1.Name)),
+                  CompareFiles(MakeNormName(T1.Owner^, MakeFileName(Name1)),
                                MakeNormName(Owner^, MakeFileName(Name2))) )
 {$ELSE}
-                  CompareFiles(MakeNormName(T1.Owner^, T1.Name),
+                  CompareFiles(MakeNormName(T1.Owner^, Name1),
                                MakeNormName(Owner^, Name2)) )
 {$ENDIF}
            then C := 0 else if (C1=-1) then C := -1
@@ -650,15 +685,15 @@ begin
      end; { конец куска для сравнения каталогов по Ctrl-C }
           { дальше идёт кусок для сортировки файлов в панелях }
 
-     UpLowStr(T1.Name); {JO}
+    {UpLowStr(T1.Name);} {JO}
 
 {$IFDEF Win32}       {далее C1 используется для сортировки файлов в панелях}
      if LFNActive then C1 := CmpName(T1.LFN, LFN) else
 {$ENDIF}
      begin
-       if T1.Name < Name2 then
+       if Name1 < Name2 then
          C1 := -1
-       else if T1.Name = Name2 then
+       else if Name1 = Name2 then
          C1 := 0
        else
          C1 := 1;
@@ -724,7 +759,7 @@ begin
                     C := CmpLFN(T1.LFN, LFN);
      {$ENDIF}
 {$ELSE}
-                    C := CmpName(T1.Name, Name2);
+                    C := CmpName(Name1, Name2);
 {$ENDIF}
                     If C = 0 then if T1.Owner^ < Owner^ then C := -1
                                     else if T1.Owner^ > Owner^ then C := 1;
@@ -734,8 +769,8 @@ begin
 {NAME}psmName:
          if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C := -1 else C := 1 else
-           if T1.Name < Name2 then C := -1
-            else if T1.Name > Name2 then C := 1
+           if Name1 < Name2 then C := -1
+            else if Name1 > Name2 then C := 1
              else if T1.Owner^ < Owner^ then C := -1
                else if T1.Owner^ > Owner^ then C := 1;
 {$ENDIF}
@@ -749,15 +784,15 @@ begin
            C := CmpLFN(T1.LFN, LFN);
   {$ENDIF}
 {$ELSE}
-           C := CmpName(T1.Name, Name2);
+           C := CmpName(Name1, Name2);
 {$ENDIF}
            If C = 0 then if T1.Owner^ < Owner^ then C := -1
                            else if T1.Owner^ > Owner^ then C := 1;
          end;
      141: if (T1.Attr xor Attr) and Directory <> 0 then
           if T1.Attr and Directory <> 0 then C := -1 else C := 1 else
-           if T1.Name < Name2 then C := -1
-            else if (T1.Name > Name2) {$IFNDEF OS2} or (GetLFN(T1.LFN)<>GetLFN(LFN)) {$ENDIF}
+           if Name1 < Name2 then C := -1
+            else if (Name1 > Name2) {$IFNDEF OS2} or (GetLFN(T1.LFN)<>GetLFN(LFN)) {$ENDIF}
                   then C := 1
                   else C := 0;
 {$IFNDEF OS2}
@@ -766,14 +801,14 @@ begin
           if T1.Attr and Directory <> 0 then C:=-1
           else                               C:=1
          else
-         if OneIsFile and (Copy(T1.Name, 10, 3) < Copy(Name, 10, 3)) then
+         if OneIsFile and (Copy(Name1, 10, 3) < Copy(Name2, 10, 3)) then
            C:=-1
          else
-         if OneIsFile and (Copy(Name, 10, 3) < Copy(T1.Name, 10, 3)) then
+         if OneIsFile and (Copy(Name2, 10, 3) < Copy(Name2, 10, 3)) then
            C:=1
          else
-         if T1.Name   < Name2  then C:=-1 else
-         if T1.Name   > Name2  then C:= 1 else
+         if Name1 < Name2 then C:=-1 else
+         if Name1 > Name2 then C:= 1 else
          if T1.Owner^ < Owner^ then C:=-1 else
          if T1.Owner^ > Owner^ then C:= 1;
 {$ENDIF}
@@ -791,8 +826,8 @@ begin
           If C = 0 then C := CmpLFN(T1.LFN, LFN);
    {$ENDIF}
 {$ELSE}
-          If OneIsFile then C := CmpEXT(T1.Name, Name2) else C := 0;
-          If C = 0 then C := CmpName(T1.Name, Name2);
+          If OneIsFile then C := CmpEXT(Name1, Name2) else C := 0;
+          If C = 0 then C := CmpName(Name1, Name2);
 {$ENDIF}
           If C = 0 then if T1.Owner^ < Owner^ then C:=-1 else
                         if T1.Owner^ > Owner^ then C:= 1;
@@ -921,12 +956,12 @@ begin
  Items := nil; N := 0; Lnk := nil;
  MaxL := 8; {-$VIV}
 
- if IncludeTemp and (DriveInfoType and ditIncludeQick <> 0) then begin
+ if IncludeTemp and (InterfaceData.DrvInfType and ditIncludeQick <> 0) then begin
   C := ' ';
   for DriveNum := 8 downto 0 do
     if DirsToChange[DriveNum] <> nil then begin
-      FreeStr:=' ~'+Itos(DriveNum+1)+':~ '+ CutH(DirsToChange[DriveNum]^,24);
-      Items := NewItem(FreeStr, 'Alt-'+Itos(DriveNum+1), kbAlt1,
+      FreeStr:='~'+Itos(DriveNum+1)+':~ '+ CutH(DirsToChange[DriveNum]^,24);
+      Items := NewItem(FreeStr, 'Alt-'+Itos(DriveNum+1), kbNoKey,
                        cmQuickChange1 + DriveNum, hcNoContext, Items);
       MaxL:=Max(CStrLen(FreeStr), MaxL);
       inc(N);
@@ -944,9 +979,9 @@ begin
        begin
          for C := 'Z' downto 'A' do
            if C in SC then
-             Items := NewItem(' ~'+C+':~ ', '', kbNoKey, 2000 + Byte(C),
+             Items := NewItem('~'+C+':~ ', '', kbNoKey, 2000 + Byte(C),
                                hcNoContext, Items);
-         Items := NewSubMenu(' ~+:~ LINK', hcNoContext, NewMenu(Items), nil);
+         Items := NewSubMenu('~+:~ LINK', hcNoContext, NewMenu(Items), nil);
          Lnk := Items;
          Inc(N)
        end;
@@ -955,7 +990,7 @@ begin
  {$ENDIF}
 
  if IncludeTemp then begin
-     If (DriveInfoType and ditIncludeTempInfo <> 0) then
+     If (InterfaceData.DrvInfType and ditIncludeTempInfo <> 0) then
       If TempFiles<>nil then begin
        IDDQD.Dr := 0; IDDQD.Fl := 0;
        TempFiles^.ForEach(@GetInfo);
@@ -966,7 +1001,7 @@ begin
       end else FreeStr := GetString(dlEmpty)
      else FreeStr := '';
 
-     Items := NewItem(' ~*:~ TEMP: '+FreeStr, '', kbSpace, 1200, hcTempList, Items);
+     Items := NewItem('~*:~ TEMP: '+FreeStr, '', kbSpace, 1200, hcTempList, Items);
      Items := NewLine(Items);
      Inc(N)
  end;
@@ -979,8 +1014,8 @@ begin
     begin
       DrInvalid := False;
       DriveNum := Byte(C)-64;
-      if (DriveInfoType and ditMediaType <> 0) then
-       if not ((DriveInfoType and ditSkipFloppy <> 0) and (DriveNum <= 2)) then
+      if (InterfaceData.DrvInfType and ditMediaType <> 0) then
+       if not ((InterfaceData.DrvInfType and ditSkipFloppy <> 0) and (DriveNum <= 2)) then
        begin
 {$IFNDEF OS2}
         {$IFDEF VIRTUALPASCAL}
@@ -1021,13 +1056,13 @@ FullS := FullS + GetDriveTypeString(C) + ' ';
        end
        else if DriveNum <= 2 then FullS := FullS + GetString(sdtRemovable) + '    ';
       {$IFDEF VIRTUALPASCAL}
-       if (DriveInfoType and ditShowVolume <> 0) and not DrInvalid and
-         not ((DriveInfoType and ditSkipFloppy <> 0) and (DriveNum <= 2)) then
+       if (InterfaceData.DrvInfType and ditShowVolume <> 0) and not DrInvalid and
+         not ((InterfaceData.DrvInfType and ditSkipFloppy <> 0) and (DriveNum <= 2)) then
          FullS := FullS + GetVolumeLabel(C);
       {$ENDIF}
       {$IFDEF NETINFO}
       Get_drive_connection_id(DriveNum, Server_num);
-      if (Server_num > 0) and (DriveInfoType and ditNetDir <> 0) then
+      if (Server_num > 0) and (InterfaceData.DrvInfType and ditNetDir <> 0) then
       begin
         Get_File_Server_Name(Server_Num, Server);
         Set_Preferred_Connection_Id(Server_Num);
@@ -1036,8 +1071,8 @@ FullS := FullS + GetDriveTypeString(C) + ' ';
         lGetDir(DriveNum, TmpS); {DataCompBoy}
         if Length(TmpS) > 3 then
         begin
-          TmpS := ' <' + Copy(PathName, Length(PathName) - Length(TmpS) + 4, 255) + '>';
-          Delete(PathName, Length(PathName) - Length(TmpS) + 4, 255);
+          TmpS := ' <' + Copy(PathName, Length(PathName) - Length(TmpS) + 4, MaxStringLength) + '>';
+          Delete(PathName, Length(PathName) - Length(TmpS) + 4, MaxStringLength);
           if PathName[Length(PathName)] = '/' then Delete(PathName, Length(PathName), 1);
         end else TmpS := '';
         PathName := CutLongString(Server + '/' + PathName);
@@ -1046,11 +1081,11 @@ FullS := FullS + GetDriveTypeString(C) + ' ';
       end else
       {$ENDIF}
       begin
-          if (DriveNum<=2) or ((DriveInfoType and ditCDDir=0)
-          and (DriveInfoType and ditLocalDir=0)) then ShowDir:=False
-          else if (DriveInfoType and ditCDDir<>0)
-          and (DriveInfoType and ditLocalDir<>0) then ShowDir:=True
-          else if (DriveInfoType and ditLocalDir<>0)
+          if (DriveNum<=2) or ((InterfaceData.DrvInfType and ditCDDir=0)
+          and (InterfaceData.DrvInfType and ditLocalDir=0)) then ShowDir:=False
+          else if (InterfaceData.DrvInfType and ditCDDir<>0)
+          and (InterfaceData.DrvInfType and ditLocalDir<>0) then ShowDir:=True
+          else if (InterfaceData.DrvInfType and ditLocalDir<>0)
           then ShowDir:=not IsDriveCDROM(Char(DriveNum+64))
           else ShowDir:=IsDriveCDROM(Char(DriveNum+64));
       if ShowDir then
@@ -1129,6 +1164,21 @@ begin
     else if InExtFilter(S, CustomMask8^)  then GetFileType := ttCust8
     else if InExtFilter(S, CustomMask9^)  then GetFileType := ttCust9
 {JO}else if InExtFilter(S, CustomMask10^) then GetFileType := ttCust10
+(*
+{JO} {работает, но имхо притормаживает}
+    else if InFilter(S, Archives   ^.Filter)  then GetFileType := ttArc
+    else if InFilter(S, CustomMask1^.Filter)  then GetFileType := ttCust1
+    else if InFilter(S, CustomMask2^.Filter)  then GetFileType := ttCust2
+    else if InFilter(S, CustomMask3^.Filter)  then GetFileType := ttCust3
+    else if InFilter(S, CustomMask4^.Filter)  then GetFileType := ttCust4
+    else if InFilter(S, CustomMask5^.Filter)  then GetFileType := ttCust5
+    else if InFilter(S, CustomMask6^.Filter)  then GetFileType := ttCust6
+    else if InFilter(S, CustomMask7^.Filter)  then GetFileType := ttCust7
+    else if InFilter(S, CustomMask8^.Filter)  then GetFileType := ttCust8
+    else if InFilter(S, CustomMask9^.Filter)  then GetFileType := ttCust9
+    else if InFilter(S, CustomMask10^.Filter) then GetFileType := ttCust10
+{/JO}
+*)
   end;
 end;
 
@@ -1160,8 +1210,12 @@ begin
    else T.Name := '..          ';
   T.Name[9] := ' ';
   if Attr and Directory <> 0 then UpStr(T.Name) else LowStr(T.Name);
-  if Attr and Hidden <> 0 then T.Name[9] := #177;
-  if Attr and SysFile <> 0 then begin T.Name[9] := #178; T.Name[1] := Upcase(T.Name[1]); end;
+  case Attr and (Hidden+SysFile) of                  {Pavel Anufrikov -> }
+   Hidden  :        T.Name[9] := NameFormatChar[nfmHidden];
+   SysFile :        T.Name[9] := NameFormatChar[nfmSystem];
+   Hidden+SysFile : T.Name[9] := NameFormatChar[nfmHiddenSystem];
+  end{case};                                         { <- Pavel Anufrikov}
+   if Attr and SysFile <> 0 then T.Name[1] := Upcase(T.Name[1]);
   {$IFDEF OS_DOS}
   T.LFN := AddLFN(GetName(LFN));
   {$ELSE}

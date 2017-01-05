@@ -58,7 +58,7 @@ type
      end;
 
 implementation
-uses advance, advance1, advance2, advance3, DOS, Dialogs, DNApp, RStrings,
+uses Advance, Advance1, Advance2, Advance3, DOS, Dialogs, DNApp, RStrings,
      SBlocks, Memory, Gauge, Startup, WinClp, Messages, Commands, Macro,
      EdWin, xTime, DnIni, DNUtil, Advance6, calculat
      , FViewer {AK155}
@@ -70,27 +70,27 @@ type
        function Compare(Key1, Key2: Pointer): Integer; virtual;
      end;
 
-var BoundStart, BoundEnd: Word;
+var BoundStart, BoundEnd: LongInt;
 
 function TSortCollection.Compare;
-  var P1: PString absolute Key1;
-      P2: PString absolute Key2;
+  var P1: PLongString absolute Key1;
+      P2: PLongString absolute Key2;
 begin
    if P1 = nil then Compare := -1 else
      if P2 = nil then Compare := 1 else
-       if Copy(P1^, 3, 255) > Copy(P2^, 3, 255) then Compare := 1
+       if Copy(P1^, 3, MaxLongStringLength) > Copy(P2^, 3, MaxLongStringLength) then Compare := 1
           else Compare := -1
 end;
 
 
 {Added by PaSkol -> }
 {$F+}
-function Less(const L,R:String):Boolean;
+function Less(const L,R:LongString):Boolean;
  begin
   Less:=(L<R);
  end;
 
-function Bigger(const L,R:String):Boolean;
+function Bigger(const L,R:LongString):Boolean;
  begin
   Bigger:=(L>R);
  end;
@@ -117,8 +117,8 @@ var  LastX, LastY: LongInt;
 
   procedure StartSearch(Replace: Boolean);
    var Y: LongInt;
-       S: String;
-   procedure Mix2And3(var M: word);
+       S: LongString;
+   procedure Mix2And3(var M: Word);
    begin
      Case (M and $C) of
        0,$C:
@@ -127,7 +127,7 @@ var  LastX, LastY: LongInt;
    end;
   begin
    S := '';
-   if not (WorkString[LastX + 1] in BreakChars) then
+   if (LastX < Length(WorkString)) and not (WorkString[LastX + 1] in BreakChars) then
        begin
          While (LastX > 0) and
                not (WorkString[LastX] in BreakChars) do Dec(LastX);
@@ -156,16 +156,16 @@ var  LastX, LastY: LongInt;
    OldDelta := Delta;
    if SearchData.Origin=0 then
       if SearchData.Dir = 0 then Delta.Assign(0, 0)
-                            else begin Delta.X := 255; Delta.Y := FileLines^.Count - 1; end;
+                            else begin Delta.X := MaxLongStringLength; Delta.Y := FileLines^.Count - 1; end;
    if not Search then Delta := OldDelta;
   end;
 
   procedure MakeUndo;
    var P: PUndoRec;
-       S, S1: String;
+       S, S1: LongString;
        V, M: Boolean;
        I: LongInt;
-       PS: PString;
+       PS: PLongString;
        RPT: Boolean;
        L, J: Longint;
   begin
@@ -191,7 +191,7 @@ var  LastX, LastY: LongInt;
                   end;
       udDelChar: begin
                   S := GetLine(P^.Where.Y);
-                  if Length(S) < P^.Where.X + 1 then S := S + Strg(' ', P^.Where.X - Length(S) + 1);
+                  if Length(S) < P^.Where.X + 1 then S := S + LongStrg(' ', P^.Where.X - Length(S) + 1);
                   Insert(P^.Str^, S, P^.Where.X + 1);
                   ModifyLine(P^.Where.Y, S, Off);
                  end;
@@ -202,18 +202,18 @@ var  LastX, LastY: LongInt;
                   ScrollTo(P^.Where.X - P^.Count, P^.Where.Y);
                  end;
       udInsLine: begin
-                  ModifyLine(P^.Where.Y, CnvString(P^.Str), Off);
+                  ModifyLine(P^.Where.Y, CnvLongString(P^.Str), Off);
                   FileLines^.AtFree(P^.Where.Y + 1);
                   for L:=1 to 9 do if MarkPos[L].Y >= P^.Where.Y then Dec(MarkPos[L].Y);
                   SetLimits;
                  end;
-      udSubDel: ModifyLine(P^.Where.Y, CnvString(P^.Str), Off);
+      udSubDel: ModifyLine(P^.Where.Y, CnvLongString(P^.Str), Off);
       udSubDelLine: begin
                       S := GetLine(P^.Where.Y);
                       if P^.Str <> nil then SetLength(S, Length(S) - Length(P^.Str^));
                       ModifyLine(P^.Where.Y, S, Off);
                       if P^.Str = nil then S := '' else S := P^.Str^;
-                      KeyMapAtInsert(P^.Where.Y+1, NewStr(S)); {-$VIV}
+                      KeyMapAtInsert(P^.Where.Y+1, NewLongStr(S)); {-$VIV}
                       for L:=1 to 9 do if MarkPos[L].Y > P^.Where.Y then Inc(MarkPos[L].Y);
                       SetLimits;
                     end;
@@ -231,7 +231,7 @@ var  LastX, LastY: LongInt;
                    for I := 1 to J do FileLines^.AtFree(Delta.Y);
                    for L := 1 to 9 do if MarkPos[L].Y >= Delta.Y then Dec(MarkPos[L].Y, J);
                    Delete(S, 1, 2);
-                   KeyMapAtInsert(Delta.Y, NewStr(S)); {-$VIV}
+                   KeyMapAtInsert(Delta.Y, NewLongStr(S)); {-$VIV}
                    for L:=1 to 9 do if MarkPos[L].Y >= Delta.Y then Inc(MarkPos[L].Y);
                    SetLimits;
                    RPT := P^.What <> udFormatBlock;
@@ -243,7 +243,7 @@ var  LastX, LastY: LongInt;
                       ModifyLine(P^.Where.Y, S, Off);
                      end;
       udBackDel: begin
-                      S := AddSpace(GetLine(P^.Where.Y), LastX+1);
+                      S := LongAddSpace(GetLine(P^.Where.Y), LastX+1);
                       Insert(P^.Str^, S, P^.Where.X + 1);
                       ModifyLine(P^.Where.Y, S, Off);
                       ScrollTo(P^.Where.X + Length(P^.Str^), P^.Where.Y);
@@ -258,14 +258,14 @@ var  LastX, LastY: LongInt;
       udUnindentBlock: begin
                       for I := P^.Block.A.Y to P^.Block.B.Y-Byte(P^.Block.B.X = 0) do
                        begin
-                        S := Strg(' ', P^.Count)+GetLine(I);
+                        S := LongStrg(' ', P^.Count)+GetLine(I);
                         ModifyLine(I, S, Off);
                        end;
                      end;
       udReplace, udReplaceAll: begin
                   S := GetLine(Delta.Y);
                   Delete(S, Delta.X+1, Byte(P^.Str^[1]));
-                  Insert(Copy(P^.Str^, 2, 255), S, Delta.X+1);
+                  Insert(Copy(P^.Str^, 2, MaxLongStringLength), S, Delta.X+1);
                   ModifyLine(Delta.Y, S, Off);
                   with UndoInfo^ do
                     RPT:=(P^.What<>udReplaceAll)or(Count<=1)or(PUndoRec(At(Count-2))^.What<>udReplaceAll);
@@ -287,7 +287,7 @@ var  LastX, LastY: LongInt;
                     if PS <> nil then S1 := PS^ else S1 := '';
                     Delete(S, Delta.X+1, Length(S1));
                     if Length(S) < Delta.X + 1 then
-                       S := S + Strg(' ', Delta.X + 1 - Length(S));
+                       S := S + LongStrg(' ', Delta.X + 1 - Length(S));
                     Insert(S1, S, Delta.X+1);
                     ModifyLine(I, S, Off);
                    end;
@@ -321,7 +321,7 @@ var  LastX, LastY: LongInt;
 
   procedure MakeRedo; {-$VOL}
    var P: PUndoRec;
-       S, S1: String;
+       S, S1: LongString;
        I: LongInt;
        V, M: Boolean;
        RPT: Boolean;
@@ -349,7 +349,7 @@ var  LastX, LastY: LongInt;
        udInsChar:
           begin
             S := GetLine(P^.Where.Y);
-            if Length(S) < P^.Where.X + 1 then S := S + Strg(' ', P^.Where.X - Length(S) + 1);
+            if Length(S) < P^.Where.X + 1 then S := S + LongStrg(' ', P^.Where.X - Length(S) + 1);
             Insert(P^.Str^, S, P^.Where.X + 1);
             ModifyLine(P^.Where.Y, S, Off);
           end;
@@ -364,7 +364,7 @@ var  LastX, LastY: LongInt;
           begin
             if P^.Lines^.Count>0 then
               begin
-                ModifyLine(P^.Where.Y,CnvString(P^.Lines^.At(0)),Off);
+                ModifyLine(P^.Where.Y,CnvLongString(P^.Lines^.At(0)),Off);
                 P^.Lines^.AtDelete(0);
               end;
             J:=0;
@@ -386,7 +386,7 @@ var  LastX, LastY: LongInt;
                 begin
                   for I:=0 to P^.Lines^.Count-1 do
                     begin
-                      S:=CnvString(P^.Lines^.At(I));
+                      S:=CnvLongString(P^.Lines^.At(I));
                       S1:=GetLine(P^.Where.Y+I);
                       Delete(S1,P^.Where.X+1, Length(S));
                       ModifyLine(P^.Where.Y+I,S1,Off);
@@ -402,9 +402,9 @@ var  LastX, LastY: LongInt;
                 Inc(J);
                 for L:=1 to 9 do if MarkPos[L].Y >= P^.Where.Y then Dec(MarkPos[L].Y, J);
                 if J>0 then
-                  S:=CnvString(P^.Lines^.At(0))
+                  S:=CnvLongString(P^.Lines^.At(0))
                 else S:='';
-                KeyMapAtInsert(P^.Where.Y,NewStr(S));
+                KeyMapAtInsert(P^.Where.Y,NewLongStr(S));
                 for L:=1 to 9 do if MarkPos[L].Y >= P^.Where.Y then Inc(MarkPos[L].Y);
               end;
             VertBlock:=V; InsertMode:=M;
@@ -427,16 +427,16 @@ var  LastX, LastY: LongInt;
        udBackDel:
           begin
             S:=GetLine(P^.Where.Y);
-            S:=copy(S,1,P^.Where.X)+copy(S,P^.Where.X+P^.Count+1,255);
+            S:=copy(S,1,P^.Where.X)+copy(S,P^.Where.X+P^.Count+1,MaxLongStringLength);
             ModifyLine(P^.Where.Y, S, Off);
           end;
        udSubDel:
           begin
-            ModifyLine(P^.Where.Y, CnvString(P^.Str), Off);
+            ModifyLine(P^.Where.Y, CnvLongString(P^.Str), Off);
           end;
        udSubDelLine:
           begin
-            ModifyLine(P^.Where.Y,CnvString(P^.Str),Off);
+            ModifyLine(P^.Where.Y,CnvLongString(P^.Str),Off);
             FileLines^.AtFree(P^.Where.Y+1);
             SetLimits;
           end;
@@ -444,7 +444,7 @@ var  LastX, LastY: LongInt;
           begin
             for I := P^.Block.A.Y to P^.Block.B.Y-Byte(P^.Block.B.X = 0) do
               begin
-                S := Strg(' ', P^.Count)+GetLine(I);
+                S := LongStrg(' ', P^.Count)+GetLine(I);
                 ModifyLine(I, S, Off);
               end;
           end;
@@ -468,7 +468,7 @@ var  LastX, LastY: LongInt;
           begin
             S := GetLine(Delta.Y);
             Delete(S, Delta.X+1, Byte(P^.Str^[1]));
-            Insert(Copy(P^.Str^, 2, 255), S, Delta.X+1);
+            Insert(Copy(P^.Str^, 2, MaxLongStringLength), S, Delta.X+1);
             ModifyLine(Delta.Y, S, Off);
             with RedoInfo^ do
               RPT:=(P^.What<>udReplaceAll)or(Count<=1)or(PUndoRec(At(Count-2))^.What<>udReplaceAll);
@@ -485,22 +485,22 @@ var  LastX, LastY: LongInt;
             for I := Delta.Y to P^.Lines^.Count + Delta.Y - 1 do
              begin
               S := GetLine(I);
-              S1 := CnvString(P^.Lines^.At(I-Delta.Y));
+              S1 := CnvLongString(P^.Lines^.At(I-Delta.Y));
               Delete(S, Delta.X+1, Length(S1));
               if Length(S) < Delta.X + 1 then
-                 S := S + Strg(' ', Delta.X + 1 - Length(S));
+                 S := S + LongStrg(' ', Delta.X + 1 - Length(S));
               Insert(S1, S, Delta.X+1);
               ModifyLine(I, S, Off);
              end;
           end;
        udStrModified:
           begin
-            ModifyLine(P^.Where.Y, CnvString(P^.Str), Off);
+            ModifyLine(P^.Where.Y, CnvLongString(P^.Str), Off);
           end;
        udDupeLine:
           begin
             S:=GetLine(P^.Where.Y);
-            KeyMapAtInsert(P^.Where.Y+1,NewStr(S));
+            KeyMapAtInsert(P^.Where.Y+1,NewLongStr(S));
             for L:=1 to 9 do if MarkPos[L].Y >= P^.Where.Y then Inc(MarkPos[L].Y);
             SetLimits;
           end;
@@ -523,7 +523,7 @@ var  LastX, LastY: LongInt;
 
   procedure UnIndentBlock(Undo: Boolean);
    var I: LongInt;
-       S: String;
+       S: LongString;
   begin
    Modified := On;
    if not (BlockVisible and ValidBlock) then Exit;
@@ -540,7 +540,7 @@ var  LastX, LastY: LongInt;
    begin
      S := GetLine(I);
      if (Length(S) = 0) or (S[1] <> ' ') then Continue;
-     DelFC(S);
+     Delete(S, 1, 1); {DelFC(S);}
      ModifyLine(I, S, On);
    end;
    EnableMarking := Off; Marking := Off; Sel := Mark;
@@ -550,7 +550,7 @@ var  LastX, LastY: LongInt;
 
   procedure IndentBlock(Undo: Boolean);
    var I: LongInt;
-       S: String;
+       S: LongString;
        M: TRect;
   begin
    Modified := On;
@@ -565,28 +565,34 @@ var  LastX, LastY: LongInt;
    EnableMarking := On;
   end;
 
-  procedure NextBreak(S: String; var I: LongInt);
+  procedure NextBreak(S: LongString; var I: LongInt);
   begin
    While (I <= Length(S)) and not (S[I] = ' ') do Inc(I);
    While (I <= Length(S)) and (S[I] = ' ') do Inc(I);
   end;
 
-  function FirstToken(var S: String): String;
-   var SS: String;
+  function FirstToken(var S: LongString): LongString;
+   var SS: LongString;
        I: LongInt;
   begin
    FirstToken := '';
-   I := 1; While (S[Length(S)] = ' ') do SetLength(S, Length(S)-1); if S = '' then Exit;
-   While (S[1]=' ') do DelFC(S);
+   I := 1;
+   While (S <> '') and (S[Length(S)] = ' ') do
+     SetLength(S, Length(S)-1);
+   if S = '' then
+     Exit;
+   While (S[1]=' ') do
+     Delete(S, 1, 1); {DelFC(S);}
    NextBreak(S, I);
-   SS := Copy(S, 1, I-1); Delete(S, 1, I-1);
+   SS := Copy(S, 1, I-1);
+   Delete(S, 1, I-1);
    FirstToken := SS;
   end;
 
   procedure FormatBlock(Command: Word);
-   var S, Left, W: String;
+   var S, Left, W: LongString;
        P: PLineCollection;
-       PS: PString;
+       PS: PLongString;
        LS, I, J, LG: LongInt;
        Abort, LastLine: Boolean;
        TP: TPoint;
@@ -597,16 +603,17 @@ var  LastX, LastY: LongInt;
    procedure WriteLeft;
     var I: LongInt;
    begin
-    while Left[Length(Left)]=' ' do SetLength(Left, Length(Left)-1);
-    DelLeft(Left);
+    while (Left <> '') and (Left[Length(Left)]=' ') do
+      SetLength(Left, Length(Left)-1);
+    LongDelLeft(Left);
     case Command of
      cmFRight, cmLRight:
        begin J := EdOpt.RightSide - Length(Left);
-             if J > 0 then Left := Strg(' ', J) + Left
-                      else Left := Strg(' ', EdOpt.LeftSide)+Left end;
-     cmFLeft, cmLLeft: Left := Strg(' ', EdOpt.LeftSide) + Left;
+             if J > 0 then Left := LongStrg(' ', J) + Left
+                      else Left := LongStrg(' ', EdOpt.LeftSide)+Left end;
+     cmFLeft, cmLLeft: Left := LongStrg(' ', EdOpt.LeftSide) + Left;
      cmFCenter, cmLCenter: begin J := (LS - Length(Left)) div 2; if J < 0 then J := 0;
-                      Left := Strg(' ', EdOpt.LeftSide + J)+Left end;
+                      Left := LongStrg(' ', EdOpt.LeftSide + J)+Left end;
      cmFJustify, cmLJustify: begin
                   I := 1; J := 0;
                   While (Length(Left) < LS) and (J <> I) and not LastLine do
@@ -615,22 +622,22 @@ var  LastX, LastY: LongInt;
                           if J = 2 then Break else I := 1;
                    end;
                   J := EdOpt.LeftSide; if P^.Count = 0 then J := EdOpt.InSide;
-                  Left := Strg(' ', J) + Left;
+                  Left := LongStrg(' ', J) + Left;
                  end;
     end;
-    PS := NewStr(Left); if PS = nil then begin Abort := On; Exit end;
+    PS := NewLongStr(Left); if PS = nil then begin Abort := On; Exit end;
     P^.Insert(PS); if LowMemory then begin Abort := On; Exit end;
     Left := W; LS := EdOpt.RightSide - EdOpt.LeftSide;
    end;
 
    procedure CompressLine(N: Integer);
-    var MS: String;
+    var MS: LongString;
    begin
-    S := GetLine(N); DelDoubles('  ', S);
-    if S[1] = ' ' then DelFC(S);
+    S := GetLine(N); LongDelDoubles('  ', S);
+    if (S <> '') and (S[1] = ' ') then Delete(S, 1, 1); {DelFC(S);}
     if N - 1 < FileLines^.Count then MS := GetLine(N+1) else MS := '';
-    DelDoubles('  ', MS); if MS[1] = ' ' then DelFC(MS);
-    if (N < LG) and (Length(S) < EdOpt.RightSide) and (Length(MS) + Length(S) < MaxEditStringLength) then
+    LongDelDoubles('  ', MS); if (MS <> '') and (MS[1] = ' ') then Delete(MS, 1, 1); {DelFC(MS);}
+    if (N < LG) and (Length(S) < EdOpt.RightSide) and (Length(MS) + Length(S) < MaxLongStringLength) then
      begin S := S + ' ' + MS; Inc(I); end;
    end;
 
@@ -639,12 +646,12 @@ var  LastX, LastY: LongInt;
    if not (ValidBlock and BlockVisible) or VertBlock then Exit;
    if LowMemory then Exit; ChangeLine;
    {if UndoInfo <> nil then UndoInfo^.FreeAll; Inc(UndoTimes);}
-   New(P, Init((Mark.B.Y-Mark.A.Y+1)*2,10));
+   New(P, Init((Mark.B.Y-Mark.A.Y+1)*2,10,True));
    for I := Mark.A.Y to Mark.B.Y - Integer(Mark.B.X = 0) do
-       P^.Insert(NewStr(GetLine(I)));
+       P^.Insert(NewLongStr(GetLine(I)));
    TP.Y := Mark.A.Y; TP.X := 0;
    StoreUndoInfo(udDelBlock, TP, P);
-   New(P, Init((Mark.B.Y-Mark.A.Y+1)*2,10));
+   New(P, Init((Mark.B.Y-Mark.A.Y+1)*2,10,True));
    if P = nil then Exit; Left := ''; LS := EdOpt.RightSide - EdOpt.LeftSide; W := '';
    if (Command = cmFJustify) or (Command = cmLJustify) then LS := EdOpt.RightSide - EdOpt.InSide;
    LG := Mark.B.Y - Integer(Mark.B.X = 0);
@@ -653,14 +660,14 @@ var  LastX, LastY: LongInt;
     W := FirstToken(S);
     if W = '' then
      begin Left := Left+' '; if I < LG then CompressLine(I+1); Inc(I); GoTo 1 end;
-    J := Integer(Left[Length(Left)] = ' ');
-    DelRight(W);
-    DelDoubles('  ', W);
-    if W[1] = ' ' then DelFC(W);
+    J := Integer((Left <> '') and (Left[Length(Left)] = ' '));
+    LongDelRight(W);
+    LongDelDoubles('  ', W);
+    if W[1] = ' ' then Delete(W, 1, 1); {DelFC(W);}
     if Length(Left)+ Length(W) + J < LS then
       if J = 0 then Left := Left+' '+W else Left := Left+W
       else WriteLeft;
-    if Left[1] = ' ' then DelFC(Left);
+    if Left[1] = ' ' then Delete(Left, 1, 1); {DelFC(Left);}
   1:
    if Abort then begin Dispose(P,Done); Exit end;
    until I > LG+1;
@@ -692,7 +699,7 @@ var  LastX, LastY: LongInt;
        I: LongInt;
        R: TRect;
        E: TEvent;
-       PS: PString;
+       PS: PLongString;
        Cancel: Boolean;
        LL: Array [1..3] of LongInt;
       {SR: lSearchRec;}
@@ -732,6 +739,7 @@ var  LastX, LastY: LongInt;
    if S.Status <> stOK then
      begin
        S.Done;
+{Cat:warn}
        PS := @FName;
        Msg(erCantCreateFile, @PS, mfError+mfOKButton);
        Goto 1;
@@ -740,7 +748,7 @@ var  LastX, LastY: LongInt;
    for I := 0 to L^.Count - 1 do
     begin
      PS := L^.At(I);
-     P^.Write(2, Copy(Strg(#219, ((I+1)*25) div L^.Count)+Strg(#177, 25), 1, 25));
+     P^.Write(2, Copy(LongStrg(#219, ((I+1)*25) div L^.Count)+LongStrg(#177, 25), 1, 25));
      LL[1] := I+1; LL[2] := L^.Count+1;
      FormatStr(M, GetString(dlED_PrintLine), LL);
      P^.Write(3, M);
@@ -798,19 +806,19 @@ var  LastX, LastY: LongInt;
     var {PC: PSortCollection;}
         {I, J, K: Integer;
         B: Boolean;}
-        S: string;
+        S: LongString;
         Info: PView;
         Tmr: TEventTimer;
 {$IFNDEF NOEXTRA} {AK155}
         UC: Boolean;
 {$ENDIF}
-        Cmpr:function(const L,R:String):Boolean;
+        Cmpr:function(const L,R:LongString):Boolean;
 
    procedure QuickSort(L, R: LongInt);
    var
      I, J: LongInt;
 
-     function Ln(AI: LongInt): string;
+     function Ln(AI: LongInt): LongString;
      begin
        if TimerExpired(Tmr) then
        begin
@@ -870,7 +878,7 @@ var  LastX, LastY: LongInt;
         I: LongInt;
         J: Integer;
         R1, R2: Extended;
-        S: String;
+        S: LongString;
         R: Real;
   begin
    if not VertBlock then begin
@@ -883,7 +891,7 @@ var  LastX, LastY: LongInt;
       Str(R:0:20, S);
       While S[Length(S)] = '0' do SetLength(S, Length(S)-1);
       if S[Length(S)] = '.' then SetLength(S, Length(S)-1);
-      Message(Application, evCommand, cmPutInClipboard, @S);
+      Message(Application, evCommand, cmPutInClipboardLong, @S);
      end;
     end;
    end else begin
@@ -899,7 +907,7 @@ var  LastX, LastY: LongInt;
     Str(R1:0:20, S);
     While S[Length(S)] = '0' do SetLength(S, Length(S)-1);
     if S[Length(S)] = '.' then SetLength(S, Length(S)-1);
-    Message(Application, evCommand, cmPutInClipboard, @S);
+    Message(Application, evCommand, cmPutInClipboardLong, @S);
    end;
   end;
 
@@ -919,12 +927,12 @@ var  LastX, LastY: LongInt;
     S := GetDateTime(Time);
     ChangeLine;
     WorkModify;
-    WorkString := AddSpace(WorkString, LastX+1);
+    WorkString := LongAddSpace(WorkString, LastX+1);
     System.Insert(S, WorkString, LastX+1);
     for SS := 1 to Length(S) do
       begin
         StoreUndoInfo(udInsChar, Delta, WorkString);
-        if Delta.X < 255 then Inc(Delta.X);
+        if Delta.X < MaxLongStringLength then Inc(Delta.X);
       end;
     ScrollTo(Delta.X, Delta.Y);
     ChangeLine; DrawView;
@@ -962,13 +970,13 @@ var  LastX, LastY: LongInt;
       '(': C := '()';
       '<': C := '<>'; {-$VIV}
     end;
-    FreeStr := WorkString;
+    FreeLongStr := WorkString;
     while (LastY < FileLines^.Count) do
      begin
-        while LastX < Length(FreeStr) do
+        while LastX < Length(FreeLongStr) do
          begin
-           if FreeStr[LastX+1] = C[1] then Inc(I) else
-             if FreeStr[LastX+1] = C[2] then Dec(I);
+           if FreeLongStr[LastX+1] = C[1] then Inc(I) else
+             if FreeLongStr[LastX+1] = C[2] then Dec(I);
            if I = 0 then
              begin
                ScrollTo(LastX, LastY);
@@ -977,7 +985,7 @@ var  LastX, LastY: LongInt;
              end;
            Inc(LastX);
          end;
-       Inc(LastY); LastX := 0; FreeStr := GetLine(LastY);
+       Inc(LastY); LastX := 0; FreeLongStr := GetLine(LastY);
      end;
   end;
 
@@ -993,13 +1001,13 @@ var  LastX, LastY: LongInt;
       '>': C := '<>'; {-$VIV}
     end;
     Dec(LastX);
-    FreeStr := WorkString;
+    FreeLongStr := WorkString;
     while (LastY >= 0) do
      begin
         while LastX >= 0 do
          begin
-           if FreeStr[LastX+1] = C[2] then Inc(I) else
-             if FreeStr[LastX+1] = C[1] then Dec(I);
+           if FreeLongStr[LastX+1] = C[2] then Inc(I) else
+             if FreeLongStr[LastX+1] = C[1] then Dec(I);
            if I = 0 then
              begin
                ScrollTo(LastX, LastY);
@@ -1008,7 +1016,7 @@ var  LastX, LastY: LongInt;
              end;
            Dec(LastX);
          end;
-       Dec(LastY); FreeStr := GetLine(LastY); LastX := Length(FreeStr)-1;
+       Dec(LastY); FreeLongStr := GetLine(LastY); LastX := Length(FreeLongStr)-1;
      end;
   end;
 
@@ -1016,7 +1024,7 @@ var  LastX, LastY: LongInt;
 
   procedure ChangeBlockCase(C: Word; Show: Boolean);
     var I,J,K,L,SX,EX,SY,EY: LongInt;
-        S,S1: String;
+        S,S1: LongString;
         A: String[4];
         P: PCollection;
   begin
@@ -1027,7 +1035,7 @@ var  LastX, LastY: LongInt;
     SY := Mark.A.Y; SX := Mark.A.X+1;
     S1 := Copy(S, 1, SX-1);
     S := GetLine(Mark.B.Y);
-    if Mark.B.X = 0 then begin EY := Mark.B.Y-1; EX := 255; end else
+    if Mark.B.X = 0 then begin EY := Mark.B.Y-1; EX := MaxLongStringLength; end else
      begin
        EY := Mark.B.Y;
        while (Mark.B.X < Length(S)) and not (S[Mark.B.X+1] in BreakChars) do Inc(Mark.B.X);
@@ -1043,13 +1051,13 @@ var  LastX, LastY: LongInt;
         if I = SY then J := SX else J := 1;
         if I = EY then L := EX else L := Length(S);
         case C of
-          cmUpcaseBlock: S := Copy(S, 1, J-1)+UpStrg(Copy(S, J, L-J+1))+Copy(S,L+1,255);
-          cmLowcaseBlock: S := Copy(S, 1, J-1)+LowStrg(Copy(S, J, L-J+1))+Copy(S,L+1,255);
-          cmCapitalizeBlock: S := Copy(S, 1, J-1)+CapStrg(Copy(S, J, L-J+1))+Copy(S,L+1,255);
-          cmRusEngConv: S := Copy(S, 1, J-1)+RusEngConv(Copy(S, J, L-J+1))+Copy(S,L+1,255);
+          cmUpcaseBlock: S := Copy(S, 1, J-1)+UpLongStrg(Copy(S, J, L-J+1))+Copy(S,L+1,MaxLongStringLength);
+          cmLowcaseBlock: S := Copy(S, 1, J-1)+LowLongStrg(Copy(S, J, L-J+1))+Copy(S,L+1,MaxLongStringLength);
+          cmCapitalizeBlock: S := Copy(S, 1, J-1)+CapLongStrg(Copy(S, J, L-J+1))+Copy(S,L+1,MaxLongStringLength);
+          cmRusEngConv: S := Copy(S, 1, J-1)+RusEngConv(Copy(S, J, L-J+1))+Copy(S,L+1,MaxLongStringLength);
         end;
         ModifyLine(I, S, Off);
-        if I = EY then S := Copy(S, L+1, 255);
+        if I = EY then S := Copy(S, L+1, MaxLongStringLength);
       end;
     Insert(Char(Lo(P^.Count))+Char(Hi(P^.Count))+S1, S, 1);
     StoreUndoInfo(udFormatBlock, Mark.A, S);
@@ -1082,14 +1090,14 @@ var  LastX, LastY: LongInt;
 
   {-$VIV 20.05.99--}
 
-  function WordsIsEqual(pWord1, pManyWords: String): Boolean;
+  function WordsIsEqual(pWord1, pManyWords: LongString): Boolean;
   begin
-    WordsIsEqual := System.Pos(';' + UpStrg(pWord1) + ';',
-                               ';' + UpStrg(pManyWords) + ';') <> 0;
+    WordsIsEqual := System.Pos(';' + UpLongStrg(pWord1) + ';',
+                               ';' + UpLongStrg(pManyWords) + ';') <> 0;
   end;
 
-  function CurrentWordIs(pWord: String): Boolean;
-  var S: String;
+  function CurrentWordIs(pWord: LongString): Boolean;
+  var S: LongString;
       Max, I: Integer;
   begin
     CurrentWordIs := False;
@@ -1098,7 +1106,7 @@ var  LastX, LastY: LongInt;
     if Max > Length(S) then Max := Length(S) else if Max = 0 then Max := 1;
     if (S[Max] in BreakChars) then Exit;
     for I := Max downto 1 do
-      if (S[I] in BreakChars) then begin S := Copy(S, I + 1, 255); Break; end;
+      if (S[I] in BreakChars) then begin S := Copy(S, I + 1, MaxLongStringLength); Break; end;
     for I := 1 to Length(S) do
       if (S[I] in BreakChars) then begin S := Copy(S, 1, I - 1); Break; end;
     CurrentWordIs := WordsIsEqual(S, pWord);
@@ -1109,8 +1117,8 @@ var  LastX, LastY: LongInt;
   { pWord - the word found                                       }
   { result - found a word ?                                      }
 
-  function GetPrevWordViv(var FromPos, WrdPos: TPoint; var pWord: String): Boolean;
-  var S, Buf: String;
+  function GetPrevWordViv(var FromPos, WrdPos: TPoint; var pWord: LongString): Boolean;
+  var S, Buf: LongString;
       WasBreak, DoStore, MakeExit: Boolean;
   begin
     GetPrevWordViv := False;
@@ -1160,8 +1168,8 @@ var  LastX, LastY: LongInt;
     until MakeExit;
   end;
 
-  function GetNextWordViv(var FromPos, WrdPos: TPoint; var pWord: String): Boolean;
-  var S, Buf: String;
+  function GetNextWordViv(var FromPos, WrdPos: TPoint; var pWord: LongString): Boolean;
+  var S, Buf: LongString;
       WasBreak, DoStore, MakeExit: Boolean;
   begin
     GetNextWordViv := False;
@@ -1213,10 +1221,10 @@ var  LastX, LastY: LongInt;
     until MakeExit;
   end;
 
-  procedure SearchWordViv(Frw: Boolean; pIncWord, pWord: String);
+  procedure SearchWordViv(Frw: Boolean; pIncWord, pWord: LongString);
   var Pnt, Wrd: TPoint;
       Res: Boolean;
-      sWord: String;
+      sWord: LongString;
       I, PrevLine: LongInt;
       DeepLevel: Longint;
       IsDeepRange: Boolean;
@@ -1248,7 +1256,7 @@ var  LastX, LastY: LongInt;
     until (not Res);
   end;
 
-  function CheckPairsViv(pPair1, pPair2: String): Boolean;
+  function CheckPairsViv(pPair1, pPair2: LongString): Boolean;
   const
     ForwardDir = True;
     BackwardDir = False;

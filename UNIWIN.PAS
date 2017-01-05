@@ -52,7 +52,7 @@ interface
 uses Views, Drivers, Objects, DnIni;
 
 type
-  { TEditWindow }
+  { TUniWindow }
 
   PUniWindow = ^TUniWindow;
   TUniWindow = object(TWindow)
@@ -63,10 +63,13 @@ type
   end;
 
   { TEditScrollBar }
+
   PEditScrollBar = ^TEditScrollBar;
   TEditScrollBar = object(TScrollBar)
    function GetPalette : PPalette;virtual;
   end;
+
+  { TEditFrame }
 
   PEditFrame = ^TEditFrame;
   TEditFrame = object(TFrame)

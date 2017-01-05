@@ -140,11 +140,13 @@ begin
     FileTimeToDosDateTime(LocalFileTime, TDateTimeRec(LastAccessTime).FDate, TDateTimeRec(LastAccessTime).FTime);
     Size := FindData.nFileSizeLow;
     Attr := FindData.dwFileAttributes;
+{$IFNDEF RecodeWhenDraw}
     if RecodeCyrillicNames then
       begin    // Convert filename to OEM character set
         CharToOem(FindData.cFileName, FindData.cFileName);
         CharToOem(FindData.cAlternateFileName, FindData.cAlternateFileName); {AK155}
       end;
+{$ENDIF}
     if IsPChar then
       begin
         StrCopy(PChar(@Name), FindData.cFileName);
@@ -164,12 +166,14 @@ var
   AnsiPath: array[0..260] of char;  {AK155}
 begin
   F.ExcludeAttr := Attr;
+{$IFNDEF RecodeWhenDraw}
   if RecodeCyrillicNames then
     begin
       OemToChar(Path, AnsiPath);  {AK155}
       F.Handle := FindFirstFile(AnsiPath, F.FindData); {AK155}
     end
    else
+{$ENDIF}
       F.Handle := FindFirstFile(Path, F.FindData);
   if F.Handle <> invalid_Handle_Value then
     begin

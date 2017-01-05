@@ -75,7 +75,6 @@ const
 {`.________________________;____________;____________________;___________________'}
 {}{Interface}
 {}CutDriveInfo             : Boolean    = True;
-{}DriveInfoType            : Longint    = 2;                          {DataCompBoy}
 {}WinManagerSelectNext     : Boolean    = True;
 {}DriveSelectVCenter       : Boolean    = False;                          {-$X-Man}
 {}SystemMenuChar           : Byte       = 4;
@@ -97,6 +96,7 @@ const
 {}PanelDescrDrive          : String     = '';                         {JO}
 {}UseEnterInViewer         : Byte       = 0;                          {JO}
 {}SkipXLatMenu             : Boolean    = False;                      {JO}
+{}AutoRefreshDriveLine     : Boolean    = False;                      {Cat}
 {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
 {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
 {`.________________________;____________;____________________;___________________'}
@@ -136,7 +136,11 @@ const
 {}SmartWindowsBoxClose     : Boolean    = False;                      {DataCompBoy}
 {}DoVESATest               : Boolean    = False;                      {DataCompBoy}
 {}ForceDefaultArchiver     : String[3]  = '';                         {JO}
+{$IFNDEF RecodeWhenDraw}
 {}RecodeCyrillicNames      : Boolean    = True;                       {JO}
+{$ELSE}
+{}Non866AsciiSorting       : Boolean    = False;                      {JO}
+{$ENDIF}
 {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
 {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
 {`.________________________;____________;____________________;___________________'}
@@ -179,6 +183,7 @@ const
 {}{SetupStorage}
 {}SystemDataOpt            : Longint = 75;         {SystemData.Options}
 {}InterfaceDataOpt         : Longint = 8201;       {InterfaceData.Options}
+{}DriveInfoType            : Longint = 2;          {InterfaceData.DrvInfType}
 {}FMSetupOpt               : Longint = 11358;      {FMSetup.Options}
 {}EditorDefaultsOpt        : Longint = 8194;       {EditorDefaults.EdOpt}
 {}EditorDefaultsOpt2       : Longint = 3;          {EditorDefaults.EdOpt2}
@@ -357,7 +362,6 @@ procedure Proceed(RegisterVar: TDoProc);
 begin
   {Interface}
   RegisterVar(CSInterface, 'CutDriveInfo',         ikBool, SizeOf(CutDriveInfo),         @CutDriveInfo);
-  RegisterVar(CSInterface, 'DriveInfoType',        ikSInt, SizeOf(DriveInfoType),        @DriveInfoType);
   RegisterVar(CSInterface, 'WinManagerSelectNext', ikBool, SizeOf(WinManagerSelectNext), @WinManagerSelectNext);
   RegisterVar(CSInterface, 'DriveSelectVCenter',   ikBool, SizeOf(DriveSelectVCenter),   @DriveSelectVCenter); {-$X-Man}
   RegisterVar(CSInterface, 'SystemMenuChar',       ikUInt, SizeOf(SystemMenuChar),       @SystemMenuChar);
@@ -378,6 +382,7 @@ begin
   RegisterVar(CSInterface, 'PanelDescrDrive',      ikStr,  SizeOf(PanelDescrDrive),      @PanelDescrDrive);    {JO}
   RegisterVar(CSInterface, 'UseEnterInViewer',     ikUInt, SizeOf(UseEnterInViewer),     @UseEnterInViewer);   {JO}
   RegisterVar(CSInterface, 'SkipXLatMenu',         ikBool, SizeOf(SkipXLatMenu),         @SkipXLatMenu);       {JO}
+  RegisterVar(CSInterface, 'AutoRefreshDriveLine', ikBool, SizeOf(AutoRefreshDriveLine), @AutoRefreshDriveLine); {Cat}
   {Clock}
   RegisterVar(CSClock,     'ShowSeconds',          ikBool, SizeOf(ShowSeconds),          @ShowSeconds);
   RegisterVar(CSClock,     'ShowCentury',          ikBool, SizeOf(ShowCentury),          @ShowCentury);
@@ -402,7 +407,11 @@ begin
   RegisterVar(CSKernel,    'SmartWindowsBoxClose', ikBool, SizeOf(SmartWindowsBoxClose), @SmartWindowsBoxClose); {DataCompBoy}
   RegisterVar(CSKernel,    'DoVESATest',           ikBool, SizeOf(DoVESATest),           @DoVESATest);           {DataCompBoy}
   RegisterVar(CSKernel,    'ForceDefaultArchiver', ikStr,  SizeOf(ForceDefaultArchiver), @ForceDefaultArchiver); {JO}
-  RegisterVar(CSKernel,    'RecodeCyrillicNames',  ikBool, SizeOf(RecodeCyrillicNames),  @RecodeCyrillicNames); {JO}
+{$IFNDEF RecodeWhenDraw}
+  RegisterVar(CSKernel,    'RecodeCyrillicNames',  ikBool, SizeOf(RecodeCyrillicNames),  @RecodeCyrillicNames);  {JO}
+{$ELSE}
+  RegisterVar(CSKernel,    'Non866AsciiSorting',   ikBool, SizeOf(Non866AsciiSorting),   @Non866AsciiSorting);   {JO}
+{$ENDIF}
   {Editor}
   RegisterVar(CSEditor,    'UnlimitUnindent',      ikBool, SizeOf(UnlimitUnindent),      @UnlimitUnindent);
   RegisterVar(CSEditor,    'Koi8rKeyMap',          ikBool, SizeOf(Koi8rKeyMap),          @Koi8rKeyMap);
@@ -430,6 +439,7 @@ begin
   {SetupStorage}
   RegisterVar(CSSetupStorage, 'SystemDataOpt',     ikSInt, SizeOf(SystemDataOpt),        @SystemDataOpt);
   RegisterVar(CSSetupStorage, 'InterfaceDataOpt',  ikSInt, SizeOf(InterfaceDataOpt),     @InterfaceDataOpt);
+  RegisterVar(CSSetupStorage, 'DriveInfoType',     ikSInt, SizeOf(DriveInfoType),        @DriveInfoType);
   RegisterVar(CSSetupStorage, 'FMSetupOpt',        ikSInt, SizeOf(FMSetupOpt),           @FMSetupOpt);
   RegisterVar(CSSetupStorage, 'EditorDefaultsOpt', ikSInt, SizeOf(EditorDefaultsOpt),    @EditorDefaultsOpt);
   RegisterVar(CSSetupStorage, 'EditorDefaultsOpt2',ikSInt, SizeOf(EditorDefaultsOpt2),   @EditorDefaultsOpt2);
@@ -502,7 +512,7 @@ begin
 
     ikChar : begin
       Move ( pvar^, result[1], Size );
-      result[0] := Chr(size);
+      SetLength(result, size) {result[0] := Chr(size);}
     end;
 
   end;
@@ -605,6 +615,17 @@ var
   b : Byte;
 begin
   s    := IniVarToStr ( Kind, Size, PVar ) + #0;
+{$IFDEF USEANSISTRING}
+  SetLength(s,255);
+  SetLength(s, GetPrivateProfileString (
+                 Group,
+                 Parameter,
+                 @s[1],
+                 @s[1],
+                 255,
+                 @FreeStr[1]
+            ));
+{$ELSE}
   s[0] := Chr ( GetPrivateProfileString (
             Group,
             Parameter,
@@ -613,6 +634,7 @@ begin
             255,
             @FreeStr[1]
           ));
+{$ENDIF}
   if not IniStrToVar ( s, Kind, Size, PVar ) then begin
     b := 0;
     if (Kind = ikStr) or (Kind = ikChar) then

@@ -48,8 +48,8 @@
 unit SBlocks;
 
 interface
-uses ExtraMem, advance, advance1, advance2, advance3, Objects, Dos, Memory,
-     collect;
+uses ExtraMem, Advance, Advance1, Advance2, Advance3, Objects, Dos, Memory,
+     Collect;
 
 const
      MaxBlockSize  = 1024;
@@ -63,14 +63,14 @@ type
     PCollector = ^TCollector;
     TCollector = object(TObject)
       Count: LongInt;
-      procedure Insert(P: PString); virtual;
-      function  At(N: LongInt): PString; virtual;
-      procedure AtPut(N: LongInt; P: PString); virtual;
-      procedure AtInsert(N: LongInt; P: PString); virtual;
-      procedure AtReplace(N: LongInt; P: PString); virtual;
+      procedure Insert(P: PLongString); virtual;
+      function  At(N: LongInt): PLongString; virtual;
+      procedure AtPut(N: LongInt; P: PLongString); virtual;
+      procedure AtInsert(N: LongInt; P: PLongString); virtual;
+      procedure AtReplace(N: LongInt; P: PLongString); virtual;
       procedure AtDelete(N: LongInt); virtual;
       procedure AtFree(N: LongInt); virtual;
-      procedure AddStr(S: String); virtual;
+      procedure AddStr(S: LongString); virtual;
       procedure SwapItems(Idx1, Idx2: CondInt); virtual;
     end;
 
@@ -79,21 +79,21 @@ type
       Collection: PCollection;
       constructor Init(MaxLines: CondInt);
       destructor Done; virtual;
-      procedure Insert(P: PString); virtual;
-      function  At(N: LongInt): PString; virtual;
-      procedure AtInsert(N: LongInt; P: PString); virtual;
-      procedure AtPut(N: LongInt; P: PString); virtual;
-      procedure AtReplace(N: LongInt; P: PString); virtual;
+      procedure Insert(P: PLongString); virtual;
+      function  At(N: LongInt): PLongString; virtual;
+      procedure AtInsert(N: LongInt; P: PLongString); virtual;
+      procedure AtPut(N: LongInt; P: PLongString); virtual;
+      procedure AtReplace(N: LongInt; P: PLongString); virtual;
       procedure AtDelete(N: LongInt); virtual;
       procedure AtFree(N: LongInt); virtual;
-      procedure AddStr(S: String); virtual;
+      procedure AddStr(S: LongString); virtual;
       procedure SwapItems(Idx1, Idx2: CondInt); virtual;
     end;
 
 (*  PMemBlock = ^TMemBlock;
     TMemBlock = record
       Pos: LongInt;
-      Len: Byte;
+      Len: LongInt;
     end;
 
     PNumBlock = ^TNumBlock;
@@ -123,24 +123,24 @@ type
 {$ENDIF}
        CacheModified: Boolean;
        Cache: Array [0..MaxCacheSize] of
-               record S: PString; Modified: Boolean; end;
+               record S: PLongString; Modified: Boolean; end;
 
        constructor Init(Index: CondInt);
-       procedure InsertIndex(N: CondInt; L: LongInt; Len: Byte);
+       procedure InsertIndex(N: CondInt; L: LongInt; Len: LongInt);
        procedure DeleteIndex(N: CondInt);
 
-       procedure Insert(P: PString); virtual;
-       function  At(N: LongInt): PString; virtual;
-       procedure AtInsert(N: LongInt; P: PString); virtual;
-       procedure AtPut(N: LongInt; P: PString); virtual;
-       procedure AtReplace(N: LongInt; P: PString); virtual;
+       procedure Insert(P: PLongString); virtual;
+       function  At(N: LongInt): PLongString; virtual;
+       procedure AtInsert(N: LongInt; P: PLongString); virtual;
+       procedure AtPut(N: LongInt; P: PLongString); virtual;
+       procedure AtReplace(N: LongInt; P: PLongString); virtual;
        procedure AtDelete(N: LongInt); virtual;
        procedure AtFree(N: LongInt); virtual;
-       procedure AddStr(S: String); virtual;
+       procedure AddStr(S: LongString); virtual;
        procedure SwapItems(Idx1, Idx2: CondInt); virtual;
 
-       procedure ReadBlock(var B: TMemBlock; var S: String);
-       procedure WriteBlock(var B: TMemBlock; var S: String);
+       procedure ReadBlock(var B: TMemBlock; var S: LongString);
+       procedure WriteBlock(var B: TMemBlock; var S: LongString);
        procedure PlaceDeleted(var B: TMemBlock);
        destructor Done; virtual;
 
@@ -198,7 +198,7 @@ end;
 constructor TStdCollector.Init;
 begin
   inherited Init;
-  Collection := New(PLineCollection, Init(MaxLines+200, 1000));
+  Collection := New(PLineCollection, Init(MaxLines+200, 1000, True));
 end;
 
 destructor TStdCollector.Done;
@@ -216,6 +216,7 @@ end;
 function  TStdCollector.At;
 begin
   At := Collection^.At(N);
+{Cat:warn нужно ли?}
   Count := Collection^.Count;
 end;
 
@@ -228,6 +229,7 @@ end;
 procedure TStdCollector.AtReplace;
 begin
   Collection^.AtReplace(N, P);
+{Cat:warn нужно ли?}
   Count := Collection^.Count;
 end;
 
@@ -251,7 +253,9 @@ end;
 
 procedure TStdCollector.AddStr;
 begin
-  Collection^.Insert(NewStr(S));
+  Collection^.Insert(NewLongStr(S));
+{Cat:warn а вот здесь изменение Count, вероятно, нужно - добавил}
+  Count := Collection^.Count;
 end;
 
 procedure TStdCollector.SwapItems;
@@ -355,7 +359,7 @@ begin
       Move(Blocks[K1]^[1+KK], Blocks[K1]^[KK], (K2-KK) * SizeOf(TMemBlock));
 end;
 
-function TBlocker.At(N: LongInt): PString;
+function TBlocker.At(N: LongInt): PLongString;
   var
       L: LongInt;
 begin
@@ -395,10 +399,10 @@ end;
 
 procedure TBlocker.SeekCache;
   var K, I, KK: CondInt;
-      S: String;
+      S: LongString;
 begin
   for I := 0 to CacheSize-1 do
-          DisposeStr(Cache[I].S);
+          DisposeLongStr(Cache[I].S);
   FillChar(Cache, SizeOf(Cache), 0);
 
   K := N div MaxBlockSize;
@@ -413,7 +417,7 @@ begin
   while (N < Count) and (Blocks[K] <> nil) and (CacheSize < I) do
     begin
       ReadBlock(Blocks[K]^[KK], S);
-      Cache[CacheSize].S := NewStr(S);
+      Cache[CacheSize].S := NewLongStr(S);
       Inc(N);
       Inc(CacheSize);
       K := N div MaxBlockSize;
@@ -424,6 +428,7 @@ end;
 
 procedure TBlocker.ReadBlock;
 begin
+writeln('----ReadBlock----');readln;
 {$IFNDEF NOEXTRA}
   if B.Pos < 2000000 then
     begin
@@ -451,12 +456,13 @@ procedure TBlocker.WriteBlock;
       BB: Boolean;
       L: LongInt;
 begin
+writeln('----WriteBlock----');readln;
   if (B.Pos < 0) or (B.Len < Length(S)) then
     begin
        {
        if B.Pos >= 0 then PlaceDeleted(B);
        }
-       B.Len := Min(255, Length(S)+5);
+       B.Len := Min(MaxStringLen, Length(S)+5);
        {
        if (Deleted <> nil) and (Deleted^.Count > 0) then
          begin
@@ -564,7 +570,7 @@ begin
     end;
 end;
 
-procedure TBlocker.AtInsert(N: LongInt; P: PString);
+procedure TBlocker.AtInsert(N: LongInt; P: PLongString);
   var B: TMemBlock;
 begin
   if CacheSize > 0 then FlushCache(On);
@@ -572,10 +578,10 @@ begin
   B.Pos := -1;
   WriteBlock(B, FreeStr);
   InsertIndex(N, B.Pos, B.Len);
-  DisposeStr(P);
+  DisposeLongStr(P);
 end;
 
-procedure TBlocker.AtPut(N: LongInt; P: PString);
+procedure TBlocker.AtPut(N: LongInt; P: PLongString);
   var K, I, K1, K2, KK: CondInt;
 begin
   if CacheSize > 0 then FlushCache(On);
@@ -589,15 +595,15 @@ begin
     end;
   if P = nil then FreeStr := '' else FreeStr := P^;
   WriteBlock(Blocks[K]^[KK], FreeStr);
-  DisposeStr(P);
+  DisposeLongStr(P);
 end;
 
-procedure TBlocker.Insert(P: PString);
+procedure TBlocker.Insert(P: PLongString);
 begin
   AtInsert(Count, P);
 end;
 
-procedure TBlocker.AtReplace(N: LongInt; P: PString);
+procedure TBlocker.AtReplace(N: LongInt; P: PLongString);
 begin
   AtPut(N, P);
 end;
@@ -636,7 +642,7 @@ begin
   if Release and (CacheSize > 0) then
     begin
        for I := 0 to CacheSize-1 do
-          DisposeStr(Cache[I].S);
+          DisposeLongStr(Cache[I].S);
        FillChar(Cache, SizeOf(Cache), 0);
        CacheSize := 0;
     end;

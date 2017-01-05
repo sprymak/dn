@@ -48,7 +48,7 @@
 unit Arc_Zip; {ZIP}
 
 interface
- uses Archiver, Advance1, Objects, FViewer, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
+uses Archiver, Advance1, Objects, FViewer, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
 
 type
  PZIPArchive = ^TZIPArchive;

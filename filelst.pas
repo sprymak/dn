@@ -81,9 +81,9 @@ begin
   end;
   I := PosChar('.', Address);
   if I>0 then begin
-   Val(Copy(Address, I+1, 255), Point, J);
+   Val(Copy(Address, I+1, MaxStringLength), Point, J);
    If J<>0 then exit;
-   Delete(Address, I, 255);
+   Delete(Address, I, MaxStringLength);
   end;
   If Length(Address)>0 then begin
    Val(Address, Node, J);
@@ -251,7 +251,7 @@ AddrError:
      I := PosChar(';', SS); if I = 0 then I := Length(SS)+1; SetLength(SS, I-1);
      I := PosChar(',', SS); if I = 0 then Goto AddrError;
      ParseAddress(Copy(SS, 1, I-1), ZZ, NN, ND, PT); K := ZZ;
-     ParseAddress(Copy(S.FileName, 2, 255), ZZ, NN, ND, PT);
+     ParseAddress(Copy(S.FileName, 2, MaxStringLength), ZZ, NN, ND, PT);
      Delete(SS, 1, I); if SS[Length(SS)] = '\' then SetLength(SS, Length(SS)-1);
      lFSplit(SS, Dr, Nm, Xt);
      if K <> ZZ then Xt := '.'+Copy(Hex4(ZZ), 2, 3);

@@ -738,7 +738,7 @@ procedure TScrollBack.HandleEvent(var Event: TEvent);
               for W := CutRect.A.Y to CutRect.B.Y - 1 do
                begin
                  S := AddSpace(Copy(GetString(W), CutRect.A.X+1, L), L);
-                 Clipboard^.Insert(NewStr(S));
+                 Clipboard^.Insert(NewLongStr(S));
                end;
             end;
       1003: SaveText;

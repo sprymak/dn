@@ -60,6 +60,8 @@
 unit u_keymap;
 interface
 
+uses Objects{Cat};
+
 type
  TKeyMap = (kmNone, kmAscii, kmAnsi, kmKoi8r); {-$VIV}
  string3 = string[3];
@@ -89,17 +91,17 @@ type
 
  procedure NullXLAT(var X: TXlat);
 
- function  Ascii_Ansi ( const S : string ) : string;
- function  Ansi_Ascii ( const S : string ) : string;
+ function  Ascii_Ansi ( const S : longstring ) : longstring;
+ function  Ansi_Ascii ( const S : longstring ) : longstring;
  procedure Ascii_Ansi_Buf ( var Buf; L: Word );
  procedure Ansi_Ascii_Buf ( var Buf; L: Word );
 
- function  Ascii_Koi8r ( const S : string ) : string;
- function  Koi8r_Ascii ( const S : string ) : string;
+ function  Ascii_Koi8r ( const S : longstring ) : longstring;
+ function  Koi8r_Ascii ( const S : longstring ) : longstring;
  procedure Ascii_Koi8r_Buf ( var Buf; L: Word );
  procedure Koi8r_Ascii_Buf ( var Buf; L: Word );
 
- function  RusEngConv ( const S : string ) : string;
+ function  RusEngConv ( const S : longstring ) : longstring;
  function  GetToAsciiRecodeTable ( K : TKeyMap; var Buf ) : Boolean;
 
  procedure XlatBuf(var B; Len: Integer; var XTable);
@@ -354,18 +356,18 @@ type
    ConvertBuf ( Buf, Len, ConvertTable );
  end;
 
- function Ascii_Ansi ( const S : string ) : string;
+ function Ascii_Ansi ( const S : longstring ) : longstring;
  var
-   result : string;
+   result : longstring;
  begin
    result := S;
    CharsConvertBuf ( result[1], Length(result), AnsiAllChars );
    Ascii_Ansi := result;
  end;
 
- function Ansi_Ascii ( const S : string ) : string;
+ function Ansi_Ascii ( const S : longstring ) : longstring;
  var
-   result : string;
+   result : longstring;
  begin
    result := S;
    CharsConvertBufBack ( result[1], Length(result), AnsiAllChars );
@@ -382,18 +384,18 @@ type
    CharsConvertBufBack ( Buf, L, AnsiAllChars );
  end;
 
- function Ascii_Koi8r ( const S : string ): string;
+ function Ascii_Koi8r ( const S : longstring ): longstring;
  var
-   result : string;
+   result : longstring;
  begin
    result := S;
    CharsConvertBuf ( result[1], Length(result), Koi8rAllChars );
    Ascii_Koi8r := result;
  end;
 
- function Koi8r_Ascii ( const S : string ) : string;
+ function Koi8r_Ascii ( const S : longstring ) : longstring;
  var
-   result : string;
+   result : longstring;
  begin
    result := S;
    CharsConvertBufBack ( result[1], Length(result), Koi8rAllChars );
@@ -410,9 +412,9 @@ type
    CharsConvertBufBack ( Buf, L, Koi8rAllChars );
  end;
 
- function RusEngConv ( const S : string ): string;
+ function RusEngConv ( const S : longstring ): longstring;
  var
-   result : string;
+   result : longstring;
  begin
    result := S;
    CharsConvertBuf ( result[1], Length(result), RusEngAllChars );

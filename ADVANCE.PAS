@@ -68,10 +68,10 @@ USES Dos,{DnIni}
                               {simple add in USES Advance}
 {$ENDIF}
 
-type TNameFormatMode=(nfmNull,nfmSelected,nfmCut,nfmHidden,nfmSystem);
+type TNameFormatMode=(nfmNull,nfmSelected,nfmCut,nfmHidden,nfmSystem,nfmHiddenSystem);
 
 const
-    NameFormatChar:array [TNameFormatMode] of char=(#46,#251,#16,#177,#178);
+    NameFormatChar:array [TNameFormatMode] of char=(#46,#251,#16,#176,#177,#178);
 
     flnPreferName   = 1;
     flnHardExtArea  = 2;
@@ -284,10 +284,8 @@ var
                           { programs is supported                         }
                           { use opsys and opOS2 <> 0 to determine if OS/2 }
                           { is running                                    }
-    FreeStr  : string;
-{$IFDEF USEANSISTRING}
-    FreeAnsiStr : AnsiString;
-{$ENDIF}
+    FreeStr  : String;
+    FreeLongStr : LongString;
     FreeByte : byte; {DataCompBoy 8)}
     ActiveDir: String; {DataCompBoy}
     DNNumber: Byte;
@@ -912,7 +910,13 @@ end;
 {$ENDIF}
 
 function GetMeMemoStream: PStream; {-$VOL begin}
-  var S: PStream; Pos: longint;
+{$IFDEF USELONGSTRING}
+const
+  _1: Byte = 1;
+{$ENDIF}
+var
+  S: PStream;
+  Pos: longint;
 begin
 {$IFNDEF NOEXTRA} {DataCompBoy: In DPMI EMS and XMS is no needed}
   S:=nil;
@@ -936,8 +940,21 @@ begin
   end;
   if S=nil then
 {$ENDIF}
-   S:=New(PMemoryStream,Init(2048,2048));
-  if S^.Status<>stOk then begin Dispose(S, Done); S:=nil end;
+    S:=New(PMemoryStream,Init(2048,2048));
+{Cat: а теперь запишем туда единичку, чтобы другие глупые процедуры,     }
+{     которые читают из потока то, что они туда не записывали, считали,  }
+{     что наш поток содержит длинные строки                              }
+{$IFDEF USELONGSTRING}
+  S^.Seek(0);
+  S^.Write(_1, 1);
+  S^.Seek(0);
+{$ENDIF}
+{/Cat}
+  if S^.Status<>stOk then
+    begin
+      Dispose(S, Done);
+      S:=nil
+    end;
   GetMeMemoStream:=S;
 end; {-$VOL end}
 
@@ -1097,10 +1114,18 @@ BEGIN
  { - OS/2 2.10+, OS2COMSPEC environment variable is required }
  { - OS/2 Warp 3+, no additional requirements                }
  { - OS/2 for PPC, future versions for IA64 (I hope)         }
+{$IFDEF OS_DOS}
  OS2exec := (opsys and opOS2 <> 0) and
             ((Lo(DosVersion) > 20) or
              ((Lo(DosVersion) = 20) and
               ((Hi(DosVersion) >= 30) or
                ((Hi(DosVersion) >= 10) and (GetEnv('OS2COMSPEC') <> ''))
             )));
+{$ENDIF}
+{$IFDEF OS2}
+ OS2exec := True;
+{$ENDIF}
+{$IFDEF Win32}
+ OS2exec := False;
+{$ENDIF}
 END.

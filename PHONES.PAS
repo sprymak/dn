@@ -68,7 +68,11 @@ type
 
      PPhoneDir = ^TPhoneDir;
      TPhoneDir = object(TObject)
+{$IFDEF USEANSISTRING}
+       Name: String;
+{$ELSE}
        Name: String[30];
+{$ENDIF}
        Memo1: PString;
        Memo2: PString;
        Password: String[15];
@@ -82,7 +86,11 @@ type
 
      PPhone = ^TPhone;
      TPhone = object(TObject)
+{$IFDEF USEANSISTRING}
+      Name: String;
+{$ELSE}
       Name: String[30];
+{$ENDIF}
       Memo1: PString;
       Memo2: PString;
       Number: PString;
@@ -878,8 +886,7 @@ end;
 constructor TPhone.Load;
 begin
  Number := S.ReadStr;
- S.Read(Name[0],1);
- S.Read(Name[1], Byte(Name[0]));
+ S.ReadStrV(Name); {S.Read(Name[0],1); S.Read(Name[1], Byte(Name[0]));}
  Memo1 := S.ReadStr;
  Memo2 := S.ReadStr;
 end;
@@ -930,8 +937,7 @@ end;
 constructor TPhoneDir.Load;
 var Q: Longint;
 begin
- S.Read(Name[0],1);
- S.Read(Name[1], Byte(Name[0]));
+ S.ReadStrV(Name); {S.Read(Name[0],1); S.Read(Name[1], Byte(Name[0]));}
  Memo1 := S.ReadStr;
  Memo2 := S.ReadStr;
  S.Read(Password, 1);

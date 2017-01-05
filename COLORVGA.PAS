@@ -400,7 +400,7 @@ var
  begin
 
  With DataRec do begin
-   New( List,Init(16,0));
+   New( List,Init(16,0,False));
    List^.ATInsert(0,  NewStr(GetString(dlColors_C00)));
    List^.AtInsert(1,  NewStr(GetString(dlColors_C01)));
    List^.AtInsert(2,  NewStr(GetString(dlColors_C02)));

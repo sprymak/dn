@@ -132,8 +132,7 @@ program TVHC;
 uses LFN, {DataCompBoy}
      Drivers, Objects, Dos, {$IFNDEF NONBP}BStrings{$ELSE}Strings{$ENDIF},
      HelpKern, advance, advance1, advance2, advance3, collect, ObjType
-{$IFNDEF NONBP}, StakDump{$ENDIF}
-     ;
+{$IFNDEF NONBP}, StakDump{$ENDIF}, Commands{Cat};
 {$I Version.Inc}
 
 {=======================================================================}
@@ -141,10 +140,12 @@ uses LFN, {DataCompBoy}
 const HlpT : array [1..2] of TStreamRec = (
       (ObjType: otHelpTopic;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(HelpKern.THelpTopic){$IFDEF OFFS}^{$ENDIF});
+       {$IFDEF LOGOBJLOADSTORE} ObjName : 'otHelpTopic'; {$ENDIF}
        Load:    @HelpKern.THelpTopic.Load;
        Store:   @HelpKern.THelpTopic.Store),
       (ObjType: otHelpIndex;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(HelpKern.THelpIndex){$IFDEF OFFS}^{$ENDIF});
+       {$IFDEF LOGOBJLOADSTORE} ObjName : ''; {$ENDIF}
        Load:    @HelpKern.THelpIndex.Load;
        Store:   @HelpKern.THelpIndex.Store)
       );
@@ -875,7 +876,7 @@ end;
 begin
   I := 1;
   repeat
-    BegPos := Pos(BegXRef, Copy(Line, I, 255));
+    BegPos := Pos(BegXRef, Copy(Line, I, MaxStringLength));
     if BegPos = 0 then I := 0
     else
     begin
@@ -976,7 +977,7 @@ var I: AInt;
 begin
   I := 1;
   While ( I <= Length( S )) and ( S[ I ] = ' ' ) do Inc( I );
-  RemoveLeadSpaces := Copy( S, I, 255 );
+  RemoveLeadSpaces := Copy( S, I, MaxStringLength );
 end;
 
 var
@@ -995,7 +996,7 @@ begin
   end;
 
   If Pos( '.TITLE', RemoveLeadSpaces( UpStr( Line ))) = 1 then begin
-    Line := RemoveLeadSpaces( Copy( RemoveLeadSpaces( Line ), 7, 255 ));
+    Line := RemoveLeadSpaces( Copy( RemoveLeadSpaces( Line ), 7, MaxStringLength ));
     FreeStr := #218 + Strg(#196, Length( Line ) + 2 );
     AddToBuffer( FreeStr, OFF );
     FreeStr := #179#32 + Line + #32#219;
@@ -1017,7 +1018,7 @@ begin
         then State := NotWrapping
         else State := Wrapping;
     If ( State = NotWrapping ) and ( Line[1] = ' ' )
-      then Line := Copy( Line, 2, 255 );
+      then Line := Copy( Line, 2, MaxStringLength );
     ScanForCrossRefs(Line);
     AddToBuffer(Line, State = Wrapping);
     Line := GetLine(TextFile);
@@ -1232,6 +1233,10 @@ var
   TextName,
   HelpName,
   SymbName: String; {DataCompBoy}
+{$IFDEF LOGOBJLOADSTORE}
+  F: Text; {Cat}
+{$ENDIF}
+
 
 procedure ExitClean; {$IFDEF BIT_16}far;{$ENDIF}
 begin
@@ -1262,6 +1267,18 @@ begin
       '     Symbol file = A Pascal file containing all the screen names as CONST''s'#13#10);
     Halt(0);
   end;
+
+{Cat}
+{$IFDEF LOGOBJLOADSTORE}
+  if IOResult <> 0 then
+    ;
+  System.Assign(F, 'stream.log');
+  System.Rewrite(F);
+  System.Close(F);
+  if IOResult <> 0 then
+    ;
+{$ENDIF}
+{/Cat}
 
   { Calculate file names }
   TextName := ReplaceExt(ParamStr(1), '.TXT', False);

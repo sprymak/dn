@@ -48,7 +48,7 @@
 unit Arc_CHZ; {CHZ}
 
 interface
- uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, Arc_ZOO;
+uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, Arc_ZOO;
 
 type
     PCHZArchive = ^TCHZArchive;
@@ -141,6 +141,10 @@ var HS,i : AWord;
     P1   : ZOOPHdr;
     S    : String;
     C    : Char;
+{$IFDEF USEANSISTRING}
+    L    : Byte;
+{$ENDIF}
+
     label 1;
 begin
 1:
@@ -152,8 +156,14 @@ begin
  if P.ID[4] = 'D' then
   begin
    ArcFile^.Seek(FP+4+5);
+{$IFDEF USEANSISTRING}
+   ArcFile^.Read(L,1);
+   SetLength(S,L);
+   ArcFile^.Read(S[1],L);
+{$ELSE}
    ArcFile^.Read(S[0],1);
    ArcFile^.Read(S[1],Length(S));
+{$ENDIF}
    CDir := CDir + S+'\';
    Goto 1;
   end else if P.ID[4] = 'd' then

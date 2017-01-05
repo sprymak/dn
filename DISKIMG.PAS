@@ -207,7 +207,11 @@ var
   _Dir : PByteArray;
   DR   : DirRec;
   I    : Integer;
+{$IFDEF USEANSISTRING}
+  Nm   : String;
+{$ELSE}
   Nm   : Str12;
+{$ENDIF}
   J: Integer;
 
 begin
@@ -225,14 +229,14 @@ begin
       #$E5    : Continue;
       #0..' ' : Break;
     end;
-    Nm[0] := #12;
+    SetLength(Nm,12); {Nm[0] := #12;}
     Nm[9] := '.';
     Move(DR.Name[0], Nm[1], 8);
     Move(DR.Name[8], Nm[10], 3);
     J := 8;
     While (J > 0) and (Nm[J] = ' ') do begin Delete(Nm, J, 1); Dec(J); end;
-    While Nm[Length(Nm)] = ' ' do Dec(Nm[0]);
-    if Nm[Length(Nm)] = '.' then Dec(Nm[0]);
+    While Nm[Length(Nm)] = ' ' do SetLength(Nm, Length(Nm)-1); {Dec(Nm[0]);}
+    if Nm[Length(Nm)] = '.' then SetLength(Nm, Length(Nm)-1); {Dec(Nm[0]);}
 
 {   if DR.Attr and VolumeID <> 0 then
     begin

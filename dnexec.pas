@@ -205,7 +205,7 @@ begin
   InitDOSMem;
   InitMemory;
   InitVideo;
-  if StartupData.Load and osuRestoreScrMode <> 0 then ScreenMode := SM; 
+  if StartupData.Load and osuRestoreScrMode <> 0 then ScreenMode := SM;
   SetVideoMode(ScreenMode);
   SetBlink(CurrentBlink);
   if (StartupData.Load and osuResetPalette <> 0) then SetPalette(VGA_Palette);
@@ -229,7 +229,7 @@ var
   EF, First: Boolean;
   I        : Integer;
   Local    : Boolean;
-  FName,LFN: string;
+  FName{$IFNDEF OS2},LFN{$ENDIF}: string;
   UserParam: TUserParams;
   D        : TMaskData;
 label RL;
@@ -242,11 +242,8 @@ begin
   FName:=FileRec^.Name;
 {$IFNDEF OS2}
   LFN  := GetLFN(FileRec^.LFN);
-{$ELSE}
-  LFN  := FileRec^.Name;
-{$ENDIF}
-
   if CharCount('.', LFN)=0 then LFN:=LFN+'.';
+{$ENDIF}
   lGetDir(0, ActiveDir);
   SearchExt:=False;
   Local := On;
@@ -272,7 +269,7 @@ begin
       if S1[1]<>';' then begin
        D.Filter := S1;
        MakeTMaskData(D);
-       if InExtFilter(FName, D) or InExtFilter(LFN, D) then begin
+       if InExtFilter(FName, D) {$IFNDEF OS2}or InExtFilter(LFN, D) {$ENDIF}then begin
 {$IFNDEF OS2}
         lAssignText(F1, SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT'); ClrIO;
 {$ELSE}
@@ -396,7 +393,7 @@ RepeatLocal:
    TempFile := '';
 {$ENDIF}
    if Abort then Exit;
-   if S[1] = '*' then DelFC(S);
+   if S[1] = '*' then Delete(S, 1, 1); {DelFC(S);}
 {$IFNDEF VIRTUALPASCAL}
    PP := _WriteMsg(' '+GetString(SIdx));
    if not CheckExit then Begin ExecExtFile:=false; Exit; end;
@@ -431,7 +428,11 @@ end;
 
         {-DataCompBoy-}
 procedure ExecFile(const FileName: string);
- var S, L, M: String;
+ var S,
+{$IFNDEF OS2}
+     L,
+{$ENDIF}
+     M: String;
      fr: PFileRec;
 
  procedure PutHistory(B: Boolean);
@@ -448,6 +449,7 @@ procedure ExecFile(const FileName: string);
    var ST: SessionType;
     S: string; {//AK155}
  begin
+{$IFNDEF Win32}
     if (PCommandLine(CommandLine)^.LineType in [ltOS2Window,ltOS2FullScreen]) then
      begin
        if PCommandLine(CommandLine)^.LineType = ltOS2FullScreen then
@@ -458,12 +460,11 @@ procedure ExecFile(const FileName: string);
        Message(CommandLine, evKeyDown, kbDown, nil);
        Exit;
      end;
+{$ENDIF}
 {AK155, см. dnutil.ExecCommandLine}
     S:='';CommandLine^.SetData(S);
 {/AK155}
-{    if B then begin WriteLn(#13#10, ActiveDir+'>', M); M := M + #13 end;
-    ExecString(@M, #13#10 + ActiveDir + '>' + M);}
-    if B then ExecString(@M, #13#10 + ActiveDir + '>' + M)
+    if B then ExecString(@M, #13#10 + {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(ActiveDir) + '>' + {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(M))
      else ExecString(@M, '');
  end;
 
@@ -472,40 +473,43 @@ begin
  fr:= CreateFileRec(FileName);
 {$IFNDEF OS2}
  L := GetLFN(fr^.LFN);
- {.$IFDEF OS_DOS}
  S := MakeFileName(fr^.Name);
- {.$ELSE}
-{S := L;} {???} {или может S := lfGetShortFileName(L) - подумать}
- {.$ENDIF}
+ if CharCount('.', L)=0 then L:=L+'.';
 {$ELSE}
  S := fr^.Name;
- L := S;
 {$ENDIF}
- if CharCount('.', L)=0 then L:=L+'.';
  FreeStr := '';
  M := '';
  if (ShiftState and (3 or kbAltShift) <> 0) or
-    (not InExtFilter(S, Executables) and
-     not InExtFilter(L, Executables)) then
+    (not InExtFilter(S, Executables)
+     {$IFNDEF OS2}and not InExtFilter(L, Executables){$ENDIF}) then
   begin
    if SearchExt(fr, M) then
    begin
-    PutHistory(On);
+   {PutHistory(On);}
 {$IFNDEF OS2}
     M := SwpDir+'$DN'+ItoS(DNNumber)+'$.BAT ' + FreeStr;
 {$ELSE}
     M := SwpDir+'$DN'+ItoS(DNNumber)+'$.CMD ' + FreeStr;
 {$ENDIF}
     RunCommand(Off);
-    M := S;
-    PutHistory(Off);
+   {M := S; PutHistory(Off);}
+   {CmdDisabled := Off;}
     GlobalMessage(evCommand, cmClearCommandLine, nil);
    end;
    goto ex;
   end;
+{$IFNDEF Win32}
  M := S;
+{$ELSE}
+ M := {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(L);
+{$ENDIF}
  PutHistory(Off);
+{$IFNDEF Win32}
  M := S;
+{$ELSE}
+ M := L;
+{$ENDIF}
  RunCommand(On);
 ex:
  DelFileRec(fr);

@@ -96,7 +96,7 @@ type
       end;
 
 
-procedure EditDOSEvironment(Env: PByteArray);
+procedure EditDOSEnvironment(Env: PByteArray);
 function  InitHighLight
           ( const FName     : string;
             var   HiLitePar : THighliteParams;
@@ -111,7 +111,11 @@ uses Messages, Drivers, Dialogs, Commands, DNHelp, DNApp,
 type
       PLngWord = ^TLngWord;
       TLngWord = object(TObject)
+{$IFDEF USEANSISTRING}
+        Name: String;
+{$ELSE}
         Name: String[30];
+{$ENDIF}
         L: Word;
         constructor Init(AL: Word; const AName: String);
       end;
@@ -434,7 +438,7 @@ begin
   DisposeStr(S);
 end;
 
-{---------------------------- EditDOSEvironment -----------------------------}
+{---------------------------- EditDOSEnvironment -----------------------------}
 
 type
      PDOSVar = ^TDOSVar;
@@ -462,9 +466,10 @@ constructor TDOSVar.Init;
 begin
   inherited Init;
   I := PosChar('=', S);
-  if I = 0 then I :=Length(S) + 1;
+  if I = 0 then I := Length(S) + 1;
+{ if I = 1 then I := PosChar('=', Copy(S, 2, 255)) + 1;} {JO}
   Name := NewStr(UpStrg(DelSpaces(Copy(S, 1, I-1))));
-  Value := NewStr(Copy(S, I+1, 255));
+  Value := NewStr(Copy(S, I+1, MaxStringLength));
 end;
 
 procedure TDOSVar.SetValue;
@@ -583,7 +588,7 @@ begin
 end;
 
 
-procedure EditDOSEvironment;
+procedure EditDOSEnvironment;
 var D: PDialog;
     P: PView;
     R: TRect;
@@ -658,7 +663,8 @@ begin
   while Env^[I] <> 0 do begin
     FreeStr := '';
     while Env^[I] <> 0 do begin AddStr(FreeStr, Char(Env^[I])); Inc(I) end;
-    PC^.Insert(New(PDosVar, Init(FreeStr)));
+    if FreeStr[1] <> '=' then {JO}
+      PC^.Insert(New(PDosVar, Init(FreeStr)));
     Inc(I);
   end;
 

@@ -103,12 +103,19 @@ CONST
 
 
 TYPE
+
+{Cat: выкинул, т.к. TTextCollection = TLineCollection}
+(*
   PTextCollection =^TTextCollection;
   TTextCollection = Object( TCollection )
     procedure FreeItem( Item: Pointer ); virtual;
     procedure PutItem(var S: TStream; Item: Pointer); virtual;
     function GetItem(var S: TStream): Pointer; virtual;
   end;
+*)
+  PTextCollection = PLineCollection;
+  TTextCollection = TLineCollection;
+{/Cat}
 
   TListBoxRec = record List: PCollection; Focus: Integer end;
   TTextListBoxRec = record List: PTextCollection; Focus: Integer end;
@@ -118,8 +125,8 @@ TYPE
     Mode1        : String[5];
     Mode2        : String[5];
     Temp         : String;
-    LFNContainer : Word;
-    LFNCache     : String[3];
+    CopyLimitBuf : Word;
+    ForceDefArch : String[3];
     Drives: Array [ 'A'..'Z' ] of Byte;
   end;
 
@@ -243,7 +250,7 @@ TYPE
   TUUEncodeData = record
     Name: String;
     Prefix, Checksum: Word;
-    NLines: String[4];
+    NLines: String[5];
     Format : Word ;
   end;
 
@@ -334,7 +341,7 @@ procedure InitMaskData;
   );
 
   PanelDefaults: TPanelDefaultsData = (
-    Sort:  psmLongExt;
+    Sort:  psmLongExt-1;
     Show:  fmiCurrent +
           {fmiSelected +}
            fmiHiliteFiles +
@@ -408,8 +415,8 @@ procedure InitMaskData;
     Mode2: '148';
 {$ENDIF}
     Temp: '';
-    LFNContainer: 0;
-    LFNCache: '3';
+    CopyLimitBuf: 8192;
+    ForceDefArch: '';
     Drives: (
       {A}(ossCheckFreeSpace{$IFNDEF OS_DOS}shr 1{$ENDIF})+(ossVerify{$IFNDEF OS_DOS}shr 1{$ENDIF}),
       {B}(ossCheckFreeSpace{$IFNDEF OS_DOS}shr 1{$ENDIF})+(ossVerify{$IFNDEF OS_DOS}shr 1{$ENDIF}),
@@ -427,15 +434,15 @@ procedure InitMaskData;
 {$IFDEF OS2}
     Params: ( (Param:  1; LFNLen: '12'; EXTLen: '3'),(Param:1023; LFNLen: '12'; EXTLen: '3'),
               (Param:  1; LFNLen: '18'; EXTLen: '3'),(Param:   1; LFNLen: '18'; EXTLen: '0'),
-              (Param:  1; LFNLen: '38'; EXTLen: '4'),(Param:   1; LFNLen:'253'; EXTLen: '0'),
-              (Param:257; LFNLen: '12'; EXTLen: '3'),(Param:   1; LFNLen: '12'; EXTLen: '3'),
+              (Param:  1; LFNLen: '38'; EXTLen: '4'),(Param:   1; LFNLen:'252'; EXTLen: '0'),
+              (Param:257; LFNLen: '12'; EXTLen: '3'),(Param:   3; LFNLen:'252'; EXTLen: '0'),
               (Param:  1; LFNLen: '12'; EXTLen: '3'),(Param:   1; LFNLen: '12'; EXTLen: '3'));
 {$ELSE}
     Params: ( (Param:  1; LFNLen: '12'; EXTLen: '3'),(Param:1023; LFNLen: '13'; EXTLen: '3'),
               (Param:  0; LFNLen: '12'; EXTLen: '3'),(Param:   1; LFNLen: '18'; EXTLen: '3'),
               (Param:  1; LFNLen: '18'; EXTLen: '0'),(Param:   1; LFNLen: '38'; EXTLen: '4'),
-              (Param:  1; LFNLen:'253'; EXTLen: '0'),(Param: 257; LFNLen: '12'; EXTLen: '3'),
-              (Param:  1; LFNLen: '12'; EXTLen: '3'),(Param:   1; LFNLen: '12'; EXTLen: '3'));
+              (Param:  1; LFNLen:'252'; EXTLen: '0'),(Param: 257; LFNLen: '12'; EXTLen: '3'),
+              (Param:  3; LFNLen:'252'; EXTLen: '0'),(Param:   1; LFNLen: '12'; EXTLen: '3'));
 {$ENDIF}
     FileCase:4;
     DirsCase:4
@@ -451,14 +458,14 @@ procedure InitMaskData;
     Params: ( (Param:257; LFNLen: '12'; EXTLen: '3'),(Param:511; LFNLen: '12'; EXTLen: '3'),
               (Param:257; LFNLen: '18'; EXTLen: '0'),(Param:  1; LFNLen: '18'; EXTLen: '3'),
               (Param:  1; LFNLen: '18'; EXTLen: '0'),(Param:  1; LFNLen: '38'; EXTLen: '4'),
-              (Param:  1; LFNLen:'253'; EXTLen: '0'),(Param:  1; LFNLen: '12'; EXTLen: '3'),
+              (Param:  1; LFNLen:'252'; EXTLen: '0'),(Param:  3; LFNLen:'252'; EXTLen: '0'),
               (Param:  1; LFNLen: '12'; EXTLen: '3'),(Param:  1; LFNLen: '12'; EXTLen: '3'));
 {$ELSE}
     Params: ( (Param:257; LFNLen: '12'; EXTLen: '3'),(Param:511; LFNLen: '12'; EXTLen: '3'),
               (Param:  0; LFNLen: '12'; EXTLen: '3'),(Param:257; LFNLen: '18'; EXTLen: '0'),
               (Param:  1; LFNLen: '18'; EXTLen: '3'),(Param:  1; LFNLen: '18'; EXTLen: '0'),
-              (Param:  1; LFNLen: '38'; EXTLen: '4'),(Param:  1; LFNLen:'253'; EXTLen: '0'),
-              (Param:  1; LFNLen: '12'; EXTLen: '3'),(Param:  1; LFNLen: '12'; EXTLen: '3'));
+              (Param:  1; LFNLen: '38'; EXTLen: '4'),(Param:  1; LFNLen:'252'; EXTLen: '0'),
+              (Param:  3; LFNLen:'252'; EXTLen: '0'),(Param:  1; LFNLen: '12'; EXTLen: '3'));
 {$ENDIF}
     FileCase:4;
     DirsCase:4
@@ -475,14 +482,14 @@ procedure InitMaskData;
     Params: ( (Param:257; LFNLen: '12'; EXTLen: '3'),(Param:511; LFNLen: '12'; EXTLen: '3'),
               (Param:257; LFNLen: '18'; EXTLen: '0'),(Param:  1; LFNLen: '18'; EXTLen: '3'),
               (Param:  1; LFNLen: '18'; EXTLen: '0'),(Param:  1; LFNLen: '38'; EXTLen: '4'),
-              (Param:  1; LFNLen:'253'; EXTLen: '0'),(Param:  1; LFNLen: '12'; EXTLen: '3'),
+              (Param:  1; LFNLen:'252'; EXTLen: '0'),(Param:  3; LFNLen:'252'; EXTLen: '0'),
               (Param:  1; LFNLen: '12'; EXTLen: '3'),(Param:  1; LFNLen: '12'; EXTLen: '3'));
 {$ELSE}
     Params: ( (Param:257; LFNLen: '12'; EXTLen: '3'),(Param:511; LFNLen: '12'; EXTLen: '3'),
               (Param:  0; LFNLen: '12'; EXTLen: '3'),(Param:257; LFNLen: '18'; EXTLen: '0'),
               (Param:  1; LFNLen: '18'; EXTLen: '3'),(Param:  1; LFNLen: '18'; EXTLen: '0'),
-              (Param:  1; LFNLen: '38'; EXTLen: '4'),(Param:  1; LFNLen:'253'; EXTLen: '0'),
-              (Param:  1; LFNLen: '12'; EXTLen: '3'),(Param:  1; LFNLen: '12'; EXTLen: '3'));
+              (Param:  1; LFNLen: '38'; EXTLen: '4'),(Param:  1; LFNLen:'252'; EXTLen: '0'),
+              (Param:  3; LFNLen:'252'; EXTLen: '0'),(Param:  1; LFNLen: '12'; EXTLen: '3'));
 {$ENDIF}
     FileCase:4;
     DirsCase:4
@@ -498,15 +505,15 @@ procedure InitMaskData;
 {$IFDEF OS2}
     Params: ( (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param:63; LFNLen: '12'; EXTLen: '3'),
               (Param: 1; LFNLen: '18'; EXTLen: '3'),(Param: 1; LFNLen: '18'; EXTLen: '0'),
-              (Param: 1; LFNLen: '38'; EXTLen: '4'),(Param: 1; LFNLen:'253'; EXTLen: '0'),
+              (Param: 1; LFNLen: '38'; EXTLen: '4'),(Param: 1; LFNLen:'252'; EXTLen: '0'),
               (Param:51; LFNLen: '12'; EXTLen: '3'),(Param:33; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '12'; EXTLen: '3'));
+              (Param:51; LFNLen:'252'; EXTLen: '0'),(Param: 1; LFNLen: '12'; EXTLen: '3'));
 {$ELSE}
     Params: ( (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param:63; LFNLen: '13'; EXTLen: '3'),
               (Param: 0; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '18'; EXTLen: '3'),
               (Param: 1; LFNLen: '18'; EXTLen: '0'),(Param: 1; LFNLen: '38'; EXTLen: '4'),
-              (Param: 1; LFNLen:'253'; EXTLen: '0'),(Param:51; LFNLen: '12'; EXTLen: '3'),
-              (Param:33; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '12'; EXTLen: '3'));
+              (Param: 1; LFNLen:'252'; EXTLen: '0'),(Param:51; LFNLen: '12'; EXTLen: '3'),
+              (Param:33; LFNLen: '12'; EXTLen: '3'),(Param:51; LFNLen:'252'; EXTLen: '0'));
 {$ENDIF}
     FileCase:4;
     DirsCase:4
@@ -518,11 +525,11 @@ procedure InitMaskData;
    FileCase: Word;
    DirsCase: Word;
   end = (
-    Params: ( (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param:63; LFNLen: '18'; EXTLen: '3'),
-              (Param: 1; LFNLen: '18'; EXTLen: '4'),(Param: 1; LFNLen: '18'; EXTLen: '0'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '12'; EXTLen: '3'),
-              (Param: 1; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '12'; EXTLen: '3'));
+    Params: ( (Param:   1; LFNLen: '12'; EXTLen: '3'),(Param:63; LFNLen: '12'; EXTLen: '3'),
+              (Param:   1; LFNLen: '18'; EXTLen: '3'),(Param: 1; LFNLen: '18'; EXTLen: '0'),
+              (Param:   1; LFNLen: '38'; EXTLen: '4'),(Param: 1; LFNLen:'252'; EXTLen: '0'),
+              (Param: 257; LFNLen: '12'; EXTLen: '3'),(Param: 3; LFNLen:'252'; EXTLen: '0'),
+              (Param:   1; LFNLen: '12'; EXTLen: '3'),(Param: 1; LFNLen: '12'; EXTLen: '3'));
     FileCase:4;
     DirsCase:4
   );
@@ -570,6 +577,9 @@ Uses ExtraMem
 
 {$ENDIF}
 
+
+{Cat: выкинул, т.к. TTextCollection = TLineCollection}
+(*
 PROCEDURE TTextCollection.FreeItem;
 begin
   DisposeStr( PString(Item) );
@@ -584,6 +594,8 @@ FUNCTION TTextCollection.GetItem;
 begin
   GetItem := S.ReadStr
 end;
+*)
+
 
 PROCEDURE FatalError;
 begin
@@ -612,7 +624,7 @@ begin
  New(Archives); FillChar(Archives^, SizeOf(Archives^), 0);
  Archives^.Filter    :=
 {archive volumes for ace,ain,arj,rar,zxzip}
-                        'a[0-9][0-9];r[0-9][0-9];$z[0-9];'+
+                        'a[0-9][0-9];r[0-9][0-9];c[0-9][0-9];$z[0-9];'+
 {supported archives in order of appearance}
                         'ace;ain;arc;pak;arj;bs2;bsa;cab;chz;ha;hap;hpk;hyp;z;'+
                         'lha;ice;lzh;lim;qrk;rar;sqz;tar;taz;tgz;gz;uc2;ufa;'+
@@ -698,7 +710,7 @@ begin
 
   for FreeByte:=1 to length(SourceDir) do
    if SourceDir[FreeByte]<>' ' then break;
-  if SourceDir[FreeByte]<>' ' then SourceDir:=Copy(SourceDir, FreeByte, 255);
+  if (SourceDir<>'') and (SourceDir[FreeByte]<>' ') then SourceDir:=Copy(SourceDir, FreeByte, MaxStringLength);
   if SourceDir = '' then SourceDir := StartupDir;
   if SourceDir[Length(SourceDir)] <> '\' then AddStr(SourceDir, '\');
 

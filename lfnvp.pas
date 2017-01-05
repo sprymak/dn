@@ -167,6 +167,7 @@ procedure lEraseFile(var F: lFile); inline; begin Erase(F.F); end;
 procedure lEraseText(var T: lText); inline; begin Erase(T.T); end;
 procedure lRenameFile(var F: lFile; const NewName: String);
 procedure lRenameText(var T: lText; const NewName: String);
+procedure lChangeFileName(const Name, NewName: String);
 function  lFileNameOf(var lF: lFile): string;
 function  lTextNameOf(var lT: lText): string;
 
@@ -186,9 +187,14 @@ procedure lGetDir(D: Byte; var Path: String);
 function lFExpand(const Path: String): String;
 procedure lFSplit(const Path: String; var Dir, Name, Ext: String);
 
+{$IFDEF RecodeWhenDraw}
+function OemToCharStr(const OemS: String): String;
+function CharToOemStr(const CharS: String): String;
+{$ENDIF}
+
 implementation
 
-uses {$IFDEF WIN32} Windows, {$ENDIF} VpSysLo2, Strings;
+uses {$IFDEF WIN32} Windows, {$ENDIF} VpSysLo2, Strings, Commands{Cat};
 
  Function StrPas_(S: Array Of Char): String;
   var ss: string;
@@ -202,11 +208,31 @@ uses {$IFDEF WIN32} Windows, {$ENDIF} VpSysLo2, Strings;
    StrPas_:=ss;
   End;
 
+{$IFNDEF OS2}
 procedure NameToNameZ(const Name: String; var NameZ: TNameZ);
 begin
   Move(Name[1], NameZ, Length(Name));
   NameZ[Length(Name)] := #0;
 end;
+{$ENDIF}
+
+{$IFDEF Win32}
+function OemToCharStr(const OemS: String): String;
+ var NZ, NZ2: TNameZ;
+begin
+  NameToNameZ(OemS, NZ2);
+  OemToChar(NZ2, NZ);
+  OemToCharStr := StrPas_(NZ);
+end;
+
+function CharToOemStr(const CharS: String): String;
+ var NZ, NZ2: TNameZ;
+begin
+  NameToNameZ(CharS, NZ2);
+  CharToOem(NZ2, NZ);
+  CharToOemStr := StrPas_(NZ);
+end;
+{$ENDIF}
 
 procedure CheckColonAndSlash(const Name: String; var S: String);
 var
@@ -370,7 +396,7 @@ begin
           else Name := Path
         else
         begin
-          if DotPos > SlashPos then Ext := Copy(Path, DotPos, 255)
+          if DotPos > SlashPos then Ext := Copy(Path, DotPos, MaxStringLength)
           else DotPos := 255;
 
           if SlashPos <> 0 then Dir := Copy(Path, 1, SlashPos);
@@ -433,6 +459,28 @@ procedure lAssignText(var T: lText; const Name: String); begin Assign(T.T, Name)
 procedure lResetFile(var F: lFile; RecSize: Word); begin Reset(F.F, RecSize); end;
 procedure lRenameFile(var F: lFile; const NewName: String); begin Rename(F.F, NewName); end;
 procedure lRenameText(var T: lText; const NewName: String); begin Rename(T.T, NewName); end;
+procedure lChangeFileName(const Name, NewName: String);
+  var F: File;
+ begin
+  {$IFDEF Win32}
+   {$IFNDEF RecodeWhenDraw}
+  if RecodeCyrillicNames then
+    begin
+      Assign(F, OemToCharStr(Name));
+      Rename(F, OemToCharStr(NewName));
+    end
+   else
+    begin
+   {$ENDIF}
+  {$ENDIF}
+     Assign(F, Name);
+     Rename(F, NewName);
+  {$IFDEF Win32}
+   {$IFNDEF RecodeWhenDraw}
+    end;
+   {$ENDIF}
+  {$ENDIF}
+ end;
 procedure lGetFAttr(var F: lFile; var Attr: Word); begin DOS.GetFAttr(F.F, Attr); end;
 procedure lSetFAttr(var F: lFile; Attr: Word);     begin DOS.SetFAttr(F.F, Attr); end;
 procedure lGetTAttr(var T: lText; var Attr: Word); begin DOS.GetFAttr(T.T, Attr); end;

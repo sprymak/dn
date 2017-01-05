@@ -455,7 +455,7 @@ var S: String; {DataCompBoy}
        Nm: String;
        DZ: string;
  begin
-   if (Info.DirInfo = nil) then Info.DirInfo := New(PStringCollection , Init(20, 10))
+   if (Info.DirInfo = nil) then Info.DirInfo := New(PStringCollection , Init(20, 10, False))
                            else Info.DirInfo^.FreeAll;
    Info.InfoFile := ifDescription;
    I := -1;
@@ -673,7 +673,7 @@ begin
      C := (GetColor(1) shl 8) or (GetColor(2) and 255);
      CC := On;
      for X := Delta.Y to Info.DirInfo^.Count - 1 do begin
-      Wrt(#0+Copy(CnvString(Info.DirInfo^.At(X)), Delta.X, 255)+#0);
+      Wrt(#0+Copy(CnvString(Info.DirInfo^.At(X)), Delta.X, MaxStringLength)+#0);
       if Y > Size.Y then Break;
      end;
    end;
@@ -694,7 +694,7 @@ begin
   L:=0;
   NumFiles:=0;
 
-  new(DC, Init($10, $10));
+  new(DC, Init($10, $10, False));
   DC^.Insert(NewStr(Dir));
   Abort:=false;
   while DC^.Count>0 do
@@ -838,12 +838,20 @@ end;
 
         {-DataCompBoy-}
 procedure ReadDiskInfo;
- var  VolumeLabel: String[12];
+ var
+{$IFDEF USEANSISTRING}
+      VolumeLabel: String;
+      SerialNo: String; { Rainbow }
+      FileSys: String; { Rainbow }
+      S: String;
+      S1, S2: String;
+{$ELSE}
+      VolumeLabel: String[12];
       SerialNo: String[9]; { Rainbow }
       FileSys: String[8]; { Rainbow }
-      L: Byte absolute VolumeLabel;
       S: String;
       S1, S2: String[30];
+{$ENDIF}
       Drv: Byte;
       F: PTextReader;
       DirLen: TSize;
@@ -888,7 +896,7 @@ begin
     B.DirInfo  := nil;
   end else
   begin
-    B.DirInfo := New(PStringCollection, Init($10, $10));
+    B.DirInfo := New(PStringCollection, Init($10, $10, False));
     F := New(PTextReader, Init(MakeNormName(S, sDIRINFO)));
     if F = nil then
     begin

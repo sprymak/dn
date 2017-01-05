@@ -146,7 +146,7 @@ type
 
 procedure Highlites          ( Len : Integer; S : PChar; const Params : THighliteParams );
 procedure FixHighliteParams  ( var Params : THighliteParams );
-function  InsertHighliteRule ( var Params : THighliteParams; Index : THighliteRule; const Rule : string ) : Boolean;
+function  InsertHighliteRule ( var Params : THighliteParams; Index : THighliteRule; const Rule : String ) : Boolean;
 
 const
 
@@ -167,6 +167,7 @@ const
 implementation
 
 uses
+ {Consts,}  {Cat: зачем? и без этого отлично компилится}
   Objects,  { TCharSet }
   Advance,  { BreakChars }
   Advance1; { UpStr, UpCase }
@@ -437,7 +438,7 @@ const
    {$ENDIF}
   {$ENDIF}
 
-  function CheckPattern ( I : Integer; Len : Integer; S : PChar; const P : string; CaseSensitive : Boolean ) : Boolean;
+  function CheckPattern ( I : Integer; Len : Integer; S : PChar; const P : String; CaseSensitive : Boolean ) : Boolean;
   {$IFDEF NOASM}
   var
     j : Integer;
@@ -535,11 +536,11 @@ const
    {$ENDIF}
   {$ENDIF}
 
-  function ParseChars ( I : Integer; const Prefix : string; const Allowed : TCharSet; const Suffix : string ) : Integer;
+  function ParseChars ( I : Integer; const Prefix : String; const Allowed : TCharSet; const Suffix : String ) : Integer;
   var
     j : Integer;
     k : Integer;
-    t : string;
+{   t : String; }
   begin
     ParseChars := 0;
     j          := I;
@@ -1239,7 +1240,7 @@ end;
  *
  *****************************************************************)
 
-function InsertHighliteRule ( var Params : THighliteParams; Index : THighliteRule; const Rule : string ) : Boolean;
+function InsertHighliteRule ( var Params : THighliteParams; Index : THighliteRule; const Rule : String ) : Boolean;
 var
   exrules : array [Low(THighliteRule)..Succ(High(THighliteRule))] of PChar;
   rules   : THiliteRules absolute exrules;

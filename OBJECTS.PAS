@@ -1,4 +1,4 @@
-{/////////////////////////////////////////////////////////////////////////
+{/////////////////////////////////////////////  ////////////////////////////
 //
 //  Dos Navigator Open Source 1.51.08
 //  Based on Dos Navigator (C) 1991-99 RIT Research Labs
@@ -50,6 +50,13 @@
 { Copyright (c) 1990 by Borland International         }
 {-----------------------------------------------------}
 {$DEFINE PACKFILE}
+{Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
+
+{Cat
+   28/08/2001 - переделал чтение/запись строк в потоки для совместимости с
+   типом AnsiString; добавил чтение/запись длинных строк (LongString) в потоки
+}
+
 unit Objects;
 
 interface
@@ -59,11 +66,6 @@ uses {$IFDEF VIRTUALPASCAL}SysUtils,{$ENDIF}
 { Common defines }
 
 type
-  PString  = ^String;
-{$IFDEF USEANSISTRING}
-  PAnsiString = ^AnsiString;
-{$ENDIF}
-
 {$IFDEF OldCollection}
   CondInt = Integer;
 {$ELSE}
@@ -79,6 +81,24 @@ type
   Str12 = string[12]; PStr12 = ^Str12;
   Str40 = string[40]; PStr40 = ^Str40;
   Str50 = string[50]; PStr50 = ^Str50;
+
+{Cat: VP не позволяет переопределять тип String, вместо этого используем
+      $H+ или $H- в STDEFINE.INC}
+(*
+{$IFDEF USEANSISTRING}
+  String = AnsiString;
+{$ELSE}
+  String = ShortString;
+{$ENDIF}
+*)
+  PString = ^String;
+{$IFDEF USELONGSTRING}
+  LongString = AnsiString;
+{$ELSE}
+  LongString = String[255];
+{$ENDIF}
+  PLongString = ^LongString;
+{/Cat}
 
   TCharSet = Set of Char;
   PCharSet = ^TCharSet;
@@ -104,9 +124,6 @@ const
 
   MaxWords = MaxBytes DIV SizeOf(Word);
   MaxPtrs  = MaxBytes DIV SizeOf(Pointer);
-
-  MaxEditStringLength = 254;
- {MaxEditStringLength = 510;}
 
 type
 
@@ -225,6 +242,10 @@ type
     VmtLink: Word;
   {$ELSE} VmtLink: Pointer;{$ENDIF}
   {$ELSE} VmtLink: Pointer;{$ENDIF}
+{Cat}
+{$IFDEF LOGOBJLOADSTORE}
+    ObjName: String[30];
+{$ENDIF}
     Load:  Pointer;
     Store: Pointer;
     Next:  PStreamRec;
@@ -263,6 +284,9 @@ type
     procedure Put(P: PObject);
     procedure Read(var Buf; Count: Sw_Word); virtual;
     function  ReadStr: PString;
+    function  ReadLongStr: PLongString; {Cat}
+    procedure ReadStrV(var S: String); {Cat}
+    procedure ReadLongStrV(var S: LongString); {Cat}
     procedure Reset;
     procedure Seek(Pos: Longint); virtual;
     function  StrRead: PChar;
@@ -270,6 +294,7 @@ type
     procedure Truncate; virtual;
     procedure Write(const Buf; Count: Sw_Word); virtual;
     procedure WriteStr(P: PString);
+    procedure WriteLongStr(P: PLongString);
     function  Eof: Boolean; {-$VOL}
     procedure DoOpen(OpenMode: Word); virtual;
     procedure Close; virtual;
@@ -387,6 +412,7 @@ const
 
 implementation
 uses
+  Commands{Cat},
   Advance {OPSYS},
 {$IFDEF Windows} WinProcs,OMemory,
 {$ELSE}          Memory,            {$ENDIF}
@@ -562,6 +588,9 @@ var
   ObjType: Word; {было AWord}
   P: PStreamRec;
   O: PObject;
+{$IFDEF LOGOBJLOADSTORE}
+  F: Text;
+{$ENDIF}
 begin
   {$IFNDEF CNPRG} Read(Magic, SizeOf(Magic)); {$ENDIF}
   Read(ObjType, SizeOf(ObjType));
@@ -574,6 +603,26 @@ begin
   if (ObjType <> 0) then begin
     P:=StreamTypes;
     while (P <> nil) and (P^.ObjType <> ObjType) do P := P^.Next;
+{Cat}
+{$IFDEF LOGOBJLOADSTORE}
+    if IOResult <> 0 then
+      ;
+    System.Assign(F, 'stream.log');
+    System.Append(F);
+    if (TypeOf(self) = TypeOf(TDosStream)) or (TypeOf(self) = TypeOf(TBufStream)) then
+      System.Write(F, PDosStream(@self)^.FName)
+    else
+      System.Write(F, 'non-file stream');
+    System.Write(F, ': Load ObjType=',ObjType);
+    if (P = Nil) or (ObjType=0) then
+      System.Writeln(F, ' (UNKNOWN OBJECT)')
+    else
+      System.Writeln(F, ' (',P^.ObjName,')');
+    System.Close(F);
+    if IOResult <> 0 then
+      ;
+{$ENDIF}
+{/Cat}
     If (P = nil) then begin
       Error(stGetError, ObjType); Get:=Nil;
     end else
@@ -650,6 +699,9 @@ var
   {$IFDEF BIT_16}
   VmtPtr: ^Word;     Link: Word;    {$ELSE}
   VmtPtr: ^LongInt;  Link: LongInt; {$ENDIF}
+{$IFDEF LOGOBJLOADSTORE}
+  F: Text;
+{$ENDIF}
 begin
   VmtPtr:=Pointer(P);
   ObjType:=0;
@@ -673,6 +725,26 @@ begin
       ObjType:=Q^.ObjType;
   end;
   {$IFNDEF CNPRG} Magic:=$7C1B; Write(Magic, SizeOf(Magic)); {$ENDIF}
+{Cat}
+{$IFDEF LOGOBJLOADSTORE}
+  if IOResult <> 0 then
+    ;
+  System.Assign(F, 'stream.log');
+  System.Append(F);
+    if (TypeOf(self) = TypeOf(TDosStream)) or (TypeOf(self) = TypeOf(TBufStream)) then
+    System.Write(F, PDosStream(@self)^.FName)
+  else
+    System.Write(F, 'non-file stream');
+  System.Write(F, ': Store ObjType=',ObjType);
+  if (Q = Nil) or (ObjType=0) then
+    System.Writeln(F, ' (UNKNOWN OBJECT)')
+  else
+    System.Writeln(F, ' (',Q^.ObjName,')');
+  System.Close(F);
+  if IOResult <> 0 then
+    ;
+{$ENDIF}
+{/Cat}
   Write(ObjType, SizeOf(ObjType));
   If ObjType <> 0 then begin
     CallPointerMethod(Q^.Store,P, @Self);
@@ -724,20 +796,127 @@ begin
   Abstract;
 end;
 
+{Cat: переписал ReadStr для совместимости с AnsiString
+      добавил ReadLongStr
+      добавил ReadStrV
+      добавил ReadLongStrV
+  !!  в данных процедурах в любой момент возможны изменения  !!
+      при изменении обязательно согласовать со следующими процедурами:
+        Advance1.NewStr
+        Advance1.DisposeStr
+        Advance1.NewLongStr
+        Advance1.DisposeLongStr
+        WinClpVP.Str2Collection}
 function TStream.ReadStr: PString;
 var
-  L: Byte;
+  L: {$IFDEF USEANSISTRING} LongInt {$ELSE} Byte {$ENDIF};
   P: PString;
 begin
-  Read(L, 1);
-  if L > 0 then begin
-    GetMem(P, L + 1);
-    SetLength(P^, L);
-    Read(P^[1], L);
-    ReadStr:=P;
-  end else
+  Read(L, SizeOf(L));
+  if L > 0 then
+{$IFDEF USEANSISTRING}
+    if L > MaxReasonableStringLength then
+      begin
+        New(P);
+        SetLength(P^, MaxReasonableStringLength);
+        Read(P^[1], MaxReasonableStringLength);
+        Seek(Position-MaxReasonableStringLength+L);
+        ReadStr:=P;
+      end
+    else
+{$ENDIF}
+      begin
+{$IFDEF USEANSISTRING}
+        New(P);
+{$ELSE}
+        GetMem(P, L+1);
+{$ENDIF}
+        SetLength(P^, L);
+        Read(P^[1], L);
+        ReadStr:=P;
+      end
+  else
     ReadStr:=nil;
 end;
+
+function TStream.ReadLongStr: PLongString;
+var
+  L: {$IFDEF USELONGSTRING} LongInt {$ELSE} Byte {$ENDIF};
+  P: PLongString;
+begin
+  Read(L, SizeOf(L));
+  if L > 0 then
+    if L > MaxLongStringLength then
+      begin
+{$IFDEF USELONGSTRING}
+        New(P);
+{$ELSE}
+        GetMem(P, MaxLongStringLength+1);
+{$ENDIF}
+        SetLength(P^, MaxLongStringLength);
+        Read(P^[1], MaxLongStringLength);
+        Seek(Position-MaxLongStringLength+L);
+        ReadLongStr:=P;
+      end
+    else
+      begin
+{$IFDEF USELONGSTRING}
+        New(P);
+{$ELSE}
+        GetMem(P, L+1);
+{$ENDIF}
+        SetLength(P^, L);
+        Read(P^[1], L);
+        ReadLongStr:=P;
+      end
+  else
+    ReadLongStr:=nil;
+end;
+
+procedure TStream.ReadStrV(var S: String);
+var
+  L: {$IFDEF USEANSISTRING} LongInt {$ELSE} Byte {$ENDIF};
+begin
+  Read(L, SizeOf(L));
+  if L > 0 then
+{$IFDEF USEANSISTRING}
+    if L > MaxReasonableStringLength then
+      begin
+        SetLength(S, MaxReasonableStringLength);
+        Read(S[1], MaxReasonableStringLength);
+        Seek(Position-MaxReasonableStringLength+L);
+      end
+    else
+{$ENDIF}
+      begin
+        SetLength(S, L);
+        Read(S[1], L);
+      end
+  else
+    S := '';
+end;
+
+procedure TStream.ReadLongStrV(var S: LongString);
+var
+  L: {$IFDEF USELONGSTRING} LongInt {$ELSE} Byte {$ENDIF};
+begin
+  Read(L, SizeOf(L));
+  if L > 0 then
+    if L > MaxLongStringLength then
+      begin
+        SetLength(S, MaxLongStringLength);
+        Read(S[1], MaxLongStringLength);
+        Seek(Position-MaxLongStringLength+L);
+      end
+    else
+      begin
+        SetLength(S, L);
+        Read(S[1], L);
+      end
+  else
+    S := '';
+end;
+{/Cat}
 
 procedure TStream.Reset;
 begin
@@ -790,12 +969,57 @@ begin
   Abstract;
 end;
 
+{Cat: переписал WriteStr для совместимости с AnsiString
+      добавил WriteLongStr
+  !!  в данных процедурах в любой момент возможны изменения  !!
+      при изменении обязательно согласовать со следующими процедурами:
+        Advance1.NewStr
+        Advance1.DisposeStr
+        Advance1.NewLongStr
+        Advance1.DisposeLongStr
+        WinClpVP.Str2Collection}
 procedure TStream.WriteStr(P: PString);
-const
-  Empty: String[1] = '';
+var
+  L: {$IFDEF USEANSISTRING} LongInt {$ELSE} Byte {$ENDIF};
 begin
-  if P <> nil then Write(P^, Length(P^) + 1) else Write(Empty, 1);
+  if P <> nil then
+    begin
+{$IFDEF USEANSISTRING}
+      L := Length(P^);
+      Write(L, 4);
+      Write(P^[1], L);
+{$ELSE}
+      Write(P^[0], Length(P^)+1);
+{$ENDIF}
+    end
+  else
+    begin
+      L := 0;
+      Write(L, SizeOf(L));
+    end;
 end;
+
+procedure TStream.WriteLongStr(P: PLongString);
+var
+  L: {$IFDEF USELONGSTRING} LongInt {$ELSE} Byte {$ENDIF};
+begin
+  if P <> nil then
+    begin
+{$IFDEF USELONGSTRING}
+      L := Length(P^);
+      Write(L, 4);
+      Write(P^[1], L);
+{$ELSE}
+      Write(P^[0], Length(P^)+1);
+{$ENDIF}
+    end
+  else
+    begin
+      L := 0;
+      Write(L, SizeOf(L));
+    end
+end;
+{/Cat}
 
 function TStream.Eof: boolean;
 begin

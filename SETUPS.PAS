@@ -63,7 +63,7 @@ USES
   Startup,
   Validate;
 
-{                                System Setup
+{                                System Setup                                }
 {----------------------------------------------------------------------------}
 TYPE
   TSysData = record
@@ -73,8 +73,8 @@ TYPE
     Temp: String;
     Drives: TTextListboxRec;
     Current: Word;
-    LFNContainer : Word;  {Radiobuttons}
-    LFNCache : String[3]; {Inputline}
+    CopyLimitBuf: String[5];
+    ForceDefArch: String[3];
   end;
 
   PSysDialog =^TSysDialog;
@@ -200,6 +200,9 @@ begin
  Dispose(D,Done);
  HandleChDirCommand := ((SystemData.Options{$IFDEF VIRTUALPASCAL}shl 3{$ENDIF}) and ossHandleChDirCommand) <> 0;
  SystemDataOpt      := SystemData.Options;
+ CopyLimit          := SystemData.CopyLimitBuf;
+ ForceDefaultArchiver := SystemData.ForceDefArch;
+
  SaveDnIniSettings(nil);
  DoneIniEngine;
 end;
@@ -241,8 +244,8 @@ begin
     if InterfaceData.Options and ouiClock = 0 then
       if Clock^.GetState(sfVisible) then Clock^.Hide;
   end;
-  DriveInfoType := InterfaceData.DrvInfType;
   InterfaceDataOpt := InterfaceData.Options;
+  DriveInfoType    := InterfaceData.DrvInfType;
   SaveDnIniSettings(nil);
   DoneIniEngine;
 end;
@@ -302,6 +305,7 @@ end;
 procedure MouseSetup;
 begin
   if ExecResource( dlgMouseSetup, MouseData ) <> cmOK then Exit;
+  messagebox(ItoS(MouseData.Options), nil, mfOKButton);
   if MouseVisible xor (MouseData.Options and omsCursor <> 0) then begin
     DoneEvents;
     InitEvents;
@@ -408,9 +412,26 @@ Begin
 end;
 
 function SetupColumnDefaultsArvd: Boolean;
+ var i: Byte;
 Begin
+{JO}
+  with ColumnsDefaultsArvd do  {JO: поскольку у панели арвида нет параметров }
+    begin                      {    "показ даты и времени создания и последнего }
+      for i := 1 to 10 do      {    доступа", и нет соотв. чекбоксов, то надо пропустить соотв. байты}
+        if (Params[i].Param and $100 <> 0) then Params[i].Param := (Params[i].Param and $F) or $10
+          else Params[i].Param := (Params[i].Param and $F);
+    end;
+{/JO}
  SetupColumnDefaultsArvd :=
   ExecResource(dlgSetupColumnsArvd, ColumnsDefaultsArvd) = cmOK;
+{JO}
+  with ColumnsDefaultsArvd do
+    begin
+      for i := 1 to 10 do
+        if (Params[i].Param and $10 <> 0) then Params[i].Param := (Params[i].Param and $F) or $100
+          else Params[i].Param := (Params[i].Param and $F);
+    end;
+{/JO}
 End;
 
 PROCEDURE TCurrDriveInfo.HandleEvent;
@@ -441,14 +462,14 @@ var
   C: Char;
 begin
   LocalData := SystemData;
-  New( SysData.Drives.List, Init( 26, 1 ));
+  New( SysData.Drives.List, Init( 26, 1, False ));
   For C := 'A' to 'Z' do SysData.Drives.List^.Insert( NewStr( C + ':' ));
   Move( SystemData, SysData, SizeOf( SysData.Options ) + SizeOf( SysData.Mode1 )*2 );
   SysData.Temp := SystemData.Temp;
   SysData.Drives.Focus := 2;
   SysData.Current := LocalData.Drives[ 'C' ];
-  SysData.LFNContainer := SystemData.LFNContainer;
-  SysData.LFNCache := SystemData.LFNCache;
+  SysData.CopyLimitBuf := ItoS(SystemData.CopyLimitBuf);
+  SysData.ForceDefArch := SystemData.ForceDefArch;
   SetData( SysData );
 end;
 
@@ -471,8 +492,8 @@ begin
   LocalData.Mode1        := Data.Mode1;
   LocalData.Mode2        := Data.Mode2;
   LocalData.Temp         := Data.Temp;
-  LocalData.LFNContainer := Data.LFNContainer;
-  LocalData.LFNCache     := Data.LFNCache;
+  LocalData.CopyLimitBuf := StoI(Data.CopyLimitBuf);
+  LocalData.ForceDefArch := Data.ForceDefArch;
 end;
 
 
@@ -493,7 +514,7 @@ FUNCTION TMouseBar.DataSize; assembler;
 {$IFNDEF BIT_32}
 asm mov ax,2 end;
 {$ELSE}
-asm mov eax,2 end;
+asm mov eax,4 end;
 {$ENDIF}
 
 PROCEDURE TMouseBar.SetData;
@@ -656,9 +677,9 @@ begin
   Data := SaversData;
   Data.Available.Focus := 0;
   Data.Selected.Focus := 0;
-  New( Data.Available.List, Init( 5, 5 ));
+  New( Data.Available.List, Init( 5, 5, False ));
   If Data.Selected.List = NIL
-    then New( Data.Selected.List, Init( 5, 5 ));
+    then New( Data.Selected.List, Init( 5, 5, False ));
   With Data.Available.List^ do begin
     Insert( NewStr( #249' Star flight' ));
     Insert( NewStr( #249' Flash-light' ));

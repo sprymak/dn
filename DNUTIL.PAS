@@ -45,12 +45,12 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
+{Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
 
 unit DNUtil;
 
 interface
-uses
-     Dos,
+uses Dos,
 
      LFN,    {DataCompBoy}
      {$IFNDEF OS2}LFNCol,{$ENDIF} {DataCompBoy}
@@ -1126,9 +1126,9 @@ begin
       begin lAssignFile(F, PJ^); lSetFAttr(F, $20);  lEraseFile(F); end
       else
        begin
-        TempFile := Copy(PJ^,2,255);
+        TempFile := Copy(PJ^,2,MaxStringLength);
         QQ := Pos('|', TempFile); Dec(QQ);
-        if QQ>0 then Q:=Copy(TempFile, QQ+2, 255) else Q:='';
+        if QQ>0 then Q:=Copy(TempFile, QQ+2, MaxStringLength) else Q:='';
         QQ := QQ and 255; {BP bugfix by piwamoto}
         If Not ExistFile(TempFile) then TempFile:=GetfURZ(Copy(PJ^,2,QQ));
         If Not ExistFile(TempFile) then TempFile:=GetfURZ2(Copy(PJ^,2,QQ));
@@ -1154,8 +1154,8 @@ begin
                      end;
         RunMenu := Off;
        end;
-  S^.Read(FreeStr,1); S^.Read(FreeStr[1],length(FreeStr));
-  S^.Read(FreeStr,1); S^.Read(FreeStr[1],length(FreeStr));
+    S^.ReadStrV(FreeStr); {S^.Read(FreeStr,1); S^.Read(FreeStr[1],length(FreeStr));} {Cat}
+    S^.ReadStrV(FreeStr); {S^.Read(FreeStr,1); S^.Read(FreeStr[1],length(FreeStr));} {Cat}
     S^.Read(SM, Sizeof(SM));
     S^.Read( OldAppSize, SizeOf( Size ));
     S^.Read( OldDskSize, SizeOf( Size ));
@@ -1475,7 +1475,7 @@ db:
 begin
    I:=PosChar('|', FileName);
    If I>0 then begin
-    RN:=Copy(FileName, I+1, 255);
+    RN:=Copy(FileName, I+1, MaxStringLength);
     SetLength(FileName, I-1);
     J:=PosChar(';', FileName);
     If J>0 then
@@ -2005,6 +2005,7 @@ $140A..$FFFE: R.VM := 6;
   LoadPalFromFile(FN);
  end; {JO}
 
+{$IFNDEF Win32}
  function TryRunOS2(S: PString): Boolean;
   var B: Boolean;
       ST: SessionType;
@@ -2029,26 +2030,26 @@ $140A..$FFFE: R.VM := 6;
              Exit;
    end;
    TryRunOS2 := On;
-   RunOS2Command(Copy(S^,2,255), B, ST);
+   RunOS2Command(Copy(S^,2,MaxStringLength), B, ST);
    CmdLine.StrModified := On;
    Message(CommandLine, evKeyDown, kbDown, nil);
    ClearEvent(Event);
  end;
+{$ENDIF}
 
  function ExecCommandLine: Boolean;
-  var S, SD: String; {AK155}
+  var S, {$IFDEF RecodeWhenDraw}S1,{$ENDIF}SD: String; {AK155}
       up: TUserParams;
  begin
   ExecCommandLine := Off;
  {S := '';}
   CommandLine^.GetData(S);
-{AK155 очистка комстроки нужна всегда, поэтому она вынесена в общую
-часть. Очищать лучше перед выполнением, а не после, так как в
-ExecString она запоминается и восстанавливается. Аналогичная вставка
-сделана в dnexec.ExecFile.RunCommand }
-  SD:=''; CommandLine^.SetData(SD); CommandLine^.DrawView;
-{AK155}
-  if (DelSpaces(S) = '') then Exit;
+
+  if (DelSpaces(S) = '') then
+    begin
+      SD:=''; CommandLine^.SetData(SD); CommandLine^.DrawView; {JO}
+      Exit;
+    end;
   ExecCommandLine := On;
   if HandleChDirCommand then
    begin
@@ -2057,10 +2058,10 @@ ExecString она запоминается и восстанавливается. Аналогичная вставка
     if (S[1] in ['c','C']) and (S[2] in ['d','D']) and (S[3]=' ')
     then
      begin
-      DelFC(S); DelFC(S); DelLeft(S); S:=DelSquashes(S);
+      System.Delete(S, 1, 2); {DelFC(S); DelFC(S);} DelLeft(S); S:=DelSquashes(S);
       if PathExist(S) then
        Message(Application, evBroadcast, cmChangeDirectory, @S);
-{AK155      S:='';CommandLine^.SetData(S);CommandLine^.DrawView;}
+      SD:=''; CommandLine^.SetData(SD); CommandLine^.DrawView; {JO}
       exit;
      end;
     if (Length(S) = 2) and ValidDrive(UpCase(S[1])) and (S[2]=':') then
@@ -2068,7 +2069,7 @@ ExecString она запоминается и восстанавливается. Аналогичная вставка
      if s[1]='*' then s:=cTEMP_;
      {Cat} S[1]:=UpCase(S[1]); {/Cat}
      Message(Desktop, evBroadcast, cmChangeDrv, @S);
-{AK155     S:='';CommandLine^.SetData(S);CommandLine^.DrawView;}
+     SD:=''; CommandLine^.SetData(SD); CommandLine^.DrawView; {JO}
      exit;
     end;
     S := SD; {AK155 CommandLine^.GetData(S);}
@@ -2076,9 +2077,24 @@ ExecString она запоминается и восстанавливается. Аналогичная вставка
 {$IFDEF OS_DOS} {AK155}
   if not CheckExit then begin ClearEvent(Event); Exit end;
 {$ENDIF}
+{$IFNDEF Win32}
   if TryRunOS2(@S) then Exit;
+{$ENDIF}
+{AK155 очистка комстроки нужна всегда, поэтому она вынесена в общую         }
+{      часть. Очищать лучше перед выполнением, а не после, так как в        }
+{      ExecString она запоминается и восстанавливается. Аналогичная вставка }
+{      сделана в dnexec.ExecFile.RunCommand                                 }
+{JO:  перенёс очистку комстроки после TryRunOS2, так как иначе оно но срабатывает, и при }
+{     запуске набранного в коммандлайне не получается запустить в отдельной сессии       }
+  SD:=''; CommandLine^.SetData(SD); CommandLine^.DrawView;
+{AK155}
   Message(Desktop, evBroadcast, cmGetCurrentPosFiles, nil);
+{$IFDEF RecodeWhenDraw}
+  S1 := OemToCharStr(S);
+  ExecString(@S1, #13 + CharToOemStr(ActiveDir)+'>' + S);
+{$ELSE}
   ExecString(@S, #13 + ActiveDir+'>' + S);
+{$ENDIF}
 {AK155     S:='';CommandLine^.SetData(S);CommandLine^.DrawView;}
  end;
 
@@ -2091,8 +2107,11 @@ ExecString она запоминается и восстанавливается. Аналогичная вставка
    lFSplit(CnvString(CurFileActive), FreeStr, Nm, Xt);
    if InExtFilter(CnvString(CurFileActive), Executables) then ST := Nm+Xt+' ';
    if InputBox(GetString(dlExecDOScmdHdr), GetString(dlExecDOScmdLine), ST, 128, hsExecDOSCmd) <> cmOK then Exit;
+  {$IFNDEF Win32}
     if not TryRunOS2(@ST) {$IFDEF OS_DOS} and CheckExit {$ENDIF} {JO}
-     then ExecString(@St, #13#10 + ActiveDir+'>' + ST);
+     then
+  {$ENDIF}
+          ExecString(@St, #13#10 + ActiveDir+'>' + ST);
    DisposeStr(CurFileActive); CurFileActive := nil;
    DisposeStr(CurFilePassive); CurFilePassive := nil;
  end;
@@ -2122,14 +2141,6 @@ ExecString она запоминается и восстанавливается. Аналогичная вставка
   CommandLine^.Locate(R);
  end;
 
- procedure GetFromClip;
- begin
-   if SystemData.Options and ossUseSysClip <> 0 then SyncClipOut(On);
-   if (MicroEd.Clipboard = nil) or (MicroEd.Clipboard^.At(0) = nil) then
-    PString(Event.InfoPtr)^ := '' else
-     PString(Event.InfoPtr)^ := PString(MicroEd.Clipboard^.At(0))^;
- end;
-
  procedure RSearchAdvance;
      begin
       if ExecResource(dlgAdvanceSearch, AdvanceSearchData) = cmOK then
@@ -2141,16 +2152,53 @@ ExecString она запоминается и восстанавливается. Аналогичная вставка
        ClearEvent(Event);
      end;
 
+{Cat: переписал для поддержки длинных строк в Clipboard-е}
+ procedure GetFromClip;
+ begin
+   if SystemData.Options and ossUseSysClip <> 0 then
+     SyncClipOut(On);
+   if (MicroEd.Clipboard = nil) or (MicroEd.Clipboard^.At(0) = nil) then
+     PString(Event.InfoPtr)^ := ''
+   else
+     PString(Event.InfoPtr)^ := PLongString(MicroEd.Clipboard^.At(0))^;
+ end;
+
+ procedure GetFromClipLong;
+ begin
+   if SystemData.Options and ossUseSysClip <> 0 then
+     SyncClipOut(On);
+   if (MicroEd.Clipboard = nil) or (MicroEd.Clipboard^.At(0) = nil) then
+     PLongString(Event.InfoPtr)^ := ''
+   else
+     PLongString(Event.InfoPtr)^ := PLongString(MicroEd.Clipboard^.At(0))^;
+ end;
+
  procedure PutInClip;
  begin
-   if MicroEd.Clipboard <> nil then Dispose(MicroEd.Clipboard,Done);
-   MicroEd.Clipboard := New(PLineCollection, Init(1,1));
-   MicroEd.Clipboard^.Insert(NewStr(PString(Event.InfoPtr)^));
-   if SystemData.Options and ossUseSysClip <> 0 then SyncClipIn;
+   if MicroEd.Clipboard <> nil then
+     Dispose(MicroEd.Clipboard,Done);
+   MicroEd.Clipboard := New(PLineCollection, Init(1,1,True));
+   MicroEd.Clipboard^.Insert(NewLongStr(PString(Event.InfoPtr)^));
+   if SystemData.Options and ossUseSysClip <> 0 then
+     SyncClipIn;
    if ClipBoardStream<>nil then
-    ClipBoardStream^.Seek(Max(ClipBoardStream^.GetPos-1, 0));
+     ClipBoardStream^.Seek(Max(ClipBoardStream^.GetPos-{$IFDEF USELONGSTRING} 4 {$ELSE} 1 {$ENDIF}, 0));
    CopyLines2Stream(MicroEd.Clipboard, ClipBoardStream);
  end;
+
+ procedure PutInClipLong;
+ begin
+   if MicroEd.Clipboard <> nil then
+     Dispose(MicroEd.Clipboard,Done);
+   MicroEd.Clipboard := New(PLineCollection, Init(1,1,True));
+   MicroEd.Clipboard^.Insert(NewLongStr(PLongString(Event.InfoPtr)^));
+   if SystemData.Options and ossUseSysClip <> 0 then
+     SyncClipIn;
+   if ClipBoardStream<>nil then
+     ClipBoardStream^.Seek(Max(ClipBoardStream^.GetPos-{$IFDEF USELONGSTRING} 4 {$ELSE} 1 {$ENDIF}, 0));
+   CopyLines2Stream(MicroEd.Clipboard, ClipBoardStream);
+ end;
+{/Cat}
 
  procedure DoQuickChange;
   var R: TRect;
@@ -2231,15 +2279,22 @@ ExecString она запоминается и восстанавливается. Аналогичная вставка
 
     procedure DoExecFile;
     begin
-      if not TryRunOS2(PString(Event.InfoPtr)) {$IFDEF OS_DOS} and CheckExit {$ENDIF} {JO}
-         and not ExecCommandLine then ExecFile(PString(Event.InfoPtr)^);
+      if
+       {$IFNDEF Win32}
+        not TryRunOS2(PString(Event.InfoPtr)) {$IFDEF OS_DOS} and CheckExit {$ENDIF} {JO}
+         and
+       {$ENDIF}
+             not ExecCommandLine then ExecFile(PString(Event.InfoPtr)^);
       CE;
     end;
 
     procedure DoExecString;
     begin
+     {$IFNDEF Win32}
       if not TryRunOS2(PString(Event.InfoPtr)) {$IFDEF OS_DOS} and CheckExit {$ENDIF} {JO}
-       then ExecString(PString(Event.InfoPtr), '');
+       then
+     {$ENDIF}
+            ExecString(PString(Event.InfoPtr), '');
       CE;
     end;
 
@@ -2260,7 +2315,7 @@ ExecString она запоминается и восстанавливается. Аналогичная вставка
        if (Confirms and cfChaneLngWarning <> 0) then
           Msg(dlChangeLngWarning, nil , mfWarning or mfOkButton);
 {$ENDIF}
-        L.Init(5,5);
+        L.Init(5,5,False);
         S:=SourceDir; if S[Length(S)]<>'\' then S:=S+'\';
         lFindFirst(S+'*.LNG',AnyFile,SR);
         while DosError=0 do begin
@@ -2358,8 +2413,10 @@ FUNCTION GetfURZ2(const s: string): string;
 begin
    case Event.Command of
      cmFirstTimePanel: OpenWindow( False );
-     cmPutInClipboard: PutInClip;
      cmGetFromClipboard: GetFromClip;
+     cmGetFromClipboardLong: GetFromClipLong;
+     cmPutInClipboard: PutInClip;
+     cmPutInClipboardLong: PutInClipLong;
      cmSearchAdvance: SearchAdvance;
      cmListOfDirs: DoQuickChange;
      {$IFDEF DiskFormat}
@@ -2431,7 +2488,7 @@ begin
                              if W>0
                               then InsertWindow(New(PFileWindow,
                                                     Init(Copy(ST, 1, W-1),
-                                                         Copy(ST,W+1,255),
+                                                         Copy(ST,W+1,MaxStringLength),
                                                          Event.Command = cmHexView)))
                               else InsertWindow(New(PFileWindow,
                                                     Init(ST, ST,
@@ -2510,15 +2567,15 @@ begin
      cmViewFilter: ViewFile(Off, On, CnvString(Event.InfoPtr)); {JO для распознания фильтрованных файлов как архивов}
      cmIntFileView: ViewFile(On, Off, CnvString(Event.InfoPtr));
      cmIntFileEdit: EditFile(Off, CnvString(Event.InfoPtr));
-     cmEditQuickRun: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'dn.xrn');
-     cmExtFileEdit: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'dn.ext');
+     cmEditQuickRun: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*MaxStringLength)+'dn.xrn');
+     cmExtFileEdit: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*MaxStringLength)+'dn.ext');
      cmMenuFileEdit: EditFile(True, SourceDir+'dn.mnu');
      cmLocalMenuFileEdit: EditFile(True, 'dn.mnu');
      cmEditHGL: EditFile(True, SourceDir+'dn.hgl');
      cmEditSPF: EditFile(True, SourceDir+'dn.spf');
      cmEditINI: EditFile(True, SourceDir+'dn.ini');
-     cmExternalViewers: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'dn.vwr');
-     cmExternalEditors: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*255)+'dn.edt');
+     cmExternalViewers: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*MaxStringLength)+'dn.vwr');
+     cmExternalEditors: EditFile(True, Copy(SourceDir,1,Byte(ShiftState and 3 = 0)*MaxStringLength)+'dn.edt');
      cmShowUserScreen: ShowUserScreen;
 {$IFDEF OS_DOS}
       {-DataCompBoy-}
@@ -2555,9 +2612,9 @@ begin
   begin
         CC := 0;
         PJ := TempFileSWP;
-        TempFile := Copy(PJ,2,255);
+        TempFile := Copy(PJ,2,MaxStringLength);
         QQ := Pos('|', TempFile); Dec(QQ);
-        if QQ>0 then Q:=Copy(TempFile, QQ+2, 255) else Q:='';
+        if QQ>0 then Q:=Copy(TempFile, QQ+2, MaxStringLength) else Q:='';
         QQ := QQ and 255; {BP bugfix by piwamoto}
         If Not ExistFile(TempFile) then TempFile:=GetfURZ(Copy(PJ,2,QQ));
         If Not ExistFile(TempFile) then TempFile:=GetfURZ2(Copy(PJ,2,QQ));
@@ -2658,7 +2715,7 @@ begin
         cmNewStrColl:
                    begin
                       ClearEvent(Event);
-                      Event.InfoPtr := New(PStringCollection, Init($80,$40));
+                      Event.InfoPtr := New(PStringCollection, Init($80,$40,False));
                    end;
 {$IFDEF DiskFormat}
         cmRFormat: begin
@@ -2857,7 +2914,7 @@ begin
   I := FindParam('/E');
   if I > 0 then
    begin
-    S := Copy(ParamStr(I), 3, 255);
+    S := Copy(ParamStr(I), 3, MaxStringLength);
     ExecString(@S, '');
    end
  end;

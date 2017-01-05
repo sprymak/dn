@@ -79,7 +79,7 @@ begin
          if PF^.Attr and Directory <> 0 then S := GetString(dlEraseConfirmDir)
                                         else S := GetString(dlEraseConfirm1);
 {$IFNDEF OS2}
-         S := S + '"' + Cut(GetLFN(PF^.LFN), 40)  + '"' + ' ?';
+         S := S + '"' + {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(Cut(GetLFN(PF^.LFN), 40))  + '"' + ' ?';
 {$ELSE}
          S := S + '"' + Cut(PF^.Name, 40)  + '"' + ' ?';
 {$ENDIF}
@@ -176,8 +176,8 @@ procedure EraseFiles;
    DOSDelDir := false;
    Abort:=false;
    Params.RC := 0;
-   new(DC, Init($10, $10));
-   new(TD, Init($10, $10));
+   new(DC, Init($10, $10, False));
+   new(TD, Init($10, $10, False));
    DC^.Insert(NewStr(FreeStr));
 
    While DC^.Count>0 do
@@ -352,7 +352,9 @@ procedure EraseFiles;
   end;
 
   var Fls: PCollection;
+    {$IFDEF OS_DOS}
       Flush: Boolean;
+    {$ENDIF}
     {$IFDEF VIRTUALPASCAL}
       Ask: Integer;
     {$ENDIF}
@@ -571,14 +573,16 @@ LLL:             lSetFAttr(F, Archive); ClrIO; lEraseFile(F);
   end;
   {$ENDIF}
   DrivesSet := [];
-
+{$IFDEF OS_DOS}
   Flush := ((SystemData.Options{$IFDEF VIRTUALPASCAL}shl 3{$ENDIF}) and ossFlushDsk <> 0);
 
   if Flush then
   begin
     PInfo^.ClearInterior;
     InfoWrite(1, GetString(dlFlushingBuffers));
-  end else Dispose(PInfo,Done);
+  end else
+{$ENDIF}
+           Dispose(PInfo,Done);
 
   for I := 0 to Files^.Count-1 do
       DrivesSet := [UpCase(PFileRec(Files^.At(I))^.Owner^[1])] + DrivesSet;
@@ -591,16 +595,16 @@ LLL:             lSetFAttr(F, Archive); ClrIO; lEraseFile(F);
         RereadDirectory(S);
       end;
   GlobalMessage(evCommand, cmRereadInfo, nil);
+{$IFDEF OS_DOS}
   if Flush then
   begin
-    {$IFNDEF NONBP}
     asm
      mov ah, 0dh
      int 21h
     end;
-    {$ENDIF}
     Dispose(PInfo,Done);
   end;
+{$ENDIF}
   Dec(SkyEnabled);
 end;
         {-DataCompBoy-}

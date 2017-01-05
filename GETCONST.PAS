@@ -220,11 +220,11 @@ var
             ParseMode := pmAlpha;
             V := S[ I ];
           end else If S[ I ] = '+' then begin
-            S := Copy( S, I + 1, 255 );
+            S := Copy( S, I + 1, MaxStringLength );
             W := W + CalcValue( S );
             Break;
           end else If S[ I ] = '-' then begin
-            S := Copy( S, I + 1, 255 );
+            S := Copy( S, I + 1, MaxStringLength );
             W := W - CalcValue( S );
             Break;
           end;
@@ -245,7 +245,7 @@ var
           end;
       end{ case };
     end{ while };
-    S := Copy( S, I, 255 );
+    S := Copy( S, I, MaxStringLength );
     CalcValue := W;
   end;
 
@@ -263,7 +263,7 @@ var I: Integer;
 begin
   I := 1;
   While ( I <= Length( S )) and ( S[ I ] = ' ' ) do Inc( I );
-  RemoveLeadSpaces := Copy( S, I, 255 );
+  RemoveLeadSpaces := Copy( S, I, MaxStringLength );
 end;
 
   function Ident( N: Integer ): String;
@@ -277,7 +277,7 @@ end;
     While ( I <= Length( S )) and ( S[ I ] in ( Alpha + Digits )) do Inc( I );
     Dec( I );
     Ident := Copy( S, N, I - N + 1 );
-    S := RemoveLeadSpaces( Copy( S, I + 1, 255 ));
+    S := RemoveLeadSpaces( Copy( S, I + 1, MaxStringLength ));
     US := UpStrg( S );
   end;
 
@@ -372,11 +372,11 @@ begin
                 P := Types^.FirstThat( @LookForType );
                 If P = NIL then Continue;
                 Eq := Pos( '=', S );
-                S := RemoveLeadSpaces( Copy( S, Eq + 1, 255 ));
-                US := RemoveLeadSpaces( Copy( US, Eq + 1, 255 ));
+                S := RemoveLeadSpaces( Copy( S, Eq + 1, MaxStringLength ));
+                US := RemoveLeadSpaces( Copy( US, Eq + 1, MaxStringLength ));
                 P^.Insert( New( PLngWord, Init( CalcValue( US ), ID )));
                 US := RemoveLeadSpaces( US );
-                If US[ 1 ] = ';' then US := Copy( US, 2, 255 );
+                If US[ 1 ] = ';' then US := Copy( US, 2, MaxStringLength );
                 Delete( S, 1, Length( S ) - Length( US ));
                 goto Reparse;
               end;

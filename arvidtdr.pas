@@ -69,24 +69,28 @@ var
       Lv: Integer;
       DD: TTdrDirCell;
       S: String;
+{$IFDEF USEANSISTRING}
+      SS: String;
+{$ELSE}
       SS: String[12];
+{$ENDIF}
 begin with AvtDr^ do begin
   Stream^.Status := stOK;
   Stream^.Seek(D.DirTableOfs);
   Stream^.Read(DD, SizeOf(DD));
   CurDirPos := Stream^.GetPos;
   S := CurDir; CurLevel := 0; CurDir := ''; Lv := 1;
-  if S[1] = '\' then DelFC(S);
+  if S[1] = '\' then Delete(S, 1, 1); {DelFC(S);}
   while S <> '' do
     begin
       SS := '';
       while (S[1] <> '\') and (S <> '') do
         begin
-          AddStr(SS, S[1]);
-          DelFC(S);
+          SS := SS+S[1]; {AddStr(SS, S[1]);}
+          Delete(S, 1, 1); {DelFC(S);}
           if Length(SS) = 12 then Break;
         end;
-      DelFC(S);
+      Delete(S, 1, 1); {DelFC(S);}
       SS := Norm12(SS); UpStr(SS); {JO ??? for OS/2}
          {AK155: нельзя убирать! При чем тут OS/2 к Арвиду? }
       Delete(SS, 9, 1);
@@ -123,7 +127,12 @@ var
     S: String;
     b: byte;
   begin with AvtDr^ do begin
+{$IFDEF USEANSISTRING}
+    SetLength(S, SizeOf(FF.Name));
+    Move(FF.Name, S[1], SizeOf(FF.Name));
+{$ELSE}
     S := FF.Name;
+{$ENDIF}
     Insert('.', S, 9);
 {    if (s[01] in [#0..#31]) or
        (s[02] in [#0..#31]) or
@@ -158,6 +167,7 @@ var
               begin
                  J := Stream^.GetPos;
                  Stream^.Seek(D.DescTableOfs+FF.Description-1);
+{Cat:warn AnsiString}
                  Stream^.Read(FreeStr, 2);
                  Stream^.Read(FreeStr[1], Length(FreeStr));
                  Stream^.Seek(J);
@@ -206,6 +216,9 @@ end end;
 procedure TdrEditDescription;
 var FF: TTdrFileCell;
     I, J: LongInt;
+{$IFDEF USEANSISTRING}
+    L: Byte;
+{$ENDIF}
    procedure ExpandStream;
      var B: Array [1..512] of Byte;
          I,J: LongInt;
@@ -240,7 +253,12 @@ begin with AvtDr^ do begin
         end else
         begin
           Stream^.Seek(D.DescTableOfs+FF.Description-1);
+{$IFDEF USEANSISTRING}
+          L := Length(S);
+          Stream^.Write(L,1);
+{$ELSE}
           Stream^.Write(S[0],1);
+{$ENDIF}
           I:=0;
           Stream^.Write(I, 1);
           Stream^.Write(S[1], Length(S));
@@ -254,7 +272,12 @@ begin with AvtDr^ do begin
       Stream^.Write(FF, SizeOf(FF));
       Inc(D.DescTableLen, Length(S)+2);
       Stream^.Seek(D.DescTableOfs+FF.Description-1);
+{$IFDEF USEANSISTRING}
+      L := Length(S);
+      Stream^.Write(L,1);
+{$ELSE}
       Stream^.Write(S[0],1);
+{$ENDIF}
       I:=0;
       Stream^.Write(I, 1);
       Stream^.Write(S[1], Length(S));

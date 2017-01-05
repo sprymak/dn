@@ -74,6 +74,7 @@ const
   RStrListMaker: TStreamRec = (
     ObjType: otStrListMaker;
     VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(TStrListMaker){$IFDEF OFFS}^{$ENDIF});
+    {$IFDEF LOGOBJLOADSTORE} ObjName : 'otStrListMaker'; {$ENDIF}
     Load: nil;
     Store: @TStrListMaker.Store);
 
@@ -106,7 +107,12 @@ begin
   end;
 end;
 
+{Cat: переделал для совместимости с AnsiString}
 procedure TStrListMaker.Put(Key: AWord; S: String);
+{$IFDEF USEANSISTRING}
+var
+  L: LongInt;
+{$ENDIF}
 begin
   if (Cur.Count = 16) or (Key <> Cur.Key + Cur.Count) then CloseCurrent;
   if Cur.Count = 0 then
@@ -115,9 +121,17 @@ begin
     Cur.Offset:=StrPos;
   end;
   Inc(Cur.Count);
+{$IFDEF USEANSISTRING}
+  L := Length(S);
+  Move(L, Strings^[StrPos], 4);
+  Move(S[1], Strings^[StrPos+4], L);
+  Inc(StrPos, L + 4);
+{$ELSE}
   Move(S, Strings^[StrPos], Length(S) + 1);
   Inc(StrPos, Length(S) + 1);
+{$ENDIF}
 end;
+{/Cat}
 
 procedure TStrListMaker.Store(var S: TStream);
 begin

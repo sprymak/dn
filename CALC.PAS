@@ -384,7 +384,7 @@ procedure TCalcInfo.HandleEvent;
    S1 := DelSpaces(S);
    if (S1[1] = '=') and (Length(S1) > 1) then
    begin
-    DelFC(S1);
+    Delete(S1, 1, 1); {DelFC(S1);}
     Error:=false;
    {EvalueError:=false;} {.11}
     CurCalcView:=CalcView;
@@ -1124,7 +1124,7 @@ begin
   Move(S[5], S[1], Length(S));
   I := Pos(':', S); If I=0 then I:=Pos(',', S);
   if GetCellCoord(System.Copy(S, 1, I-1), AFromX, AFromY) and
-     GetCellCoord(System.Copy(S, I+1,255), AToX, AToY) then begin
+     GetCellCoord(System.Copy(S, I+1,MaxStringLength), AToX, AToY) then begin
    Value:=0;
    Cells^.ForEach(@DoSum);
    GetCellValue:=True;
@@ -1137,7 +1137,7 @@ begin
   Move(S[5], S[1], Length(S));
   I := Pos(':', S); If I=0 then I:=Pos(',', S);
   if GetCellCoord(System.Copy(S, 1, I-1), AFromX, AFromY) and
-     GetCellCoord(System.Copy(S, I+1,255), AToX, AToY) then begin
+     GetCellCoord(System.Copy(S, I+1,MaxStringLength), AToX, AToY) then begin
    Value:=1;
    Cells^.ForEach(@DoMul);
    GetCellValue:=True;
@@ -1191,7 +1191,7 @@ var Err: Boolean;
        CurrentCalc.X := P^.Col; CurrentCalc.Y := P^.Row;
       {EvalueError:=false;}
        CurCalcView:=@Self;
-       P^.Value := Evalue(System.Copy(P^.S, 2, 255), AGetCellValue);
+       P^.Value := Evalue(System.Copy(P^.S, 2, MaxStringLength), AGetCellValue);
        Modify(P^.Col, P^.Row);
       end;
    end;
@@ -1377,7 +1377,7 @@ function ReformAddr(S1: String; X, Y, RX, RY: Word): String;
 begin
    X1 := 0;
    if S1[1] <> '@' then X := RX else X1 := 1;
-   if PosChar('@', System.Copy(S1, Byte(S1[1] = '@')+1, 255)) = 0
+   if PosChar('@', System.Copy(S1, Byte(S1[1] = '@')+1, MaxStringLength)) = 0
     then Y := RY else X1 := X1 or 2;
    S1 := GetCellName(X, Y);
    if X1 and 1 <> 0 then S1 := '@' + S1;
@@ -1583,7 +1583,7 @@ begin
      {EvalueError:=false;}
       Error:=false;
       CurCalcView:=@Self;
-      P^.Value := Evalue(System.Copy(P^.S, 2, 255), AGetCellValue);
+      P^.Value := Evalue(System.Copy(P^.S, 2, MaxStringLength), AGetCellValue);
       ModifyCell(P^.Col, P^.Row);
      end;
   end;
@@ -1652,7 +1652,7 @@ procedure TCalcView.SearchCell;
  begin
   While (K <= Length(S)) and not (S[K] in Signs) do Inc(K);
   Inc(L, K);
-  S := System.Copy(S, K, 255);
+  S := System.Copy(S, K, MaxStringLength);
  end;
 
 begin

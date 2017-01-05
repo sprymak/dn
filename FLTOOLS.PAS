@@ -228,13 +228,13 @@ function GetMaskSelection: String;
            i := PosLastDot(P1^.Name);
            FreeStr := Copy(P1^.Name, i+1, l-i);
 {$ELSE}
-          {if (P^.Drive^.Flags and psShowLongName) <> 0 then
-             begin}
+           if (P^.Drive^.Flags and psShowLongName) <> 0 then
+             begin
                l :=length(P1^.LFN);
                i := PosLastDot(P1^.LFN);
                FreeStr := Copy(P1^.LFN, i+1, l-i);
-            {end
-            else FreeStr := Copy(P1^.Name, 10, 3);}
+             end
+            else FreeStr := Copy(P1^.Name, 10, 3);
 {$ENDIF}
              DelRight(FreeStr); UpStr(FreeStr); Insert(' *.', FreeStr, 1);
 {AK155: только лишние тормоза, поскольку Duplicate=false
@@ -260,7 +260,7 @@ function GetMaskSelection: String;
 
 begin
   GetMaskSelection := '';
-  PC := New(PStringCollection, Init(20,20));
+  PC := New(PStringCollection, Init(20,20,False));
   GetMasks;
   if (PC^.Count>0) and (not P^.Drive^.NoMemory) then
   begin
@@ -286,7 +286,7 @@ begin
            begin
              FreeStr := CnvString(PC^.At(FItem));
              if I = cmNo then Insert('-', FreeStr, 1);
-           end else DelFC(FreeStr);
+           end else Delete(FreeStr, 1, 1); {DelFC(FreeStr);}
         if (I = cmNo) and (FreeStr <> '-*.*') and
            (FreeStr <> '-*')
          then Insert('*.*;', FreeStr, 1);
@@ -338,7 +338,7 @@ end;
         if Copy(FileMask, 1, 2) = '- ' then
            Replace(';'+Copy(FileMask, 3, 5)+';',';',S) else
            Replace(';- '+FileMask+';',';',S);
-        C := New(PStringCollection, Init(4,4));
+        C := New(PStringCollection, Init(4,4,False));
         repeat
           i := PosChar(';',S);
           if i = 0 then
@@ -453,9 +453,10 @@ begin
    SN := PF^.Name;
 {$ENDIF}
    if ((PF^.Attr and Directory = 0) or not Select) and
-      ((InFilter(UpStrg(SN), S) xor XORs)
+      (((InFilter(UpStrg(SN), S) xor XORs)
+       {$IFNDEF OS2} and ((P^.Drive^.Flags and psShowLongName) <> 0) {$ENDIF})
 {$IFNDEF OS2}
-      or (InFilter(MakeFileName(PF^.Name), S) xor XORs)
+      or ((InFilter(MakeFileName(PF^.Name), S) xor XORs) and ((P^.Drive^.Flags and psShowLongName) = 0))
 {$ENDIF}
       )
       then PF^.Selected := Select;
@@ -719,7 +720,16 @@ end;
 
         {-DataCompBoy-}
 procedure CM_SetAttributes;
- var D: record T: String[8]; D: String[10]; S, C: Word; end;
+ var D: record
+{$IFDEF USEANSISTRING}
+          T: String;
+          D: String;
+{$ELSE}
+          T: String[8];
+          D: String[10];
+{$ENDIF}
+          S, C: Word;
+        end;
      I,UU,DD: LongInt;
      K: Word;
      S: String;
@@ -747,11 +757,11 @@ procedure CM_SetAttributes;
           Exit;
         end;
         S1 := '';
-        while (not (S[1] in ['0'..'9'])) and (S<>'') do DelFC(S);
+        while (not (S[1] in ['0'..'9'])) and (S<>'') do Delete(S, 1, 1); {DelFC(S);}
         while (S[1] in ['0'..'9']) and (S<>'') do
         begin
-          AddStr(S1,S[1]);
-          DelFC(S);
+          S1 := S1+S[1]; {AddStr(S1,S[1]);}
+          Delete(S, 1, 1); {DelFC(S);}
         end;
         Val(s1,i,j);
         ok := j=0;
@@ -992,13 +1002,19 @@ begin
   PC := GetSelection(P, Off);
   if PC = nil then Exit;
   if PC^.Count = 1 then
-    S := PFileRec(PC^.At(0))^.Name
+    S := {$IFNDEF OS2}MakeFileName{$ENDIF}(PFileRec(PC^.At(0))^.Name)
   else if P^.Drive^.DriveType = dtDisk then
     S := GetName(P^.DirectoryName)
   else
     S := '';
+{Cat}
+(*
   FSplit(S, Dir, S, Ext); {AK155: не уверен, что это нужно }
   MakeArchive(S, PC, Off, P);
+*)
+  FSplit(S, Dir, Name, Ext); {AK155: не уверен, что это нужно }
+  MakeArchive(Name, PC, Off, P);
+{/Cat}
   PC^.DeleteAll;
 end;
         {-DataCompBoy-}
@@ -1249,7 +1265,6 @@ procedure CM_RenameSingleL;
       P: PFilePanelRoot absolute AFP;
       Event: PEvent absolute PEV;
       ScrollBarValue: Integer;
-      U: lFile;
 
 begin
   if (P^.Files = nil) then Exit;
@@ -1274,7 +1289,10 @@ begin
   Nm := S;
  {$ENDIF}
   S2 := S;
-  R.Assign(0,0,P^.Drive^.LFNLen+1,1);
+  if P^.Drive^.LFNLen < 250 then
+      R.Assign(0,0,P^.Drive^.LFNLen+1,1)
+    else
+      R.Assign(P^.Drive^.CalcLengthWithoutName,0,255,1);
   R.Move(P^.LastCurPos.X, P^.LastCurPos.Y);
   R.Move(P^.Origin.X, 0); dec(R.A.X);
   if R.B.X > P^.Size.X+P^.Origin.X+1 then R.B.X := P^.Size.X+P^.Origin.X+1;
@@ -1304,18 +1322,25 @@ begin
   PIF^.C2:=PIF^.C1;
   PIF^.C3:=P^.GetColor(4);
   P^.Owner^.Insert(PIF);
+  {$IFDEF RecodeWhenDraw}
+  S := CharToOemStr(S);
+  {$ENDIF}
   PIF^.SetData(S);
-  PIF^.SetValidator(New(PFilterValidator, Init([#32..#255]-IllegalCharSet-['\','/','*','?'])));
+  PIF^.SetValidator(New(PFilterValidator, Init([#32..#255]-IllegalCharSet-['\','/','*','?','"'])));
   PIF^.SelectAll(false);
   R.A.X := P^.Owner^.ExecView(PIF); PIF^.GetData(S);
   if S[Length(S)]='.' then SetLength(S, Length(S)-1);
+  {$IFDEF RecodeWhenDraw}
+  if S = CharToOemStr(S2) then R.A.X := cmCancel;
+  S := OemToCharStr(S);
+  {$ELSE}
   if S = S2 then R.A.X := cmCancel;
+  {$ENDIF}
   if R.A.X <> cmCancel then
     begin
       lGetDir(0, SSS);
       lChDir(PF^.Owner^);
-      lAssignFile(U, S2);
-      lRenameFile(U, S);
+      lChangeFileName(S2, S);
       DOSE:=IOResult;
       if DOSE <> 0 then
           MessFileNotRename(S2, S, DOSE)
@@ -1362,7 +1387,7 @@ end;
 procedure CM_RenameSingleS;
   var PIF: PInputSFName;
       R: TRect;
-      S, S2: String[12];
+      S, S2: String[13];
       N1,N2: Array [0..12] of Char;
       DosE: Word;
       SSS: String;
@@ -1419,13 +1444,21 @@ begin
   R.Move(P^.LastCurPos.X, P^.LastCurPos.Y);
   R.Move(P^.Origin.X, 0);
   S := MakeFileName(PF^.Name); S2 := S;
-  New(PIF, Init(R, 12)); PIF^.DrawShift := 0; P^.Owner^.Insert(PIF);
+  New(PIF, Init(R, 13)); PIF^.DrawShift := 0; P^.Owner^.Insert(PIF);
   S := PF^.Name; S[9] := '.';
-  PIF^.SetData(S); PIF^.State := PIF^.State xor sfCursorIns;
+  {$IFDEF RecodeWhenDraw}
+  S := CharToOemStr(S);
+  {$ENDIF}
+  PIF^.SetData(S);{PIF^.State := PIF^.State xor sfCursorIns;}
   PIF^.SetValidator(New(PFilterValidator, Init([#32..#255]-
                                               ['+','|','>','<',']','[','*','?'])));
   R.A.X := P^.Owner^.ExecView(PIF); PIF^.GetData(S);
+  {$IFDEF RecodeWhenDraw}
+  if UpStrg(MakeFileName(S)) = UpStrg(CharToOemStr(S2)) then R.A.X := cmCancel;
+  S := OemToCharStr(S);
+  {$ELSE}
   if UpStrg(MakeFileName(S)) = UpStrg(S2) then R.A.X := cmCancel;
+  {$ENDIF}
   S := MakeFileName(S);
   if R.A.X <> cmCancel then
     begin
@@ -1528,8 +1561,13 @@ begin
   Nm := S;
 {$ENDIF}
   S2 := S;
-
+  {$IFDEF RecodeWhenDraw}
+  S := CharToOemStr(S);
+  {$ENDIF}
   R.A.X := ExecResource(dlgRenFl, S);
+  {$IFDEF RecodeWhenDraw}
+  S := OemToCharStr(S);
+  {$ENDIF}
   If R.A.X = cmCancel then Exit;
   If R.A.X = cmYes then UpStr(S);
   If R.A.X = cmNo then LowStr(S);
@@ -1540,8 +1578,7 @@ begin
     begin
       lGetDir(0, SSS);
       lChDir(PF^.Owner^);
-      lAssignFile(U, S2);
-      lRenameFile(U, S);
+      lChangeFileName(S2, S);
       DOSE:=IOResult;
       if DOSE <> 0 then
           MessFileNotRename(S2, S, DOSE)
@@ -1797,14 +1834,22 @@ procedure CM_ChangeCase(AFP: Pointer);
   NM := S;
   {$ENDIF}
   for I:=length(s) downto 1 do if s[i]='.' then break;
+  {$IFDEF RecodeWhenDraw}
+  if OemToCharStr(CharToOemStr(S)) = S then
+  begin
+  S := CharToOemStr(S);
+  {$ENDIF}
   if s[i]='.' then begin
    NameChange(s, 1, i);
    ExtChange(s, i, length(s));
   end else NameChange(s, 1, length(s));
+  {$IFDEF RecodeWhenDraw}
+  S := OemToCharStr(S);
+  end;
+  {$ENDIF}
   lGetDir(0, SSS);
   lChDir(PF^.Owner^);
-  lAssignFile(U, S);
-  lRenameFile(U, S);
+  lChangeFileName(S, S);
   I := IOResult;
   lChDir(SSS);
   if I <> 0 then begin
@@ -1889,7 +1934,7 @@ begin
 
  R.Assign(0, 0, 20, 7);
  New(Info, Init(R));
- Info^.Write(1, Copy(GetString( dlPleaseStandBy ), 4, 255));
+ Info^.Write(1, Copy(GetString( dlPleaseStandBy ), 4, MaxStringLength));
  DeskTop^.Insert(Info);
  NewTimer(TT, 18);
  Abort := off;
@@ -1928,7 +1973,7 @@ dtDisk,dtLink:
       if (ColumnsDefaultsDisk.Params[I].Param and 1 <> 0)
          then NameT[I] := GetString(dlNameLong) else NameT[I] := GetString(dlNameShort);
 {$ENDIF}
-      if (ColumnsDefaultsDisk.Params[I].Param and 63 = 63) or (ColumnsDefaultsDisk.Params[I].Param and 62 = 62)
+      if (ColumnsDefaultsDisk.Params[I].Param and 270 = 270)
          then ISFull[I] := GetString(dlFullInfo) else
          if (ColumnsDefaultsDisk.Params[I].Param and 16 <> 0) then
                   ISFull[I] := GetString(dlDescr) else ISFull[I] := '';
@@ -1944,7 +1989,7 @@ dtFind,dtList:
       if (ColumnsDefaultsFind.Params[I].Param and 1 <> 0)
          then NameT[I] := GetString(dlNameLong) else NameT[I] := GetString(dlNameShort);
 {$ENDIF}
-      if (ColumnsDefaultsFind.Params[I].Param and 31 = 31) or (ColumnsDefaultsFind.Params[I].Param and 30 = 30)
+      if (ColumnsDefaultsFind.Params[I].Param and 270 = 270)
          then ISFull[I] := GetString(dlFullInfo) else
          if (ColumnsDefaultsFind.Params[I].Param and 16 <> 0) then
                   ISFull[I] := GetString(dlPath) else ISFull[I] := '';
@@ -1960,7 +2005,7 @@ dtTemp:
       if (ColumnsDefaultsTemp.Params[I].Param and 1 <> 0)
          then NameT[I] := GetString(dlNameLong) else NameT[I] := GetString(dlNameShort);
 {$ENDIF}
-      if (ColumnsDefaultsTemp.Params[I].Param and 31 = 31) or (ColumnsDefaultsTemp.Params[I].Param and 30 = 30)
+      if (ColumnsDefaultsTemp.Params[I].Param and 270 = 270)
          then ISFull[I] := GetString(dlFullInfo) else
          if (ColumnsDefaultsTemp.Params[I].Param and 16 <> 0) then
                   ISFull[I] := GetString(dlPath) else ISFull[I] := '';
@@ -1976,7 +2021,7 @@ dtArc:
       if (ColumnsDefaultsArch.Params[I].Param and 1 <> 0)
          then NameT[I] := GetString(dlNameLong) else NameT[I] := GetString(dlNameShort);
 {$ENDIF}
-      if (ColumnsDefaultsArch.Params[I].Param and 63 = 63) or (ColumnsDefaultsArch.Params[I].Param and 62 = 62)
+      if (ColumnsDefaultsArch.Params[I].Param and 62 = 62)
          then ISFull[I] := GetString(dlFullInfo) else ISFull[I] := '';
       Descr[I] := '';
     end;
@@ -1990,7 +2035,7 @@ dtArvid:
       if (ColumnsDefaultsArvd.Params[I].Param and 1 <> 0)
          then NameT[I] := GetString(dlNameLong) else NameT[I] := GetString(dlNameShort);
 {$ENDIF}
-      if (ColumnsDefaultsArvd.Params[I].Param and 31 = 31) or (ColumnsDefaultsArvd.Params[I].Param and 30 = 30)
+      if (ColumnsDefaultsArvd.Params[I].Param and 270 = 270)
          then ISFull[I] := GetString(dlFullInfo) else
          if (ColumnsDefaultsArvd.Params[I].Param and 16 <> 0) then
                   ISFull[I] := GetString(dlDescr) else ISFull[I] := '';

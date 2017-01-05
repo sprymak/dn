@@ -177,7 +177,7 @@ var
   ea: Pointer;
 
 begin
-  coll := New(PStringCollection, Init(5, 10));
+  coll := New(PStringCollection, Init(5, 10 ,False));
   ulrc := EnumEAs(FFromName, coll);
   if ulrc = 0 then
   begin

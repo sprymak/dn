@@ -48,8 +48,8 @@
 unit Arc_hpk; {HPK}
 
 interface
- uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, xTime,
-      collect;
+uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, xTime,
+     collect;
 
 type
     PHPKArchive = ^THPKArchive;

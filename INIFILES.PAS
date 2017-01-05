@@ -60,7 +60,7 @@ TYPE
   {                   value, no blanks allowed   }
   { Empty key means insertion of ordinary string }
   { It may be used to implement indexed logfiles }
-  { Of course, these lines must not contain
+  { Of course, these lines must not contain      }
   { strings with "=" or starting with "[".       }
   PIniSection =^TIniSection;
   TIniSection = Object( TCollection )
@@ -94,7 +94,7 @@ TYPE
 IMPLEMENTATION
 
 USES
-  advance, advance1, advance2, advance3;
+  Advance, Advance1, Advance2, Advance3, Commands{Cat};
 
 CONST
   CrLf: Array [ 0..1 ] of Char = ( #13, #10 );
@@ -132,7 +132,7 @@ Loop:
   end;
 end;
 
-{                                INI Section
+{                                INI Section                                 }
 {----------------------------------------------------------------------------}
 CONSTRUCTOR TIniSection.Init;
 begin
@@ -145,13 +145,15 @@ var I: Integer;
 begin
   I := 1;
   While ( I <= Length( S )) and ( S[ I ] = ' ' ) do Inc( I );
-  RemoveLeadSpaces := Copy( S, I, 255 );
+  RemoveLeadSpaces := Copy( S, I, MaxStringLength );
 end;
 
 FUNCTION TruncSpace(S:String): String;
 var I: Byte;
 begin
-  I:=Length(S); While S[I]=' ' do DEC(I);
+  I:=Length(S);
+  While (I>0) and (S[I]=' ') do
+    Dec(I);
   SetLength(S, I);
   TruncSpace:=S
 end;
@@ -168,7 +170,7 @@ var
     I := Pos( '=', S );
     If I <> 0 then begin
       Simplify := RemoveLeadSpaces( TruncSpace( Copy( S, 1, I - 1 )))
-        + '=' + RemoveLeadSpaces( TruncSpace( Copy( S, I + 1, 255 )));
+        + '=' + RemoveLeadSpaces( TruncSpace( Copy( S, I + 1, MaxStringLength )));
     end else
       Simplify := RemoveLeadSpaces( TruncSpace( S ));
   end;
@@ -178,7 +180,7 @@ begin
   TCollection.Init(5, 5);
   Base := S.GetPos;
   Str := ReadString( S );
-  If ( Str[ 1 ] = '[' ) and ( Str[ Length( Str ) ] = ']' ) then begin
+  If (Str <> '') and (Str[1] = '[') and (Str[Length(Str)] = ']') then begin
     TheName := NewStr( Copy( Str, 2, Length( Str ) - 2 ));
   end else begin
     TheName := NIL;
@@ -237,12 +239,12 @@ end;
 DESTRUCTOR TIniSection.Done;
 begin
   inherited Done;
-  DisposeStr( TheName );
+  DisposeStr(TheName);
 end;
 
 FUNCTION TIniSection.Name;
 begin
-  Name := PStr2Str( TheName )
+  Name := PStr2Str(TheName)
 end;
 
 FUNCTION TIniSection.GetIndexOf;
@@ -274,7 +276,7 @@ begin
     S := PStr2Str( At( I ));
     I := Pos( '=', S );
     If I > 0 then begin
-      Get := Copy( S, I + 1, 255 );
+      Get := Copy( S, I + 1, MaxStringLength );
       Exit
     end;
   end;
@@ -326,10 +328,10 @@ begin
   I := PosChar( '=', S );
   If I = 0
     then GetValueAt := ''
-    else GetValueAt := RemoveLeadSpaces( Copy( S, I + 1, 255 ));
+    else GetValueAt := RemoveLeadSpaces( Copy( S, I + 1, MaxStringLength ));
 end;
 
-{                                  INI File
+{                                  INI File                                  }
 {----------------------------------------------------------------------------}
 CONSTRUCTOR TIniFile.Init;
 var

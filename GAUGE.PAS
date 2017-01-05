@@ -115,7 +115,11 @@ procedure TPercentGauge.Draw;
 var
   B: TDrawBuffer;
   C: Word;
-  S: string[10];
+{$IFDEF USEANSISTRING}
+  S: String;
+{$ELSE}
+  S: String[10];
+{$ENDIF}
   PercentDone: Longint;
 begin
   C := GetColor(1);
@@ -207,7 +211,7 @@ begin
  TGroup.Init( Bounds );
  QuitNormal := False;
  Options := (Options or ofCentered or ofTopSelect) and not ofSelectable;
- Lines := New(PLineCollection, Init(Bounds.B.Y - Bounds.A.Y, 10));
+ Lines := New(PLineCollection, Init(Bounds.B.Y - Bounds.A.Y, 10, False));
  for I := 0 to Bounds.B.Y - Bounds.A.Y - 2 do Lines^.Insert(NewStr(''));
  SetState(sfShadow, True);
  InsBut;

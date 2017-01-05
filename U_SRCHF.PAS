@@ -70,7 +70,7 @@ begin
   If Abort then exit;
   DispatchEvents(Info, Abort);
   If Abort then exit;
-  SC.Init($10, $10);
+  SC.Init($10, $10, False);
   RecursiveCheck:='';
   SC.AtInsert(0, NewStr(pPath));
 
@@ -187,10 +187,10 @@ begin
        if ((i>length(s)) and (P<length(s))) or
           ((S[i] in [';',',']) and (not InSq)) then begin
         S2:=Copy(S, P, I-P);
-        if S2[1]='*' then S2:=RecursiveCheck(pFileName, Copy(S2, 2, 255), True, Info) else
-         if S2[1]='+' then S2:=RecursiveCheck(pFileName, Copy(S2, 2, 255), False, Info) else
-          if ExistFile(MakeNormName(Copy(S2, 2, 255), pFileName))
-           then S2:=MakeNormName(Copy(S2, 2, 255), pFileName)
+        if S2[1]='*' then S2:=RecursiveCheck(pFileName, Copy(S2, 2, MaxStringLength), True, Info) else
+         if S2[1]='+' then S2:=RecursiveCheck(pFileName, Copy(S2, 2, MaxStringLength), False, Info) else
+          if ExistFile(MakeNormName(Copy(S2, 2, MaxStringLength), pFileName))
+           then S2:=MakeNormName(Copy(S2, 2, MaxStringLength), pFileName)
            else S2:='';
         if Abort then goto ex;
         P:=I+1;

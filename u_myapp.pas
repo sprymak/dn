@@ -303,8 +303,11 @@ begin
      {$IFNDEF NONBP}
      cmEnvEdit: begin
                  S:={$IFDEF DPMI}RSeg{$ENDIF}(PWordArray(Ptr(LoaderSeg, 0))^[$2C div 2]);
-                 EditDosEvironment(Ptr(S, 0));
+                 EditDosEnvironment(Ptr(S, 0));
                 end;
+     {$ENDIF}
+     {$IFDEF VIRTUALPASCAL}
+     cmEnvEdit: EditDosEnvironment(Environment);
      {$ENDIF}
      else
       HandleCommand(Event);

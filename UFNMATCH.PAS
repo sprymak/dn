@@ -55,6 +55,8 @@ Function FnMatch (Pattern, Str: String): Boolean;
 
 IMPLEMENTATION
 
+Uses Commands{Cat};
+
 Function FnMatchFunc (Pattern, Str: String; AllLiters: boolean): Boolean;
 Var c, c1: Char;
     p, n : Byte;
@@ -78,7 +80,7 @@ Begin
              c := Pattern[p]; Inc(p);
              While ((c='?') Or (c='*')) and (p<=Length(Pattern)) Do
               Begin
-               Inc(n);
+               if c='?' then Inc(n);{DataCompBoy: * may present 0 chars...}
                If (c='?') And (n>Length(Str)) Then Begin FnMatchFunc:=False; Exit; End;
                c := Pattern[p]; Inc(p);
               End;
@@ -90,7 +92,7 @@ Begin
              While n<=Length(Str) do
               Begin
                If ((((c='[') and not AllLiters) Or (Str[n]=c1)) And
-                  (FnMatchFunc(Copy(Pattern, p, 255), Copy(Str, n, 255), AllLiters)))
+                  (FnMatchFunc(Copy(Pattern, p, MaxStringLength), Copy(Str, n, MaxStringLength), AllLiters)))
                 Then Begin FnMatchFunc:=True; Exit; End;
                Inc(n);
               End;
@@ -137,7 +139,8 @@ Begin
             End;
        {-------------------------------------------------------}
        Else
-Litera:  If c<>Str[n] Then Begin FnMatchFunc:=False; Exit; End;
+Litera:  If (c<>Str[n]) or (N>length(Str))
+           Then Begin FnMatchFunc:=False; Exit; End;
       End;
 
       Inc(n);

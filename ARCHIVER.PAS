@@ -631,7 +631,7 @@ procedure MakeArchive;
        ClrIO;
 {piwamoto.src.begin}
        if not ((PF^.Attr and Directory <> 0) and (D.Options and 1 = 0))
-          then if B then S := S + ' ' + SS else WriteLn(F.T, SS);
+          then if B then S := S + ' ' + SS else WriteLn(F.T, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(SS));
 {piwamoto.src.end}
        ClrIO;
        lFindFirst(MakeNormName(SS, x_x), {$IFDEF OS2} Anyfile {$ELSE} $FF XOR VolumeID{$ENDIF}, SR); {JO}
@@ -647,7 +647,7 @@ procedure MakeArchive;
 
          if (SR.SR.Attr and (Directory {$IFNDEF OS2} + VolumeID{$ENDIF}) = 0) then   {JO}
            if B then S := S + ' ' + SquashesName(S1)
-                else WriteLn(F.T, S1);
+                else WriteLn(F.T, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(S1));
 {piwamoto.src.begin}
          if (SR.SR.Attr and Directory <> 0)
            and (not IsDummyDir({$IFDEF OS_DOS}SR.SR.Name{$ELSE}SR.Fullname{$ENDIF})) and {JO}
@@ -695,7 +695,7 @@ procedure MakeArchive;
  {$ENDIF}
 
      if PF^.Attr and Directory = 0
-      then if B then S := S + ' ' + SquashesName(S1) else WriteLn(F.T, S1)
+      then if B then S := S + ' ' + SquashesName(S1) else WriteLn(F.T, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(S1))
 {piwamoto.src.begin}
       else if B then S := S + ' ' + SquashesName(S1+'\*.*') else
         if Arc^.PutDirs then PutDir(S1) else    {JO} {для пустых каталогов надо обязательно подставлять имя без маски, иначе}
@@ -704,10 +704,10 @@ procedure MakeArchive;
                                            lFindFirst(MakeNormName(S1, x_x), {$IFDEF OS2} Anyfile{$ELSE}Anyfile XOR VolumeID{$ENDIF}, SR);
                                            if IsDummyDir({$IFDEF OS_DOS}SR.SR.Name{$ELSE}SR.Fullname{$ENDIF}) then lFindNext(SR);
                                            if IsDummyDir({$IFDEF OS_DOS}SR.SR.Name{$ELSE}SR.Fullname{$ENDIF}) then lFindNext(SR);
-                                           if (DOSError <> 0) then WriteLn(F.T, S1);
+                                           if (DOSError <> 0) then WriteLn(F.T, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(S1));
                                            lFindClose(SR);
                                            ClrIO;
-                                           WriteLn(F.T, S1+'\*.*');
+                                           WriteLn(F.T, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(S1)+'\*.*');
                                          end;   {/JO}
 {piwamoto.src.end}
      MakeListFile := S;
@@ -727,8 +727,8 @@ procedure MakeArchive;
    if P = nil then AddString := '' else
     begin
       if Copy(P^,1,1) = '+' then
-       if Copy(P^,1,2) <> '++' then AddString := Copy(P^,2,255)
-                               else AddString := ' '+Copy(P^,2,255)
+       if Copy(P^,1,2) <> '++' then AddString := Copy(P^,2,MaxStringLength)
+                               else AddString := ' '+Copy(P^,2,MaxStringLength)
        else AddString := ' '+P^;
     end;
   end;
@@ -736,12 +736,13 @@ procedure MakeArchive;
 label Ex;
 begin
   FillChar(D, SizeOf(D), 0);
-  D.Name := S;
-  if ForceDefaultArchiver <> '' then
+  D.Name := {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(S);
+  if SystemData.ForceDefArch <> '' then
     begin
-      DefaultArchiver := GetArchiveTagBySign(UpStrg(ForceDefaultArchiver)+':');
+      DefaultArchiver := GetArchiveTagBySign(UpStrg(SystemData.ForceDefArch)+':');
       if DefaultArchiver = arcUNK then
                                     begin
+                                      SystemData.ForceDefArch := '';
                                       ForceDefaultArchiver := '';
                                       DefaultArchiver := arcRAR;
                                     end;
@@ -788,7 +789,7 @@ begin
   if D.Mode = 4 then C := C + AddString(Arc^.GoodCompression) else
   if D.Mode = 5 then C := C + AddString(Arc^.UltraCompression);
 
-  S := C + ' ' + D.Add + ' ' + SquashesName(D.Name) + ' ' + MakeListFile;
+  S := C + ' ' + D.Add + ' ' + SquashesName({$IFDEF RecodeWhenDraw}OemToCharStr{$ENDIF}(D.Name)) + ' ' + MakeListFile;
   S := CnvString(Arc^.Packer) + ' ' + S;
   DelDoubles('  ', S);
   GlobalMessage(evCommand, cmMakeForced, nil);

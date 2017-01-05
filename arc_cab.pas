@@ -48,7 +48,7 @@
 unit Arc_CAB; {CAB}
 
 interface
- uses Advance1, Archiver, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
+uses Advance1, Archiver, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
 
 type
   PCABArchive = ^TCABArchive;

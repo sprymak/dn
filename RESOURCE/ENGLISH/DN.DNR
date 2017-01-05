@@ -530,9 +530,7 @@ MENU dlgMainMenu
     MenuItem 'Di~s~connect', 'Alt-H', kbNoKey, cmHangUp, hcUtilMenu,
 ;$ENDIF
     MenuLine
-;$IFNDEF NONBP
-    MenuItem 'Edi~t~ DOS Environment', '', kbNoKey, cmEnvEdit, hcUtilMenu,
-;$ENDIF
+    MenuItem 'Edi~t~ OS Environment', '', kbNoKey, cmEnvEdit, hcUtilMenu,
     MenuItem '~U~ser menu', 'F2', kbF2, cmUserMenu, hcUtilMenu,
     MenuLine
     MenuItem 'History of directories...', 'Alt-BkSp', kbNoKey, cmDirHistory, hcPanelMenu,
@@ -589,9 +587,7 @@ MENU dlgMainMenu
       MenuItem 'Screen sa~v~ers...', '', kbNoKey, cmSaversSetup, hcSubMenuConfig,
       MenuItem 'P~r~inter setup...', '', kbNoKey, cmSetupPrinter, hcSubMenuConfig,
       MenuItem 'C~o~untry support...', ' ', kbNoKey, cmCountrySetup, hcSubMenuConfig,
-;$IFNDEF VPBETA
       MenuItem '~M~ouse...', '', kbNoKey, cmSetupMouse, hcSubMenuConfig,
-;$ENDIF
 ;$IFNDEF VIRTUALPASCAL
       MenuItem 'Comm~u~nications...', '', kbNoKey, cmSetupModem, hcSubMenuConfig,
 ;$ENDIF
@@ -2386,13 +2382,17 @@ DIALOG dlgDiskError, 43, 10, 'Disk Error'
     Button 17, 7, 27, 9, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgDiskParms, 39, 13, 'Columns Setup'
+DIALOG dlgDiskParms, 39, 17, 'Columns Setup'
     HELPCTX hcSetupDiskColumns
-    CheckBoxes 3, 3, 26, 9, ofPostProcess, ofPreProcess
+    CheckBoxes 3, 3, 26, 13, ofPostProcess, ofPreProcess
       ITEM 'Long file ~n~ame'
       ITEM '~S~ize'
       ITEM '~D~ate'
       ITEM '~T~ime'
+      ITEM 'Creation date'
+      ITEM 'Creation time'
+      ITEM 'Last acc. date
+      ITEM 'Last acc. time
       ITEM 'D~e~scription'
       ITEM '~L~ong descriptions'
     END
@@ -2401,10 +2401,10 @@ DIALOG dlgDiskParms, 39, 13, 'Columns Setup'
     Label 27, 3, 'LFN:', ofPostProcess, ofPreProcess
     InputLine 33, 4, 37, 5, 2, 0
     Label 27, 4, 'EXT:', ofPostProcess, ofPreProcess
-    Button 27, 5, 37, 7, 'Set #~1~', cmYes, ofPostProcess, ofPreProcess
-    Button 27, 7, 37, 9, 'Set #~2~', cmNo, ofPostProcess, ofPreProcess
-    Button 17, 10, 27, 12, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 27, 10, 37, 12, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
+    Button 27, 6, 37, 8, 'Set #~1~', cmYes, ofPostProcess, ofPreProcess
+    Button 27, 8, 37, 10, 'Set #~2~', cmNo, ofPostProcess, ofPreProcess
+    Button 17, 14, 27, 16, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 27, 14, 37, 16, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgArcParms, 39, 13, 'Columns Setup'
@@ -2428,13 +2428,17 @@ DIALOG dlgArcParms, 39, 13, 'Columns Setup'
     Button 27, 10, 37, 12, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgFindParms, 39, 13, 'Columns Setup'
+DIALOG dlgFindParms, 39, 17, 'Columns Setup'
     HELPCTX hcSetupFindColumns
-    CheckBoxes 3, 3, 26, 9, ofPostProcess, ofPreProcess
+    CheckBoxes 3, 3, 26, 13, ofPostProcess, ofPreProcess
       ITEM 'Long file ~n~ame'
       ITEM '~S~ize'
       ITEM '~D~ate'
       ITEM '~T~ime'
+      ITEM 'Creation date'
+      ITEM 'Creation time'
+      ITEM 'Last acc. date'
+      ITEM 'Last acc. time'
       ITEM '~P~ath'
     END
     Label 3, 2, 'Show', ofPostProcess, ofPreProcess
@@ -2442,10 +2446,10 @@ DIALOG dlgFindParms, 39, 13, 'Columns Setup'
     Label 27, 3, 'LFN:', ofPostProcess, ofPreProcess
     InputLine 33, 4, 37, 5, 2, 0
     Label 27, 4, 'EXT:', ofPostProcess, ofPreProcess
-    Button 27, 5, 37, 7, 'Set #~1~', cmYes, ofPostProcess, ofPreProcess
-    Button 27, 7, 37, 9, 'Set #~2~', cmNo, ofPostProcess, ofPreProcess
-    Button 17, 10, 27, 12, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 27, 10, 37, 12, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
+    Button 27, 6, 37, 8, 'Set #~1~', cmYes, ofPostProcess, ofPreProcess
+    Button 27, 8, 37, 10, 'Set #~2~', cmNo, ofPostProcess, ofPreProcess
+    Button 17, 14, 27, 16, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 27, 14, 37, 16, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgFileAttr, 43, 14, 'File Attributes'
@@ -2714,9 +2718,9 @@ DIALOG dlgUUEncode, 60, 17, 'UU Encode'
       ITEM 'Advanced ~6~4-bit'
     END
     Label 32, 4, '~C~hecksum level', ofPostProcess, ofPreProcess
-    InputLine 21, 9, 27, 10, 4, 0
+    InputLine 21, 9, 28, 10, 5, 0
     Label 2, 9, '~L~ines per section', ofPostProcess, ofPreProcess
-    History 27, 9, hsUULines, ofPostProcess
+    History 28, 9, hsUULines, ofPostProcess
 
     RadioButtons 2, 12, 31, 13, ofPostProcess, ofPreProcess
       ITEM '~D~OS <CR>+<LF>'
@@ -2822,10 +2826,12 @@ DIALOG dlgVolumeLabel, 32, 7, 'Set Volume Label'
   Button 20,4,30,6, 'Cancel', cmCancel, bfNormal, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgEditEnvironment, 57, 18, 'DOS Environment Variables Editor'
+DIALOG dlgEditEnvironment, 57, 20, 'OS Environment Variables Editor'
   HELPCTX hcEnvEditor
-  InputLine 9, 15, 55, 16, 255, 0
-  Label 2, 15, 'Val~u~e', ofPostProcess, ofPreProcess
+  StaticText 3, 15, 55, 16, 'Warning: the length of environment variable value'
+  StaticText 3, 16, 55, 17, '         is currently limited by 255 symbols'
+  InputLine 9, 17, 55, 18, 255, 0
+  Label 2, 17, 'Val~u~e', ofPostProcess, ofPreProcess
   Button 45, 3,55, 5, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
   Button 45, 5,55, 7, '~R~ename', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
   Button 45, 7,55, 9, '~A~ppend', cmOK, bfBroadcast, ofPostProcess, ofPreProcess
@@ -3236,7 +3242,9 @@ DIALOG dlgSystemSetup, 72, 21, 'System Setup'
 ;$ENDIF
       ITEM '~C~lear R/O flag from CDRom'
       ITEM 'A~d~vanced copy'
+;$IFDEF OS_DOS
       ITEM 'F~l~ush disk buffers'
+;$ENDIF
       ITEM 'Handle "CD" Command'
     END
     Label 3, 1, '~O~ptions', ofPostProcess, ofPreProcess
@@ -3265,19 +3273,13 @@ DIALOG dlgSystemSetup, 72, 21, 'System Setup'
 ;$ENDIF
     END
     Label 8, 13, 'Current drive options', ofPostProcess, ofPreProcess
-;$IFDEF LFNCache
-    RadioButtons 39, 14, 56, 17, ofPostProcess, ofPreProcess
-      ITEM '~E~MS-XMS-LOW'
-      ITEM '~X~MS-EMS-LOW'
-      ITEM '~L~OW'
-    END
-    Label 39, 13, 'LFN container', ofPostProcess, ofPreProcess
 
-    InputLine 57, 15, 67, 16, 3, 0
-    Label 57, 13, 'Name cac~h~e', ofPostProcess, ofPreProcess
-    Label 56, 14, 'in low memory', ofPostProcess, ofPreProcess
-    Label 67, 15, '%', ofPostProcess, ofPreProcess
-;$ENDIF
+    InputLine 62, 13, 69, 14, 5, 0
+    Label 42, 13, 'Copy buffer limit:', ofPostProcess, ofPreProcess
+
+    InputLine 62, 15, 69, 16, 3, 0
+    Label 37, 15, 'Force default archiver:', ofPostProcess, ofPreProcess
+
     Button 40, 18, 50, 20, 'O~K~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 50, 18, 60, 20, 'Cancel', cmCancel, ofPostProcess, ofPreProcess
     Button 60, 18, 70, 20, '~H~elp', cmHelp, ofPostProcess, ofPreProcess

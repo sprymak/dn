@@ -46,6 +46,7 @@
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
 {.$I ZCONF.INC}
+{Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
 
 program DN;
 
@@ -53,7 +54,8 @@ program DN;
 {$M 40000,0,655350}
 {$ENDIF}
 
-uses {$IFNDEF VIRTUALPASCAL}ExtKBD, {$ENDIF}
+uses
+     {$IFNDEF VIRTUALPASCAL}ExtKBD, {$ENDIF}
      Drivers,  LFN,      {$IFNDEF OS2}LFNCol,{$ENDIF}   DN1,
      Dos,      DnApp,
 {$IFNDEF NO_OVERLAY}
@@ -172,11 +174,14 @@ uses {$IFNDEF VIRTUALPASCAL}ExtKBD, {$ENDIF}
 {&Delphi+}
 var
   SaveExitProc: pointer;
-  FileName: String;
+  FileName: ShortString;
   LineNo: Longint;
   E: exception;
 {$IFDEF VPBETA}
   DNErrFile: Text;
+{$ENDIF}
+{$IFDEF LOGOBJLOADSTORE}
+  F: Text;
 {$ENDIF}
 (*
 procedure DebugInfoExitProc;
@@ -217,9 +222,30 @@ SysCtrlSetCBreakHandler;}
 {$IFDEF LINEPOSIT}
 {SaveExitProc := ExitProc;
  ExitProc := @DebugInfoExitProc;}
+{$IFNDEF DONTCATCHEXCEPTIONS}
  try
+{$ENDIF}
   {Init09Handler;}
-   RUN_IT;
+{Cat: проверяем на выходе, сколько памяти скушалось
+      создаём лог, куда будут записываться все вызовы методов Load и Store}
+   begin
+{$IFDEF LOGOBJLOADSTORE}
+  if IOResult <> 0 then
+    ;
+  System.Assign(F, 'stream.log');
+  System.Rewrite(F);
+  System.Close(F);
+  if IOResult <> 0 then
+    ;
+{$ENDIF}
+     RUN_IT;
+{$IFDEF MEMUSEDATEXIT}
+     if MemUsed <> 0 then
+       writeln(^M^J'Memory leak ',MemUsed,' bytes')
+{$ENDIF}
+   end
+{/Cat}
+{$IFNDEF DONTCATCHEXCEPTIONS}
  except
    on E: EControlC do
      begin
@@ -260,6 +286,7 @@ SysCtrlSetCBreakHandler;}
  {$ENDIF}
      end;
  end;
+{$ENDIF}
 {$ELSE}
 {$IFNDEF VIRTUALPASCAL}
  Init09Handler;

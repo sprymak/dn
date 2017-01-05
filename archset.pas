@@ -188,7 +188,7 @@ begin
  if W = cmOK then D^.GetData(DT);
  Dispose(D, Done);
  if W <> cmOK then goto Ex;
- if ForceDefaultArchiver = '' then DefaultArchiver := ArchCommand;
+ if SystemData.ForceDefArch = '' then DefaultArchiver := ArchCommand;
  with Arch^ do
   begin
      Done;

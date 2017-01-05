@@ -62,7 +62,7 @@ const
   cmFileReplace = 801;   { Returned from TFileDialog when Replace pressed }
   cmFileClear   = 802;   { Returned from TFileDialog when Clear pressed }
   cmFileInit    = 803;   { Used by TFileDialog internally }
-  {cmChangeDir   = 804;  { Used by TChDirDialog internally }
+(*cmChangeDir   = 804;   { Used by TChDirDialog internally }*)
   cmRevert      = 805;   { Used by TChDirDialog internally }
 
 { Messages }
@@ -875,8 +875,12 @@ end;
 procedure TFileInfoPane.Draw;
 var
   B: TDrawBuffer;
+{$IFDEF USEANSISTRING}
+  D, M: String;
+{$ELSE}
   D: String[10];
   M: String[20];
+{$ENDIF}
   PM: Boolean;
   Color: Word;
   Time: DateTime;
@@ -1125,7 +1129,7 @@ var
 begin
   I := 1;
   while (I < Length(S)) and (S[I] = ' ') do Inc(I);
-  LTrim := Copy(S, I, 255);
+  LTrim := Copy(S, I, MaxStringLength);
 end;
 
 function RTrim(S: String): String;
@@ -1519,7 +1523,7 @@ function GetFileNameMenu (Path, Mask, Default: String; PutNumbers: Boolean; var 
 
     begin
         UpStr(Default);
-        L.Init(5,5);
+        L.Init(5,5,False);
         lFindFirst(MakeNormName(Path, '*.*'), AnyFile,SR);
         while DosError=0 do begin
             if ((SR.SR.Attr and Directory)=0) and (SR.FullSize>0) and

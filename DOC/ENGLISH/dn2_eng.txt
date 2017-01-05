@@ -34,9 +34,9 @@ in project!
 
  New versions of DN/2 could be found at:
 
- ftp://beit.fcn.ru/pub/OS2/utils/Files/FC's/
  ftp://cdl.bmstu.ru/contrib/dnosp/
  http://os2.ru/projects/dn2/
+ http://ecomstation.ru/dn2
 
  DNOS2Bxx.RAR  (where xx - wersion number) - archives with OS/2 executables of
                beta-versions;
@@ -46,6 +46,7 @@ in project!
  New Win32 versions of DN/2 could be found at:
 
  ftp://cdl.bmstu.ru/contrib/dnosp/
+ http://os2.ru/projects/dn2/
 
  DNW32Bxx.RAR  (where xx - wersion number) - archives with Win32 executables of
                beta-versions;

@@ -45,11 +45,13 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 {$I STDEFINE.INC}
+{Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
 
 unit FlPanel;
 
 interface
-uses Objects, Views, Drivers, Dos, Eraser, FilesCol, HideView, Drives,
+uses {Cat} {$IFDEF VIRTUALPASCAL} VPSysLow, {$ENDIF} {/Cat}
+     Objects, Views, Drivers, Dos, Eraser, FilesCol, HideView, Drives,
      FLPanelX, DNHelp, {$IFNDEF OS2}LFNCol,{$ENDIF} TitleSet, collect;
 
 type
@@ -105,6 +107,9 @@ type
       DriveLine: String[29];
       ViewLine:  String[60];
       CharDelta: AInt;
+{$IFDEF VIRTUALPASCAL}
+      LogDrvMap: Longint; {Cat}
+{$ENDIF}
       constructor Init(var R: TRect; APanel: PFilePanel);
       procedure MakeDriveLine;
       function GetPalette: PPalette; virtual;
@@ -112,6 +117,7 @@ type
       procedure Draw; virtual;
       constructor Load(var S: TStream);
       procedure Store(var S: TStream);
+      procedure Update; virtual; {Cat}
     end;
 
 const
@@ -166,6 +172,16 @@ begin
   EventMask := evMouse or evBroadcast;
   MakeDriveLine;
   CharDelta := 1;
+{Cat}
+  if AutoRefreshDriveLine then
+    begin
+{$IFDEF VIRTUALPASCAL}
+      LogDrvMap := SysGetValidDrives;
+{$ENDIF}
+      UpdTicks := 55;
+      RegisterToBackGround(@Self);
+    end;
+{/Cat}
 end;
 
 constructor TDriveLine.Load(var S: TStream);
@@ -174,6 +190,16 @@ begin
   MakeDriveLine;
   CharDelta := 1;
   GetPeerViewPtr(S, Panel);
+{Cat}
+  if AutoRefreshDriveLine then
+    begin
+{$IFDEF VIRTUALPASCAL}
+      LogDrvMap := SysGetValidDrives;
+{$ENDIF}
+      UpdTicks := 55;
+      RegisterToBackGround(@Self);
+    end;
+{/Cat}
 end;
 
 procedure TDriveLine.MakeDriveLine;
@@ -229,7 +255,7 @@ begin
       else I := PosChar(UpStrg(Panel^.DirectoryName)[1], ViewLine);
      if I > 0
       then MoveCStr(B, Copy(ViewLine, 1, I-1)+'~'+
-                       ViewLine[I]+'~'+Copy(ViewLine, I+1, 255),
+                       ViewLine[I]+'~'+Copy(ViewLine, I+1, MaxStringLength),
                     GetColor($0301))
       else begin
        if (Panel^.Drive^.DriveType = dtTemp) and (Panel^.DirectoryName = cTEMP_)
@@ -359,7 +385,33 @@ begin
   PutPeerViewPtr(S, Panel);
 end;
 
-{                                 TFilePanel
+{Cat}
+procedure TDriveLine.Update;
+{$IFDEF VIRTUALPASCAL}
+var
+  newLogDrvMap: Longint;
+begin
+  newLogDrvMap := SysGetValidDrives;
+  if newLogDrvMap <> LogDrvMap then
+    begin
+      LogDrvMap := newLogDrvMap;
+      MakeDriveLine;
+      DrawView;
+    end;
+end;
+{$ELSE}
+var
+  oldDriveLine: String;
+begin
+  oldDriveLine := DriveLine;
+  MakeDriveLine;
+  if oldDriveLine <> DriveLine then
+    DrawView;
+end;
+{$ENDIF}
+{/Cat}
+
+{                                 TFilePanel                                 }
 {----------------------------------------------------------------------------}
 function TFilePanel.GetPalette;
  const S: String[Length(CPanel)] = CPanel;
@@ -535,13 +587,25 @@ procedure TFilePanel.Draw;
         begin
          {$IFNDEF OS2}
          if Drive^.Flags and psShowLongName <> 0 then
-              SetCursor(JJ+GetCursorPos(SearchParam, GetLFN(P^.LFN),
-                                         Drive^.LFNLen, Drive^.EXTLen, 0) - 1, I)
+           begin
+             if Drive^.LFNLen < 250 then
+                 SetCursor(JJ+GetCursorPos(SearchParam, GetLFN(P^.LFN),
+                                          Drive^.LFNLen, Drive^.EXTLen) - 1, I)
+               else
+                 SetCursor(JJ+GetCursorPos(SearchParam, GetLFN(P^.LFN),
+                                          Drive^.LFNLen, Drive^.EXTLen) + Drive^.CalcLengthWithoutName - 1, I)
+
+           end
          else SetCursor(JJ+GetCursorPos(SearchParam, MakeFileName(P^.Name),
-                                         Drive^.LFNLen, Drive^.EXTLen, 0) - 1, I)
+                                         Drive^.LFNLen, Drive^.EXTLen) - 1, I)
          {$ELSE}
-         SetCursor(JJ+GetCursorPos(SearchParam, P^.Name,
-                                    Drive^.LFNLen, Drive^.EXTLen, 0) - 1, I)
+
+         if Drive^.LFNLen < 250 then
+             SetCursor(JJ+GetCursorPos(SearchParam, P^.Name,
+                                    Drive^.LFNLen, Drive^.EXTLen) - 1, I)
+           else
+             SetCursor(JJ+GetCursorPos(SearchParam, P^.Name,
+                                    Drive^.LFNLen, Drive^.EXTLen) + Drive^.CalcLengthWithoutName - 1, I)
          {$ENDIF}
               ;
          ShowCursor;
@@ -666,7 +730,7 @@ begin
 end;
         {-DataCompBoy-}
 
-{                                 TInfoView
+{                                 TInfoView                                  }
 {----------------------------------------------------------------------------}
 constructor TInfoView.Init;
 begin
@@ -837,6 +901,7 @@ begin
  if Panel^.PanelFlags and fmiCurrent <> 0 then
  begin
    if (Panel^.SelNum > 0) and (Panel^.PanelFlags and fmiSelected = 0) then
+     begin
       if FMSetup.Show and fmsDivider = 0
         then Goto 1
         else
@@ -853,7 +918,27 @@ begin
           WriteLine(0,Y-1,Size.X,1,B);
           {Inc(Y);}
          end;
-
+     end
+    else
+     begin
+      if FMSetup.Show and fmsDivider = 0
+        then Goto 1
+        else
+         begin
+           if (Panel^.QuickSearch) and (ShowFileMask) and (Panel^.PanelFlags and fmiSelected = 0) then
+             begin
+               C3 := GetColor($0302);
+               S := Panel^.SearchParam.Mask;
+               S1 := GetString(dlFileSearch);
+               if Length(S)+Length(S1)>Size.X
+         then S := S1 + #17 + '~' + Copy(S, Length(S) - Size.X - Length(S1) - 1, MaxStringLength) + '~'
+                else S := S1 + '~' + S + '~';
+               I := 0;
+               MoveCStr(B[I], S, C3);
+               WriteLine(0,Y-1,Size.X,1,B);
+             end;
+         end;
+     end;
    MoveChar(B, ' ', C1, Size.X);
    if Panel^.ScrollBar^.Value < Panel^.Files^.Count then
     begin
@@ -866,7 +951,7 @@ begin
     begin
      MoveChar(B, ' ', C1, Size.X);
      if (Panel^.ScrollBar^.Value < Panel^.Files^.Count) and
-        (PF^.Owner <> nil) then MoveStr(B, PF^.Owner^, C1);
+        (PF^.Owner <> nil) then MoveStr(B, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(PF^.Owner^), C1);
      WriteLine(0,Y,Size.X,1,B);
      Inc(Y);
     end else
@@ -902,7 +987,7 @@ begin
       end else
       if (Panel^.QuickSearch) and (ShowFileMask) then begin
         S := Panel^.SearchParam.Mask;
-        SetLength(S, Length(S)-1);
+       {SetLength(S, Length(S)-1);}
         S1 := GetString(dlFileSearch);
         if Length(S)+Length(S1)>Size.X
          then S := S1 + #17 + '~' + Copy(S, Length(S) - Size.X - Length(S1) - 1, 255) + '~'
@@ -911,22 +996,15 @@ begin
       end else
       begin
         S := GetString(dlNoFilesSelected);
+{$IFNDEF OS2}
         if ShowLongName and (Panel^.ScrollBar^.Value < Panel^.Files^.Count)
         then begin
           P:=PFileRec(Panel^.Files^.At(Panel^.ScrollBar^.Value));
           if P<>nil then begin
-{$IFNDEF OS2}
            S2 := MakeFileName(P^.Name);
-{$ELSE}
-           S2 := P^.Name;
-{$ENDIF}
            if S2 <> '..' then
            begin
-{$IFNDEF OS2}
              S3 := GetLFN(PFileRec(Panel^.Files^.At(Panel^.ScrollBar^.Value))^.LFN); {DataCompBoy}
-{$ELSE}
-             S3 := PFileRec(Panel^.Files^.At(Panel^.ScrollBar^.Value))^.Name; {DataCompBoy}
-{$ENDIF}
              if (UpStrg(S2) <> UpStrg(S3)) and (Panel^.Files^.Count > 0)
              then S := FormatLongName(GetName(S3),Size.X,0,
              flnPreferName+flnHighlight+flnHandleTildes+flnUseCutChar,
@@ -934,6 +1012,7 @@ begin
            end;
           end;
         end;
+{$ENDIF}
       end;
     end
      else begin
@@ -1038,7 +1117,7 @@ begin
    Insert('...', S, PosChar(':', S) + 2);
   end;}
   (*X-Man*)
-   S:=Cut(Panel^.DirectoryName,Panel^.Size.X-10);
+   S := Cut({$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(Panel^.DirectoryName), Panel^.Size.X-10);
  if Length(S) + 2 <> Size.X then
   if Length(S) < Panel^.Size.X - 2 then
   begin
@@ -1061,7 +1140,7 @@ begin
  case Event.What of
   evMouseDown: begin
                 MakeLocal(Event.Where, P);
-                S:=Cut(Panel^.DirectoryName,Panel^.Size.X-10);
+                S := Cut({$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(Panel^.DirectoryName), Panel^.Size.X-10);
                 if Length(S) > Size.X then I := 0 else I := PosChar(':', S);
                 repeat until not MouseEvent(Event, evMouseAuto + evMouseMove);
                 ClearEvent(Event);
@@ -1198,9 +1277,9 @@ var
 {$ENDIF}
     repeat
 {$IFNDEF OS2}
-     If InMask(GetLFN(PFileRec(Files^.At(I))^.LFN), SearchParam.Mask) then
+     If InQSMask(GetLFN(PFileRec(Files^.At(I))^.LFN), SearchParam.Mask) then
 {$ELSE}
-     If InMask(PFileRec(Files^.At(I))^.Name, SearchParam.Mask) then
+     If InQSMask(PFileRec(Files^.At(I))^.Name, SearchParam.Mask) then
 {$ENDIF}
      begin
       ScrollBar^.SetValue( I );
@@ -1212,9 +1291,9 @@ var
    else
     repeat
   {$IFDEF OS_DOS}
-     If InMask(MakeFileName(PFileRec(Files^.At(I))^.Name), SearchParam.Mask) then begin
+     If InQSMask(MakeFileName(PFileRec(Files^.At(I))^.Name), SearchParam.Mask) then begin
   {$ELSE}
-     If InMask(lfGetShortFileName(GetLFN(PFileRec(Files^.At(I))^.LFN)), SearchParam.Mask) then begin
+     If InQSMask(lfGetShortFileName(GetLFN(PFileRec(Files^.At(I))^.LFN)), SearchParam.Mask) then begin
   {$ENDIF}
       ScrollBar^.SetValue( I );
       Exit;

@@ -340,7 +340,7 @@ begin
     if (UpStrg(Copy(S, 1, i))=SquashesName(UpStrg(Name))) {$IFNDEF OS2} or (UpStrg(Copy(S, 1, i))=SquashesName(UpStrg(Name2))) {$ENDIF}
      then begin
       Delete(S, 1, j-1);
-      While S[1] in [' ', #9] do DelFC(S);
+      While S[1] in [' ', #9] do Delete(S, 1, 1); {DelFC(S);}
       GetDIZ:=S;
       Break;
      End;

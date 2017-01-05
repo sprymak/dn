@@ -73,7 +73,6 @@ uses
   Commands, UniWin, RStrings, DNHelp, SBlocks, ObjType, U_KeyMap, collect,
   ed2, highlite;
 
-
 const
       Clipboard   : PCollection = nil;
 
@@ -116,7 +115,7 @@ type
     MarkPos: TPosArray;
     LastLine: LongInt;
     DrawMode: Integer;
-    WorkString,LastShape: String;
+    WorkString,LastShape: LongString;
     OldBlockValid, SearchOnDisplay,
     InsertMode,VertBlock,Modified,WorkModified,
     JustSaved, {piwamoto}
@@ -145,19 +144,19 @@ type
     destructor  Done; virtual;
     procedure Store(var S: TStream);
     procedure Awaken; virtual;
-    procedure DoHighlite ( var B; const S : String; const Attr : string );
+    procedure DoHighlite ( var B; const S : LongString; const Attr : String );
     procedure HandleEvent(var Event : TEvent);virtual;
     procedure Draw; virtual;
     function  Valid(Command: Word): Boolean; virtual;
     function  GetPalette : PPalette;virtual;
-    function  GetLine(Index : LongInt) : String;
+    function  GetLine(Index : LongInt) : LongString;
     function  GetSelection : PCollection;
     procedure SetState(AState: Word; Enable: Boolean); virtual;
     function  ValidBlock: Boolean;
     procedure CalcMenu;
     function  Search: Boolean;
     procedure InsertBlock(ABlock: PCollection; SaveUndo: Boolean);
-    procedure ModifyLine(Index : LongInt; S : String; DelSpaces: Boolean);
+    procedure ModifyLine(Index : LongInt; S : LongString; DelSpaces: Boolean);
     procedure SetLimits;
     procedure ChangeBounds(var R: TRect); virtual;
     procedure ScrollTo(DeltaX, DeltaY: LongInt);
@@ -165,9 +164,9 @@ type
     function  LimitY:LongInt;
     procedure StoreUndoInfo(What: Word; Where: TPoint; var Info);
     function  HandleCommand(var Event: TEvent): Boolean; virtual;
-    function  KeyMapConvertStr(S: String; toAscii: Boolean): String; {-$VIV}
-    procedure KeyMapAtInsert(N: LongInt; P: PString); {-$VIV}
-    procedure KeyMapAtReplace(N: LongInt; P: PString); {-$VIV}
+    function  KeyMapConvertStr(S: LongString; toAscii: Boolean): LongString; {-$VIV}
+    procedure KeyMapAtInsert(N: LongInt; P: PLongString); {-$VIV}
+    procedure KeyMapAtReplace(N: LongInt; P: PLongString); {-$VIV}
     procedure Convert4do(iP: PUndoRec; DoKind: TDoKind); {-$VOL}
   end;
 
@@ -213,7 +212,7 @@ const
 
 function MemAvail: LongInt; begin MemAvail := MemAdjust(System.MemAvail) end;
 
-function TFileEditor.KeyMapConvertStr(S: String; toAscii: Boolean): String; {-$VIV}
+function TFileEditor.KeyMapConvertStr(S: LongString; toAscii: Boolean): LongString; {-$VIV}
 begin
   case KeyMap of
     kmAnsi:
@@ -228,13 +227,13 @@ begin
   end;
 end; {-$VIV}
 
-procedure TFileEditor.KeyMapAtInsert(N: LongInt; P: PString); {-$VIV}
+procedure TFileEditor.KeyMapAtInsert(N: LongInt; P: PLongString); {-$VIV}
 begin
   if (P <> nil) then P^ := KeyMapConvertStr(P^, false);
   FileLines^.AtInsert(N, P);
 end; {-$VIV}
 
-procedure TFileEditor.KeyMapAtReplace(N: LongInt; P: PString); {-$VIV}
+procedure TFileEditor.KeyMapAtReplace(N: LongInt; P: PLongString); {-$VIV}
 begin
   if (P <> nil) then P^ := KeyMapConvertStr(P^, false);
   FileLines^.AtReplace(N, P);
@@ -243,7 +242,7 @@ end; {-$VIV}
 procedure TFileEditor.Convert4do(iP: PUndoRec;DoKind: TDoKind);
   var P: PUndoRec;
       I, J: LongInt;
-      S: String;
+      S: LongString;
 begin
   if iP = nil then exit;
   New(P); Move(iP^, P^, sizeOf(TUndoRec));
@@ -256,7 +255,7 @@ begin
           udDelChar:
              begin
                Dec(P^.Where.X,Count);
-               P^.Str:=NewStr(copy(GetLine(Where.Y),P^.Where.X+1,Count));
+               P^.Str:=NewLongStr(copy(GetLine(Where.Y),P^.Where.X+1,Count));
                UndoInfo^.Insert(P);
              end;
           udInsChar:
@@ -267,19 +266,19 @@ begin
              end;
           udDelLine:
              begin
-               P^.Lines := New(PLineCollection, Init(10, 10));
+               P^.Lines := New(PLineCollection, Init(10, 10, True));
                for I:=0 to Count-1 do
-                 P^.Lines^.Insert(NewStr(GetLine(P^.Where.Y+I)));
+                 P^.Lines^.Insert(NewLongStr(GetLine(P^.Where.Y+I)));
                UndoInfo^.Insert(P);
              end;
           udInsLine:
              begin
-               P^.Str:=NewStr(GetLine(Where.Y));
+               P^.Str:=NewLongStr(GetLine(Where.Y));
                UndoInfo^.Insert(P);
              end;
           udDelBlock:
              begin
-               P^.Lines := New(PLineCollection, Init(10, 10));
+               P^.Lines := New(PLineCollection, Init(10, 10, True));
                if Lines^.Count>0 then S:=CnvString(Lines^.At(0))else S:='';
                J:=Length(S);
                if Vertical then
@@ -287,7 +286,7 @@ begin
                    for I:=0 to Lines^.Count-1 do
                      begin
                        S:=copy(GetLine(Where.Y+I),Where.X+1,J);
-                       P^.Lines^.Insert(NewStr(S));
+                       P^.Lines^.Insert(NewLongStr(S));
                      end;
                  end
                else
@@ -296,10 +295,10 @@ begin
                      begin
                        S:=GetLine(Where.Y+I);
                        if I=0 then
-                         S:=copy(S,Where.X+1,255)
+                         S:=copy(S,Where.X+1,MaxLongStringLength)
                        else if I=Lines^.Count-1 then
                          S:=copy(S,1,Length(S)-(J-Where.X));
-                       P^.Lines^.Insert(NewStr(S));
+                       P^.Lines^.Insert(NewLongStr(S));
                      end;
                  end;
                UndoInfo^.Insert(P);
@@ -307,22 +306,22 @@ begin
           udInsBlock, udFormatBlock:
              begin
                I:=Lines^.Count;
-               P^.Str:=NewStr(Char(Lo(I))+Char(Hi(I))+GetLine(Delta.Y));
+               P^.Str:=NewLongStr(Char(Lo(I))+Char(Hi(I))+GetLine(Delta.Y));
                UndoInfo^.Insert(P);
              end;
           udBackDel:
              begin
-               P^.Str:=NewStr(copy(GetLine(Where.Y),Where.X+1,Count));
+               P^.Str:=NewLongStr(copy(GetLine(Where.Y),Where.X+1,Count));
                UndoInfo^.Insert(P);
              end;
           udSubDel:
              begin
-               P^.Str:=NewStr(GetLine(Where.Y));
+               P^.Str:=NewLongStr(GetLine(Where.Y));
                UndoInfo^.Insert(P);
              end;
           udSubDelLine:
              begin
-               P^.Str:=NewStr(GetLine(Where.Y+1));
+               P^.Str:=NewLongStr(GetLine(Where.Y+1));
                UndoInfo^.Insert(P);
              end;
           udIndentBlock:
@@ -336,10 +335,10 @@ begin
           udInsVertBlock:
              begin
                P^.Count:=Lines^.Count;
-               if P^.Count>0 then S:=CnvString(Lines^.At(0)) else S:='';
+               if P^.Count>0 then S:=CnvLongString(Lines^.At(0)) else S:='';
                P^.Width:=Length(S);
                for i:=1 to P^.Count do begin
-                j:=Length(CnvString(Lines^.At(i-1)));
+                j:=Length(CnvLongString(Lines^.At(i-1)));
                 if j>P^.Width then P^.Width:=J;
                end;
                UndoInfo^.Insert(P);
@@ -347,30 +346,30 @@ begin
           udReplace,udReplaceAll:
              begin
                S:=GetLine(Where.Y);
-               P^.Str:=NewStr(Char(Length(Str^)-1)+copy(S,Where.X+1,byte(Str^[1])));
+               P^.Str:=NewLongStr(Char(Length(Str^)-1)+copy(S,Where.X+1,byte(Str^[1])));
                UndoInfo^.Insert(P);
              end;
           udReplaceChar:
              begin
                S:=GetLine(Where.Y);
                Inc(P^.Where.X,Length(Str^));
-               P^.Str:=NewStr(copy(S,Where.X+1,Length(Str^)));
+               P^.Str:=NewLongStr(copy(S,Where.X+1,Length(Str^)));
                UndoInfo^.Insert(P);
              end;
           udReplaceBlock,udClearBlock:
              begin
-               P^.Lines:=New(PLineCollection, Init(10, 10));
+               P^.Lines:=New(PLineCollection, Init(10, 10, True));
                for I := Where.Y to Lines^.Count + Where.Y - 1 do
                  begin
                    S := GetLine(I);
-                   J := length(CnvString(Lines^.At(I-Where.Y)));
-                   P^.Lines^.Insert(NewStr(copy(S,Where.X+1,J)));
+                   J := length(CnvLongString(Lines^.At(I-Where.Y)));
+                   P^.Lines^.Insert(NewLongStr(copy(S,Where.X+1,J)));
                  end;
                UndoInfo^.Insert(P);
              end;
           udStrModified:
              begin
-               P^.Str:=NewStr(GetLine(Where.Y));
+               P^.Str:=NewLongStr(GetLine(Where.Y));
                UndoInfo^.Insert(P);
              end;
           udDupeLine:
@@ -393,7 +392,7 @@ begin
           udInsChar:
              begin
                Dec(P^.Where.X,Count);
-               P^.Str:=NewStr(copy(GetLine(Where.Y),P^.Where.X+1,Count));
+               P^.Str:=NewLongStr(copy(GetLine(Where.Y),P^.Where.X+1,Count));
                RedoInfo^.Insert(P);
              end;
           udDelLine:
@@ -403,43 +402,43 @@ begin
              end;
           udInsLine:
              begin
-               P^.Lines := New(PLineCollection, Init(10, 10));
-               P^.Lines^.Insert(NewStr(GetLine(P^.Where.Y)));
-               P^.Lines^.Insert(NewStr(GetLine(P^.Where.Y+1)));
+               P^.Lines := New(PLineCollection, Init(10, 10, True));
+               P^.Lines^.Insert(NewLongStr(GetLine(P^.Where.Y)));
+               P^.Lines^.Insert(NewLongStr(GetLine(P^.Where.Y+1)));
                RedoInfo^.Insert(P);
              end;
           udDelBlock:
              begin
-               P^.Lines := New(PLineCollection, Init(10, 10));
-               if Lines^.Count>0 then S:=CnvString(Lines^.At(0))else S:='';
+               P^.Lines := New(PLineCollection, Init(10, 10, True));
+               if Lines^.Count>0 then S:=CnvLongString(Lines^.At(0))else S:='';
                J := Length(S);
                if Vertical then
                  if InsM then
                    begin
                      for I:= 0 to Lines^.Count-1 do
-                       P^.Lines^.Insert(NewStr(S));
+                       P^.Lines^.Insert(NewLongStr(S));
                    end
                  else
                    begin
                      for I:=0 to Lines^.Count-1 do
                        begin
                          S:=copy(GetLine(Where.Y+I),Where.X+1,J);
-                         P^.Lines^.Insert(NewStr(S));
+                         P^.Lines^.Insert(NewLongStr(S));
                        end;
                    end
                else
                  begin
                    S:=GetLine(P^.Where.Y);
                    for I:=0 to Lines^.Count-1 do
-                     P^.Lines^.Insert(NewStr(S));
+                     P^.Lines^.Insert(NewLongStr(S));
                  end;
                RedoInfo^.Insert(P);
              end;
           udInsBlock, udFormatBlock:
              begin
-               P^.Lines := New(PLineCollection, Init(10, 10));
+               P^.Lines := New(PLineCollection, Init(10, 10, True));
                for I:=1 to byte(Str^[2])*256+byte(Str^[1]) do
-                 P^.Lines^.Insert(NewStr(GetLine(Delta.Y+I-1)));
+                 P^.Lines^.Insert(NewLongStr(GetLine(Delta.Y+I-1)));
                RedoInfo^.Insert(P);
              end;
           udBackDel:
@@ -449,13 +448,13 @@ begin
              end;
           udSubDel:
              begin
-               P^.Str:=NewStr(GetLine(P^.Where.Y));
+               P^.Str:=NewLongStr(GetLine(P^.Where.Y));
                RedoInfo^.Insert(P);
              end;
           udSubDelLine:
              begin
                S:=GetLine(Where.Y);
-               P^.Str:=NewStr(S);
+               P^.Str:=NewLongStr(S);
                RedoInfo^.Insert(P);
              end;
           udIndentBlock:
@@ -468,11 +467,11 @@ begin
              end;
           udInsVertBlock:
              begin
-               P^.Lines := New(PLineCollection, Init(10, 10));
+               P^.Lines := New(PLineCollection, Init(10, 10, True));
                for I:=1 to Count do
                begin
                  S:=Copy(GetLine(I+Where.Y-1),Where.X+1,Width);
-                 P^.Lines^.Insert(NewStr(S));
+                 P^.Lines^.Insert(NewLongStr(S));
                end;
                P^.Vertical:=true; P^.InsM:=true;
                RedoInfo^.Insert(P);
@@ -480,30 +479,30 @@ begin
           udReplace,udReplaceAll:
              begin
                S:=GetLine(Where.Y);
-               P^.Str:=NewStr(Char(Length(Str^)-1)+copy(S,Where.X+1,byte(Str^[1])));
+               P^.Str:=NewLongStr(Char(Length(Str^)-1)+copy(S,Where.X+1,byte(Str^[1])));
                RedoInfo^.Insert(P);
              end;
           udReplaceChar:
              begin
                S:=GetLine(Where.Y);
                Dec(P^.Where.X,Length(Str^));
-               P^.Str:=NewStr(copy(S,P^.Where.X+1,Length(Str^)));
+               P^.Str:=NewLongStr(copy(S,P^.Where.X+1,Length(Str^)));
                RedoInfo^.Insert(P);
              end;
           udReplaceBlock,udClearBlock:
              begin
-               P^.Lines:=New(PLineCollection, Init(10, 10));
+               P^.Lines:=New(PLineCollection, Init(10, 10, True));
                for I := Where.Y to Lines^.Count + Where.Y - 1 do
                  begin
                    S := GetLine(I);
-                   J := length(CnvString(Lines^.At(I-Where.Y)));
-                   P^.Lines^.Insert(NewStr(copy(S,Where.X+1,J)));
+                   J := length(CnvLongString(Lines^.At(I-Where.Y)));
+                   P^.Lines^.Insert(NewLongStr(copy(S,Where.X+1,J)));
                  end;
                RedoInfo^.Insert(P);
              end;
           udStrModified:
              begin
-               P^.Str:=NewStr(GetLine(Where.Y));
+               P^.Str:=NewLongStr(GetLine(Where.Y));
                RedoInfo^.Insert(P);
              end;
           udDupeLine:
@@ -541,12 +540,12 @@ end;
 { TFileEditor }
 constructor TFileEditor.Init;
 var
-  FileToView: Text;
-  Line: String;
-  MaxWidth: Integer;
-  p: PString;
-  Nm: String;
-  Xt: String;
+{ FileToView: Text; }
+  Line: LongString;
+{ MaxWidth: Integer; }
+{ p: PString; }
+{ Nm: String; }
+{ Xt: String; }
   I: Integer;
 begin
   inherited Init(Bounds);
@@ -614,7 +613,7 @@ end;
 
 procedure TFileEditor.StoreUndoInfo;
  var P, P1: PUndoRec;
-     S: String;
+     S: LongString;
      Bl: Boolean;
 begin
   if not MemOK then begin Dispose(UndoInfo,Done); UndoInfo:=nil end;
@@ -678,20 +677,20 @@ begin
   case What of
    udDelChar: if (P1 <> nil) and (P1^.What = udDelChar) and (P1^.Where.Y = Where.Y) and
                  (P1^.Where.X = Where.X) then
-                  begin S := P1^.Str^+Char(Info); DisposeStr(P1^.Str); P1^.Str := NewStr(S); end
+                  begin S := P1^.Str^+Char(Info); DisposeLongStr(P1^.Str); P1^.Str := NewLongStr(S); end
                   else begin
-                        S := Char(Info); New(P); P^.What := What;
-                        P^.Where := Where; P^.Str := NewStr(S);
+                        S := '' + Char(Info); New(P); P^.What := What;
+                        P^.Where := Where; P^.Str := NewLongStr(S);
                         P^.KeyMap := KeyMap; {-$VIV}
                         UndoInfo^.Insert(P); Inc(UndoTimes);
                        end;
    udReplaceChar: if (P1 <> nil) and (P1^.What = What) and (P1^.Where.Y = Where.Y) and
                  (Where.X = P1^.Where.X) then
                   begin S := P1^.Str^+Char(Info); Inc(P1^.Where.X);
-                        DisposeStr(P1^.Str); P1^.Str := NewStr(S); end
+                        DisposeLongStr(P1^.Str); P1^.Str := NewLongStr(S); end
                   else begin
-                        S := Char(Info); New(P); P^.What := What;
-                        P^.Where := Where; P^.Str := NewStr(S);
+                        S := '' + Char(Info); New(P); P^.What := What;
+                        P^.Where := Where; P^.Str := NewLongStr(S);
                         Inc(P^.Where.X);
                         P^.KeyMap := KeyMap; {-$VIV}
                         UndoInfo^.Insert(P); Inc(UndoTimes);
@@ -699,10 +698,10 @@ begin
    udBackDel: if (P1 <> nil) and (P1^.What = What) and (P1^.Where.Y = Where.Y) and
                  (P1^.Where.X = Where.X) then
                  begin S := Char(Info)+P1^.Str^; Dec(P1^.Where.X);
-                       DisposeStr(P1^.Str); P1^.Str := NewStr(S); end
+                       DisposeLongStr(P1^.Str); P1^.Str := NewLongStr(S); end
                  else begin
-                        S := Char(Info); New(P); P^.What := What;
-                        P^.Where := Where; P^.Str := NewStr(S);
+                        S := '' + Char(Info); New(P); P^.What := What;
+                        P^.Where := Where; P^.Str := NewLongStr(S);
                         Dec(P^.Where.X);
                         P^.KeyMap := KeyMap; {-$VIV}
                         UndoInfo^.Insert(P); Inc(UndoTimes);
@@ -725,12 +724,12 @@ begin
                    UndoInfo^.Insert(P); Inc(UndoTimes);
                end;
    udDelLine: if (P1 <> nil) and (P1^.What = What) and (P1^.Where.Y = Where.Y) then
-                P1^.Lines^.Insert(NewStr(String(Info))) else
+                   P1^.Lines^.Insert(NewLongStr(LongString(Info))) else
               begin
                 New(P); P^.What := What;
                 P^.Where := Where;
-                P^.Lines := New(PLineCollection, Init(10, 10));
-                P^.Lines^.Insert(NewStr(String(Info)));
+                P^.Lines := New(PLineCollection, Init(10, 10, True));
+                P^.Lines^.Insert(NewLongStr(LongString(Info)));
                 P^.KeyMap := KeyMap; {-$VIV}
                 UndoInfo^.Insert(P); Inc(UndoTimes);
               end;
@@ -738,7 +737,7 @@ begin
               begin
                 New(P); P^.What := What;
                 P^.Where := Where;
-                P^.Str := NewStr(String(Info));
+                P^.Str := NewLongStr(LongString(Info));
                 P^.KeyMap := KeyMap; {-$VIV}
                 UndoInfo^.Insert(P); Inc(UndoTimes);
               end;
@@ -783,7 +782,7 @@ begin
                       New(P); P^.What := What;
                       P^.Where := Where; Inc(P^.Where.X);
                       P^.Count := 1;
-                      P^.Str := NewStr(String(Info));
+                      P^.Str := NewLongStr(LongString(Info));
                       P^.KeyMap := KeyMap; {-$VIV}
                       UndoInfo^.Insert(P); Inc(UndoTimes);
                     end;
@@ -796,7 +795,7 @@ procedure TFileEditor.CalcMenu;
      MI : PMenuItem;
 
  Procedure SetM( B : Boolean);
-  var G : String;
+  var G : LongString;
  begin
   if MI = nil then Exit;
   G:=MenuItemStr[B]^;
@@ -936,18 +935,18 @@ end;
 
 procedure TFileEditor.SetLimits;
 begin
- if HScroll <> nil then HScroll^.SetParams(Delta.X, 0, 255, 1, 1);
+ if HScroll <> nil then HScroll^.SetParams(Delta.X, 0, MaxLongStringLength, 1, 1);
  if VScroll <> nil then VScroll^.SetParams(Delta.Y, 0, FileLines^.Count-1, Size.Y, 1);
 end;
 
 function TFileEditor.GetSelection;
  var  P: PCollection;
-      S: String;
+      S: LongString;
       I: LongInt;
 begin
  GetSelection := Nil; MemEnough := On ;
  if not (BlockVisible and ValidBlock) or LowMemory then Exit;
- P := New(PLineCollection, Init(Mark.B.Y-Mark.A.Y+1,5));
+ P := New(PLineCollection, Init(Mark.B.Y-Mark.A.Y+1, 5, True));
  for I := Mark.A.Y to Mark.B.Y do
   begin
    S := GetLine(I);
@@ -955,12 +954,12 @@ begin
      begin
       S := Copy(S, Mark.A.X + 1, Mark.B.X - Mark.A.X);
       if VertBlock and (Mark.B.X - Mark.A.X > Length(S)) then
-         S := S + Strg(' ', Mark.B.X - Mark.A.X - Length(S));
+         S := S + LongStrg(' ', Mark.B.X - Mark.A.X - Length(S));
      end
-    else if I = Mark.A.Y then S := Copy(S, Mark.A.X + 1, 255)
+    else if I = Mark.A.Y then S := Copy(S, Mark.A.X + 1, MaxLongStringLength)
          else if I = Mark.B.Y then S := Copy(S, 1, Mark.B.X);
-{ P^.Insert(NewStr(S)); }
-  with P^ do AtInsert(Count, NewStr(S)); {AK155}
+{ P^.Insert(NewLongStr(S)); }
+  with P^ do AtInsert(Count, NewLongStr(S)); {AK155}
 
 {AK155: MemOK - это нечто странное. Там, в конечном итоге,
 проверяется на nil некий Linker, которому нигде ничего не
@@ -1023,7 +1022,7 @@ function TFileEditor.Search;
  var I, J, TrX, StX: LongInt;
      D,DD: TPoint;
      T: TRect;
-     W, S, S1: String;
+     W, S, S1: LongString;
      F, Prompt: Boolean;
      OldMark: TRect;
      NumRep: LongInt;
@@ -1052,7 +1051,7 @@ begin
  Search := Off; F := On;
  Prompt := (SearchData.What <> #0) and (SearchData.Options and 4 <> 0);
  D := Delta; W := SearchData.Line; if W = '' then goto LExit;
- if SearchData.Options and 1 = 0 then UpStr(W);
+ if SearchData.Options and 1 = 0 then UpLongStr(W);
  AllCP := (SearchData.What = #0) and (SearchData.Options and 8 <> 0);
  UnMark := Off;
  NumRep := 0;
@@ -1070,7 +1069,7 @@ begin
          begin
             Mark := OldMark;
             if D.Y < Mark.A.Y then Break;
-            if D.Y > Mark.B.Y then begin Dec(D.Y); D.X := 255; Continue; end;
+            if D.Y > Mark.B.Y then begin Dec(D.Y); D.X := MaxLongStringLength; Continue; end;
             if (D.Y = Mark.B.Y) and (D.Y = Mark.A.Y) or VertBlock then
                 if StX < Mark.A.X then StX := Mark.A.X + 1;
             if (D.Y = Mark.B.Y) or VertBlock then
@@ -1168,7 +1167,7 @@ begin
           else begin Mark := OldMark; LastPos.X := -1; {DrawView; }goto _LExit; end;
       end;
      if Dir > 0 then begin D.X := 0; Inc(D.Y); end
-                else begin D.X := 255; Dec(D.Y); end;
+                else begin D.X := MaxLongStringLength; Dec(D.Y); end;
   end;
   if F then MessageBox(GetString(dlDBViewSearchNot), nil, mfError+mfOKButton)
     else
@@ -1192,8 +1191,8 @@ end;
 
 procedure TFileEditor.InsertBlock;
  var I,Q: LongInt;
-     S, S1, S2: String;
-     P: PString;
+     S, S1, S2: LongString;
+     P: PLongString;
      L,J: LongInt;
      LL: PCollection;
 begin
@@ -1210,7 +1209,7 @@ begin
    if P <> nil then S := P^ else S := '';
    I := Length(S);
    for J:=1 to ABlock^.Count do begin
-    Q:=Length(CnvString(ABlock^.At(J-1)));
+    Q:=Length(CnvLongString(ABlock^.At(J-1)));
     if Q>I then I:=Q;
    end;
    Q := I;
@@ -1222,24 +1221,24 @@ begin
       else
        begin
         P := ABlock^.At(0); if P = nil then S := '' else S := P^;
-        LL := New(PLineCollection, Init(ABlock^.Count, 10));
+        LL := New(PLineCollection, Init(ABlock^.Count, 10, True));
         if LL <> nil then
          begin
            for I := 0 to ABlock^.Count do
-             LL^.Insert(NewStr(AddSpace(Copy(GetLine(I+Delta.Y), Delta.X+1, Length(S)),I)));
+             LL^.Insert(NewLongStr(LongAddSpace(Copy(GetLine(I+Delta.Y), Delta.X+1, Length(S)),I)));
            StoreUndoInfo(udReplaceBlock, Delta, LL)
          end;
        end;
    for I := 1 to ABlock^.Count do
     begin
      P := ABlock^.At(I-1);
-     S1 := AddSpace(CnvString(P),Q);
+     S1 := LongAddSpace(CnvLongString(P),Q);
      if SaveUndo then Mark.B.X := Mark.A.X + Length(S1);
      if I + Delta.Y - 1 = FileLines^.Count then
-      FileLines^.Insert(NewStr(AddSpace('',Q)));
+      FileLines^.Insert(NewLongStr(LongAddSpace('',Q)));
      S2 := GetLine(I+Delta.Y-1);
      if not InsertMode then Delete(S2, Delta.X + 1, Length(S1));
-     if Length(S2) < Delta.X then S2 := S2 + Strg(' ', Delta.X - Length(S2));
+     if Length(S2) < Delta.X then S2 := S2 + LongStrg(' ', Delta.X - Length(S2));
      Insert(S1, S2, Delta.X + 1);
      ModifyLine(I+Delta.Y-1, S2, On);
     end
@@ -1250,8 +1249,8 @@ begin
    S := Char(Lo(I)) + Char(Hi(I)) + GetLine(Delta.Y);
    if SaveUndo then StoreUndoInfo(udInsBlock, Delta, S);
    Delete(S, 1, 2);
-   if Delta.X > Length(S) then S := S + Strg(' ', Delta.X - Length(S));
-   S1 := Copy(S, 1, Delta.X); S2 := Copy(S, Delta.X+1, 255);
+   if Delta.X > Length(S) then S := S + LongStrg(' ', Delta.X - Length(S));
+   S1 := Copy(S, 1, Delta.X); S2 := Copy(S, Delta.X+1, MaxLongStringLength);
    FileLines^.AtFree(Delta.Y);
    for I := 1 to ABlock^.Count do
    begin
@@ -1259,7 +1258,7 @@ begin
      if I = 1 then S := S1 + S;
      if I = ABlock^.Count then
        begin if SaveUndo then Mark.B.X := Length(S); S := S + S2; end;
-     KeyMapAtInsert(Delta.Y + I - 1, NewStr(S)); {-$VIV}
+     KeyMapAtInsert(Delta.Y + I - 1, NewLongStr(S)); {-$VIV}
     end;
    J:=ABlock^.Count-1;
    If J>0 then
@@ -1272,10 +1271,10 @@ end;
 procedure TFileEditor.Draw;
 var
   C, BC, Comments, C1: Byte;
-  HP : string[6];
+  HP : String[6];
   CC: Array[1..12] of Byte;
   I, A: LongInt;
-  S: String;
+  S: LongString;
   P: PString;
   WM, BV: Boolean;
   X1, X2: LongInt;
@@ -1312,7 +1311,7 @@ begin
   if Pos.X < 0 then Pos.X := 0;
   if Pos.Y < 0 then Pos.Y := 0;
   if Delta.X < 0 then Delta.X := 0;
-  if Delta.X > MaxEditStringLength then Delta.X := MaxEditStringLength;
+  if Delta.X > MaxLongStringLength then Delta.X := MaxLongStringLength;
   if Delta.Y >= FileLines^.Count then Delta.Y := FileLines^.Count - 1;
   if Delta.Y < 0 then Delta.Y := 0;
   if Pos.X > Delta.X then Pos.X := Delta.X;
@@ -1365,7 +1364,7 @@ begin
          end;
      end;
     if ChPosition and not ((A = Delta.Y) or (A = LastPos.Y)) then Continue;
-    if EdOpt.HiliteLine or ((Length(WorkString) >= MaxEditStringLength) and RecombineLongLines) then  {JO}{!!!}
+    if EdOpt.HiliteLine or ((Length(WorkString) >= MaxLongStringLength) and RecombineLongLines) then  {JO}{!!!}
      if A = Delta.Y then
      begin
        C:=CC[4];
@@ -1381,7 +1380,10 @@ begin
       if WM or (A <> Delta.Y) then S := GetLine(A) else S := WorkString;
       MoveStr(B, Copy(S, Pos.X + 1, Size.X), C);
       if EdOpt.HiLite then begin
-        Highlites ( Length(S), @S[1], HiLitePar ); {PZ 2000.04.28}
+{$IFDEF USELONGSTRING}
+        SetLength(S, Length(S)); {Cat: ...Kreks...Feks...Peks...Suxx...}
+{$ENDIF}
+        Highlites ( Length(S), {$IFDEF USELONGSTRING} PChar(S) {$ELSE} @S[1] {$ENDIF}, HiLitePar ); {PZ 2000.04.28}
         C1                  := C and $F0;                  { Background }
         SetLength(HP, 6);                                  { Attr. size }
         if (A = Delta.Y) and (EdOpt.HiliteLine)
@@ -1437,9 +1439,10 @@ begin
  if (BMrk<>nil)  then BMrk^.Draw;
 end;
 
-function TFileEditor.GetLine(Index : LongInt) : String;
- var p: PString;
-     s: String;
+function TFileEditor.GetLine(Index : LongInt) : LongString;
+(*
+ var p: PLongString;
+     s: LongString;
 begin
  if (Index < FileLines^.Count) and (Index >= 0) then p := FileLines^.At(Index)
                                                 else p := Nil;
@@ -1447,12 +1450,21 @@ begin
  s := KeyMapConvertStr(s, true);
  GetLine := s;                          {-$VIV E-ND}
 end;
+*)
+{Cat}
+begin
+ if (Index < FileLines^.Count) and (Index >= 0) then
+   GetLine := KeyMapConvertStr(CnvLongString(FileLines^.At(Index)), True)
+ else
+   GetLine := '';
+end;
+{/Cat}
 
-procedure TFileEditor.ModifyLine(Index : LongInt; S : String; DelSpaces: Boolean);
+procedure TFileEditor.ModifyLine(Index : LongInt; S : LongString; DelSpaces: Boolean);
 begin
  if (Index < 0) or (Index >= FileLines^.Count) then Exit;
- if DelSpaces then DelRight(S);
- KeyMapAtReplace(Index, NewStr(S)); {-$VIV}
+ if DelSpaces then LongDelRight(S);
+ KeyMapAtReplace(Index, NewLongStr(S)); {-$VIV}
 end;
 
 function TFileEditor.HandleCommand;
@@ -1462,9 +1474,9 @@ end;
 procedure TFileEditor.HandleEvent;
  label 1,2;
  var ChPos,WM,DelWord,WasMA,WasMB: Boolean;
-     P: PString;
+     P: PLongString;
      PL: PCollection;
-     S: String;
+     S: LongString;
      LastY,LastX,i: LongInt;
      OldDelta,
      T: TPoint;
@@ -1484,7 +1496,7 @@ procedure TFileEditor.HandleEvent;
   if InsertMode then
     begin
      if LastX < Length(WorkString) then Insert(' ', WorkString, LastX + 1)
-                   else WorkString := WorkString + Strg(' ', LastX - Length(WorkString) + 1);
+                   else WorkString := WorkString + LongStrg(' ', LastX - Length(WorkString) + 1);
      StoreUndoInfo(udInsChar, P, P);
     end
      else
@@ -1511,7 +1523,7 @@ procedure TFileEditor.HandleEvent;
   label Ex;
  begin
    if not WorkModified then goto Ex;
-   While WorkString[Length(WorkString)] = ' ' do SetLength(WorkString, Length(WorkString)-1);
+   While (WorkString <> '') and (WorkString[Length(WorkString)] = ' ') do SetLength(WorkString, Length(WorkString)-1);
    if WorkModified then ModifyLine(LastLine, WorkString,On);
    Modified := Modified or WorkModified;
    WorkModified := Off;
@@ -1521,7 +1533,7 @@ procedure TFileEditor.HandleEvent;
 
  procedure MakeEnter;
   var I, J: LongInt;
-      OldS,s1,s2: String;
+      OldS,s1,s2: LongString;
       Bl: Boolean;
       WBY,WAY: Boolean;
       L: Longint;
@@ -1546,18 +1558,18 @@ procedure TFileEditor.HandleEvent;
         WAY := Bl and (Delta.Y = Mark.A.Y) and (Delta.X <= Mark.A.X);
         WBY := Bl and (Delta.Y = Mark.B.Y) and (Delta.X <= Mark.B.X);
         StoreUndoInfo(udInsLine, Delta, WorkString);
-        While WorkString[Length(WorkString)] = ' ' do SetLength(WorkString, Length(WorkString)-1);
+        While (WorkString <> '') and (WorkString[Length(WorkString)] = ' ') do SetLength(WorkString, Length(WorkString)-1);
         S1 := WorkString; S2 := Copy(S1, 1, LastX);
-        While S2[Length(S2)] = ' ' do SetLength(S2, Length(S2)-1);
+        While (S2 <> '') and (S2[Length(S2)] = ' ') do SetLength(S2, Length(S2)-1);
         WorkString := S2; Delete(S1, 1, LastX);
         ModifyLine(LastY,S2,On);
         WorkString := S1;
         if EdOpt.AutoIndent then
          begin
           I := LastY - 1;
-          While (WorkString[1] = ' ') and (WorkString <> '') do
+          While (WorkString <> '') and (WorkString[1] = ' ') do
             begin
-              DelFC(WorkString);
+              Delete(WorkString, 1, 1); {DelFC(WorkString);}
               if WAY then Dec(Mark.A.X);
               if WBY then Dec(Mark.B.X);
             end;
@@ -1566,7 +1578,7 @@ procedure TFileEditor.HandleEvent;
           if I >= 0 then
            begin S2 := GetLine(I); Dec(I) end;}
           LastX := 0;
-          While (S2[LastX + 1] = ' ') and (LastX < Length(S2))
+          While (LastX < Length(S2)) and (S2[LastX + 1] = ' ')
            do begin
                  Inc(LastX);
                  WorkString := ' ' + WorkString;
@@ -1574,7 +1586,7 @@ procedure TFileEditor.HandleEvent;
                  if WBY then Inc(Mark.B.X);
               end;
          end else LastX := 0;
-        KeyMapAtInsert(LastY + 1, NewStr(WorkString)); {-$VIV}
+        KeyMapAtInsert(LastY + 1, NewLongStr(WorkString)); {-$VIV}
         SetLimits; Delta.X := LastX; Inc(Delta.Y);
        end;
   for L:=1 to 9 do if MarkPos[L].Y >= Delta.Y then Inc(MarkPos[L].Y);
@@ -1607,22 +1619,25 @@ procedure TFileEditor.HandleEvent;
     Exit;
    end;
   EnableMarking := Off;
-  if Length(WorkString) < LastX then WorkString := AddSpace(WorkString, LastX + 1);
+  if Length(WorkString) < LastX then WorkString := LongAddSpace(WorkString, LastX + 1);
+{Cat:warn проверить, нет ли тут ошибки}
   if EdOpt.BackIndent and ((WorkString[LastX + 1] <> ' ') or (DelSpaces(WorkString) = ''))
-   and (Copy(WorkString, 1, LastX) = Strg(' ', LastX))
+   and (Copy(WorkString, 1, LastX) = LongStrg(' ', LastX))
    and (LastY > 0) then
     begin
      for i := LastY-1 downto 0 do
       begin
        s := GetLine(i);
-       J := 0; while (S[J+1] = ' ') and (J < Length(S)) do Inc(J);
+       J := 0;
+       while (J < Length(S)) and (S[J+1] = ' ') do
+         Inc(J);
        if J < LastX then
-       if Copy(s, 1, LastX) > Strg(' ', LastX) then
+       if Copy(s, 1, LastX) > LongStrg(' ', LastX) then
          begin
           T.X := LastX; T.Y := LastY;
           StoreUndoInfo(udSubDel, T, WorkString);
           Delete(WorkString, 1, LastX); LastX := J;
-          Insert(Strg(' ', J), WorkString, 1);
+          Insert(LongStrg(' ', J), WorkString, 1);
           ScrollTo(LastX, Delta.Y);
           ChangeLine;
           DrawView;
@@ -1650,7 +1665,7 @@ procedure TFileEditor.HandleEvent;
 
  procedure BlockDelete(ChangePos: Boolean);
   var I, J: LongInt;
-      S, S1, S2: String;
+      S, S1, S2: LongString;
       L, K: Longint;
  begin
   Modified := On;
@@ -1668,7 +1683,7 @@ procedure TFileEditor.HandleEvent;
     begin
      S := GetLine(I);
      Delete(S, Mark.A.X + 1, Mark.B.X - Mark.A.X);
-     if not InsertMode then Insert(Strg(' ', Mark.B.X - Mark.A.X), S, Mark.A.X + 1);
+     if not InsertMode then Insert(LongStrg(' ', Mark.B.X - Mark.A.X), S, Mark.A.X + 1);
      ModifyLine(I, S, On);
     end;
    end else
@@ -1691,7 +1706,7 @@ procedure TFileEditor.HandleEvent;
          else Delta := Mark.A;
      end;
     ModifyLine(Mark.A.Y, Copy(GetLine(Mark.A.Y),1,Mark.A.X) +
-                         Copy(GetLine(Mark.B.Y),Mark.B.X+1,255), On);
+                         Copy(GetLine(Mark.B.Y),Mark.B.X+1,MaxLongStringLength), On);
     for I := Mark.A.Y to Mark.B.Y - 1 do
         FileLines^.AtFree(Mark.A.Y + 1);
     K:=Mark.B.Y - Mark.A.Y - 1;
@@ -1761,7 +1776,7 @@ L1:
 
  procedure MakeDel;
   var P: TPoint;
-      S: String;
+      S: LongString;
       L: Longint;
  begin
   WorkModify;
@@ -1777,7 +1792,7 @@ L1:
   P.X := LastX; P.Y := LastY;
   S := GetLine(LastY + 1);
   if LastY < FileLines^.Count then StoreUndoInfo(udSubDelLine, P, S);
-  WorkString := WorkString + Strg(' ', LastX - Length(WorkString)) + S;
+  WorkString := WorkString + LongStrg(' ', LastX - Length(WorkString)) + S;
   ChangeLine;
   FileLines^.AtFree(LastY + 1);
   for L:=1 to 9 do if MarkPos[L].Y >= LastY then Dec(MarkPos[L].Y);
@@ -1817,7 +1832,7 @@ L1:
   if (ClipBoardStream<>nil)
     {AK155} and (Clipboard^.Count < 1000) {/AK155}
   then
-     ClipboardStream^.Seek(Max(ClipboardStream^.GetPos-1, 0));
+     ClipboardStream^.Seek(Max(ClipboardStream^.GetPos-{$IFDEF USELONGSTRING} 4 {$ELSE} 1 {$ENDIF}, 0));
   CopyLines2Stream(Clipboard, ClipboardStream);
  end;
 
@@ -1930,7 +1945,7 @@ L1:
  procedure BlockWrite;
   var P: PCollection;
       PS: PStdCollector;
-      S, SST: String;
+      S, SST: LongString;
       R: PStream;
       I,J,K: LongInt;
       CRLF: String[2];
@@ -1938,10 +1953,12 @@ L1:
       PI: PView;
       A: Word;
 
+{Cat: эта процедура теперь умеет работать с длинными строками
+      и находится в модуле Advance1}
+(*
   procedure CompressString;
-   var
-       PP: Pointer;
-       TSt: Integer;
+  var PP: Pointer;
+      TSt: Integer;
   begin
    PP := @SST;
    TSt := StoI(EditorDefaults.TabSize);
@@ -2040,6 +2057,7 @@ L1:
    end;
    {$ENDIF}
   end;
+*)
 
 var qwe: byte;
  begin
@@ -2076,12 +2094,12 @@ var qwe: byte;
   for I := Mark.A.Y to Mark.B.Y do
     begin
       if VB then SST := Copy(GetLine(I), Mark.A.X+1, Mark.B.X-Mark.A.X)
-            else if I = Mark.A.Y then SST := Copy(GetLine(I), Mark.A.X+1, 255)
+            else if I = Mark.A.Y then SST := Copy(GetLine(I), Mark.A.X+1, MaxLongStringLength)
                    else if I = Mark.B.Y then SST := Copy(GetLine(I), 1, Mark.B.X)
                      else SST := GetLine(I);
-      if OptimalFill then CompressString;
+      if OptimalFill then CompressString(SST);
       R^.Write(SST[1], Length(SST));
-      if (I <> Mark.B.Y) and ((Length(SST) < MaxEditStringLength) or not RecombineLongLines) then R^.Write(CrLf[1], Length(CrLf)); {JO}{!!!}
+      if (I <> Mark.B.Y) and ((Length(SST) < MaxLongStringLength) or not RecombineLongLines) then R^.Write(CrLf[1], Length(CrLf)); {JO}{!!!}
     end;
 
   if PI<>nil then PI^.Free;
@@ -2102,14 +2120,14 @@ var qwe: byte;
      PP: TPoint;
 
  procedure SplitString;
-  var S: String;
+  var S: LongString;
       I,OldX: LongInt;
       P: PLineCollection;
       TP: TPoint;
  begin
   ChangeLine;
   S := '';
-  While WorkString[Length(WorkString)] = ' ' do
+  While (WorkString <> '') and (WorkString[Length(WorkString)] = ' ') do
    begin SetLength(WorkString, Length(WorkString)-1); if Length(WorkString) < LastX + 1 then LastX := Length(WorkString) - 1; end;
   OldX := 0;
   if Length(WorkString) - 1 = LastX then OldX := 1
@@ -2117,7 +2135,7 @@ var qwe: byte;
        else OldX := 1;
   if Length(WorkString) > EdOpt.RightSide then
    begin
-    New(P, Init(1,1)); P^.Insert(NewStr(WorkString));
+    New(P, Init(1,1,True)); P^.Insert(NewLongStr(WorkString));
     TP.Y := Delta.Y; TP.X := 0;
     StoreUndoInfo(udDelBlock, TP, P);
     while (Length(WorkString) > 1) and (Length(WorkString) > EdOpt.RightSide) do
@@ -2126,10 +2144,10 @@ var qwe: byte;
      begin S := WorkString[Length(WorkString)] + S; SetLength(WorkString, Length(WorkString)-1); end;
     if DelSpaces(WorkString) = '' then begin WorkString := WorkString + S; S := ''; end else
     OldX := Delta.X - Length(WorkString) + OldX;
-    if Delta.X > Length(WorkString) then Delta.X := 255;
+    if Delta.X > Length(WorkString) then Delta.X := MaxLongStringLength;
     if System.Pos(DelSpaces(WorkString), WorkString) = 0 then
     begin
-     While WorkString[Length(WorkString)] = ' ' do SetLength(WorkString, Length(WorkString)-1);
+     While (WorkString <> '') and (WorkString[Length(WorkString)] = ' ') do SetLength(WorkString, Length(WorkString)-1);
      I := 1;
      if EdOpt.AutoJustify then
      while Length(WorkString) < EdOpt.RightSide do
@@ -2144,11 +2162,11 @@ var qwe: byte;
         Inc(I); if I > Length(WorkString) then I := 1;
       end;
      end;
-    DelLeft(S);
-    S := Strg(' ', EdOpt.LeftSide)+S;
+    LongDelLeft(S);
+    S := LongStrg(' ', EdOpt.LeftSide)+S;
    end;
    ModifyLine(LastY, WorkString, On);
-   KeyMapAtInsert(LastY+1, NewStr(S)); {-$VIV}
+   KeyMapAtInsert(LastY+1, NewLongStr(S)); {-$VIV}
    S := #2#0;
    StoreUndoInfo(udFormatBlock, TP, S);
    if Delta.X >= Length(WorkString) then
@@ -2188,24 +2206,24 @@ var qwe: byte;
    BlockOff;
    EnableMarking := Off;
    T := Delta; Inc(T.X);
-   if LastX < 255 then
+   if LastX < MaxLongStringLength then
     begin
      WorkModify;
      if InsertMode then
       begin
        if LastX <= Length(WorkString) then Insert(S1, WorkString, LastX + 1)
-                      else WorkString := WorkString + Strg(' ', LastX - Length(WorkString)) + S1;
+                      else WorkString := WorkString + LongStrg(' ', LastX - Length(WorkString)) + S1;
        StoreUndoInfo(udInsChar, Delta, Delta);
        if Length(S1) = 2 then
          StoreUndoInfo(udInsChar, T, T);
       end else
       begin
-       if LastX >= Length(WorkString) then WorkString := WorkString + Strg(' ', LastX - Length(WorkString) + 1);
+       if LastX >= Length(WorkString) then WorkString := WorkString + LongStrg(' ', LastX - Length(WorkString) + 1);
        StoreUndoInfo(udReplaceChar, Delta, WorkString[LastX+1]);
        WorkString[LastX+1] := Ch
       end;
-     if (not EdOpt.AutoWrap or (LastX < EdOpt.RightSide)) and (LastX < MaxEditStringLength) then HScroll^.SetValue(LastX + 1)
-      else if LastX < MaxEditStringLength then SplitString else
+     if (not EdOpt.AutoWrap or (LastX < EdOpt.RightSide)) and (LastX < MaxLongStringLength) then HScroll^.SetValue(LastX + 1)
+      else if LastX < MaxLongStringLength then SplitString else
              begin
               ChangeLine;
               FileLines^.AtInsert(LastY+1, nil); SetLimits;
@@ -2259,25 +2277,24 @@ var qwe: byte;
       RightContact1 = '─┤┼┐┘┬┴╢╫╖╜╥╨';
       RightContact2 = '═╣╬╗╝╦╩╡╪╕╛╤╧';
 
-   var  _Up, _In, _Down: String;
-        L_Up, L_In, L_Down: Byte;
+   var  _Up, _In, _Down: LongString;
         VL: String[32];
         A,B: Word;
         I,J,K: LongInt;
         ResChar, C: Char;
         DMode: Byte;
 
-   function GetH0: Byte; begin GetH0 := 2*Byte(PosChar(_In[LastX+2], RightContact1)>0)+
-                                        8*Byte(PosChar(_In[LastX], LeftContact1)>0) end;
+   function GetH0: Byte; begin GetH0 := 2*Byte((LastX+2<=Length(_In)) and (PosChar(_In[LastX+2], RightContact1)>0))+
+                                        8*Byte((LastX>0) and (PosChar(_In[LastX], LeftContact1)>0)) end;
 
-   function GetH1: Byte; begin GetH1 := 2*Byte(PosChar(_In[LastX+2], RightContact2)>0)+
-                                        8*Byte(PosChar(_In[LastX], LeftContact2)>0) end;
+   function GetH1: Byte; begin GetH1 := 2*Byte((LastX+2<=Length(_In)) and (PosChar(_In[LastX+2], RightContact2)>0))+
+                                        8*Byte((LastX>0) and (PosChar(_In[LastX], LeftContact2)>0)) end;
 
-   function GetV0: Byte; begin GetV0 :=   Byte(PosChar(_Up[LastX+1], UpContact1)>0)+
-                                        4*Byte(PosChar(_Down[LastX+1], DownContact1)>0) end;
+   function GetV0: Byte; begin GetV0 :=   Byte((LastX+1<=Length(_Up)) and (PosChar(_Up[LastX+1], UpContact1)>0))+
+                                        4*Byte((LastX+1<=Length(_Down)) and (PosChar(_Down[LastX+1], DownContact1)>0)) end;
 
-   function GetV1: Byte; begin GetV1 :=   Byte(PosChar(_Up[LastX+1], UpContact2)>0)+
-                                        4*Byte(PosChar(_Down[LastX+1], DownContact2)>0) end;
+   function GetV1: Byte; begin GetV1 :=   Byte((LastX+1<=Length(_Up)) and (PosChar(_Up[LastX+1], UpContact2)>0))+
+                                        4*Byte((LastX+1<=Length(_Down)) and (PosChar(_Down[LastX+1], DownContact2)>0)) end;
 
    function Modify(C: Char; Mask: Byte): Boolean;
      var I: Integer;
@@ -2305,9 +2322,9 @@ var qwe: byte;
    ChangeLine;
    if ShiftState and 3 <> 0 then DMode := 1
      else if ShiftState and 4 <> 0 then DMode := 2 else DMode := 0;
-   _In := AddSpace(WorkString, LastX+2);         L_In := Length(_In); SetLength(_In, 32);
-   _Up := AddSpace(GetLine(LastY-1), LastX+2);   L_Up := Length(_Up); SetLength(_Up, 32);
-   _Down := AddSpace(GetLine(LastY+1), LastX+2); L_Down := Length(_Down); SetLength(_Down, 32);
+   _In := LongAddSpace(WorkString, LastX+2);
+   _Up := LongAddSpace(GetLine(LastY-1), LastX+2);
+   _Down := LongAddSpace(GetLine(LastY+1), LastX+2);
    if DrawMode > 1 then VL := Line00 else VL := Line11;
    if Odd(Dir) then
      begin
@@ -2339,7 +2356,7 @@ var qwe: byte;
          A := A or B or (1 shl Dir);
          C := VL[A];
          WorkModify;
-         if LastX >= Length(WorkString) then WorkString := AddSpace(WorkString, LastX + 1);
+         if LastX >= Length(WorkString) then WorkString := LongAddSpace(WorkString, LastX + 1);
          StoreUndoInfo(udReplaceChar, Delta, WorkString[LastX+1]);
          WorkString[LastX+1] := C;
        end;
@@ -2347,17 +2364,17 @@ var qwe: byte;
          if LastDir < 0 then LastDir := (Dir + 2) mod 4;
          A := A or B or (1 shl LastDir) or (1 shl Dir);
          WorkModify;
-         if LastX >= Length(WorkString) then WorkString := AddSpace(WorkString, LastX + 1);
+         if LastX >= Length(WorkString) then WorkString := LongAddSpace(WorkString, LastX + 1);
          if Modify(_Up[LastX+1], 4) then
            begin
-             Dec(Delta.Y); SetLength(_Up, L_Up);
+             Dec(Delta.Y);
              StoreUndoInfo(udReplaceChar, Delta, _Up[LastX+1]);
              _Up[LastX+1] := ResChar; ModifyLine(Delta.Y, _Up, On);
              Inc(Delta.Y);
            end;
          if Modify(_Down[LastX+1], 1) then
            begin
-             Inc(Delta.Y); SetLength(_Down, L_Down);
+             Inc(Delta.Y);
              StoreUndoInfo(udReplaceChar, Delta, _Down[LastX+1]);
              _Down[LastX+1] := ResChar; ModifyLine(Delta.Y, _Down, On);
              Dec(Delta.Y);
@@ -2429,7 +2446,7 @@ var qwe: byte;
    S:='';
    R.Assign(0, 0, 20, 7);
    New(Info, Init(R));
-   Info^.Write(1, Copy(GetString( dlPleaseStandBy ), 4, 255));
+   Info^.Write(1, Copy(GetString( dlPleaseStandBy ), 4, MaxStringLength));
    Application^.Insert(Info);
    Abort:=False;
 
@@ -2522,7 +2539,7 @@ ex:
 
  procedure ChangeCharCaseDirect; {-$VIV 21.05.99--}
  var Ch: Char;
-     S, S2: String;
+     S, S2: LongString;
  begin
    S := WorkString;
    if (Delta.X >= 0) and (Delta.X < Length(S)) then
@@ -2530,9 +2547,9 @@ ex:
      WorkModify;
      StoreUndoInfo(udStrModified, Delta, WorkString);
      Ch := S[Delta.X+1];
-     if Ch = UpStrg(Ch)
-      then S2 := LowStrg(Ch)
-      else S2 := UpStrg(Ch);
+     if Ch = UpCase(Ch)
+      then S2 := LowLongStrg(''+Ch)
+      else S2 := UpLongStrg(''+Ch);
      S[Delta.X+1] := S2[1];
      WorkString := S;
      ChangeLine;
@@ -2545,7 +2562,7 @@ ex:
  end;
 
  procedure WordEnd;
- var S: String;
+ var S: LongString;
      NewX: Integer;
  begin
    S := WorkString;
@@ -2637,7 +2654,7 @@ begin
               cmDuplicateLine: begin
                                  ChangeLine;
                                  WorkModify;
-                                 KeyMapAtInsert(LastY+1, NewStr(GetLine(LastY))); {-$VIV}
+                                 KeyMapAtInsert(LastY+1, NewLongStr(GetLine(LastY))); {-$VIV}
                                  StoreUndoInfo(udDupeLine, Delta, S);
                                  SetLimits;
                                  for L:=1 to 9 do if MarkPos[L].Y >= Delta.Y then Inc(MarkPos[L].Y);
@@ -2659,16 +2676,16 @@ begin
                  if DelSpaces (WorkString) <> '' then
                   begin
                      WorkModify;
-                     While WorkString[Length(WorkString)] = ' ' do SetLength(WorkString, Length(WorkString)-1);
+                     While (WorkString <> '') and (WorkString[Length(WorkString)] = ' ') do SetLength(WorkString, Length(WorkString)-1);
                      StoreUndoInfo(udStrModified, Delta, WorkString);
                      if (ShiftState and 3 <> 0)
                        or (Event.Command = cmUpString)
                        or (Event.Command = cmLowString)
                        or (Event.Command = cmCapString) then
                      case Event.Command of
-                        cmUpWord,  cmUpString:  UpStr(WorkString);
-                        cmLowWord, cmLowString: LowStr(WorkString);
-                        cmCapWord, cmCapString: CapStr(WorkString);
+                        cmUpWord,  cmUpString:  UpLongStr(WorkString);
+                        cmLowWord, cmLowString: LowLongStr(WorkString);
+                        cmCapWord, cmCapString: CapLongStr(WorkString);
                      end else
                      begin
                        While (LastX > 0) and not (WorkString[LastX] in BreakChars) do Dec(LastX);
@@ -2677,9 +2694,9 @@ begin
                           begin S := S + WorkString[LastX+1]; Delete(WorkString, LastX+1, 1); end;
                        if S <> '' then
                        case Event.Command of
-                         cmUpWord:  UpStr(S);
-                         cmLowWord: LowStr(S);
-                         cmCapWord: CapStr(S);
+                         cmUpWord:  UpLongStr(S);
+                         cmLowWord: LowLongStr(S);
+                         cmCapWord: CapLongStr(S);
                        end;
                        System.Insert(S, WorkString, LastX+1);
                      end;
@@ -2864,7 +2881,8 @@ begin
                         ScrollTo(Delta.X, Delta.Y);
                         CED
                        end;
-              cmEnd: begin UnMark := On; while WorkString[Length(WorkString)] = ' ' do SetLength(WorkString, Length(WorkString)-1);
+              cmEnd: begin UnMark := On;
+                           while (WorkString <> '') and (WorkString[Length(WorkString)] = ' ') do SetLength(WorkString, Length(WorkString)-1);
                            ScrollTo(Length(WorkString), Delta.Y); CED end;
               cmInsLine: begin
                           BlockOff;
@@ -3125,7 +3143,7 @@ begin
 end;
 
 procedure TFileEditor.DoHighlite
-          ( var B; const S : String; const Attr : string );
+          ( var B; const S : LongString; const Attr : String );
 var
   i : Integer;
   j : Integer;
@@ -3154,7 +3172,7 @@ procedure OpenSmartpad;
 
      procedure InsertInfo; {-$VIV} {SYR}
      Var
-         Str:String;
+         Str:LongString;
          Idx:Integer;
      begin
          with SmartWindow^.Intern^ do
@@ -3165,7 +3183,7 @@ procedure OpenSmartpad;
                  For Idx:=0 To 5 Do Str:=Str+Char(SPLineChar);
                  Str:=Str+'< '+GetDateTime(Off)+' '+GetDateTime(On)+' >';
                  For Idx:=0 To 35 Do Str:=Str+Char(SPLineChar);
-                 FileLines^.Insert(NewStr(Str));
+                 FileLines^.Insert(NewLongStr(Str));
              end;
              FileLines^.Insert(nil);
              SetLimits;

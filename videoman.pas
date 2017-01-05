@@ -1228,7 +1228,7 @@ begin
 (*    TEST    StartupData.Unload,osuBlinking {///////////}
     JNZ     @@1*)
   end;
- If (FadeDelay > 0) then ResetVgaPalette(ON);; {Knave}
+ If (FadeDelay > 0) then ResetVgaPalette(ON); {Knave}
 end;
 
 procedure ClearScreen; assembler;

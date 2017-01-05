@@ -907,7 +907,7 @@ begin
  if Origin.Y <> Owner^.Size.Y - 1 then MoveTo(Origin.X, Owner^.Size.Y - 1);
  S := ItoS(DBViewer^.Delta.Y+1)+'/'+Itos(DBViewer^.DBFile^.NumRec);
  S := S + 'Í' + KeyMapDescriptor[DBViewer^.KeyMap];
- if Byte(S[0]) <> Size.X then begin GrowTo(Byte(S[0]), 1); Exit; end;
+ if Length(S) <> Size.X then begin GrowTo(Length(S), 1); Exit; end;
  C := Byte(Owner^.GetState(sfActive));
  C := Owner^.GetColor(C+1);
  MoveStr(B, S, C);

@@ -592,13 +592,13 @@ begin
   QQP := MemAlloc(QSize);cl:=0;GetPath:=0;
   if (QQP=Nil) or (QSize=0) then Exit;
   UpStr(s);if not (s[Byte(s[0])] in ['\','/']) then s:=s+'\';
-  Delete(s,1,posChar(':',s));if s[1] in ['\','/'] then DelFC(s);
+  Delete(s,1,posChar(':',s));if s[1] in ['\','/'] then Delete(s, 1, 1); {DelFC(s);}
   while (Byte(s[0])>0) and (PosChar('\',s)>0) do
         begin
           FillChar(ts[1],11,32);
           if PosChar('\',s)>0 then ts:=Copy(s,1,PosChar('\',s)-1)
                           else ts:=s;
-          s:=Copy(s,PosChar('\',s)+1,255);
+          s:=Copy(s,PosChar('\',s)+1,MaxStringLength);
           SetCatalog;
         end;
   FreeMem(Pointer(QQP),QSize);

@@ -1,3 +1,5 @@
+{$I STDEFINE.INC} {Cat}
+
 unit ErrMess;
 
 interface

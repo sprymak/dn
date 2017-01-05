@@ -864,6 +864,11 @@ begin
   Dir := 1;
   if (Event.What = evKeyDown) then
     begin
+      if Length(Data^) > 12 then begin                                  {JO}
+                                   if CurPos>12 then CurPos := 12;
+                                   Data^[0] := #12;
+                                   DrawView;
+                                 end;                                   {/JO}
       if ((Event.KeyCode = kbLeft) or (Event.CharCode = #8)) then Dir := -1;
       if (Event.CharCode = #8) and (CurPos = 9) then Event.KeyCode := kbLeft;
       if (Event.CharCode = '.') then begin CurPos := 9; ClearEvent(Event); DrawView; end;
@@ -880,12 +885,12 @@ begin
   if CurPos = 8 then begin Inc(CurPos, Dir); DrawView end;
 end;
 
-{     TColorPoint = object(TView)
-{       Color: Word;
-{       constructor Init (var ABounds: TRect; AColor: Word);
-{       constructor Load (var S: TStream);
-{       procedure   Store(var S: TStream);
-{       procedure   Draw; virtual;
+{     TColorPoint = object(TView)                                              }
+{       Color: Word;                                                           }
+{       constructor Init (var ABounds: TRect; AColor: Word);                   }
+{       constructor Load (var S: TStream);                                     }
+{       procedure   Store(var S: TStream);                                     }
+{       procedure   Draw; virtual;                                             }
 {     end;                                                                     }
 
 constructor TColorPoint.Init (var ABounds: TRect; AColor: Byte);

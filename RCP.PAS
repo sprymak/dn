@@ -155,6 +155,7 @@ end;
 const RStringList : TStreamRec =
       (ObjType: otStringList;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(Collect.TStringList){$IFDEF OFFS}^{$ENDIF});
+       {$IFDEF LOGOBJLOADSTORE} ObjName : 'otStringList'; {$ENDIF}
        Load   : @Collect.TStringList.Load;
        Store  : nil);
 
@@ -198,23 +199,34 @@ var
         Inc(I);
         case S[I] of
           '''': if (S[I+1] = '''') and B and (I < Length(S)) then
-                                       begin Inc(I); AddStr(A, '''') end
-                   else B := not B;
-          '^': if B then AddStr(A, S[I])
-                 else begin
-                        Inc(I);
-                        AddStr(A, Char(Byte(UpCase(S[I]))-64));
-                      end;
-          '#': if B then AddStr(A, S[I])
-                 else begin
-                        J := 1; M := '';
-                        repeat
-                          Inc(I);
-                          AddStr(M, S[I]);
-                        until not (S[I+1] in ['0'..'9']) or (I >= Length(S));
-                        AddStr(A, Char(StoI(M)));
-                      end;
-            else if B then AddStr(A, S[I]);
+                  begin
+                    Inc(I);
+                    A := A+'''' {AddStr(A, '''')}
+                  end
+                else
+                  B := not B;
+          '^':  if B then
+                  A := A+S[I] {AddStr(A, S[I])}
+                else
+                  begin
+                    Inc(I);
+                    A := A+Char(Byte(UpCase(S[I]))-64) {AddStr(A, Char(Byte(UpCase(S[I]))-64));}
+                  end;
+          '#':  if B then
+                  A := A+S[I] {AddStr(A, S[I])}
+                else
+                  begin
+                    J := 1;
+                    M := '';
+                    repeat
+                      Inc(I);
+                      M := M+S[I]; {AddStr(M, S[I]);}
+                    until (I >= Length(S)) or not (S[I+1] in ['0'..'9']);
+                    A := A+Char(StoI(M)) {AddStr(A, Char(StoI(M)));}
+                  end;
+          else
+                if B then
+                  A := A+S[I]; {AddStr(A, S[I]);}
         end;
       end;
    if S[Length(S)] = '+' then
@@ -230,7 +242,7 @@ var
           Goto 1;
         end;
    If Pos( ^Z, UpStrg( A )) = 1
-     then A := RemoveLeadSpaces( Copy( A, 2, 255 ));
+     then A := RemoveLeadSpaces( Copy( A, 2, MaxStringLength ));
    MakeStr := A;
   end;
 begin
@@ -245,7 +257,7 @@ begin
       S := DefineParser.ProceedStr2(S);
       DelLeft( S );
       S1 := GetWord( UpStrg( S ), 1 );
-      While ( S1[ Length( S1 )] = ',' ) and ( S1 <> '' ) do Dec( S1[ 0 ] );
+      While (S1 <> '') and (S1[ Length( S1 )] = ',') do SetLength(S1, Length(S1)-1);
       If ( S1 = '' ) or ( S1[ 1 ] = ';' ) then Continue;
       P := DLs^.FirstThat( @DoSeekID );
       If P = NIL then Error( 'Unknown identifier "' + GetWord( S, 1 ) + '"' );
@@ -284,7 +296,7 @@ type
     CC1, CC2: Array[1..2] of Char;
   end;
 
-{                            Resource Processing
+{                            Resource Processing                             }
 {----------------------------------------------------------------------------}
 VAR
   S: String;
@@ -355,6 +367,7 @@ const
       REditSaver: TStreamRec = (
        ObjType: 12335;
        VmtLink: {$IFDEF OFFS}Ofs{$ENDIF}(TypeOf(TEditSaver){$IFDEF OFFS}^{$ENDIF});
+       {$IFDEF LOGOBJLOADSTORE} ObjName : 'otEditSaver'; {$ENDIF}
        Load: @TEditSaver.Load;
        Store: @TEditSaver.Store);
 
@@ -431,28 +444,44 @@ begin
      begin
        case S[Pos] of
          '''': if (S[Pos+1] = '''') and B and (Pos < Length(S)) then
-                                      begin Inc(Pos); AddStr(A, '''') end
-                  else B := not B;
-         ',': if not B or Cmd then Break else AddStr( A, S[Pos] );
-         '^': if B then AddStr(A, S[Pos])
-                else begin
-                       Inc(Pos);
-                       AddStr(A, Char(Byte(UpCase(S[Pos]))-64));
-                     end;
-         '#': if B then AddStr(A, S[Pos])
-                else begin
-                       J := 1; M := '';
-                       repeat
-                         Inc(Pos);
-                         AddStr(M, S[Pos]);
-                       until not (S[Pos+1] in ['0'..'9']) or (Pos >= Length(S));
-                       AddStr(A, Char(StoI(M)));
-                     end;
-           else if B then AddStr(A, S[Pos])
-                  else begin
-                         B := On; Cmd := On;
-                         AddStr(A, S[Pos])
-                       end;
+                 begin
+                   Inc(Pos);
+                   A := A+''''; {AddStr(A, '''')}
+                  end
+               else
+                 B := not B;
+         ',':  if not B or Cmd then
+                 Break
+               else
+                 A := A+S[Pos]; {AddStr( A, S[Pos] );}
+         '^':  if B then
+                 A := A+S[Pos] {AddStr(A, S[Pos])}
+               else
+                 begin
+                   Inc(Pos);
+                   A := A+Char(Byte(UpCase(S[Pos]))-64) {AddStr(A, Char(Byte(UpCase(S[Pos]))-64));}
+                 end;
+         '#':  if B then
+                 A := A+S[Pos] {AddStr(A, S[Pos])}
+               else
+                 begin
+                   J := 1;
+                   M := '';
+                   repeat
+                     Inc(Pos);
+                     M := M+S[Pos] {AddStr(M, S[Pos]);}
+                   until not (S[Pos+1] in ['0'..'9']) or (Pos >= Length(S));
+                   A := A+Char(StoI(M)) {AddStr(A, Char(StoI(M)));}
+                 end;
+         else
+               if B then
+                 A := A+S[Pos] {AddStr(A, S[Pos])}
+               else
+                 begin
+                   B := On;
+                   Cmd := On;
+                   A := A+S[Pos] {AddStr(A, S[Pos])}
+                 end;
        end;
        Inc(Pos);
      end;
@@ -493,7 +522,8 @@ begin
      S := DefineParser.ProceedStr2(S);
      Inc(Line);
      DelLeft(S);
-     FreeStr := UpStrg(S);
+     FreeStr := S;
+     UpStr(FreeStr);
      if (S <> '') and (S[1] <> ';') then
        if Copy(FreeStr, 1, Length(idColorGroup)) = idColorGroup then MakeGroup else
        if Copy(FreeStr, 1, Length(idColorItem)) = idColorItem then MakeItem else
@@ -940,8 +970,8 @@ var
             Temp: '';
             Drives: ( List: NIL; Focus: 0 );
             Current: 0;
-            LFNContainer: 0;
-            LFNCache: ''
+            CopyLimitBuf: '';
+            ForceDefArch: ''
           );
 
         {-DataCompBoy-}
@@ -1098,7 +1128,7 @@ begin
   Types^.ForEach( @DoClean );
 end;
 
-function ReplaceChar(A,B: Char; S: string): string;
+function ReplaceChar(A,B: Char; S: String): String;
 begin
   Replace(A,B,S); ReplaceChar := S;
 end;
@@ -1140,7 +1170,7 @@ begin
   If No < 1 then goto Same;
   I := SeekWord( S, No );
   If I > 0
-    then CutWord := Copy( S, 1, I - 1 ) + Copy( S, wSkipBlank( S, wSkipText( S, I )), 255 )
+    then CutWord := Copy( S, 1, I - 1 ) + Copy( S, wSkipBlank( S, wSkipText( S, I )), MaxStringLength )
     else Same: CutWord := S;
 end;
 
@@ -1148,6 +1178,18 @@ BEGIN
   WriteLn( #13'Resource Compiler for DN OSP 1.51.07a+  Version 1.08' );
   WriteLn(    'Copyright(C) 1994,95 RIT Research Labs');
   WriteLn(    'Copyright(C) 1995 AxoN(R)Soft');
+
+{Cat}
+{$IFDEF LOGOBJLOADSTORE}
+  if IOResult <> 0 then
+    ;
+  System.Assign(F.T, 'stream.log');
+  System.Rewrite(F.T);
+  System.Close(F.T);
+  if IOResult <> 0 then
+    ;
+{$ENDIF}
+{/Cat}
 
 {$IFNDEF VIRTUALPASCAL}
  {$IFNDEF DPMI}

@@ -194,9 +194,9 @@ begin
   IndexOf := -1;
 {$IFNDEF OS2}
   {$IFDEF OS_DOS}
-  S := ' ' + lfGetLongFileName(Copy(CnvString(PEditRecord(P)^.fName), 2, 255)); {DataCompBoy}
+  S := ' ' + lfGetLongFileName(Copy(CnvString(PEditRecord(P)^.fName), 2, MaxStringLength)); {DataCompBoy}
   {$ELSE}
-  S := ' ' + Copy(CnvString(PEditRecord(P)^.fName), 2, 255); {DataCompBoy}
+  S := ' ' + Copy(CnvString(PEditRecord(P)^.fName), 2, MaxStringLength); {DataCompBoy}
   {$ENDIF}
 {$ELSE}
   S := CnvString(PEditRecord(P)^.fName);
@@ -438,11 +438,11 @@ begin
   if LastCommand <> '' then
     begin
       if CmdStrings = nil then
-        CmdStrings := New(PLineCollection, Init(40,40));
+        CmdStrings := New(PLineCollection, Init(40,40,False));
       for I := 0 to CmdStrings^.Count - 1 do
         begin
           P := CmdStrings^.At(I);
-          if Copy(CnvString(P),2,255) = LastCommand then
+          if Copy(CnvString(P),2,MaxStringLength) = LastCommand then
             begin
               CmdStrings^.AtDelete(I);
               CmdStrings^.Insert(P);
@@ -486,7 +486,7 @@ Message(CommandLine, evCommand, cmExecCommandLine, nil);
 /AK155}
  if (CmdStrings <> nil) and (CmdStrings^.Count >= 50) then
    begin
-     M := New(PLineCollection, Init(50, 10));
+     M := New(PLineCollection, Init(50, 10, False));
      for I := 1 to 40 do
       begin
         if CmdStrings^.Count <= 0 then Break;
@@ -520,7 +520,7 @@ function GetCommand(Idx: Integer): String;
 begin
   GetCommand := '';
   if (CmdStrings = nil) or (CmdStrings^.Count <= Idx) or (CmdStrings^.At(Idx) = nil) then Exit;
-  GetCommand := Copy(PString(CmdStrings^.At(Idx))^,2,255);
+  GetCommand := Copy(PString(CmdStrings^.At(Idx))^,2,MaxStringLength);
 end;
 
 
@@ -660,7 +660,7 @@ procedure AddToDirectoryHistory(S: String; DriveType:integer);
   function IsThat(P: PString): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
   begin
     Inc(I);
-    IsThat := S = Copy(P^, 2, 255);
+    IsThat := S = Copy(P^, 2, MaxStringLength);
   end;
 
   function IsThis(P: PString): Boolean; {$IFDEF BIT_16}far;{$ENDIF}
@@ -674,7 +674,7 @@ begin
 {$IFDEF OS_DOS}
   S:=lfGetLongFileName(S);
 {$ENDIF}
-  if DirHistory = nil then DirHistory := New(PLineCollection, Init(40, 40));
+  if DirHistory = nil then DirHistory := New(PLineCollection, Init(40, 40, False));
   if (DriveType <> integer(dtList)) and
      (DriveType <> integer(dtFind)) and
      (DriveType <> integer(dtArvid)) and
@@ -742,7 +742,7 @@ begin
      If (PViewRecord(EditHistory^.At(I))^.fName = nil) then Exit;
      {A eto tak, na vsyakiy sluchay proverka, esli eto ne DPMI :}
      PDNApplication(Application)^.EditFile(Off,
-       Copy(PViewRecord(EditHistory^.At(I))^.fName^, 2, 255));
+       Copy(PViewRecord(EditHistory^.At(I))^.fName^, 2, MaxStringLength));
     end;
 end;
 
@@ -769,7 +769,7 @@ begin
    begin
     If (PViewRecord(ViewHistory^.At(I))^.fName = nil) then Exit; {Ku :}
     PDNApplication(Application)^.ViewFile(false, true, {AK155}
-     Copy(PViewRecord(ViewHistory^.At(I))^.fName^,2,255));
+     Copy(PViewRecord(ViewHistory^.At(I))^.fName^,2,MaxStringLength));
    end;
 end;
 
@@ -791,7 +791,7 @@ begin
       Exit;
     end;
 
-  if DirHistory = nil then DirHistory := New(PLineCollection, Init(40, 40));
+  if DirHistory = nil then DirHistory := New(PLineCollection, Init(40, 40, False));
 {  if DirHistory^.Count = 0 then Exit;}
 
   D := GetDialog(dlgDirectoryHistory, Pointer(P));
@@ -803,7 +803,7 @@ begin
 
   DT.I := PListBox(P)^.Focused;
   Dispose(D,Done);
-  if I = cmOK then DirHistoryMenu := Copy(CnvString(DirHistory^.At(DT.I)),2,255);
+  if I = cmOK then DirHistoryMenu := Copy(CnvString(DirHistory^.At(DT.I)),2,MaxStringLength);
 end;
 
 
@@ -818,7 +818,7 @@ var
 begin
   ClearHistories; LoadHistories; {AK155}
   if CmdStrings = nil then
-    CmdStrings := New(PLineCollection, Init(40,40));
+    CmdStrings := New(PLineCollection, Init(40,40,False));
 
   D := GetDialog(dlgCommandsHistory, Pointer(P));
 

@@ -91,6 +91,7 @@ type
    function  GetRealName: String; virtual;
    procedure GetFull(var B; P:PFileRec; C, SC:Word); virtual; {DataCompBoy}
    procedure GetEmpty(var B; SC: Word); virtual;
+   function  CalcLengthWithoutName: Integer; virtual;
    function  CalcLength: Integer; virtual;
    procedure RereadDirectory(S: String); virtual; {DataCompBoy}
    procedure MakeTop(var S: String); virtual;
@@ -118,8 +119,8 @@ function GetFilesColl(
     CurDir: PString;
     const FileMask: string;
     Owner: Pointer;
-    SortMode: Integer;
-    LFNActive: Boolean): PFilesCollection;
+    SortMode: Integer
+    {$IFNDEF OS2}; LFNActive: Boolean{$ENDIF}): PFilesCollection;
 
 const
   TempDirs: PSortedCollection = nil;
@@ -190,9 +191,9 @@ begin
   begin
    Flags := Params[n].Param;
    LFNLen:=StoI(Params[n].LFNLen);
-   if (LFNLen = 0) or (LFNLen > 253) then LFNLen := 253;
+   if (LFNLen = 0) or (LFNLen > 252) then LFNLen := 252;
    EXTLen:=StoI(Params[n].EXTLen);
-   if EXTLen > 253 then EXTLen := 253;
+   if EXTLen > 252 then EXTLen := 252;
    case FileCase of
     0: FilFLP := 0;
     1: FilFLP := flnLowCase;
@@ -235,8 +236,7 @@ constructor TDrive.Load(var S: TStream);
 begin
  TObject.Init;
  Prev := PDrive(S.Get);
- S.Read(CurDir[0], 1);
- S.Read(CurDir[1], Length(CurDir));
+ S.ReadStrV(CurDir); {S.Read(CurDir[0], 1); S.Read(CurDir[1], Length(CurDir));}
  S.Read(Flags, SizeOf(Flags));
  S.Read(LFNLen, 1);
  S.Read(EXTLen, 1);
@@ -256,7 +256,7 @@ end;
 procedure TDrive.Store(var S: TStream);
 begin
  S.Put(Prev);
- S.Write(CurDir, Length(CurDir)+1);
+ S.WriteStr(@CurDir); {S.Write(CurDir, Length(CurDir)+1);}
  S.Write(Flags, SizeOf(Flags));
  S.Write(LFNLen, 1);
  S.Write(EXTLen, 1);
@@ -299,12 +299,9 @@ begin
 end;
         {-DataCompBoy-}
 
-function TDrive.CalcLength;
- var B: Word;
+function TDrive.CalcLengthWithoutName;
 begin
- {$IFNDEF OS2} if Flags and psShowLongName <> 0 then {$ENDIF}
-    B:=LFNLen+1 {$IFNDEF OS2} else B:=13 {$ENDIF};
- B := B +
+ CalcLengthWithoutName :=
       (10 + CountryInfo.TimeFmt) * Byte(Flags and psShowSize <> 0) +
       9 * Byte(Flags and psShowDate <> 0) +
       (7 - CountryInfo.TimeFmt) * Byte(Flags and psShowTime <> 0) +
@@ -312,12 +309,21 @@ begin
       (7 - CountryInfo.TimeFmt) * Byte(Flags and psShowCrTime <> 0) +
       9 * Byte(Flags and psShowLADate <> 0) +
       (7 - CountryInfo.TimeFmt) * Byte(Flags and psShowLATime <> 0);
+end;
 
+function TDrive.CalcLength;
+ var B: Word;
+begin
+ {$IFNDEF OS2} if Flags and psShowLongName <> 0 then {$ENDIF}
+    B := CalcLengthWithoutName+LFNLen+1 {$IFNDEF OS2} else B := CalcLengthWithoutName + 13 {$ENDIF};
+ if B > MaxViewWidth then B := MaxViewWidth;
  if Flags and psShowDescript <> 0 then CalcLength := MaxViewWidth
                                   else CalcLength := B;
 end;
 
 procedure TDrive.MakeTop;
+begin
+if (LFNLen < 250) {$IFNDEF OS2} or (Flags and psShowLongName = 0){$ENDIF}then
 begin
 {$IFNDEF OS2}
  if Flags and psShowLongName <> 0 then
@@ -331,7 +337,7 @@ begin
      end
    else S := GetString(dlTopName)
 {$ENDIF}
- ;
+end else S := '';
  if Flags and psShowSize     <> 0 then S := S + Copy(GetString(dlTopSize),2-CountryInfo.TimeFmt, 255);
  if Flags and psShowDate     <> 0 then S := S + GetString(dlTopDate);
  if Flags and psShowTime     <> 0 then S := S + Copy(' '+GetString(dlTopTime), 1+CountryInfo.TimeFmt, 255);
@@ -339,21 +345,32 @@ begin
  if Flags and psShowCrTime   <> 0 then S := S + Copy(' '+GetString(dlTopCrTime), 1+CountryInfo.TimeFmt, 255);
  if Flags and psShowLADate   <> 0 then S := S + GetString(dlTopLADate);
  if Flags and psShowLATime   <> 0 then S := S + Copy(' '+GetString(dlTopLATime), 1+CountryInfo.TimeFmt, 255);
+ if (LFNLen >= 250) {$IFNDEF OS2} and (Flags and psShowLongName <> 0){$ENDIF}
+         then S := S  + AddSpace(CenterStr(GetString(dlTopLFN), SizeX-Length(S)), LFNLen) else
  if Flags and psShowDescript <> 0 then S := S + ' ' + GetString(dlPnlDescription) + ' ' + Strg(#32,255);
 end;
 
 procedure TDrive.GetFull;
  var S: String;
+{$IFDEF USEANSISTRING}
+     S1,S2,S3: String;
+{$ELSE}
      S1,S2,S3: String[40];
+{$ENDIF}
      X: Byte;
   NFM: TNameFormatMode;
   OPT: Word;
   LogName: String;
+ label Longer250, Longer250_1;
 begin
+X:= 0;
+if (LFNLen < 250){$IFNDEF OS2} or (Flags and psShowLongName = 0){$ENDIF} then {JO: если ширина колонки имени больше 250 символов, её показываем после остальных колонок}
+Longer250:
+ begin
 {$IFNDEF OS2}
   if Flags and psShowLongName <> 0 then
    begin
-    S := GetLFN(P^.LFN);
+    S := {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(GetLFN(P^.LFN));
 {$ELSE}
     S := P^.Name;
 {$ENDIF}
@@ -362,8 +379,13 @@ begin
      then OPT:=flnPreferName or flnUseCutChar or flnPadRight or flnHighlight or flnHandleTildes
      else OPT:=flnHardExtArea or flnAutoHideDot or flnUseCutChar or flnPadRight or flnHighlight or flnHandleTildes;
     if P^.Selected and (FMSetup.Show and fmsTagChar<>0) then OPT:=OPT+flnSelected;
-    if P^.Attr and SysFile<>0 then NFM:=nfmSystem;
-    if P^.Attr and Hidden <>0 then NFM:=nfmHidden;
+
+   case P^.Attr and (Hidden+SysFile) of               {Pavel Anufrikov -> }
+    Hidden  :        NFM:=nfmHidden;
+    SysFile :        NFM:=nfmSystem;
+    Hidden+SysFile : NFM:=nfmHiddenSystem;
+   end{case};                                         { <- Pavel Anufrikov}
+
     if P^.Attr and Directory <>0 then if DirFLP<>65535
                                        then OPT:=OPT or DirFLP
                                        else if (not IsMixedCase(S)) {JO}
@@ -394,23 +416,33 @@ begin
     NFM:=nfmNull;
     OPT:=flnHardExtArea or flnAutoHideDot or flnPadRight or flnHighlight or flnHandleTildes;
     if P^.Selected and (FMSetup.Show and fmsTagChar<>0) then OPT:=OPT+flnSelected;
-    if P^.Attr and SysFile<>0 then begin NFM:=nfmSystem; OPT:=OPT or flnCapitalCase end;
-    if P^.Attr and Hidden <>0 then NFM:=nfmHidden;
+
+    case P^.Attr and (Hidden+SysFile) of               {Pavel Anufrikov -> }
+     Hidden  :        NFM:=nfmHidden;
+     SysFile :        NFM:=nfmSystem;
+     Hidden+SysFile : NFM:=nfmHiddenSystem;
+    end{case};                                         { <- Pavel Anufrikov}
+    if P^.Attr and SysFile<>0 then OPT:=OPT or flnCapitalCase;
+
     if P^.Attr and Directory <>0 then OPT:=OPT or flnUpCase
                                  else OPT:=OPT or flnLowCase;
-    S:=FormatLongName(MakeFileName(P^.Name), 12, 3, OPT, NFM, nil);
+    S:=FormatLongName({$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(MakeFileName(P^.Name)), 12, 3, OPT, NFM, nil);
     if P^.Selected and (FMSetup.Show and fmsTagChar=0) then S:='~'+S+'~';
    end;
 {$ENDIF}
-  X:=LFNLen;
-  MoveCStr(TWordArray(B), S, C);
+  MoveCStr(TWordArray(B)[X], S, C);
+  {$IFNDEF OS2}if Flags and psShowLongName <> 0 then {$ENDIF} Inc(X, LFNLen)
+  {$IFNDEF OS2}  else Inc(X, 12) {$ENDIF}
+  ;
 {-----------}
   if P^.Selected and PView(Owner)^.GetState(sfFocused) then begin
    C:=C shr 8;
    SC:=SC and $00FF + C shl 8;
   end;
+  if (LFNLen >= 250){$IFNDEF OS2} and (Flags and psShowLongName <> 0){$ENDIF} then goto Longer250_1;
   Inc(X);
   TWordArray(B)[X-1]:=SC;
+ end; {условие 250 символов}
   if (P^.Size > 0) or (P^.Attr and Directory = 0) or (P^.Attr and $8000 <> 0)
      and (P^.Size >= 0)
     then S := FileSizeStr( P^.Size )
@@ -474,21 +506,27 @@ begin
     Inc(X, 7 - CountryInfo.TimeFmt);
     TWordArray(B)[X-1]:=SC;
    end;
+  if (LFNLen >= 250) {$IFNDEF OS2} and (Flags and psShowLongName <> 0){$ENDIF} then goto Longer250;
   if (Flags and psShowDescript <> 0) and ((DriveType = dtDisk) or
      (DriveType = dtArvid)) then
    begin
     if P^.Diz <> nil then S := Copy(CnvString(P^.DIZ^.DIZ), 1, MaxViewWidth - X - 1) else S := '';
     MoveStr(TWordArray(B)[X], S, C);
    end;
+Longer250_1:
 end;
 
 procedure TDrive.GetEmpty;
  var
   X: Byte;
 begin
+  if (LFNLen < 250) {$IFNDEF OS2} or (Flags and psShowLongName = 0){$ENDIF} then
+   begin
   {$IFNDEF OS2} if Flags and psShowLongName <> 0 then {$ENDIF}
                                            X:=LFNLen+1{$IFNDEF OS2} else X:=13{$ENDIF};
-  TWordArray(B)[X-1]:=SC;
+
+    TWordArray(B)[X-1]:=SC;
+   end else X := 0;
   if Flags and psShowSize <> 0 then
    begin
     X := X + 10 + CountryInfo.TimeFmt;
@@ -990,7 +1028,7 @@ begin
       )          and
       (NormMask or
        (SR.SR.Attr and Directory <> 0) or
-       (InFilter(SR.FullName, FileMask))
+       ((InFilter(SR.FullName, FileMask){$IFNDEF OS2} and LFNActive) or (InFilter(SR.SR.Name, FileMask) and not LFNActive{$ENDIF}))
       )          and
       ((SR.SR.Attr and Directory = 0) or
        {$IFNDEF OS2}(SR.SR.Name[1] <> '.'){$ELSE}(SR.Fullname <> '..'){$ENDIF}or
@@ -1101,7 +1139,8 @@ begin
  if ShowD or (FMSetup.Options and fmoAlwaysCopyDesc <> 0) or (SortMode = psmDIZ)
     then PrepareDIZ(CurDir, DIZOwner, Descriptions);
 
- Files := GetFilesColl(TotalLen, TFiles, PanelFlags, @CurDir, FileMask, Owner, SortMode, (Flags and psShowLongName <> 0));
+ Files := GetFilesColl(TotalLen, TFiles, PanelFlags, @CurDir, FileMask, Owner,
+                 SortMode {$IFNDEF OS2}, (Flags and psShowLongName <> 0){$ENDIF});
 
  NoMemory := not MemOK;
 
@@ -1169,7 +1208,11 @@ begin
       end
      else SLAcc := '';
 {$IFNDEF OS2}
-    S2 := GetLFN(FR.LFN);
+ {$IFDEF RecodeWhenDraw}
+    if not (DriveType in [dtArc, dtArvid]) then  S2 := CharToOemStr(GetLFN(FR.LFN))
+      else
+ {$ENDIF}
+            S2 := GetLFN(FR.LFN);
 {$ELSE}
     S2 := FR.Name;
 {$ENDIF}
@@ -1182,7 +1225,12 @@ begin
           MoveStr(B,S2,C)
            {$IFNDEF OS2}
              else
-               MoveStr(B, MakeFileName(FR.Name), C)
+              {$IFDEF RecodeWhenDraw}
+               if not (DriveType in [dtArc, dtArvid]) then
+                   MoveStr(B, CharToOemStr(MakeFileName(FR.Name)), C)
+                 else
+              {$ENDIF}
+                       MoveStr(B, MakeFileName(FR.Name), C)
            {$ENDIF};
     MoveStr(TWordArray(B)[22-Length(S)+CountryInfo.TimeFmt],S , C);
     MoveStr(TWordArray(B)[23+CountryInfo.TimeFmt],S1, C);
@@ -1231,7 +1279,7 @@ begin
              D^.GetData(MM);
              Dispose(D,Done);
             end;
-           UpStr(MM.S);
+           UpShortStr(MM.S);
            if ValidDrive(MM.S[1]) then
             begin SetCurDrive(MM.S[1]); Break; end;
          until False;
@@ -1260,7 +1308,7 @@ begin
               D^.GetData(MM);
               Dispose(D,Done);
              end;
-            UpStr(MM.S);
+            UpShortStr(MM.S);
             if ValidDrive(MM.S[1]) then
              begin SetCurDrive(MM.S[1]); Break; end;
           until False;

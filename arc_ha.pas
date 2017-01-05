@@ -48,7 +48,7 @@
 unit Arc_HA; {HA}
 
 interface
- uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, xTime;
+uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos, xTime;
 
 type
     PHAArchive = ^THAArchive;
@@ -142,6 +142,9 @@ var
     S    : String;
     C    : Char;
     DT   : DateTime;
+{$IFDEF USEANSISTRING}
+    L    : Byte;
+{$ENDIF}
 begin
  ArcFile^.Read(P,SizeOf(P));
  if (ArcFile^.Status <> stOK) then begin FileInfo.Last:=1;Exit;end;
@@ -162,7 +165,11 @@ begin
 {$ENDIF}
  FileInfo.FName := S; {DataCompBoy}
  SetLength(S, 2);
+{$IFDEF USEANSISTRING}
+ ArcFile^.Read(L, 1); SetLength(S, L); ArcFile^.Read(S[1], L);
+{$ELSE}
  ArcFile^.Read(S[0], 1); ArcFile^.Read(S[1], Length(S));
+{$ENDIF}
  if P.PackedSize >= 0 then FP := ArcFile^.GetPos + P.PackedSize else begin FileInfo.Last := 2; Exit end; {JO багфикс зацикливания в ложных архивах}
  if (VCardinal(FP) > ArcFile^.GetSize) {piwamoto}
     or (ArcFile^.Status <> stOK) then begin FileInfo.Last := 2; Exit; end;

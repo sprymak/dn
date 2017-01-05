@@ -73,7 +73,7 @@ uses DnStdDlg, Advance, DnApp, Commands, Lfn, Advance2, Ed2, Advance1, Views,
      ;
 
 type  ByteArray = Array[1..MaxBytes] of Byte;
-const FBufSize = 4096;
+const FBufSize = 8192;
 
 function ESC_Pressed: Boolean; var E: TEvent;
 begin
@@ -103,7 +103,7 @@ begin with AED^ do begin
       DisposeStr(PWindow(Owner)^.Title);
       If EditName = ''
        then PWindow(Owner)^.Title := NewStr(GetString(dlEditTitle))
-       else PWindow(Owner)^.Title := NewStr(GetString(dlEditTitle)+' - '+EditName);
+       else PWindow(Owner)^.Title := NewStr(GetString(dlEditTitle)+' - '+{$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(EditName));
       Owner^.Redraw;
       Modified := Off;
       MILockFile(AED);
@@ -157,9 +157,9 @@ begin with AED^ do begin
  if ClipBrd then begin {-$VOL begin}
    if ClipboardStream<>nil then Dispose(ClipboardStream,Done);
    ClipboardStream:=nil;
-   PC := New(PLineCollection, Init(100, 5) );
+   PC := New(PLineCollection, Init(100, 5, True) );
    for i := 0 to FileLines^.Count - 1 do
-     PC^.Insert( NewStr( CnvString(FileLines^.At(i)) ) );
+     PC^.Insert( NewLongStr( CnvLongString(FileLines^.At(i)) ) );
    CopyLines2Stream(PC, ClipboardStream);
    Dispose(PC,Done);
  end else begin                  {-$VOL end}
@@ -190,7 +190,7 @@ begin with AED^ do begin
     begin
      lFSplit(EditName, Dr, Nm, Xt); ClrIO;
      EraseFile( Dr+Nm+'.BAK' );
-     lAssignFile(F, EditName); lRenameFile(F, Dr+Nm+'.BAK'); ClrIO;
+     lChangeFileName(EditName, Dr+Nm+'.BAK'); ClrIO;
     end;
    New(S, Init(EditName, stCreate, 4096));
    if S = nil then Exit;
@@ -223,10 +223,10 @@ begin with AED^ do begin
    LoadDnIniSettings;
    DoneIniEngine;
    ProbeINI(INIstoredtime,INIstoredsize,INIstoredcrc);
-   InterfaceData.DrvInfType := DriveInfoType;
 
    SystemData.Options        := SystemDataOpt;
    InterfaceData.Options     := InterfaceDataOpt;
+   InterfaceData.DrvInfType  := DriveInfoType;
    Startup.FMSetup.Options   := FMSetupOpt;
    EditorDefaults.EdOpt      := EditorDefaultsOpt;
    EditorDefaults.EdOpt2     := EditorDefaultsOpt2;
@@ -235,10 +235,13 @@ begin with AED^ do begin
    StartupData.Unload        := StartupDataUnload;
    StartupData.Slice2        := StartupDataSlice2;
    Confirms                  := ConfirmsOpt;
+   SystemData.CopyLimitBuf   := CopyLimit;
+   SystemData.ForceDefArch   := ForceDefaultArchiver;
 
    if HandleChDirCommand then SystemData.Options := SystemData.Options or (ossHandleChDirCommand {$IFDEF VIRTUALPASCAL}shr 3{$ENDIF})
      else SystemData.Options := SystemData.Options xor (ossHandleChDirCommand {$IFDEF VIRTUALPASCAL}shr 3{$ENDIF});
    ConfigModified:=True;
+   ShowIniErrors;
  end;
 end end;
         {-DataCompBoy-}
@@ -246,7 +249,7 @@ end end;
         {-DataCompBoy-}
 procedure MILoadFile(AED: PFileEditor; Name: String);
  label 1;
- var  S: String;
+ var { S: String; }
      Nm: String;
      Xt: String;
       PC: PCollection; {-$VOL}
@@ -261,6 +264,7 @@ begin with AED^ do begin
   if Name = '' then begin
     FileLines := GetCollector(1000, 100);
     if ClipBrd then begin {-$VOL begin}
+{Cat:warn лишние переприсваивания}
       PC := nil;
       CopyStream2Lines(ClipboardStream, PC);
       if PC <> nil then with PC^ do begin
@@ -271,7 +275,7 @@ begin with AED^ do begin
         Dispose( PC ,Done);
       end;
     end;                  {-$VOL end}
-    if FileLines^.Count = 0 then FileLines^.Insert(NewStr(''))
+    if FileLines^.Count = 0 then FileLines^.Insert(NewLongStr(''))
   end else begin
     if (StartupData.Slice2 and osuReleaseOpen) = 0 then Application^.BFSpeed;
     FileLines := MIReadBlock(AED, Name, On);
@@ -280,7 +284,7 @@ begin with AED^ do begin
     if FileLines = nil then
      begin
       FileLines := GetCollector(1000, 100);
-      FileLines^.Insert(NewStr(''));
+      FileLines^.Insert(NewLongStr(''));
       KeyMap:=kmAscii;
      end;
     if Name <> '' then Name := lFExpand(Name);
@@ -299,6 +303,7 @@ begin with AED^ do begin
   WorkString := GetLine(0);
   if Name <> '' then Name := lFExpand(Name);
   EditName := Name; DisposeStr(PWindow(Owner)^.Title);
+{Cat:warn а не бред ли это?}
   if '*^&'+EditName=TempFile then begin
    EditName:='';
    TempFile:='';
@@ -308,7 +313,7 @@ begin with AED^ do begin
   end else if ClipBrd then begin
     PWindow(Owner)^.Title := NewStr('Clipboard');
   end else if EditName <> ''
-            then PWindow(Owner)^.Title := NewStr(GetString(dlEditTitle) + ' - ' + EditName)
+            then PWindow(Owner)^.Title := NewStr(GetString(dlEditTitle) + ' - ' + {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(EditName))
             else PWindow(Owner)^.Title := NewStr(GetString(dlEditTitle));
   MILockFile(AED);
   lFSplit(EditName, FreeStr, Nm, Xt);
@@ -328,17 +333,17 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
      B: ^ByteArray;
      I, FFSize: LongInt;
      J: LongInt;
-     K: Word;
+     K: LongInt;
      LCount: LongInt;
      Lines: PCollector;
-     S1, ST, S2: String;
+     S1, ST, S2: LongString;
      L: Longint;
      KeyMapDetecting: Boolean;
      CodePageDetector: TCodePageDetector;
      OD, OA, ODOA: longint;
 
  procedure CountLines;
-  var K: Word;
+  var K: LongInt;
  begin
   For k:=1+Byte(I>0) to J do
    if (B^[k]=$0D) and ((K<=J-1) and (B^[k+1]=$0A)) then begin
@@ -352,14 +357,17 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
    end;
  end;
 
+{Cat: добавил поддержку длинных строк}
+{Cat:todo исправить замену табуляций пробелами}
  procedure SearchLines;
   var P, P2: Pointer;
-      K, L, M: Word;
+      K, L, M: LongInt;
       QQQ: LongInt;
-      MMM: String;
+      MMM: ShortString;
       C: Char;
-      TS: word;
+      TS: LongInt;
       {$IFDEF BIT_32}LLL: boolean;{$ENDIF}
+      {$IFDEF USELONGSTRING}NNN: boolean;{$ENDIF}
   label 1, L2;
  begin with AED^ do begin
   if ((EditorDefaults.EdOpt{$IFNDEF OS_DOS} shl 2{$ENDIF}) and ebfTRp)=0 then TabStep:=0
@@ -369,7 +377,7 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
   end;
   K := 1; P := B; L := J; TS := TabStep;
   repeat
-   MMM := ST;
+   MMM := '';
    {$IFNDEF BIT_32}
    asm
     les di, P
@@ -438,7 +446,8 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
     cmp ax, L
     jng @@1
    end;
-   {$ELSE BIT_32}(*{$Uses Edi Ebx Esi Edx}*){&Frame-}
+   {$ELSE BIT_32}
+   (*{$Uses Edi Ebx Esi Edx}*){&Frame-}
    asm
     push edi
     push ebx
@@ -510,7 +519,7 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
     xor eax, eax
     inc eax
     mov LLL, al
-    jmp @@E
+    jmp @@EL
    @@3:
     mov [ebx+esi], al
     inc esi
@@ -521,7 +530,7 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
     xor eax, eax
     inc eax
     mov LLL, al
-    jmp @@E
+    jmp @@EL
    @@2:
     inc K
     inc edi
@@ -530,7 +539,20 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
     jng @@1
     xor eax, eax
     mov LLL, al
+{Cat}
+{$IFDEF USELONGSTRING}
+    jmp @@E
+@@EL:
+    mov NNN,1
+    jmp @@EX
 @@E:
+    mov NNN,0
+@@EX:
+{$ELSE}
+@@EL:
+@@E:
+{$ENDIF}
+{/Cat}
     pop ecx
     pop edx
     pop esi
@@ -539,13 +561,26 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
    end;
    if LLL then goto L2;
    {$ENDIF}
+   {$IFDEF USELONGSTRING}
+   ST := ST+MMM;
+   {$ELSE}
    ST := MMM;
+   {$ENDIF}
    Exit;
-L2:ST := MMM;
-   while (ST[Length(ST)]=' ') do SetLength(ST, Length(ST)-1);
-   if KeyMapDetecting then CodePageDetector.CheckString(ST);
-   Lines^.AddStr(ST);
-   ST := '';
+L2:{$IFDEF USELONGSTRING}
+   ST := ST+MMM;
+   {$ELSE}
+   ST := MMM;
+   {$ENDIF}
+   {$IFDEF USELONGSTRING}
+   if not NNN then
+   {$ENDIF}
+     begin
+       while (ST<>'') and (ST[Length(ST)]=' ') do SetLength(ST, Length(ST)-1);
+       if KeyMapDetecting then CodePageDetector.CheckString(ST);
+       Lines^.AddStr(ST);
+       ST := '';
+     end;
    Inc(K);
   until K > J;
  end end;
@@ -676,9 +711,9 @@ begin with AED^ do begin
      if FFSize - I > FBufSize then J := FBufSize
                               else J := FFSize - I;
    end;
-  if ST[1] = #10 then DelFC(ST);
-  while (ST[Length(ST)]=' ') do SetLength(ST, Length(ST)-1);
-  Lines^.Insert(NewStr(ST));
+  if (ST<>'') and (ST[1]=#10) then System.Delete(ST, 1, 1);
+  while (ST<>'') and (ST[Length(ST)]=' ') do SetLength(ST, Length(ST)-1);
+  Lines^.Insert(NewLongStr(ST));
   {KOI KeyMap:=kmKoi8r}{WIN KeyMap:=kmAnsi}{DOS KeyMap:=kmAscii}
   if UpStrg(DefCodePage) = 'DOS' then KeyMap:=kmAscii else
   if UpStrg(DefCodePage) = 'WIN' then KeyMap:=kmAnsi  else

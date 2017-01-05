@@ -50,9 +50,9 @@ unit ArchDet;
 interface
 uses archiver, Arc_Zip, Arc_LHA, arc_RAR, arc_ACE, arc_HA, arc_CAB,
 {$IFNDEF MINARCH}
-       arc_arc, arc_bsa, arc_bs2, arc_hyp, arc_lim, arc_hpk, arc_TAR, {$IFDEF TGZ} arc_TGZ, {$ENDIF}
-       arc_ZXZ, arc_QRK, arc_UFA, arc_IS3, arc_SQZ, arc_HAP, arc_ZOO, arc_CHZ,
-       arc_UC2, arc_AIN,
+     arc_arc, arc_bsa, arc_bs2, arc_hyp, arc_lim, arc_hpk, arc_TAR, {$IFDEF TGZ} arc_TGZ, {$ENDIF}
+     arc_ZXZ, arc_QRK, arc_UFA, arc_IS3, arc_SQZ, arc_HAP, arc_ZOO, arc_CHZ,
+     arc_UC2, arc_AIN,
 {$ENDIF}
      profile, objects, advance, advance1, advance2;
 

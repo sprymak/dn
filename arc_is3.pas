@@ -48,7 +48,7 @@
 unit Arc_IS3; {IS3}
 
 interface
- uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
+uses Archiver, Advance1, Objects{, FViewer}, Advance, {$IFNDEF OS2}LFNCol,{$ENDIF} Dos;
 
 type
   PIS3Archive = ^TIS3Archive;

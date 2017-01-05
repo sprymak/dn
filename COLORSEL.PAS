@@ -1085,9 +1085,7 @@ begin
   GetSubViewPtr(S, BWSel);
   GetSubViewPtr(S, BWSelBack);
   GetSubViewPtr(S, DefaultColors);
-  S.Read(Len, SizeOf(Byte));
-  S.Read(Pal[1], Len);
-  SetLength(Pal, Len);
+  S.ReadStrV(Pal); {S.Read(Len, SizeOf(Byte)); S.Read(Pal[1], Len); SetLength(Pal, Len);}
   if VGASystem {$IFDEF OS2} and not PMWindowed {$ENDIF} then EnableCommands([cmPalVGA])
                else DisableCommands([cmPalVGA]);
   {!! IB}
@@ -1183,7 +1181,7 @@ begin
   PutSubViewPtr(S, BWSel);
   PutSubViewPtr(S, BWSelBack);
   PutSubViewPtr(S, DefaultColors);
-  S.Write(Pal, Length(Pal)+1);
+  S.WriteStr(@Pal) {S.Write(Pal, Length(Pal)+1);}
 end;
 
 function TColorDialog.DataSize: Word;

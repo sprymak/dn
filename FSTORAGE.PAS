@@ -63,11 +63,7 @@ type
         {-DataCompBoy-}
    TStoredFile = record
      T: TStored;
-{$IFNDEF OS2}
-     Name: String[12];
-{$ELSE}
      Name: String;
-{$ENDIF}
      Size: TSize;
      CSize:TSize;
      Date: LongInt;

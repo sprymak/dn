@@ -78,7 +78,7 @@ var AppendInstalled: Boolean;
 {$ENDIF}
 
 implementation
-uses advance1, advance2, advance6;
+uses Advance1, Advance2, Advance6, Commands{Cat};
 
 {$IFDEF OS_DOS}
 procedure AppendCheck;
@@ -240,7 +240,7 @@ end;
            FindParam := I;
            Exit
          end;
-     if S[1] = '/' then FindParam := FindParam('-'+Copy(S, 2, 255));
+     if S[1] = '/' then FindParam := FindParam('-'+Copy(S, 2, MaxStringLength));
   end;
 
 {$IFDEF OS_DOS}

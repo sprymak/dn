@@ -522,8 +522,8 @@ begin
  D := Dir; Lv := 1; I := 1; Delete(D, 1, 3); if D = '' then begin FindDir := 0; Exit end;
  repeat
   S := '';
-  while (D[1] <> '\') and (D <> '') do begin S := S + D[1]; DelFC(D) end;
-  DelFC(D);
+  while (D[1] <> '\') and (D <> '') do begin S := S + D[1]; Delete(D, 1, 1); {DelFC(D)} end;
+  Delete(D, 1, 1); {DelFC(D);}
   UpStr(S);
   if (S <> '') and (I < DC^.Count) then
   begin
@@ -729,9 +729,13 @@ begin
  if W = cmNo  then LowStr(S) else
  if W <> cmOK then Exit;
  DelRight(S);
+{$IFDEF OS_DOS}
  if not LFNPresent then DelLeft(S);
-
+{$ENDIF}
  if S = '' then Exit;
+{$IFDEF RecodeWhenDraw}
+ S := OemToCharStr(S);
+{$ENDIF}
  CreatedDir := '';
  while S <> '' do
   begin
@@ -989,7 +993,7 @@ begin
  inherited Load(S);
  GetPeerViewPtr(S, ScrollBar);
  S.Read(Parital, 1);
- S.Read(LastPath[0], 1); S.Read(LastPath[1], Length(LastPath));
+ S.ReadStrV(LastPath); {S.Read(LastPath[0], 1); S.Read(LastPath[1], Length(LastPath));}
  CurPath := LastPath; Drive := Byte(LastPath[1])-64;
  QuickSearch := Off; DrawDisabled := Off; LocateEnabled := On;
  Dirs := nil; DC := nil; isValid := True; WasChanged := Off;
@@ -1013,7 +1017,7 @@ begin
  inherited Store(S);
  PutPeerViewPtr(S, ScrollBar);
  S.Write(Parital, 1);
- S.Write(LastPath, Length(LastPath)+1);
+ S.WriteStr(@LastPath); {S.Write(LastPath, Length(LastPath)+1);}
 end;
 
 function TTreeView.Valid; begin Valid := isValid and inherited Valid(Command) end;
@@ -1124,22 +1128,22 @@ procedure TTreeView.HandleCommand;
 {$IFNDEF OS2}
   if LFNPresent then
    While (I < DC^.Count) and
-        not InFilter(GetLFN(PDirRec(DC^.At(I))^.LFN), SearchParam.Mask) do Inc(I) {DataCompBoy}
+        not {InFilter}InQSMask(GetLFN(PDirRec(DC^.At(I))^.LFN), SearchParam.Mask) do Inc(I) {DataCompBoy}
   else
 {$ENDIF}
    While (I < DC^.Count) and
-        not InFilter(PDirRec(DC^.At(I))^.Name, SearchParam.Mask) do Inc(I); {DataCompBoy}
+        not {InFilter}InQSMask(PDirRec(DC^.At(I))^.Name, SearchParam.Mask) do Inc(I); {DataCompBoy}
   if I >= DC^.Count then
    begin
     I := 0;
 {$IFNDEF OS2}
     if LFNPresent then
      While (I < ScrollBar^.Value) and
-          not InFilter(GetLFN(PDirRec(DC^.At(I))^.LFN), SearchParam.Mask) do Inc(I) {DataCompBoy}
+          not {InFilter}InQSMask(GetLFN(PDirRec(DC^.At(I))^.LFN), SearchParam.Mask) do Inc(I) {DataCompBoy}
     else
 {$ENDIF}
      While (I < ScrollBar^.Value) and
-          not InFilter(PDirRec(DC^.At(I))^.Name, SearchParam.Mask) do Inc(I); {DataCompBoy}
+          not {InFilter}InQSMask(PDirRec(DC^.At(I))^.Name, SearchParam.Mask) do Inc(I); {DataCompBoy}
     if I >= ScrollBar^.Value then I := 0;
    end;
   if I > 0 then
@@ -1361,7 +1365,7 @@ begin
                            end;
         {-DataCompBoy-}
               kbBack: if QuickSearch then
-                        if SearchParam.Mask='*' then CancelSearch
+                        if SearchParam.Mask='' then CancelSearch
                         else begin
                          DoQuickSearch(SearchParam,Event.KeyCode);
                          ScrollBar^.SetValue(0);
@@ -1370,7 +1374,7 @@ begin
                         end;
                else if Event.CharCode >=#32 then begin
                  if QuickSearch then begin
-                  if (Event.CharCode = '\') and (SearchParam.Mask <> '*') then
+                  if (Event.CharCode = '\') and (SearchParam.Mask <> '') then
                     begin
                       CE;
                       PD := DC^.At(CurPos);
@@ -1395,7 +1399,7 @@ begin
                    InitQuickSearch(SearchParam);
                    DoQuickSearch(SearchParam,Event.KeyCode);
                    SearchForMask(0);
-                   if SearchParam.Mask='\*' then InitQuickSearch(SearchParam);
+                   if SearchParam.Mask='\' then InitQuickSearch(SearchParam);
                   end;
                 CE;
                end;
@@ -1554,7 +1558,7 @@ begin
        begin                                         {    оторочены мерзкими точечками или чем ещё похуже}
         ShowCursor;
         NormalCursor;
-        SetCursor(K + Length(S) + GetCursorPos(SearchParam, q, Size.X, 0, 0), I-1)
+        SetCursor(K + Length(S) + GetCursorPos(SearchParam, q, Size.X, 0) - 1, I-1)
        end else HideCursor;
      end else begin {q:=#0+q+#0;} MoveStr(B[K+Length(S)], q, CC) end;
         {-DataCompBoy-}

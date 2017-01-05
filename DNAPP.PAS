@@ -333,12 +333,14 @@ type
 {$IFDEF OS2}
 const
   PMWindowed: Boolean = False;
+    {Устанавливается в IsBGWin }
 {$ENDIF}
 
 implementation
 
 uses Dos, DNHelp, advance, advance1, advance2, VideoMan,
      ExtraMem, UserMenu, MicroEd, FViewer, DblWnd, CmdLine
+  {$IFDEF OS2} ,IsBGWin {$ENDIF} {AK155}
      , xdblwnd, flTools {AK155: для восстановления курсора комстроки }
 {$IFDEF SS},Idlers{$ENDIF}
 {$IFDEF VIRTUALPASCAL}, VpSysLow {$ENDIF}, DNExec
@@ -882,6 +884,11 @@ begin
     GetMouseEvent(Event);
     if Event.What = evNothing then
     begin
+{$IFDEF OS2}
+   {AK155 В неактивном состоянии не надо реагировать на
+          Shift, Alt, Ctrl}
+    if (not IsBGWindow) then
+{$ENDIF}
       GetKeyEvent(Event);
       if Event.What = evNothing then
        begin
@@ -956,10 +963,6 @@ begin
            SysTVSetCurType(y2-CursorEndScanLine, y2-CursorStartScanLine, true);
 //           SysTVSetCurType(-99, -100, true);
            end;
-        {CommandLine^.DrawView;} {JO: вот из-за этого DrawView мы и имеем     }
-                                 {    такие жутчайшие тормоза во время        }
-                                 {    drag&drop при включённой отдаче слайсов }
-{   пока сделаем так:         }
          CommandLine^.Update;
          end;
   end;
@@ -1002,6 +1005,11 @@ procedure TProgram.Idle;
      E: TEvent;
      A1, A2: Word;
 begin
+{$IFDEF OS2}
+   {AK155 В неактивном состоянии не надо реагировать на
+          Shift, Alt, Ctrl}
+  if not IsBGWindow then
+{$ENDIF}
   if StatusLine <> nil then StatusLine^.Update;
   if CommandSetChanged then
   begin
@@ -1316,12 +1324,12 @@ begin
  S := GetEnv('DNDLG'); if S = '' then S := SourceDir;
  if S[Length(S)] <> '\' then S := S + '\';
  ResourceStream := New(PBufStream,
-                       Init(S + LngId + '.DLG', stOpenPacked, 1024)
+                       Init(S + LngId + '.DLG', open_share_denyWrite+stOpenPacked, 1024)
                       );
  if ResourceStream^.Status <> stOK then begin
   Dispose(ResourceStream,Done);
   ResourceStream := New(PBufStream,
-                        Init(StartupDir + LngId + '.DLG', stOpenPacked, 1024)
+                        Init(StartupDir + LngId + '.DLG', open_share_denyWrite+stOpenPacked, 1024)
                        );
  end;
  if ResourceStream^.Status <> stOK then ResourceFail(LngId + '.DLG');
@@ -1662,8 +1670,4 @@ begin
   GetString := S;
 end;
 
-begin
-{$IFDEF OS2}
- PMWindowed := (SysCtrlSelfAppType = 2);
-{$ENDIF}
 end.

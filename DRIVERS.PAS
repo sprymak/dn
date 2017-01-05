@@ -242,7 +242,11 @@ procedure PrintStr(const S: String);
 
 { Buffer move routines }
 
+{$IFDEF VIRTUALPASCAL}
+procedure MoveColor(var Buf; Num: Word; Attr: Byte);
+{$ELSE}
 procedure MoveColor(var Buf; Num, Attr: Byte);
+{$ENDIF}
 procedure MoveBuf(var Dest; var Source; Attr: Byte; Count: Word);
 procedure MoveChar(var Dest; C: Char; Attr: Byte; Count: Word);
 procedure MoveCStr(var Dest; const Str: String; Attrs: Word);
@@ -779,8 +783,6 @@ begin
  end;
 end;
 {$ENDIF}
-
-{$V+}
 
 { ******** UTILITY ROUTINES ******** }
 

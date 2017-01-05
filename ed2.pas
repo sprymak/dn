@@ -46,11 +46,10 @@
 //////////////////////////////////////////////////////////////////////////}
 
 {$I STDEFINE.INC}
-{.$DEFINE NOASM}
 UNIT Ed2;
 INTERFACE
-Uses Commands, Advance1, U_Keymap, Collect, Views, Drivers, Objects, LFN,
-     SBlocks;
+Uses Commands, Advance1, U_Keymap, Collect, Views, Drivers, Objects,
+     LFN, SBlocks;
 
   { TDoCollection }
 const
@@ -86,7 +85,7 @@ type
    Where: TPoint;
    KeyMap: TKeyMap; {-$VIV}
    case Word of
-    udDelChar: (Str: PString);
+    udDelChar: (Str: PLongString);
     udInsChar: (Count, Width: Integer; Block: TRect);
     udDelLine: (Lines: PCollection; Vertical, InsM: Boolean);
   end;
@@ -142,7 +141,7 @@ begin
       case T^.What of
        udDelChar, udInsLine, udSubDelLine, udReplace, udReplaceChar, udInsBlock,
        udFormatBlock, udStrModified, udSubDel, udBackDel, udReplaceAll:
-         DisposeStr(T^.Str);
+         DisposeLongStr(T^.Str);
        udDelLine, udDelBlock, udReplaceBlock,
        udClearBlock: begin Dispose(T^.Lines,Done); T^.Lines:=nil end;
        udInsChar: begin end;
@@ -150,7 +149,7 @@ begin
    dkRedo:
       case T^.What of
         udInsChar,udSubDel,udReplaceChar,udSubDelLine,udStrModified,udReplace,
-        udReplaceAll: DisposeStr(T^.Str);
+        udReplaceAll: DisposeLongStr(T^.Str);
         udInsLine,udInsBlock,udFormatBlock,udDelBlock,udInsVertBlock,
         udReplaceBlock,udClearBlock: begin Dispose(T^.Lines,Done); T^.Lines:=nil end;
         udDelChar,udDelLine,udBackDel:
@@ -177,7 +176,7 @@ end;
 
 procedure TInfoLine.HandleEvent;
   var T: TPoint;
-      lS: byte;
+    { lS: byte; }
       P: PFileEditor;
       Ev: TEvent;
       BookMark: Byte;
@@ -390,7 +389,7 @@ var
 begin
   lFSplit(Name, Dr, Nm, Xt); ClrIO;
   EraseFile( Dr+Nm+'.BAK' );
-  lAssignFile(F, Name); lRenameFile(F, Dr+Nm+'.BAK'); ClrIO;
+  lChangeFileName(Name, Dr+Nm+'.BAK'); ClrIO;
 end;
 
 procedure OverQuery;
@@ -455,13 +454,15 @@ end;
 procedure WriteBlock(Hint: String; S: PStream; C: PCollector; ForcedCRLF: TCRLF; AOptimalFill: Boolean);
  var I: LongInt;
      M: LongInt;
-     SST: String;
-     P: PString;
+     SST: LongString;
+     P: PLongString;
 
+{Cat: эта процедура теперь умеет работать с длинными строками
+      и находится в модуле Advance1}
+(*
   procedure CompressString; {та, кот. при сохранении файла}
-
-   var PP: Pointer;
-       TSt: Integer;
+  var PP: Pointer;
+      TSt: Integer;
   begin
    PP := @SST;
    TSt := StoI(EditorDefaults.TabSize);
@@ -560,6 +561,7 @@ procedure WriteBlock(Hint: String; S: PStream; C: PCollector; ForcedCRLF: TCRLF;
    end;
  {$ENDIF}
   end;
+*)
 
   var PP: PView;
       CrLf: String[2];
@@ -583,16 +585,17 @@ begin
   begin
    UpdateWriteView(PP);
    P := C^.At(I-1); if P <> nil then                    {JO}{!!!}
-                       if (Length(P^) < MaxEditStringLength) or not RecombineLongLines then
+                       if (Length(P^) < MaxLongStringLength) or not RecombineLongLines then
                           SST := P^ + CrLf
                        else SST := P^
                     else SST := CrLf;                   {JO}
-   if AOptimalFill then CompressString;
+   if AOptimalFill then CompressString(SST);
    S^.Write(SST[1], Length(SST));
    Inc(I);
   end;
   {HintString := '';} Application^.Idle;
   P := C^.At(I-1); if P <> nil then SST := P^ else SST := '';
+  if AOptimalFill then CompressString(SST); {Cat: про последнюю строку тоже не забываем}
   S^.Write(SST[1], Length(SST));
   if PP <> nil then PP^.Free;
 end;

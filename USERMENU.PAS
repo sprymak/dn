@@ -52,8 +52,8 @@
 unit UserMenu;
 
 interface
-uses Objects, Views, Scroller, Drivers, FilesCol, {$IFNDEF OS2}LFNCol,{$ENDIF} Collect,
-       SBlocks;
+uses Objects, Views, Scroller, Drivers, FilesCol, {$IFNDEF OS2}LFNCol,{$ENDIF} Collect {,
+       SBlocks};
 
 var QuickExecExternalStr: string;
 
@@ -241,7 +241,7 @@ begin
     if HandleTildes then Replace('~', #0'~', ts);
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
     Replace('!:', Copy(ts,1,2), S);
-    Replace('!\', Copy(ts,3,255), S);
+    Replace('!\', Copy(ts,3,MaxStringLength), S);
     Replace('!/', Copy(ts,3,Length(ts)-3), S);
    end;
 
@@ -269,7 +269,7 @@ begin
     if HandleTildes then Replace('~', #0'~', ts);
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
     Replace('#:', Copy(ts,1,2), S);
-    Replace('#\', Copy(ts,3,255), S);
+    Replace('#\', Copy(ts,3,MaxStringLength), S);
     Replace('#/', Copy(ts,3,Length(ts)-3), S);
    end;
 
@@ -295,7 +295,7 @@ begin
     if HandleTildes then Replace('~', #0'~', ts);
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
     Replace('$:', Copy(ts,1,2), S);
-    Replace('$\', Copy(ts,3,255), S);
+    Replace('$\', Copy(ts,3,MaxStringLength), S);
     Replace('$/', Copy(ts,3,Length(ts)-3), S);
    end;
 
@@ -323,7 +323,7 @@ begin
     if HandleTildes then Replace('~', #0'~', ts);
     Replace('$', #4, ts);Replace('!', #1, ts);Replace('&', #2, ts);Replace('#', #3, ts);
     Replace('&:', Copy(ts,1,2), S);
-    Replace('&\', Copy(ts,3,255), S);
+    Replace('&\', Copy(ts,3,MaxStringLength), S);
     Replace('&/', Copy(ts,3,Length(ts)-3), S);
    end;
 
@@ -512,8 +512,12 @@ begin
     if tz='.' then tz:='';
 {AK155}
 {$IFDEF OS2}
-    if Pos(' ', ts) <> 0 then
-      ts := '"' + ts + '"';
+  if IsSeparatingChars(ts) or (pos( #2, ts)<>0) or
+     IsSeparatingChars(tz) or (pos( #2, tz)<>0) then
+      begin
+        ts := '"' + ts + '"';
+        if tz <> '' then tz := tz + '"';
+      end;
 {$ENDIF}
     Replace('.!',tz, S); {JO: причём здесь OS/2 ?! под виндами без этого ничего не работает}
 {/AK155}
@@ -706,10 +710,10 @@ begin
    if (S <> '') and (S[1]<>';') and (S[1] = '>') then
     begin
      RF2E := Off;
-     DelFC(S);
-     if S[1] = '>' then begin DelFC(S); RF2E := On end;
-     S1 := ''; repeat S1 := S1+S[1]; DelFC(S); until (S = '') or (S[1] = ' ');
-     DelFC(S);
+     Delete(S, 1, 1); {DelFC(S);}
+     if S[1] = '>' then begin Delete(S, 1, 1); {DelFC(S);} RF2E := On end;
+     S1 := ''; repeat S1 := S1+S[1]; Delete(S, 1, 1); {DelFC(S);} until (S = '') or (S[1] = ' ');
+     Delete(S, 1, 1); {DelFC(S);}
      if (StoI(S1) > 0) then
       begin
        New(UI);
@@ -784,9 +788,9 @@ begin
                   if (S[1] = '<') then
                     begin
                      EnterParms := On;
-                     DelFC(S);
+                     Delete(S, 1, 1); {DelFC(S);}
                      if (S <> '') and (S[1] = '=') then
-                      begin DelFC(S);
+                      begin Delete(S, 1, 1); {DelFC(S);}
 {Knave 29.08.99}      S := MakeString(S, @UserParams, off, nil);
                       DefStr := S;
                       end
@@ -984,7 +988,7 @@ procedure TGrabber.HandleEvent;
     C: Char;
   begin
     if Clipboard <> nil then Dispose(Clipboard,Done);
-    Clipboard := New(PLineCollection, Init(R.B.Y - R.A.Y,10));
+    Clipboard := New(PLineCollection, Init(R.B.Y - R.A.Y,10,True));
     for I:=R.A.Y to R.B.Y-1 do
     begin
       S:='';
@@ -993,11 +997,11 @@ procedure TGrabber.HandleEvent;
         if C=#0 then C:=' ';
         S:=S+C;
       end;
-      Clipboard^.Insert(NewStr(S));
+      Clipboard^.Insert(NewLongStr(S));
     end;
     if SystemData.Options and ossUseSysClip <> 0 then SyncClipIn;
     if ClipBoardStream<>nil
-     then ClipBoardStream^.Seek(Max(ClipBoardStream^.GetPos-1, 0));
+     then ClipBoardStream^.Seek(Max(ClipBoardStream^.GetPos-{$IFDEF USELONGSTRING} 4 {$ELSE} 1 {$ENDIF}, 0));
     CopyLines2Stream(Clipboard, ClipBoardStream);
    end;
 
@@ -1085,7 +1089,7 @@ begin
         begin
           if PosChar(TitleStr[2],'[]><')>0 then OS2 := TitleStr[2] ;
            {OS2 := Byte(TitleStr[2]=']')+2*Byte(TitleStr[2]='[');}
-          if StoI(DelSpaces(Copy(TitleStr, 2+Byte(OS2<>#0), 255))) = N then Goto 1;
+          if StoI(DelSpaces(Copy(TitleStr, 2+Byte(OS2<>#0), MaxStringLength))) = N then Goto 1;
         end;
     end;
   Dispose(F,Done);
@@ -1134,9 +1138,9 @@ begin
           if (S[1] = '<') then
             begin
              EnterParms := On;
-             DelFC(S);
+             Delete(S, 1, 1); {DelFC(S);}
              if (S <> '') and (S[1] = '=') then
-                      begin DelFC(S);
+                      begin Delete(S, 1, 1); {DelFC(S);}
 {Knave 29.08.99}      S := MakeString(S, @UserParams, off, nil);
                       DefStr := S;
                       end

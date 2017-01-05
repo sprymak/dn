@@ -271,8 +271,12 @@ end;
 procedure TClockView.Update;
 var
   h,m,s,hund: word;
-  d,mn,y : word ;
+  d,mn,y: word;
+{$IFDEF USEANSISTRING}
+  SS: String;
+{$ELSE}
   SS: String[40];
+{$ENDIF}
   Event: TEvent;
   P : Pview ;
   DayWeek: byte;

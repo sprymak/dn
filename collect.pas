@@ -55,6 +55,13 @@
 { Copyright (c) 1990 by Borland International         }
 {-----------------------------------------------------}
 {AK155 = Alexey Korop, 2:461/155@fidonet}
+{Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
+
+{Cat
+   28/08/2001 - переделал строковые коллекции для обеспечения возможности
+   хранить в них не только String-и, но и LongString-и
+}
+
 unit Collect;
 
 {$IFNDEF OldCollection}
@@ -163,16 +170,19 @@ type
 
   PLineCollection = ^TLineCollection;
   TLineCollection = object(TCollection)
+    LongStrings: Boolean; {Cat}
+    constructor Init(ALimit, ADelta: LongInt; ALongStrings: Boolean); {Cat}
     procedure FreeItem(P: Pointer); virtual;
     procedure PutItem(var S: TStream; Item: Pointer); virtual;
     function  GetItem(var S: TStream): Pointer; virtual;
   end;
 
-
 { TStringCollection object }
 
   PStringCollection = ^TStringCollection;
   TStringCollection = object(TSortedCollection)
+    LongStrings: Boolean; {Cat}
+    constructor Init(ALimit, ADelta: LongInt; ALongStrings: Boolean); {Cat}
     function  Compare(Key1, Key2: Pointer): Integer; virtual;
     procedure FreeItem(Item: Pointer); virtual;
     function  GetItem(var S: TStream): Pointer; virtual;
@@ -960,57 +970,112 @@ end;
 
 { TStringCollection }
 
+{Cat: добавил возможность хранить в коллекции длинные строки}
+constructor TStringCollection.Init(ALimit, ADelta: LongInt; ALongStrings: Boolean);
+begin
+  inherited Init(ALimit, ADelta);
+  LongStrings := ALongStrings;
+end;
+
 function TStringCollection.Compare(Key1, Key2: Pointer): Integer;
 var
-  I, J: Integer;
+  I, J: LongInt;
   P1, P2: PString;
+  PL1, PL2: PLongString;
 begin
-  P1:=PString(Key1);
-  P2:=PString(Key2);
-  if Length(P1^) < Length(P2^) then
-    J:=Length(P1^) else
-    J:=Length(P2^);
-  I:=1;
-  while (I<J) and (P1^[I]=P2^[I]) do Inc(I);
-  if (I=J) then begin
-    if (P1^[I]<P2^[I]) then Compare:=-1 else
-    If (P1^[I]>P2^[I]) Then Compare:= 1 else
-    if Length(P1^)>Length(P2^) then Compare := 1 else
-    If Length(P1^)<Length(P2^) then Compare :=-1 else
-                                    Compare := 0;
-  end else if (P1^[I]<P2^[I]) then  Compare :=-1 else
-                                    Compare := 1;
+  if LongStrings then
+    begin
+      PL1:=PLongString(Key1);
+      PL2:=PLongString(Key2);
+      if Length(PL1^) < Length(PL2^) then
+        J:=Length(PL1^) else
+        J:=Length(PL2^);
+      I:=1;
+      while (I<J) and (PL1^[I]=PL2^[I]) do Inc(I);
+      if (I=J) then begin
+        if (PL1^[I]<PL2^[I]) then Compare:=-1 else
+        If (PL1^[I]>PL2^[I]) Then Compare:= 1 else
+        if Length(PL1^)>Length(PL2^) then Compare := 1 else
+        If Length(PL1^)<Length(PL2^) then Compare :=-1 else
+                                          Compare := 0;
+      end else if (PL1^[I]<PL2^[I]) then  Compare :=-1 else
+                                          Compare := 1;
+    end
+  else
+    begin
+      P1:=PString(Key1);
+      P2:=PString(Key2);
+      if Length(P1^) < Length(P2^) then
+        J:=Length(P1^) else
+        J:=Length(P2^);
+      I:=1;
+      while (I<J) and (P1^[I]=P2^[I]) do Inc(I);
+      if (I=J) then begin
+        if (P1^[I]<P2^[I]) then Compare:=-1 else
+        If (P1^[I]>P2^[I]) Then Compare:= 1 else
+        if Length(P1^)>Length(P2^) then Compare := 1 else
+        If Length(P1^)<Length(P2^) then Compare :=-1 else
+                                        Compare := 0;
+      end else if (P1^[I]<P2^[I]) then  Compare :=-1 else
+                                        Compare := 1;
+    end;
 end;
 
 procedure TStringCollection.FreeItem(Item: Pointer);
 begin
-  DisposeStr(PString(Item));
+  if LongStrings then
+    DisposeLongStr(PLongString(Item))
+  else
+    DisposeStr(PString(Item));
 end;
 
 function TStringCollection.GetItem(var S: TStream): Pointer;
 begin
-  GetItem:=S.ReadStr;
+  if LongStrings then
+    GetItem:=S.ReadLongStr
+  else
+    GetItem:=S.ReadStr;
 end;
 
 procedure TStringCollection.PutItem(var S: TStream; Item: Pointer);
 begin
-  S.WriteStr(Item);
+  if LongStrings then
+    S.WriteLongStr(Item)
+  else
+    S.WriteStr(Item);
 end;
+{/Cat}
 
 { TLineCollection }
+{Cat: добавил возможность хранить в коллекции длинные строки}
+constructor TLineCollection.Init(ALimit, ADelta: LongInt; ALongStrings: Boolean);
+begin
+  inherited Init(ALimit, ADelta);
+  LongStrings := ALongStrings;
+end;
+
 procedure TLineCollection.FreeItem(P: Pointer);
 begin
-  DisposeStr(PString(P));
+  if LongStrings then
+    DisposeLongStr(PLongString(P))
+  else
+    DisposeStr(PString(P));
 end;
 
 procedure TLineCollection.PutItem;
 begin
- S.WriteStr(Item);
+  if LongStrings then
+    S.WriteLongStr(Item)
+  else
+    S.WriteStr(Item);
 end;
 
 function TLineCollection.GetItem;
 begin
- GetItem:=S.ReadStr;
+  if LongStrings then
+    GetItem:=S.ReadLongStr
+  else
+    GetItem:=S.ReadStr;
 end;
 
 { TStrCollection }
@@ -1071,6 +1136,7 @@ var
 begin
   S.Read(Pos, SizeOf(Pos));
   S.Read(Size, SizeOf(Size));
+{Cat:warn AnsiString}
   S.Read(L, 1);
   GetMem(P, L + (SizeOf(TResourceItem) - SizeOf(String) + 1));
   P^.Posn:=Pos;
@@ -1369,16 +1435,22 @@ begin
 end;
 
 procedure TStringList.ReadStr(var S: String; Offset, Skip: AWord);
+{
 var
-  B: Byte;
+  B: Byte; }
 begin
   Stream^.Seek(BasePos + Offset);
   Stream^.Status:=0;
   Inc(Skip);
   repeat
+{Cat}
+(*
     Stream^.Read(B, 1);
     SetLength(S, B);
     Stream^.Read(S[1],B);
+*)
+    Stream^.ReadStrV(S);
+{/Cat}
     Dec(Skip);
   until Skip = 0;
 end;
@@ -2779,7 +2851,7 @@ end;
 
 function TStringCollection.GetItem(var S: TStream): Pointer;
 begin
-  GetItem := S.ReadStr;
+  GetItem := S.ReadAnsiStr;
 end;
 
 procedure TStringCollection.PutItem(var S: TStream; Item: Pointer);
@@ -2805,12 +2877,12 @@ end;
 
 procedure TLineCollection.PutItem;
 begin
- S.WriteStr(Item);
+  S.WriteStr(Item);
 end;
 
 function TLineCollection.GetItem;
 begin
- GetItem := S.ReadStr;
+ GetItem := S.ReadAnsiStr;
 end;
 
 { TStrCollection }
@@ -3261,28 +3333,45 @@ end;
 
  {$IFNDEF BIT_32}
 procedure TStringList.ReadStr(var S: String; Offset, Skip: AWord);
+var
+  P: PString; {Cat}
 begin
   Stream^.Seek(BasePos + Offset);
   Stream^.Status := 0;
   Inc(Skip);
   repeat
+{Cat}
+(*
     Stream^.Read(S[0], 1);
     Stream^.Read(S[1], Ord(S[0]));
+*)
+    P := Stream^.ReadStr;
+    S := P^;
+    DisposeStr(P);
+{/Cat}
     Dec(Skip);
   until Skip = 0;
 end;
  {$ELSE}
 procedure TStringList.ReadStr(var S: String; Offset, Skip: AWord);
 var
-  B: Byte;
+{ B: Byte; }
+  P: PString; {Cat}
 begin
   Stream^.Seek(BasePos + Offset);
   Stream^.Status:=0;
   Inc(Skip);
   repeat
+{Cat}
+(*
     Stream^.Read(B, 1);
     SetLength(S, B);
     Stream^.Read(S[1],B);
+*)
+    P := Stream^.ReadStr;
+    S := P^;
+    DisposeStr(P);
+{/Cat}
     Dec(Skip);
   until Skip = 0;
 end;

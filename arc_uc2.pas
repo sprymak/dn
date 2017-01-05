@@ -48,9 +48,7 @@
 unit Arc_UC2; {UC2}
 
 interface
-uses
-  Archiver
-  ;
+uses Archiver;
 
 type
     PUC2Archive = ^TUC2Archive;

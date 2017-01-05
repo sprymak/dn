@@ -48,63 +48,77 @@
 {AK155 = Alexey Korop, 2:461/155@fidonet}
 {Cat = Aleksej Kozlov, 2:5030/1326.13@fidonet}
 
+{Cat
+   28/08/2001 - многие имеющиеся функции переделал для совместимости с типом
+   AnsiString; добавил аналогичные функции, работающие с типом LongString
+}
+
 unit Advance1; {String functions}
 interface
-uses objects, advance, dos, lfn, u_keymap;
+uses Objects, Advance, Dos, LFN, U_KeyMap, Commands{Cat};
 
 function  NewStr(const S: String): PString;
+function  NewLongStr(const S: LongString): PLongString;
 procedure DisposeStr(var P: PString);
+procedure DisposeLongStr(var P: PLongString);
 procedure ReplaceP(var P: PString; S: String);
 function  CnvString(P: PString): String; {conversion: PString to String}
-{$IFDEF USEANSISTRING}
-function  NewAnsiStr(const S: AnsiString): PAnsiString;
-procedure DisposeAnsiStr(var P: PAnsiString);
-procedure AnsiReplaceP(var P: PAnsiString; S: AnsiString);
-function  CnvAnsiString(P: PAnsiString): AnsiString; {conversion: PString to String}
-{$ENDIF}
-function  StrGrd(AMax, ACur: TSize; Wide: Byte; Rev: boolean): string;
+function  CnvLongString(P: PLongString): LongString; {conversion: PLongString to LongString}
+function  StrGrd(AMax, ACur: TSize; Wide: {$IFDEF USEANSISTRING} LongInt {$ELSE} Byte {$ENDIF}; Rev: Boolean): String;
 function  Percent(AMax, ACur: TSize): TSize;
 procedure Hex8Lo(L:longInt;var HexLo);
-Procedure AddStr(var S ; C : char);
-procedure DelFC(var s:string);
+Procedure AddStr(var S: String ; C: Char);
+{$IFDEF VIRTUALPASCAL}
+inline;  begin  S := S+C  end; {Cat}
+{$ENDIF}
+{procedure DelFC(var s:String);}
 
 {---  ' '-related string functions }
 FUNCTION  CenterStr(const s:string; N:byte):string; {DataCompBoy}
 FUNCTION  AddSpace(const s:string; N:byte):string;
+FUNCTION  LongAddSpace(const s:longstring; N:longint):longstring;
 FUNCTION  PredSpace(s:string; N:byte):string;
 Function  DelSpaces(s : string) : string;
 procedure DelSpace(var s : string);
 Procedure DelRight(var S: string);
-{$IFDEF USEANSISTRING}
-Procedure AnsiDelRight(var S: AnsiString); {JO}
-{$ENDIF}
+Procedure LongDelRight(var S: LongString);
 Function fDelRight(s : string) : string;
 procedure DelLeft (var S: string);
+procedure LongDelLeft (var S: LongString);
 Function fDelLeft (s : string) : string;
 
 {case function}
-Function  Strg(c:char; Num: Byte) : string;
+Function Strg(C: Char; Num: {$IFDEF USEANSISTRING} LongInt {$ELSE} Byte {$ENDIF}) : String;
+Function LongStrg(C: Char; Num: {$IFDEF USELONGSTRING} LongInt {$ELSE} Byte {$ENDIF}) : LongString;
 
 Function  UpCase(c : Char) : Char;
 {$IFDEF VirtualPascal} {AK155}
 inline;  begin  UpCase:=UpCaseArray[c]  end;
 {$ENDIF}
 
-Procedure UpStr(var s : string);
-Function  UpStrg(s : string) : string;
+Procedure UpStr(var s:string);
+Procedure UpLongStr(var s:longstring);
+Procedure UpShortStr(var s:openstring);
+Function  UpStrg(s:string):string;
+Function  UpLongStrg(s:longstring):longstring;
 
 Function  LowCase(c : Char) : Char;
 {$IFDEF VirtualPascal} {AK155}
 inline;  begin  LowCase:=LowCaseArray[c]  end;
 {$ENDIF}
-Procedure LowStr(var s : string);
-Function  LowStrg(s : string) : string;
+Procedure LowStr(var s:string);
+Procedure LowLongStr(var s:longstring);
+Procedure LowShortStr(var s:openstring);
+Function  LowStrg(s:string):string;
+Function  LowLongStrg(s:longstring):longstring;
 
 Procedure UpLowStr(var s : string);       {JO}
 Function  UpLowStrg(s : string) : string; {JO}
 
 procedure CapStr(var S: String);
+procedure CapLongStr(var S: LongString);
 function  CapStrg(S: String): String;
+function  CapLongStrg(S: LongString): LongString;
 
 {procedure MakeCase(CaseSensitive: Boolean);}
 
@@ -135,12 +149,13 @@ FUNCTION  ToHex(I: Word): string;
 function  MakeCMDParams(const S, Fl1, Fl2: string): string; {DataCompBoy}
 {$ENDIF}
 Procedure DelDoubles(const St : string;var Source : string);
-Procedure AnsiDelDoubles(const St : string; var Source : Ansistring);
-procedure MakeDate(const Mode,Day,Month,Year,Hour,Min: Word; var S: string);
+Procedure AnsiDelDoubles(const St : String; var Source : AnsiString);
+Procedure LongDelDoubles(const St : LongString; var Source : LongString);
+procedure MakeDate(const Mode,Day,Month,Year,Hour,Min: Word; var S: String);
 procedure MakeDateFull(const Mode,Day,Month: Word; {-$VOL moidfied}
                        Year,Hour: Word;
                        const Min: Word;
-                       var S: string;
+                       var S: String;
                        const YFull: boolean);
 Function  DumpStr(var B; Addr: LongInt; Count: Integer; Filter: Byte): string;
 
@@ -149,14 +164,14 @@ Function  SearchFor(S: string;var B;L: Word; CaseSensitive: Boolean): Word;
 Function  BackSearchForAllCP(const S: string;var B;L: Word; CaseSensitive: Boolean): Word; {-$VIV 14.05.99}
 Function  SearchForAllCP(const S: string;var B;L: Word; CaseSensitive: Boolean): Word; {-$VIV ::}
 
-procedure CompressString(var S: String);
+procedure CompressString(var S: LongString);
 {AK155}
 function PosLastDot(StrToMake: String): Byte;
 function IsDummyDir(const DirName: string): boolean;
 {/AK155}
 
 implementation
-uses advance2, advance3, dnini;
+uses Advance2, Advance3, DnIni, Startup{Cat};
 
  function LeadingZero(w: Word): string;
    var s: string;
@@ -166,7 +181,7 @@ uses advance2, advance3, dnini;
  end;
 
 
-function StrGrd(AMax, ACur: TSize; Wide: Byte; Rev: Boolean): string;
+function StrGrd(AMax, ACur: TSize; Wide: {$IFDEF USEANSISTRING} LongInt {$ELSE} Byte {$ENDIF}; Rev: Boolean): string;
 var
   A: Byte;
 begin
@@ -263,7 +278,8 @@ begin
 end;
 {$ENDIF}
 
-Procedure AddStr(var S ; C : char);
+{$IFNDEF VIRTUALPASCAL}
+Procedure AddStr(var S: String ; C: Char);
 {$IFNDEF NOASM}
  assembler ;
  {$IFNDEF BIT_32}
@@ -294,11 +310,19 @@ begin
  String(S):=String(S)+C;
 end;
 {$ENDIF}
+{$ENDIF}
 
-procedure DelFC(var s:string);
+{Cat: по-моему, всё проще... это же System.Delete(s, 1, 1)... выкинул нафиг}
+(*
+procedure DelFC(var s:String);
 begin
-  if Length(s) > 0 then begin SetLength(s, Length(s)-1); Move(s[2], s[1], Length(s)) end;
+  if Length(s) > 0 then
+    begin
+      Move(s[2], s[1], Length(s)-1);
+      SetLength(s, Length(s)-1)
+    end;
 end;
+*)
 
 FUNCTION CenterStr(const s:string; N:byte):string;
 begin
@@ -375,6 +399,23 @@ begin
  AddSpace:=s2;
 end;
 {$ENDIF}
+
+{Cat}
+FUNCTION LongAddSpace(const s:longstring; N:longint):longstring;
+var
+  s2:LongString;
+  L:LongInt;
+begin
+  s2:=s;
+  L:=Length(s);
+  if L<N then
+    begin
+      SetLength(s2,N);
+      FillChar(s2[L+1], N-L, ' ');
+     end;
+  LongAddSpace:=s2;
+end;
+{/Cat}
 
 FUNCTION PredSpace;
 begin
@@ -454,6 +495,7 @@ begin
  DelSpaces := S;
 end;
 
+{$IFNDEF USEANSISTRING}
 Procedure DelRight;
 {$IFNDEF NOASM}
  assembler ;
@@ -512,72 +554,36 @@ begin
  for q:=q downto 1 do if S[q]<>' ' then break;
 end;
 {$ENDIF}
-
-{$IFDEF USEANSISTRING}
-Procedure AnsiDelRight(var S: AnsiString);
-(* {$IFNDEF NOASM}
- assembler ;
- {$IFNDEF BIT_32}
- asm
-     mov  dx, ds
-     lds  si, S
-     mov  di, si
-     xor  ax, ax
-     mov  al, byte ptr ds:si
-     inc  al
-     add  si, ax
- @@SearchNoSpace:
-     dec  si
-     cmp  si, di
-     je   @@Exit
-     mov  al, DS:[SI]
-     cmp  al, ' '
-     je   @@SearchNoSpace
-     cmp  al, 9
-     je   @@SearchNoSpace
- @@Exit:
-     mov ax, si
-     sub ax, di
-     mov byte ptr ds:di, al
- @@Exit2:
-     mov ds, dx
- end;
- {$ELSE BIT_32}{&Frame-}{$USES ESI, EDI}
- asm
-     mov  esi, S
-     mov  edi, S
-     xor  eax, eax
-     mov  al, byte ptr [esi]
-     inc  al
-     add  esi, eax
- @@SearchNoSpace:
-     dec  esi
-     cmp  esi, edi
-     je   @@Exit
-     mov  al, [ESI]
-     cmp  al, ' '
-     je   @@SearchNoSpace
-     cmp  al, 9
-     je   @@SearchNoSpace
- @@Exit:
-     mov eax, esi
-     sub eax, edi
-     mov byte ptr [edi], al
- @@Exit2:
- end;
- {$ENDIF}
-{$ELSE} *)
-var q: Word;
+{$ELSE USEANSISTRING}
+{Cat}
+procedure DelRight(var S: String);
+var
+  I: LongInt;
 begin
- for q := Length(S) downto 1 do if S[q]<>' ' then break;
- SetLength(S, q);
+  I := Length(S);
+  while (I>0) and (S[I]=' ') do
+    Dec(I);
+  SetLength(S, I);
 end;
-{.$ENDIF}
-{$ENDIF} {USEANSISTRING}
+{/Cat}
+{$ENDIF}
+
+{Cat}
+procedure LongDelRight(var S: LongString);
+var
+  I: LongInt;
+begin
+  I := Length(S);
+  while (I>0) and (S[I]=' ') do
+    Dec(I);
+  SetLength(S, I);
+end;
+{/Cat}
 
 Function fDelRight(s : string) : string;
 begin DelRight(S); fDelRight:=s end;
 
+{$IFNDEF USEANSISTRING}
 procedure DelLeft(var S: string);
 {$IFNDEF NOASM}
  assembler;
@@ -657,10 +663,44 @@ begin
   end;
 end;
 {$ENDIF}
+{$ELSE USEANSISTRING}
+{Cat}
+procedure DelLeft(var S: String);
+var
+  I: LongInt;
+begin
+  I := 1;
+  while (I<=Length(S)) and (S[I] in [#9,' ']) do
+    Inc(I);
+  if I>1 then
+    begin
+      Move(S[I], S[1], Length(S)-I+1);
+      SetLength(S, Length(S)-I+1);
+    end;
+end;
+{/Cat}
+{$ENDIF}
+
+{Cat}
+procedure LongDelLeft(var S: LongString);
+var
+  I: LongInt;
+begin
+  I := 1;
+  while (I<=Length(S)) and (S[I] in [#9,' ']) do
+    Inc(I);
+  if I>1 then
+    begin
+      Move(S[I], S[1], Length(S)-I+1);
+      SetLength(S, Length(S)-I+1);
+    end;
+end;
+{/Cat}
 
 Function fDelLeft(s : string) : string;
 begin DelLeft(S); fDelLeft:=s end;
 
+(*
 Function Strg(c:char; Num: Byte) : string;
 {$IFNDEF NOASM}
  assembler;
@@ -694,7 +734,7 @@ begin
  Strg:=s;
 end;
 {$ENDIF}
-
+*)
 
 {$IFNDEF VirtualPascal}  {AK155}
 Function LowCase(c : Char) : Char;
@@ -709,24 +749,37 @@ UpCase:=UpCaseArray[c]
 end;
 {$ENDIF}
 
+(*
 Procedure LowStr(var s : string);
 var i:integer;
 begin for i:=1 to Length(s) do
 {if s[i]<>#0 then} s[i]:=LowCaseArray[s[i]]; {AK155}
 end;
-
+*)
 
 Function LowStrg(s : string) : string;
 begin LowStr(s); LowStrg:=s; end;
 
+{Cat}
+Function LowLongStrg(s : longstring) : longstring;
+begin LowLongStr(s); LowLongStrg:=s; end;
+{/Cat}
+
+(*
 Procedure UpStr(var s : string); var i:integer;
 begin for i:=1 to Length(s) do
 {if s[i]<>#0 then}  {AK155}
 s[i]:=UpCaseArray[s[i]];
 end;
+*)
 
 Function UpStrg(s : string) : string;
 begin UpStr(s); UpStrg:=s; end;
+
+{Cat}
+Function UpLongStrg(s : longstring) : longstring;
+begin UpLongStr(s); UpLongStrg:=s; end;
+{/Cat}
 
 Procedure UpLowStr(var s : string); {JO}
 begin
@@ -738,6 +791,7 @@ begin
  if UpperCaseSorting then UpLowStrg := UpStrg(s) else UpLowStrg := LowStrg(s);
 end;
 
+(*
 Procedure CapStr(var S: String);
 var
   I: Integer;
@@ -752,10 +806,122 @@ begin
   end;
  until I>=Length(S);
 end;
+*)
 
 function CapStrg(S: String): String;
 begin CapStr(s); CapStrg:=s; end;
 
+{Cat}
+function CapLongStrg(S: LongString): LongString;
+begin CapLongStr(s); CapLongStrg:=s; end;
+{/Cat}
+
+
+{Cat}
+Procedure UpStr(var S: String);
+var
+  i: LongInt;
+begin
+  for i:=1 to Length(S) do
+    S[i]:=UpCaseArray[S[i]]
+end;
+
+Procedure UpLongStr(var S: LongString);
+var
+  i: LongInt;
+begin
+  for i:=1 to Length(S) do
+    S[i]:=UpCaseArray[S[i]]
+end;
+
+Procedure UpShortStr(var S: OpenString);
+var
+  i: LongInt;
+begin
+  for i:=1 to Length(S) do
+    S[i]:=UpCaseArray[S[i]]
+end;
+
+Procedure LowStr(var S: String);
+var
+  i: LongInt;
+begin
+  for i:=1 to Length(S) do
+    S[i]:=LowCaseArray[S[i]]
+end;
+
+Procedure LowLongStr(var S: LongString);
+var
+  i: LongInt;
+begin
+  for i:=1 to Length(S) do
+    S[i]:=LowCaseArray[S[i]]
+end;
+
+Procedure LowShortStr(var S: OpenString);
+var
+  i: LongInt;
+begin
+  for i:=1 to Length(S) do
+    S[i]:=LowCaseArray[S[i]]
+end;
+
+Procedure CapStr(var S: String);
+var
+  I: LongInt;
+begin
+  I:=1;
+  repeat
+    while (I<=Length(S)) and (S[I] in BreakChars) do
+      Inc(I);
+    If I>Length(S) then
+      break;
+    S[I]:=UpCase(S[I]);
+    while (I<Length(S)) and (not (S[I] in BreakChars)) do
+      begin
+        Inc(I);
+        S[I]:=LowCase(S[I]);
+      end;
+  until I>=Length(S);
+end;
+
+Procedure CapLongStr(var S: LongString);
+var
+  I: LongInt;
+begin
+  I:=1;
+  repeat
+    while (I<=Length(S)) and (S[I] in BreakChars) do
+      Inc(I);
+    If I>Length(S) then
+      break;
+    S[I]:=UpCase(S[I]);
+    while (I<Length(S)) and (not (S[I] in BreakChars)) do
+      begin
+        Inc(I);
+        S[I]:=LowCase(S[I]);
+      end;
+  until I>=Length(S);
+end;
+
+Function Strg(C: Char; Num: {$IFDEF USEANSISTRING} LongInt {$ELSE} Byte {$ENDIF}) : String;
+var
+  S: String;
+begin
+  SetLength(S, Num);
+  FillChar(S[1], Num, C);
+  Strg:=S;
+end;
+
+Function LongStrg(C: Char; Num: {$IFDEF USELONGSTRING} LongInt {$ELSE} Byte {$ENDIF}) : LongString;
+var
+  S: LongString;
+begin
+  SetLength(S, Num);
+  FillChar(S[1], Num, C);
+  LongStrg:=S;
+end;
+{/Cat}
 
 Function  ItoS(a:longint):string;
  var s : string[12];
@@ -803,7 +969,7 @@ Function  SSt2(a:longint;b:Byte;c:Char):string;
  var s : string[40];
 begin
  Str(a:b,s);
- while (s[1]=' ') do begin DelFC(s); s:=s+' ' end;
+ while (s[1]=' ') do begin Delete(s, 1, 1); {DelFC(s);} s:=s+' ' end;
  While b>0 do
   begin
    if s[b]=' ' then s[b]:=c else b:=1;
@@ -994,7 +1160,7 @@ begin
  J := 1; K := 1; Replace := False;
  if (Pattern = '') or (S = '') then Exit;
  repeat
-  I := Pos(Pattern, Copy(S, J, 255));
+  I := Pos(Pattern, Copy(S, J, MaxStringLength));
   if I > 0 then
    begin
     Delete(S, J+I-1, Length(Pattern));
@@ -1122,7 +1288,12 @@ end;
 {$ENDIF}
 
 function GetDateTime(Time: Boolean): string;
- var S: string[30];
+ var
+{$IFDEF USEANSISTRING}
+     S: string;
+{$ELSE}
+     S: string[30];
+{$ENDIF}
      Y,M,D,DW: Word;
      H,Mn,SS,S100: Word;
 
@@ -1131,7 +1302,7 @@ begin
   GetTime(H,Mn,SS,S100);
   MakeDateFull(0, D, M, Y, H, Mn, S, not Time); {-$VOL modified}
   if Time then S := FormatTimeStr(H, Mn, SS)
-          else S[0] := #10;
+          else SetLength(S,10); {S[0] := #10;}
   GetDateTime := S;
 end;
 
@@ -1226,8 +1397,7 @@ begin
 end;
 
 procedure AnsiDelDoubles;
-var t,  p :Word;
-    ls: Byte;
+var t, ls, p :LongInt;
     j:boolean;
 begin
  t:=1; ls:=length(ST); j:=True;
@@ -1238,6 +1408,21 @@ begin
    if J and (p<>0) then Delete(Source,p,1) else inc(t);
   end;
 end;
+
+{Cat}
+procedure LongDelDoubles;
+var t, ls, p :LongInt;
+    j:boolean;
+begin
+ t:=1; ls:=length(ST); j:=True;
+ while t+ls<=length(Source) do
+  begin
+   if Source[t]='"' then j:=not j;
+   if J then p := Pos(ST,Source);
+   if J and (p<>0) then Delete(Source,p,1) else inc(t);
+  end;
+end;
+{/Cat}
 
 procedure MakeDate;
 begin
@@ -1322,7 +1507,7 @@ begin
   if S[10] = '0' then S[10] := ' ';
   if YFull then
     case CountryInfo.DateFmt of
-      0,1: S := Copy(S, 1, 6) + S[16] + S[17] + Copy(S, 7, 255);
+      0,1: S := Copy(S, 1, 6) + S[16] + S[17] + Copy(S, 7, MaxStringLength);
       2  : S := S[16] + S[17] + S;
     end;
 end;
@@ -2083,6 +2268,7 @@ begin
 end;
 {/Cat}
 
+{$IFNDEF USEANSISTRING}
 function NewStr(const S: String): PString;
 var
   P: PString;
@@ -2107,6 +2293,7 @@ begin
   if P <> nil then FreeMem(P, Length(P^)+1);
   P:=Nil;
 end;
+{$ENDIF}
 
 procedure ReplaceP(var P: PString; S: String);
 begin
@@ -2127,144 +2314,364 @@ begin
   if P = nil then CnvString:='' else CnvString:=P^;
 end;
 
+{Cat}
+function CnvLongString(P: PLongString): LongString;
+begin
+  if P = nil then
+    CnvLongString:=''
+  else
+    CnvLongString:=P^;
+end;
+{/Cat}
+
+
+{Cat: переписал процедуры NewStr, DisposeStr для совместимости с AnsiString
+      добавил процедуры NewLongStr, DisposeLongStr
+      вариант не окончательный, возможны изменения
+      при изменении обязательно согласовать со следующими процедурами:
+        Objects.TStream.ReadAnsiStr
+        Objects.TStream.WriteAnsiStr
+        WinClpVP.Str2Collection}
 {$IFDEF USEANSISTRING}
-{JO}
-function NewAnsiStr(const S: AnsiString): PAnsiString;
+function NewStr(const S: String): PString;
 var
-  P: PAnsiString;
+  P: PString;
 begin
   if S = '' then P := nil else
-  begin
-    GetMem(P, Length(S) + 1);
-    P^ := S;
-  end;
-  NewAnsiStr := P;
+    begin
+(*
+      GetMem(P, Length(S) + 1);
+      P^ := S;
+*)
+      New(P);
+      SetLength(P^, Length(S));
+      Move(S[1], P^[1], Length(S))
+    end;
+  NewStr := P;
 end;
 
-procedure DisposeAnsiStr(var P: PAnsiString);
+procedure DisposeStr(var P: PString);
 begin
-  if P <> nil then FreeMem(P, Length(P^)+1);
+  if P <> nil then
+(*
+    FreeMem(P, Length(P^)+1);
+*)
+    Dispose(P);
   P:=Nil;
 end;
-
-procedure AnsiReplaceP(var P: PAnsiString; S: AnsiString);
-begin
-  AnsiDelRight(S);
-  if P = nil then begin
-    if S <> '' then P:=NewAnsiStr(S);
-  end else
-  if Length(S) = Length(P^) then
-    P^:=S
-  else begin
-    DisposeAnsiStr(P);
-    P:=NewAnsiStr(S);
-  end;
-end;
-
-function CnvAnsiString(P: PAnsiString): AnsiString;
-begin
-  if P = nil then CnvAnsiString:='' else CnvAnsiString:=P^;
-end;
-{/JO}
 {$ENDIF}
 
-procedure CompressString(var S: String);
+{$IFDEF USELONGSTRING}
+function NewLongStr(const S: LongString): PLongString;
+var
+  P: PLongString;
 begin
-  DelRight(S);
-  {$IFNDEF BIT_32}
-  asm
-     les bx, S
-     mov cl, es:[bx]
-     inc bx
-     xor ch, ch
-     jcxz @@Ex
-     xor di, di
-     xor si, si
-     mov byte ptr es:[bx-1], ch
-   @@1:
-     mov ah, 8
-     xor dx, dx
-   @@2:
-     mov al, es:[bx][si]
-     mov es:[bx][di], al
-     inc si
-     cmp si, cx
-     ja  @@Ex
-     inc di
-     inc byte ptr es:[bx-1]
-     cmp al, ' '
-     jne @@3
-     inc dl
-     jmp @@4
-    @@3:
-     xor Dl, dl
-    @@4:
-     dec ah
-     jnz @@2
-     or  dl, dl
-     jz @@5
-     dec dl
-     jz @@5
-     sub di, dx
-     sub byte ptr es:[bx-1], dl
-     mov al, 9
-     mov es:[bx][di-1], al
-    @@5:
-     jmp @@1
-   @@Ex:
-  end;
-  {$ELSE BIT_32}
-  asm
-     push ebx
-     push edi
-     push esi
-     push ecx
-     mov ebx, S
-     xor ecx, ecx
-     mov cl, [ebx]
-     inc ebx
-     jcxz @@Ex
-     xor edi, edi
-     xor esi, esi
-     mov byte ptr [ebx-1], ch
-   @@1:
-     mov ah, 8
-     xor edx, edx
-   @@2:
-     mov al, [ebx+esi]
-     mov [ebx+edi], al
-     inc esi
-     cmp esi, ecx
-     ja  @@Ex
-     inc edi
-     inc byte ptr [ebx-1]
-     cmp al, ' '
-     jne @@3
-     inc dl
-     jmp @@4
-    @@3:
-     xor Dl, dl
-    @@4:
-     dec ah
-     jnz @@2
-     or  dl, dl
-     jz @@5
-     dec dl
-     jz @@5
-     sub edi, edx
-     sub byte ptr [ebx-1], dl
-     mov al, 9
-     mov [ebx+edi-1], al
-    @@5:
-     jmp @@1
-   @@Ex:
-     pop ecx
-     pop esi
-     pop edi
-     pop ebx
-  end;
-  {$ENDIF}
+  if S = '' then P := nil else
+    begin
+      New(P);
+      SetLength(P^, Length(S));
+      Move(S[1], P^[1], Length(S))
+    end;
+  NewLongStr := P;
 end;
+
+procedure DisposeLongStr(var P: PLongString);
+begin
+  if P <> nil then
+    Dispose(P);
+  P:=Nil;
+end;
+{$ELSE}
+function NewLongStr(const S: LongString): PLongString;
+var
+  P: PLongString;
+begin
+  if S = '' then
+    P := nil
+  else
+    begin
+      GetMem(P, Length(S) + 1);
+      P^ := S;
+    end;
+  NewLongStr := P;
+end;
+
+procedure DisposeLongStr(var P: PLongString);
+begin
+  if P <> nil then
+    begin
+      FreeMem(P, Length(P^)+1);
+      P := Nil;
+    end;
+end;
+{$ENDIF}
+{/Cat}
+
+procedure CompressShortStr(var S: String);
+var PP: Pointer;
+    TSt: Integer;
+begin
+ PP := @S;
+ TSt := StoI(EditorDefaults.TabSize);
+ if TSt = 0 then TSt := 8;
+{$IFNDEF BIT_32}
+ asm
+    les bx, PP
+    mov cl, es:[bx]
+    inc bx
+    xor ch, ch
+    jcxz @@Ex
+    xor di, di
+    xor si, si
+    mov byte ptr es:[bx-1], ch
+  @@1:
+    mov ah, byte ptr TSt
+    xor dx, dx
+  @@2:
+    mov al, es:[bx][si]
+    mov es:[bx][di], al
+    inc si
+    cmp si, cx
+    ja  @@Ex
+    inc di
+    inc byte ptr es:[bx-1]
+    cmp al, ' '
+    jne @@3
+    inc dl
+    jmp @@4
+   @@3:
+    xor Dl, dl
+   @@4:
+    dec ah
+    jnz @@2
+    or  dl, dl
+    jz @@5
+    dec dl
+    jz @@5
+    sub di, dx
+    sub byte ptr es:[bx-1], dl
+    mov al, 9
+    mov es:[bx][di-1], al
+   @@5:
+    jmp @@1
+  @@Ex:
+ end;
+{$ELSE}
+ asm
+    push ebx
+    push edx
+    push edi
+    push esi
+    mov ebx, PP
+    xor ecx, ecx
+    mov cl, [ebx]
+    inc ebx
+    jcxz @@Ex
+    xor edi, edi
+    xor esi, esi
+    mov byte ptr [ebx-1], ch
+  @@1:
+    mov ah, byte ptr TSt
+    xor edx, edx
+  @@2:
+    mov al, [ebx+esi]
+    mov [ebx+edi], al
+    inc esi
+    cmp esi, ecx
+    ja  @@Ex
+    inc edi
+    inc byte ptr [ebx-1]
+    cmp al, ' '
+    jne @@3
+    inc dl
+    jmp @@4
+   @@3:
+    xor dl, dl
+   @@4:
+    dec ah
+    jnz @@2
+    or  dl, dl
+    jz @@5
+    dec dl
+    jz @@5
+    sub edi, edx
+    sub byte ptr [ebx-1], dl
+    mov al, 9
+    mov [ebx+edi-1], al
+   @@5:
+    jmp @@1
+  @@Ex:
+    pop esi
+    pop edi
+    pop edx
+    pop ebx
+ end;
+{$ENDIF}
+end;
+
+
+procedure CompressString(var S: LongString);
+{$IFDEF USELONGSTRING}
+ var S1: String;
+     S2: LongString;
+      I: Word;
+{$ENDIF}
+begin
+{$IFDEF USELONGSTRING}
+ I := 1;
+ S2 := '';
+ repeat
+  S1 := Copy(S, I, 254);
+  CompressShortStr(S1);
+  S2 := S2 + S1;
+  Inc(I, 254);
+ until S1 = '';
+ S := S2;
+{$ELSE}
+ CompressShortStr(S);
+{$ENDIF}
+end;
+
+
+(*
+{Cat: добавил поддержку длинных строк
+      теперь эта процедура используется вместо аналогичных из MicroEd и Ed2}
+procedure CompressString(var S: LongString);
+{$IFDEF USELONGSTRING}
+{Cat}
+var
+  I, L, SpaceCount: LongInt;
+  TSt1: Integer;
+begin
+  TSt1 := StoI(EditorDefaults.TabSize);
+  if TSt1 = 0 then TSt1 := 8;
+  Dec(TSt1);
+  L := Length(S);
+  I := 1;
+  SpaceCount := 0;
+  while I<=L do
+    begin
+      if S[I]=' ' then
+        begin
+          Inc(SpaceCount);
+          if SpaceCount=TSt1+1 then
+            begin
+              S[I] := #9;
+              Delete(S, I-TSt1, TSt1);
+              Dec(I, TSt1);
+              Dec(L, TSt1);
+              SpaceCount := 0;
+            end;
+        end
+      else
+        SpaceCount := 0;
+      Inc(I);
+    end;
+end;
+{/Cat}
+{$ELSE}
+var PP: Pointer;
+    TSt: Integer;
+begin
+ PP := @S;
+ TSt := StoI(EditorDefaults.TabSize);
+ if TSt = 0 then TSt := 8;
+ {$IFNDEF BIT_32}
+ asm
+    les bx, PP
+    mov cl, es:[bx]
+    inc bx
+    xor ch, ch
+    jcxz @@Ex
+    xor di, di
+    xor si, si
+    mov byte ptr es:[bx-1], ch
+  @@1:
+    mov ah, byte ptr TSt
+    xor dx, dx
+  @@2:
+    mov al, es:[bx][si]
+    mov es:[bx][di], al
+    inc si
+    cmp si, cx
+    ja  @@Ex
+    inc di
+    inc byte ptr es:[bx-1]
+    cmp al, ' '
+    jne @@3
+    inc dl
+    jmp @@4
+   @@3:
+    xor Dl, dl
+   @@4:
+    dec ah
+    jnz @@2
+    or  dl, dl
+    jz @@5
+    dec dl
+    jz @@5
+    sub di, dx
+    sub byte ptr es:[bx-1], dl
+    mov al, 9
+    mov es:[bx][di-1], al
+   @@5:
+    jmp @@1
+  @@Ex:
+ end;
+ {$ELSE BIT_32}
+ asm
+    push ebx
+    push edx
+    push edi
+    push esi
+    mov ebx, PP
+    xor ecx, ecx
+    mov cl, [ebx]
+    inc ebx
+    jcxz @@Ex
+    xor edi, edi
+    xor esi, esi
+    mov byte ptr [ebx-1], ch
+  @@1:
+    mov ah, byte ptr TSt
+    xor edx, edx
+  @@2:
+    mov al, [ebx+esi]
+    mov [ebx+edi], al
+    inc esi
+    cmp esi, ecx
+    ja  @@Ex
+    inc edi
+    inc byte ptr [ebx-1]
+    cmp al, ' '
+    jne @@3
+    inc dl
+    jmp @@4
+   @@3:
+    xor dl, dl
+   @@4:
+    dec ah
+    jnz @@2
+    or  dl, dl
+    jz @@5
+    dec dl
+    jz @@5
+    sub edi, edx
+    sub byte ptr [ebx-1], dl
+    mov al, 9
+    mov [ebx+edi-1], al
+   @@5:
+    jmp @@1
+  @@Ex:
+    pop esi
+    pop edi
+    pop edx
+    pop ebx
+ end;
+ {$ENDIF}
+end;
+{$ENDIF}
+*)
 
 {AK155}
 

@@ -84,7 +84,7 @@ Type
 *)
 
 
-const Separators = [':','.',',','/','\','[',']','+','>','<','|',';',' ', '"'];
+const Separators = [':','.',',','/','\','[',']','+','>','<','|',';',' ','@','"'];
       StrModified: Boolean = False;
       DDTimer: LongInt = 0;
       TimerMark: Boolean = False;
@@ -146,7 +146,7 @@ begin
         D^.GetData(MM);
         Dispose(D,Done);
        end;
-      UpStr(MM.S);
+      UpShortStr(MM.S);
       if ValidDrive(MM.S[1]) then
        begin SetCurDrive(MM.S[1]); Break; end;
     until False;
@@ -244,7 +244,7 @@ procedure TCommandLine.Draw;
      C1, C2, C3: Word; S:^Str50;
 begin
  if CmdDisabled then Exit;
- New(S); S^:=Cut(Copy(Dir, 1, Length(Dir)-1),49)+Dir[Length(Dir)];
+ New(S); S^ := {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(Cut(Copy(Dir, 1, Length(Dir)-1),49)+Dir[Length(Dir)]);
  C3 := $0F;
  C1 := $07; if Overwrite then C2 := $4F else C2 := $70;
  if CurX < 0 then CurX := 0;

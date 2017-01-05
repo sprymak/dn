@@ -1143,13 +1143,17 @@ DIALOG dlgDiskError, 43, 10, 'Дисковая ошибка'
     Button 17, 7, 27, 9, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgDiskParms, 41, 13, 'Установки колонок'
+DIALOG dlgDiskParms, 41, 17, 'Установки колонок'
     HELPCTX hcSetupDiskColumns
-    CheckBoxes 3, 3, 27, 9, ofPostProcess, ofPreProcess
+    CheckBoxes 3, 3, 27, 13, ofPostProcess, ofPreProcess
       ITEM '~Д~линное имя'
       ITEM '~Р~азмер'
       ITEM '~Д~ату'
       ITEM '~В~ремя'
+      ITEM 'Дата создания'
+      ITEM 'Время создания'
+      ITEM 'Дата пoc.доступа'
+      ITEM 'Время пoc.дост.'
       ITEM '~О~писание'
       ITEM '~П~олное описание'
     END
@@ -1158,10 +1162,10 @@ DIALOG dlgDiskParms, 41, 13, 'Установки колонок'
     Label 27, 3, 'LFN:', ofPostProcess, ofPreProcess
     InputLine 33, 4, 37, 5, 2, 0
     Label 27, 4, 'EXT:', ofPostProcess, ofPreProcess
-    Button 28, 5, 39,  7, 'Уст.~1~', cmYes, ofPostProcess, ofPreProcess
-    Button 28, 7, 39,  9, 'Уст.~2~', cmNo, ofPostProcess, ofPreProcess
-    Button 19, 10, 29, 12, '~О~К', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 29, 10, 39, 12, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
+    Button 28, 6, 39,  8, 'Уст.~1~', cmYes, ofPostProcess, ofPreProcess
+    Button 28, 8, 39, 10, 'Уст.~2~', cmNo, ofPostProcess, ofPreProcess
+    Button 19, 14, 29, 16, '~О~К', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 29, 14, 39, 16, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgArcParms, 41, 13, 'Установки колонок'
@@ -1185,13 +1189,17 @@ DIALOG dlgArcParms, 41, 13, 'Установки колонок'
     Button 29, 10, 39, 12, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgFindParms, 41, 13, 'Установки колонок'
+DIALOG dlgFindParms, 41, 17, 'Установки колонок'
     HELPCTX hcSetupFindColumns
-    CheckBoxes 3, 3, 27, 9, ofPostProcess, ofPreProcess
+    CheckBoxes 3, 3, 27, 13, ofPostProcess, ofPreProcess
       ITEM '~Д~линное имя'
       ITEM '~Р~азмер'
       ITEM '~Д~ата'
       ITEM '~В~ремя'
+      ITEM 'Дата создания'
+      ITEM 'Время создания'
+      ITEM 'Дата пoc.доступа'
+      ITEM 'Время пoc.дост.'
       ITEM '~П~уть'
     END
     Label 3, 2, 'Показывать', ofPostProcess, ofPreProcess
@@ -1199,10 +1207,10 @@ DIALOG dlgFindParms, 41, 13, 'Установки колонок'
     Label 27, 3, 'LFN:', ofPostProcess, ofPreProcess
     InputLine 33, 4, 37, 5, 2, 0
     Label 27, 4, 'EXT:', ofPostProcess, ofPreProcess
-    Button 28, 5, 39,  7, 'Уст.~1~', cmYes, ofPostProcess, ofPreProcess
-    Button 28, 7, 39,  9, 'Уст.~2~', cmNo, ofPostProcess, ofPreProcess
-    Button 19, 10, 29, 12, '~О~К', cmOK, bfDefault, ofPostProcess, ofPreProcess
-    Button 29, 10, 39, 12, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
+    Button 28, 6, 39,  8, 'Уст.~1~', cmYes, ofPostProcess, ofPreProcess
+    Button 28, 8, 39, 10, 'Уст.~2~', cmNo, ofPostProcess, ofPreProcess
+    Button 19, 14, 29, 16, '~О~К', cmOK, bfDefault, ofPostProcess, ofPreProcess
+    Button 29, 14, 39, 16, 'Отмена', cmCancel, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgFileAttr, 46, 14, 'Атрибуты файла'
@@ -2111,8 +2119,8 @@ Menu dlgEditorMenu
  SubMenu 'Б~л~ок', hcEditBlockMenu,
       MenuItem '~П~еpеместить', 'Ctrl K V', kbNoKey, cmMoveBlock, hcedParagraph,
       MenuItem '~К~опиpовать', 'Ctrl K C', kbNoKey, cmCopyBlock, hcedParagraph,
-      MenuItem 'Сдвиг в~л~ево', 'Ctrl K I', kbNoKey, cmIndentBlock, hcedParagraph,
-      MenuItem 'Сдвиг вп~р~аво', 'Ctrl K U', kbNoKey, cmUnIndentBlock, hcedParagraph,
+      MenuItem 'Сдвиг вп~р~аво', 'Ctrl K I', kbNoKey, cmIndentBlock, hcedParagraph,
+      MenuItem 'Сдвиг в~л~ево', 'Ctrl K U', kbNoKey, cmUnIndentBlock, hcedParagraph,
       MenuLine
       MenuItem '~В~ерхний pегистp', 'Ctrl K [', kbNoKey, cmUpcaseBlock, hcedParagraph,
       MenuItem '~Н~ижний pегистp', 'Ctrl K ]', kbNoKey, cmLowcaseBlock, hcedParagraph,
@@ -2302,9 +2310,7 @@ MENU dlgMainMenu
     MenuItem 'Р~а~зъединить', 'Ctrl-Z', kbCtrlZ, cmHangUp, hcUtilMenu,
 ;$ENDIF
     MenuLine
-;$IFNDEF NONBP
     MenuItem 'Редактор переменных ~О~кружения', '', kbNoKey, cmEnvEdit, hcUtilMenu,
-;$ENDIF
     MenuItem '~М~еню пользователя', 'F2', kbF2, cmUserMenu, hcUtilMenu,
     MenuLine
     MenuItem 'Истоpи~я~ смены каталогов...', 'Alt-BkSp', kbNoKey, cmDirHistory, hcPanelMenu,
@@ -2361,9 +2367,7 @@ MENU dlgMainMenu
       MenuItem '~Э~кранные заставки...', '', kbNoKey, cmSaversSetup, hcSubMenuConfig,
       MenuItem '~П~ринтер...', '', kbNoKey, cmSetupPrinter, hcSubMenuConfig,
       MenuItem '~С~трана...', '', kbNoKey, cmCountrySetup, hcSubMenuConfig,
-;$IFNDEF VPBETA
       MenuItem '~М~ышка...', '', kbNoKey, cmSetupMouse, hcSubMenuConfig,
-;$ENDIF
 ;$IFNDEF VIRTUALPASCAL
       MenuItem '~К~оммуникации...', '', kbNoKey, cmSetupModem, hcSubMenuConfig,
 ;$ENDIF
@@ -2584,10 +2588,12 @@ DIALOG dlgVolumeLabel, 28, 7, 'Метка диска'
   Button 16,4,26,6, 'Отмена', cmCancel, bfNormal, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgEditEnvironment, 57, 18, 'Редактор переменных окружения ДОС'
+DIALOG dlgEditEnvironment, 57, 20, 'Редактор переменных окружения ОС'
   HELPCTX hcEnvEditor
-  InputLine 12, 15, 55, 16, 255, 0
-  Label 2, 15, '~З~начение', ofPostProcess, ofPreProcess
+  StaticText 3, 15, 55, 16, 'Предупреждение: длина значения переменной окружения'
+  StaticText 3, 16, 55, 17, '    в настоящий момент ограничена 255 символами'
+  InputLine 12, 17, 55, 18, 255, 0
+  Label 2, 17, '~З~начение', ofPostProcess, ofPreProcess
   Button 43, 3,55, 5, O~К~, cmOK, bfDefault, ofPostProcess, ofPreProcess
   Button 43, 5,55, 7, '~Н~азвать', cmYes, bfBroadcast, ofPostProcess, ofPreProcess
   Button 43, 7,55, 9, '~Д~обавить', cmOK, bfBroadcast, ofPostProcess, ofPreProcess
@@ -2701,7 +2707,7 @@ DIALOG dlgUUEncode, 60, 17, 'UU-кодиpование'
       ITEM 'Расширенные (~6~4-бит)'
     END
     Label 32, 4, 'Контрольные сумм~ы~ (CRC)', ofPostProcess, ofPreProcess
-    InputLine 18, 9, 25, 10, 4, 0
+    InputLine 18, 9, 25, 10, 5, 0
     Label 2, 9, '~С~трок в секции', ofPostProcess, ofPreProcess
     History 25, 9, hsUULines, ofPostProcess
 
@@ -3052,7 +3058,9 @@ DIALOG dlgSystemSetup, 72, 21, 'Системные установки'
 ;$ENDIF
       ITEM 'С~н~имать атpибут R/O на CD-ROM'
       ITEM 'Рас~ш~иренное копирование'
+;$IFDEF OS_DOS
       ITEM 'Сбрасывать дисковые буфера'
+;$ENDIF
       ITEM 'Обрабатывать команду "CD"'
     END
     Label 3, 1, '~У~становки', ofPostProcess, ofPreProcess
@@ -3082,19 +3090,11 @@ DIALOG dlgSystemSetup, 72, 21, 'Системные установки'
     END
     Label 8, 13, 'Установки ~т~екущего диска', ofPostProcess, ofPreProcess
 
-;$IFDEF LFNCache
-    RadioButtons 39, 14, 56, 17, ofPostProcess, ofPreProcess
-      ITEM '~E~MS-XMS-LOW'
-      ITEM '~X~MS-EMS-LOW'
-      ITEM '~L~OW'
-    END
-    Label 39, 13, '~Х~pанилище имен:', ofPostProcess, ofPreProcess
+    InputLine 63, 13, 70, 14, 5, 0
+    Label 43, 13, 'Буфер копирования:', ofPostProcess, ofPreProcess
 
-    InputLine 57, 15, 67, 16, 3, 0
-    Label 57, 13, 'К~э~ш имен в', ofPostProcess, ofPreProcess
-    Label 56, 14, 'нижней памяти', ofPostProcess, ofPreProcess
-    Label 67, 15, '%', ofPostProcess, ofPreProcess
-;$ENDIF
+    InputLine 63, 15, 70, 16, 3, 0
+    Label 38, 15, 'Архиватор по умолчанию:', ofPostProcess, ofPreProcess
 
     Button 40, 18, 50, 20, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
     Button 50, 18, 60, 20, 'Отмена', cmCancel, ofPostProcess, ofPreProcess

@@ -48,9 +48,7 @@
 unit Arc_AIN; {AIN}
 
 interface
-uses
-  Archiver, arc_uc2
-     ;
+uses Archiver, arc_uc2;
 
 Type
      PAINArchive = ^TAINArchive;

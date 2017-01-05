@@ -297,7 +297,7 @@ function GetValue(S: String; var Value: CReal): boolean;
   GetHex := false;
   if S[1] in ['-','+'] then begin
    Invert:=S[1]='-';
-   DelFC(S);
+   Delete(S, 1, 1); {DelFC(S);}
   end else Invert:=False;
 
   RR:=0;
@@ -335,7 +335,7 @@ function GetValue(S: String; var Value: CReal): boolean;
   GetOct := false;
   if S[1] in ['-','+'] then begin
    Invert:=S[1]='-';
-   DelFC(S);
+   Delete(S, 1, 1); {DelFC(S);}
   end else Invert:=False;
 
   RR:=0;
@@ -371,7 +371,7 @@ function GetValue(S: String; var Value: CReal): boolean;
   GetBin := false;
   if S[1] in ['-','+'] then begin
    Invert:=S[1]='-';
-   DelFC(S);
+   Delete(S, 1, 1); {DelFC(S);}
   end else Invert:=False;
 
   RR:=0;
@@ -415,12 +415,12 @@ begin
   GetValue:=GetHex(S, Value);
  end else
  if S[1] = '$' then begin
-  DelFC(S);
+  Delete(S, 1, 1); {DelFC(S);}
   GetValue:=GetHex(S, Value)
  end else
  if (Length(S) > 2) and (S[1] = '0') and (S[2] = 'X') then begin
-  DelFC(S);
-  DelFC(S);
+  Delete(S, 1, 2); {DelFC(S);}
+                   {DelFC(S);}
   GetValue:=GetHex(S, Value)
  end else
  if (S[Length(S)] in ['O','Q']) then begin

@@ -264,7 +264,7 @@ uses LFN, {DataCompBoy}
     end;
 {DataCompBoy   DskOn;}
    CreateDirInheritance(d, Off);
-   lAssignFile(F2,Fn2); PInfo^.Write(3, Fn2);
+   lAssignFile(F2,Fn2); PInfo^.Write(3,  {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(Fn2));
    ClrIO; lReWriteFile(F2,1);
    if not BinarySplit then
     if Not NewMode then BlockWrite(F2.f,ohd,SizeOf(OHdr))
@@ -420,7 +420,7 @@ uses LFN, {DataCompBoy}
     lFSplit(Fn1,d,n,x);
     Fn1:=d+n+'.d'+SStr(Count, 2, '0');
     FileMode := 0;
-    lAssignFile(F1,Fn1); lResetFile(F1,1); PInfo^.Write(1, Fn1);
+    lAssignFile(F1,Fn1); lResetFile(F1,1); PInfo^.Write(1,  {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(Fn1));
     s:=CheckSvoi;
    until ((IOResult=0) and ((s=1) or (s=2))) or Abort or CopyCancelled;
   end;
@@ -461,7 +461,7 @@ uses LFN, {DataCompBoy}
       else D := PDialog( LoadResource( dlgSplitFile ));
     P := D^.LastThat( @IsLabel );
     R.Assign(P^.Origin.X + P^.Size.X-1, P^.Origin.Y, (D^.Size.X - 1), P^.Origin.Y + 1);
-    D^.Insert( New( PLabel, Init( R, '~'+LowStrg(aa+aaa)+'~'+
+    D^.Insert( New( PLabel, Init( R, '~'+LowStrg({$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(aa+aaa))+'~'+
                GetString(dlSplit_To), PLabel(P)^.Link)));
     S := '';
     HistoryAdd(hsFBBCopy, lFExpand(a));
@@ -469,7 +469,7 @@ uses LFN, {DataCompBoy}
     GlobalMessageL(evCommand, cmPushName, hsFBBCopy);
     if S[2] <> ':' then S := '';
     if S = '' then S := HistoryStr(hsFBBCopy, 0);
-    DTA.S := S;
+    DTA.S := {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(S);
 {    DTA.W := 0; }
     DTA.SPLSiz  := '';
     DTA.NumSect := '';
@@ -517,7 +517,7 @@ uses LFN, {DataCompBoy}
                else Dec(PartSize, SizeOf(OHdr));
      end;
     end else PartSize:=0;
-    S := DTA.S;
+    S := {$IFDEF RecodeWhenDraw}OemToCharStr{$ENDIF}(DTA.S);
     Dispose(D,Done);
     if S = '' then S:='.';
     S := lFExpand(S);
@@ -543,7 +543,7 @@ uses LFN, {DataCompBoy}
     S := N + X;
     Fn2 := MakeNormName(CopyDir, MkName(S, Mask));
     CopyDialog := True;
-    S :=Copy(GetExt(Fn1), 2, 255);
+    S :=Copy(GetExt(Fn1), 2, MaxStringLength);
     If Tuda then
      begin
       If GetExt(Fn2)='.' then
@@ -643,7 +643,7 @@ _Abort_:    begin Close(F1.F); LongCopy := Off; Exit; end;
     PInfo^.Bottom := '';
     PInfo^.SetState(sfShadow, On);
     Desktop^.Insert(PInfo);
-    PInfo^.Write(1, Fn1);
+    PInfo^.Write(1, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(Fn1));
     lFSplit(Fn2,d,n,x);
     if Tuda and (UpCase(x[2])='D') and (StoI(Copy(x,3,2)) > 0)  then
      case csv of
@@ -652,7 +652,7 @@ _Abort_:    begin Close(F1.F); LongCopy := Off; Exit; end;
      end;
     lAssignFile(F2,Fn2);ClrIO;
     PInfo^.Write(2, GetString(dlFBBFragmentTo));
-    PInfo^.Write(3, Fn2);
+    PInfo^.Write(3, {$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(Fn2));
     wl := PInfo^.Size.X - 8;
     if not Tuda then RequireNew
                 else

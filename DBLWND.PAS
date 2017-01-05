@@ -820,9 +820,9 @@ begin
                         end;
   {Knave 11.09.99 --------------- end 1}
               cmGetName: begin PString(Event.InfoPtr)^ := GetString(dlFileManager);
-              PString(Event.InfoPtr)^:=PString(Event.InfoPtr)^+Cut(LPanel^.DirectoryName,
+              PString(Event.InfoPtr)^:=PString(Event.InfoPtr)^+Cut({$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(LPanel^.DirectoryName),
               (55-Length(PString(Event.InfoPtr)^)) div 2) + ','
-              +Cut(RPanel^.DirectoryName,
+              +Cut({$IFDEF RecodeWhenDraw}CharToOemStr{$ENDIF}(RPanel^.DirectoryName),
               (55-Length(PString(Event.InfoPtr)^)) div 2); CE end;
               cmPostHideRight: begin
                                  if not RVisible then SwitchRight;
