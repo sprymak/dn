@@ -314,12 +314,11 @@ asm
  end;
   {$ELSE}
   type
-    ChArr = array[1..4] of Char;
+    ChArr = array[1..8] of Char;
+  var
+    i: integer;
   begin { Hex8Lo }
-  ChArr(HexLo)[1] := LoHexChar[L shr 24];
-  ChArr(HexLo)[2] := LoHexChar[L and $00FF0000 shr 16];
-  ChArr(HexLo)[3] := LoHexChar[L and $0000FF00 shr 08];
-  ChArr(HexLo)[4] := LoHexChar[L and $000000FF];
+  for i := 1 to 8 do ChArr(HexLo)[i] := LoHexChar[L shr (32-(i*4)) and $F];
   end { Hex8Lo };
 {$ENDIF}
 
@@ -500,17 +499,17 @@ asm
   end { DelRight };
 {$ENDIF}
 
-{Cat}
 procedure LongDelRight(var S: LongString);
   var
-    I: LongInt;
+    I, I0: LongInt;
   begin
   I := Length(S);
+  I0 := I;
   while (I > 0) and (S[I] = ' ') do
     Dec(I);
-  SetLength(S, I);
+  if I0 <> I then
+    SetLength(S, I);
   end;
-{/Cat}
 
 function fDelRight(s: String): String;
   begin
@@ -567,7 +566,6 @@ asm
   end { DelLeft };
 {$ENDIF}
 
-{Cat}
 procedure LongDelLeft(var S: LongString);
   var
     I: LongInt;
@@ -576,12 +574,8 @@ procedure LongDelLeft(var S: LongString);
   while (I <= Length(S)) and (S[I] in [#9, ' ']) do
     Inc(I);
   if I > 1 then
-    begin
-    Move(S[I], S[1], Length(S)-I+1);
-    SetLength(S, Length(S)-I+1);
-    end;
+    S := Copy(S, I, Length(S)-I+1);
   end;
-{/Cat}
 
 function fDelLeft(s: String): String;
   begin

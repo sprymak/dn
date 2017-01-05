@@ -60,7 +60,7 @@ function XRandom(N: Integer): Integer; { Rnd -N..N }
 procedure DosWrite(S: String);
 {DataCompBoy Function  KeyPressed: Boolean;}
 function FindParam(const S: String): Integer;
-{$IFDEF OS_DOS}
+{$IFDEF DPMI32}
 function Chk4Dos: Boolean;
 procedure AppendCheck;
 procedure DisableAppend;
@@ -68,10 +68,10 @@ procedure DisableAppend;
 function GetEnv(S: String): String;
 function GetCrc(StartCrc: LongInt; var Buf; BufSize: Word): LongInt;
 
-{$IFDEF OS_DOS}
+{$IFDEF DPMI32}
 var
   AppendInstalled: Boolean;
-  AppendState: Word;
+  AppendState: SmallWord;
   {$ENDIF}
 
 implementation
@@ -79,7 +79,7 @@ uses
   Advance1, Advance2, Advance6, Commands {Cat}
   ;
 
-{$IFDEF OS_DOS}
+{$IFDEF DPMI32}
 procedure AppendCheck;
   begin
   AppendInstalled := False;
@@ -160,7 +160,7 @@ function FindParam(const S: String): Integer;
     FindParam := FindParam('-'+Copy(S, 2, MaxStringLength));
   end;
 
-{$IFDEF OS_DOS}
+{$IFDEF DPMI32}
 function Chk4Dos: Boolean;
   assembler;
 asm

@@ -112,16 +112,6 @@ type
     function GetText(MaxWidth: Integer): String; virtual;
     end;
 
-  PSpecScroll = ^TSpecScroll;
-  TSpecScroll = object(TMyScrollBar)
-    ForceScroll: Boolean; {AK155}
-    Panel: PFilePanel; {AK155}
-    function ScrollStep(Part: LongInt): LongInt; virtual; {AK155}
-    procedure HandleEvent(var Event: TEvent); virtual;
-    constructor Load(var S: TStream);
-    procedure Store(var S: TStream);
-    end;
-
   PDriveLine = ^TDriveLine;
   {`2 }
   TDriveLine = object(TView)
@@ -178,7 +168,7 @@ uses
   Lfn, DNUtil, DNApp, Advance, Advance1, Advance2, Advance3, Startup,
   Memory, FileCopy, Messages, Menus, DiskInfo, Dialogs, Commands,
   HistList, Tree, FBB, RStrings, ArcView, CmdLine, Histries, Archiver,
-  Gauges, Gauge, FileFind, FLTools, DnIni, XDblWnd
+  Gauges, Gauge, FileFind, FLTools, DnIni, XDblWnd, DblWnd
   {$IFDEF UUENCODE}
   , UUCode
   {$ELSE}
@@ -199,74 +189,7 @@ var
 
 const
   chTempDrive = '*';
-
-  {  ------- TSpecScroll Скроллбар файловой панели }
-  { AК155 23-06-2002
- Это опредление шага отличается от стандартного тем, что мышиный
-шаг (флажок ForceScroll) на 1 вверх или вниз приводит не к
-мучительному перебору всех файлов в панели, а к скачку на шаг
-выше первого файла или на шаг ниже последнего файла панели. }
-function TSpecScroll.ScrollStep(Part: LongInt): LongInt;
-  var
-    Step: LongInt;
-  begin
-  if Part and 2 = 0 then
-    begin
-    if not ForceScroll then
-      begin
-      Step := ArStep;
-      if Part and 1 = 0 then
-        Step := -ArStep;
-      end
-    else
-      begin
-      if  (Part and 1 = 0) then
-        Step := (Panel^.Delta-Value-ArStep)
-      else
-        Step := (Panel^.Delta+PgStep-Value)
-      end;
-    end
-  else
-    begin
-    Step := PgStep;
-    if Part and 1 = 0 then
-      Step := -PgStep;
-    end;
-  ForceScroll := False;
-  ScrollStep := Step;
-  end { TSpecScroll.ScrollStep };
-
-procedure TSpecScroll.HandleEvent;
-  begin
-  if  (Event.What = evKeyDown) and
-      ( (Event.CharCode in [^E, ^S, ^D, ^X]) or
-        (Event.CharCode = #0) and ((ShiftState and 3 <> 0) xor
-          (FMSetup.Options and fmoUseArrows = 0) and
-          ( (Event.KeyCode = kbRight) or (Event.KeyCode = kbLeft) or
-            (Event.KeyCode = kbHome) or (Event.KeyCode = kbEnd)
-          )))
-  then
-    Exit;
-  if  (Event.What = evMouseDown) then
-    begin
-    StopQuickSearch; {AK155}
-    ForceScroll := True; {AK155}
-    end;
-
-  inherited HandleEvent(Event);
-  end;
-
-constructor TSpecScroll.Load;
-  begin
-  inherited Load(S);
-  GetPeerViewPtr(S, Panel);
-  end;
-
-procedure TSpecScroll.Store;
-  begin
-  inherited Store(S);
-  PutPeerViewPtr(S, Panel);
-  end;
+  chNetDrive = '@';
 
 constructor TDriveLine.Init;
   begin
@@ -298,8 +221,11 @@ procedure TDriveLine.MakeDriveLine;
   DriveLine := '';
   for C := 'A' to 'Z' do
     if ValidDrive(C) then
-      DriveLine := DriveLine+C;
-  DriveLine := DriveLine+chTempDrive;
+      DriveLine := DriveLine + C;
+  DriveLine := DriveLine + chTempDrive
+              {$IFDEF NetBrowser}
+               + chNetDrive
+              {$ENDIF};
   end;
 
 function TDriveLine.GetPalette;
@@ -358,6 +284,9 @@ procedure TDriveLine.Draw;
     end;
   if  (Panel^.DirectoryName[2] = ':')
        or (Panel^.Drive^.DriveType = dtTemp)
+{$IFDEF NetBrowser}
+       or (Panel^.Drive^.DriveType = dtNet)
+{$ENDIF}
   then
     begin
     if  (Panel^.Drive^.DriveType = dtTemp)
@@ -365,6 +294,13 @@ procedure TDriveLine.Draw;
     then
       I := PosChar(chTempDrive, ViewLine)
     else
+{$IFDEF NetBrowser}
+    if  (Panel^.Drive^.DriveType = dtNet)
+         and (Copy(Panel^.DirectoryName, 1, Length(cNET_)) = cNET_)
+    then
+      I := PosChar(chNetDrive, ViewLine)
+    else
+{$ENDIF}
       I := PosChar(UpStrg(Panel^.DirectoryName)[1], ViewLine);
     if I > 0
     then
@@ -395,6 +331,45 @@ procedure TDriveLine.Draw;
 procedure TDriveLine.HandleEvent;
   var
     P: TPoint;
+
+  { AK155 29.01.06 }
+  procedure BracketClick(T: TPanelNum);
+    var
+      TargetPanel: PView;
+      Manager: PDoubleWindow;
+    const
+      HideCommand: array[TPanelNum] of Word =
+	 (cmHideLeft, cmHideRight);
+    begin
+    Manager := PDoubleWindow(Panel^.Owner);
+    { Если панель распахнута, то операция применяется к ней, независимо
+      от того, правая или левая скобка была нажата. Так что подгоняем
+      T к внутренннему номеру данной панели }
+    if Manager^.PanelZoomed then
+      T := Manager^.Panel[pRight].AnyPanel^.GetState(sfSelected);
+    TargetPanel := Manager^.Panel[T].AnyPanel;
+    if (Event.Buttons and mbLeftButton <> 0) or
+      not TargetPanel^.GetState(sfVisible)
+    then { левая кнопка мыши или операция со скрытой панелью:
+	   скрытие/показ, как Ctrl-F1/F2}
+      Message(Owner, evCommand, HideCommand[T], nil)
+    else
+      begin { правая кнопка мыши: активизация и
+	  распахивание/восстановление (как Alt-Ctrl-Z) }
+      TargetPanel^.Select;
+      Message(TargetPanel^.Owner, evCommand, cmMaxi, nil);
+      end;
+    end;
+
+  procedure Scroll(D: Integer{+1 или -1});
+    begin
+    repeat
+      CharDelta := 1 + ((CharDelta+D-1+Length(DriveLine)) mod Length(DriveLine));
+      DrawView;
+    until not MouseEvent(Event, evMouseAuto);
+    end;
+  { /AK155 }
+
   begin
   inherited HandleEvent(Event);
   case Event.What of
@@ -414,6 +389,12 @@ procedure TDriveLine.HandleEvent;
             case ViewLine[P.X+1] of
               chTempDrive:
                 CopyDirName := cTEMP_;
+          {$IFDEF NetBrowser}
+              chNetDrive:
+                begin { на панельку сети ничего не копируем }
+                ClearEvent(Event); Exit;
+                end;
+          {$ENDIF}
               'A'..'Z':
                 CopyDirName := ViewLine[P.X+1]+':';
               else {case}
@@ -444,36 +425,15 @@ procedure TDriveLine.HandleEvent;
       if Event.Double then
         begin
         case ViewLine[P.X+1] of
-          chTempDrive:
-            begin
-            FreeStr := cTEMP_;
-            Message(Panel, evCommand, cmChangeDirectory, @FreeStr);
-            end;
           'A'..'Z':
             begin
             FreeStr := ViewLine[P.X+1]+':\';
             Message(Panel, evCommand, cmChangeDirectory, @FreeStr);
             end;
-          '[':
-            Message(Owner, evCommand, cmHideLeft, nil);
-          ']':
-            Message(Owner, evCommand, cmHideRight, nil);
           '}':
-            begin
-            Inc(CharDelta);
-            if CharDelta > Length(DriveLine)
-            then
-              CharDelta := 1;
-            DrawView;
-            end;
+	     Scroll(+1); // без этого быстрые клики на скобке не работают
           '{':
-            begin
-            Dec(CharDelta);
-            if CharDelta < 1
-            then
-              CharDelta := Length(DriveLine);
-            DrawView;
-            end;
+	     Scroll(-1); // аналогично
         end {case};
         end
       else if ViewLine[P.X+1] = Panel^.DirectoryName[1]
@@ -486,59 +446,27 @@ procedure TDriveLine.HandleEvent;
             FreeStr := cTEMP_;
             Message(Panel, evCommand, cmChangeDrv, @FreeStr);
             end;
+        {$IFDEF NetBrowser}
+          chNetDrive:
+            begin
+            FreeStr := cNET_;
+            Message(Panel, evCommand, cmChangeDrv, @FreeStr);
+            end;
+        {$ENDIF}
           'A'..'Z':
             begin
             FreeStr := ViewLine[P.X+1]+':';
             Message(Panel, evCommand, cmChangeDrv, @FreeStr);
             end;
           '[':
-            Message(Owner, evCommand, cmHideLeft, nil);
+	     BracketClick(pLeft);
           ']':
-            Message(Owner, evCommand, cmHideRight, nil);
+	     BracketClick(pRight);
           '}':
-            begin
-            Inc(CharDelta);
-            if CharDelta > Length(DriveLine)
-            then
-              CharDelta := 1;
-            DrawView;
-            end;
+	     Scroll(+1);
           '{':
-            begin
-            Dec(CharDelta);
-            if CharDelta < 1
-            then
-              CharDelta := Length(DriveLine);
-            DrawView;
-            end;
+	     Scroll(-1);
         end {case};
-      {Cat: следующий кусок закомментировал, т.к. при его наличии в случае
-      возникновения ошибки (например, дискета не вставлена) после
-      нажатия в выскочившем окне кнопки "отмена" прекращается реакция
-      на клавиатуру до тех пор, пока не будет нажата кнопка мыши;
-      без этого куска для промотки строки дисков придётся нажимать
-      мышкой на фигурные скобки столько раз, на сколько позиций нужно
-      промотать (раньше можно было один раз нажать и удерживать мышку) }
-      (*
-                   while MouseEvent(Event, evMouseMove + evMouseAuto) do begin
-                    MakeLocal(Event.Where, P);
-                    if ViewLine[P.X+1]=' ' then dec(P.X);
-                    case ViewLine[P.X+1] of
-                     '}': begin
-                           Inc(CharDelta);
-                           if CharDelta > Length(DriveLine)
-                            then CharDelta := 1;
-                           DrawView;
-                          end;
-                     '{': begin
-                           Dec(CharDelta);
-                           if CharDelta < 1
-                            then CharDelta := Length(DriveLine);
-                           DrawView;
-                          end;
-                    end
-                   end;
-*)
       ClearEvent(Event);
       end;
   end {case};
@@ -1145,9 +1073,6 @@ procedure TInfoView.HandleEvent;
           end;
         RepeatDelay := 0;
         repeat
-          with Panel^ do
-            PSpecScroll(ScrollBar)^.ForceScroll := not MSelect;
-          {AK155}
           Message(Self.Owner, evKeyDown, kbDown, nil);
         until not MouseEvent(Event, evMouseMove+evMouseAuto);
         RepeatDelay := 2;
@@ -2290,6 +2215,10 @@ GotoKb:
         cmScrollBarChanged:
           if ScrollBar = Event.InfoPtr then
             begin
+            if ScrollBar^.ForceScroll or WheelEvent then
+              Inc(Delta, ScrollBar^.Step);
+                { Немедленное скроллирование с сохранением позиции
+                  курсора относительно окна }
             if MSelect then
               begin
               CE;

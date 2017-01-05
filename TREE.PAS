@@ -281,13 +281,10 @@ procedure ReadTree(C: Char; CountLen: Boolean);
     if Abort then
       Exit;
     I := DC^.IndexOf(PD);
-    lFindFirst(S+x_x, AnyFile, SR); {JO}
+    lFindFirst(S+x_x, AnyFileDir, SR); {JO}
     while (DosError = 0) and not Abort do
       begin
-      if {$IFNDEF OS2}(SR.SR.Name[1] <> '.')
-        and (SR.SR.Attr and VolumeID = 0) {$ELSE}(SR.SR.Name <> '..')
-           and (SR.SR.Name <> '.') {$ENDIF}
-      then
+      if not IsDummyDir(SR.SR.Name) then
         begin
         if SR.SR.Attr and Directory <> 0 then
           begin
@@ -599,9 +596,8 @@ procedure MakeDirectory;
   else if W <> cmOK then
     Exit;
   DelRight(S);
-  {$IFDEF OS_DOS}
-  if not LFNPresent then
-    DelLeft(S);
+  {$IFDEF DPMI32}
+  DelLeft(S);
   {$ENDIF}
   if S = '' then
     Exit;
@@ -2092,7 +2088,7 @@ function CreateDirInheritance;
     if M[Length(M)] = '.' then
       SetLength(M, Length(M)-1);
     ClrIO;
-    lFindFirst(M, AnyFile, SR); {JO}
+    lFindFirst(M, AnyFileDir, SR); {JO}
     {if DOSError <> 0 then DEr := true;}
     lFindClose(SR);
     if Abort then

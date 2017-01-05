@@ -204,7 +204,7 @@ procedure EraseFiles;
         Break
         end;
 
-      lFindFirst(MakeNormName(FreeStr, x_x), AnyFile, SR); {JO}
+      lFindFirst(MakeNormName(FreeStr, x_x), AnyFileDir, SR); {JO}
       while DosError = 0 do
         begin
         CalcCancel; {JOHN_SW}
@@ -331,12 +331,12 @@ TryDel:
       begin
       S := MakeNormName(Dir, x_x);
       DosError := 0;
-      lFindFirst(S, AnyFile, SR); {JO}
-      if IsDummyDir( {$IFDEF OS_DOS}SR.SR.Name {$ELSE}SR.FullName
+      lFindFirst(S, AnyFileDir, SR); {JO}
+      if IsDummyDir( {$IFDEF DPMI32}SR.SR.Name {$ELSE}SR.FullName
            {$ENDIF})
       then
         lFindNext(SR);
-      if IsDummyDir( {$IFDEF OS_DOS}SR.SR.Name {$ELSE}SR.FullName
+      if IsDummyDir( {$IFDEF DPMI32}SR.SR.Name {$ELSE}SR.FullName
            {$ENDIF})
       then
         lFindNext(SR);
@@ -381,7 +381,7 @@ TryDel:
 
   var
     Fls: PCollection;
-    {$IFDEF OS_DOS}
+    {$IFDEF DPMI32}
     Flush: Boolean;
     {$ENDIF}
     Ask: Integer;
@@ -496,7 +496,7 @@ LLL:
         begin
         InfoWrite(1, GetString(dlErasingDir));
         InfoWrite(2, Cut(S, 40));
-        {$IFDEF OS_DOS}
+        {$IFDEF DPMI32}
         S := lfGetLongFileName(MakeNormName(PF^.Owner^, S));
         {$ELSE}
         S := MakeNormName(PF^.Owner^, S);
@@ -519,7 +519,7 @@ DeleteDirDIZ:
     else
       Break;
     end;
-  {$IFDEF OS_DOS}
+  {$IFDEF DPMI32}
   Flush := ((SystemData.Options shl 3) and ossFlushDsk <> 0);
 
   if Flush then
@@ -566,7 +566,7 @@ DeleteDirDIZ:
   Dispose(RereadCollection, Done);
   {/Cat}
   GlobalMessage(evCommand, cmRereadInfo, nil);
-  {$IFDEF OS_DOS}
+  {$IFDEF DPMI32}
   if Flush then
     begin
     asm

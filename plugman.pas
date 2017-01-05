@@ -814,7 +814,7 @@ function TPluginManager.MakeCollection: PCollection;
         end;
 
     { просматриваем регистрационные файлы }
-    lFindFirst(SourceDir+'*.REG', AnyFile, SR);
+    lFindFirst(SourceDir+'*.REG', AnyFile and not(Directory+VolumeID), SR);
     while DosError = 0 do
       begin
       Stream := New(PBufStream, Init(SourceDir+SR.FullName, stOpenRead,

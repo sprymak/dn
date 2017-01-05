@@ -174,7 +174,7 @@ uses
   ;
 
 const
-  MaxTeam = 158;
+  MaxTeam = Ord(dlTeam150)-Ord(dlTeamAll)+1;
 
 function ESC_Pressed: Boolean;
   var
@@ -208,7 +208,7 @@ procedure TTeamView.Draw;
   for I := 1 to Size.Y-1 do
     begin
     MoveChar(B, ' ', C, Size.X);
-    if  (Strings[I] > 0) and (Strings[I] < MaxTeam) then
+    if  (Strings[I] > 0) and (Strings[I] <= MaxTeam) then
       begin
       S := GetString(TStrIdx(Integer(dlTeamAll)+Strings[I]));
       MoveCStr(B[(Size.X-CStrLen(S)) div 2], S, C);
@@ -554,7 +554,8 @@ procedure TDiskInfo.Draw;
     Wrt('~'+FStr(MemAvail/1024)+GetString(dlDIMemoryForDN));
   if DriveInfoData and fdiLowMemory <> 0 then
     Wrt('~'+FStr(PhysMemAvail/1024)+GetString(dlDIMemoryTotal));
-  {$IFDEF OS_DOS}
+(*
+  {$IFDEF DPMI32}
   if  (EMSFound or XMSFound) and (Y > 0)
     and (DriveInfoData and (fdiEMSFree+fdiXMSFree) <> 0)
   then
@@ -570,8 +571,9 @@ procedure TDiskInfo.Draw;
   if  (DriveInfoData and fdiXMSFree <> 0) and XMSFound then
     Wrt('~'+ItoS(XMSFree)+GetString(dlDIXMSFree));
   {$ENDIF}
+*)
   if  (Y > 0)
-       and ((DriveInfoData {$IFNDEF OS_DOS} shl 2 {$ENDIF}) and fdiDIZ <>
+       and ((DriveInfoData {$IFNDEF DPMI32} shl 2 {$ENDIF}) and fdiDIZ <>
        0) and
       (Info.DirInfo <> nil) and (Info.DirInfo^.Count > 0)
   then
@@ -664,10 +666,10 @@ function CountDirLen;
     GetDrInfo(Dir); { Ради BytesPerCluster }
     if Abort then
       Exit;
-    lFindFirst(MakeNormName(FreeStr, x_x), AnyFile, SR); {JO}
+    lFindFirst(MakeNormName(FreeStr, x_x), AnyFileDir, SR); {JO}
     while (DosError = 0) and not Abort do
       begin
-      if not IsDummyDir( {$IFDEF OS_DOS}SR.SR.Name {$ELSE}SR.FullName
+      if not IsDummyDir( {$IFDEF DPMI32}SR.SR.Name {$ELSE}SR.FullName
           {$ENDIF})
       then
         begin
@@ -734,7 +736,7 @@ procedure GetDrInfo(CurDir: String);
 {-DataCompBoy-}
 procedure ReadDiskInfo(Dr: String; var B: TDiskInfoRec);
   var
-    VolumeLabel: String[12];
+    VolumeLabel: String[11];
     SerialNo: Longint;
     FileSys: String[8]; { Rainbow }
     S: String;

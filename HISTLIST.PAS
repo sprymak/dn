@@ -294,8 +294,8 @@ procedure HistoryAdd(Id: Byte; const Str: String);
   begin
   if Str = '' then
     Exit;
-  if HistoryUsed < 3 then
-    HistoryUsed := 1;
+  if (HistoryUsed - Word(HistoryBlock)) < 3 then
+    HistoryUsed := Word(HistoryBlock) + 1;
 
   I := 0;
   StartId(Id);

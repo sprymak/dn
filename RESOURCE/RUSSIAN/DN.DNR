@@ -252,6 +252,14 @@ ColorDialog
          ColorItem 'Заголовок поля',              169,
          ColorItem 'Нормальный текст',            170,
          ColorItem 'Курсор',                      171,
+    ColorGroup 'Календарь',
+         ColorItem 'Числа',              205,
+         ColorItem '(не используется)',       206,
+         ColorItem 'Не сегодня, выделенный',      207,
+         ColorItem 'Сегодня, не выделенный',    208,
+         ColorItem 'Сегодня, выделенный',      209,
+         ColorItem 'Заголовок',                      210,
+         ColorItem 'Кнопки',                 211,
 END
 
 DIALOG dlgCountrySetup, 54, 22, 'Информация о стране'
@@ -607,7 +615,7 @@ END
 
 DIALOG dlgEditorDefaults, 59, 23, 'Установки pедактоpа/пpосмотpа'
     HELPCTX hcEditorDefaults
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
     CheckBoxes 2, 2, 57, 10, ofPostProcess, ofPreProcess
 ;$ELSE
     CheckBoxes 2, 2, 57, 9, ofPostProcess, ofPreProcess
@@ -625,7 +633,7 @@ DIALOG dlgEditorDefaults, 59, 23, 'Установки pедактоpа/пpосмотpа'
       ITEM '~П~остоянные блоки'
       ITEM 'Пеpезапись ~б~лока'
       ITEM '"~З~ащита" файла'
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
       ITEM 'Использование EMS'
       ITEM 'Использование XMS'
 ;$ENDIF
@@ -633,7 +641,7 @@ DIALOG dlgEditorDefaults, 59, 23, 'Установки pедактоpа/пpосмотpа'
       ITEM 'За~м~ена табуляции'
     END
     Label 2, 1, 'Опции редактора', ofPostProcess, ofPreProcess
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
     CheckBoxes 18, 10, 55, 12, ofPostProcess, ofPreProcess
 ;$ELSE
     CheckBoxes 18,  9, 55, 11, ofPostProcess, ofPreProcess
@@ -1682,15 +1690,9 @@ DIALOG dlgSetupArc, 78, 22, 'Установки архиватора'
     CheckBoxes 29, 16, 62, 17, ofPostProcess, ofPreProcess
       ITEM 'Список файлов в подкаталогах'
     END
-;$IFDEF OS_DOS
-    CheckBoxes 2, 17, 22, 18, ofPostProcess, ofPreProcess
-      ITEM '~С~воп при работе'
-    END
-;$ELSE
     CheckBoxes 2, 17, 32, 18, ofPostProcess, ofPreProcess
       ITEM 'Короткая командная строка'
     END
-;$ENDIF
 ;$IFNDEF OS2
     CheckBoxes 33, 17, 64, 18, ofPostProcess, ofPreProcess
       ITEM 'Использовать длинные имена'
@@ -1741,9 +1743,10 @@ STATUSLINE
   StatusDef hcHelp, hcHelp,
       StatusItem '~F1~ Помощь', kbF1, cmDefault,
       StatusItem ':~F1~ Индекс', kbShiftF1, cmCancel,
-      StatusItem '~Tab~ Следующий пункт', kbNoKey, cmYes,
-      StatusItem ':~Tab~ Предыдущий пункт', kbNoKey, cmSave,
-      StatusItem '~─┘~ Переход по ссылке',kbNoKey, cmOk,
+      StatusItem '~Tab~ След. ссылка', kbNoKey, cmYes,
+      StatusItem ':~Tab~ Пред. ссылка', kbNoKey, cmSave,
+      StatusItem '~─┘~ Переход',kbNoKey, cmOk,
+      StatusItem '~Alt-F1~ Назад', kbNoKey, cmNo,
       StatusItem '-~F1~ Назад', kbNoKey, cmNo,
       StatusItem '-~Z~ Распахнуть окно', kbAltZ, cmZoom,
       StatusItem '', kbCtrlF5, cmResize,
@@ -1752,7 +1755,7 @@ STATUSLINE
       StatusItem '', kbShiftF9, cmPrev,
       StatusItem '', kbF10, cmMenu,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
   StatusDef hcFilePanel, hcFilePanel,
@@ -1809,7 +1812,7 @@ STATUSLINE
      StatusItem '', kbShiftF9, cmPrev,
      StatusItem '', kbCtrlJ, cmTerminal,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Распахнyть', kbCtrlAltZ, cmMaxi,
@@ -1844,7 +1847,7 @@ STATUSLINE
      StatusItem '', kbCtrlJ, cmTerminal,
      StatusItem '', kbAltBack, cmDirHistory,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Распахнyть', kbCtrlAltZ, cmMaxi,
@@ -1884,7 +1887,7 @@ STATUSLINE
      StatusItem '', kbCtrlJ, cmTerminal,
      StatusItem '', kbAltBack, cmDirHistory,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Распахнyть', kbCtrlAltZ, cmMaxi,
@@ -1916,7 +1919,7 @@ STATUSLINE
      StatusItem '', kbCtrlF5, cmResize,
      StatusItem '', kbAltBack, cmDirHistory,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Распахнyть', kbCtrlAltZ, cmMaxi,
@@ -1954,7 +1957,7 @@ STATUSLINE
      StatusItem '', kbCtrlJ, cmTerminal,
      StatusItem '', kbCtrlF5, cmResize,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Распахнyть', kbCtrlAltZ, cmMaxi,
@@ -1989,7 +1992,7 @@ STATUSLINE
      StatusItem '', kbShiftF9, cmPrev,
      StatusItem '', kbCtrlF5, cmResize,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Распахнyть', kbCtrlAltZ, cmMaxi,
@@ -2021,7 +2024,7 @@ STATUSLINE
      StatusItem ':~F7~ Продолжить поиск', kbShiftF7, cmContinueSearch,
      StatusItem ':~F10~ Видео', kbShiftF10, cmChangeMode,
 ;{ALT-CTRL}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~~ Запись вверх', kbCtrlAltUp, cmUpDBRec,
@@ -2077,7 +2080,7 @@ STATUSLINE
      StatusItem '', kbCtrlS, cmSaveText,
      StatusItem '', kbCtrlF5, cmResize,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Распахнyть', kbCtrlAltZ, cmMaxi,
@@ -2091,7 +2094,7 @@ STATUSLINE
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
   StatusDef hcTerminal, hcTerminal,
@@ -2123,7 +2126,7 @@ STATUSLINE
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Распахнyть', kbCtrlAltZ, cmMaxi,
@@ -2167,7 +2170,7 @@ STATUSLINE
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
   StatusDef hcReanimator, hcReanimator,
@@ -2211,7 +2214,7 @@ STATUSLINE
      StatusItem '', kbShiftF9, cmPrev,
      StatusItem '', kbCtrlJ, cmTerminal,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
    StatusDef hcDiskInfo, hcDiskInfo,
@@ -2236,7 +2239,7 @@ STATUSLINE
 ;{-$VIV}
      StatusItem '', kbCtrlJ, cmTerminal,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Распахнyть', kbCtrlAltZ, cmMaxi,
@@ -2253,7 +2256,7 @@ STATUSLINE
      StatusItem '', kbShiftF9, cmPrev,
      StatusItem '', kbCtrlJ, cmTerminal,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Распахнyть', kbCtrlAltZ, cmMaxi,
@@ -2276,7 +2279,7 @@ STATUSLINE
      StatusItem '+~F10~ Видео/2', kbCtrlF10, cmChangeUserMode2,
      StatusItem '', kbCtrlJ, cmTerminal,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
   StatusDef hcLUserMenu, hcLUserMenu,
@@ -2316,7 +2319,7 @@ STATUSLINE
      StatusItem '', kbShiftF9, cmPrev,
      StatusItem '', kbF10, cmMenu,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
   StatusDef hcLinkStatusWnd, hcLinkStatusWnd
@@ -2326,28 +2329,35 @@ STATUSLINE
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
 ;{JO}
   StatusDef hcCalendar, hcCalendar,
      StatusItem '~F1~ Помощь', kbF1, cmHelp,
-     StatusItem '~=>~ Месяц вперёд',KbNoKey, 0,
-     StatusItem '~<=~ Месяц назад', KbNoKey, 0,
-     StatusItem '~Пробел~ Возврат к текущей дате', KbNoKey, 0,
-     StatusItem '+~<=~ Предыдущий год', KbNoKey, 0,
-     StatusItem '+~=>~ Следующий год',KbNoKey, 0,
-     StatusItem '', kbEsc, cmClose,
-     StatusItem '', kbCtrlF4, cmClose,
-     StatusItem '', kbCtrlF5, cmResize,
-     StatusItem '', kbF10, cmMenu,
-     StatusItem '', kbF9, cmNext,
-     StatusItem '', kbShiftF9, cmPrev,
-;{JO}
-;{Alt+Ctrl}
-;$IFDEF OS_DOS
+     StatusItem '~Пробел~ Возврат к текущей дате', kbNoKey, 0,
+     StatusItem '~'#27'~ День назад', kbNoKey, 0,
+     StatusItem '~'#26'~ День вперед', kbNoKey, 0,
+     StatusItem '~'#24'~ Неделю назад', kbNoKey, 0,
+     StatusItem '~'#25'~ Неделю вперед', kbNoKey, 0,
+;{ALT}
+     StatusItem '-~'#27'~ Предыдущий год', kbNoKey, 0,
+     StatusItem '-~'#26'~ Следующий год', kbNoKey, 0,
+;{CTRL}
+     StatusItem '+~'#27'~ Предыдущий месяц', kbNoKey, 0,
+     StatusItem '+~'#26'~ Следующий месяц', kbNoKey, 0,
+     StatusItem '+~F5~ Размер/Позиция', kbCtrlF5, cmResize,
+;{ALT-CTRL}
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
+;{NO SHOW}
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbF10, cmMenu,
+     StatusItem '', kbEsc, cmClose,
+     StatusItem '', kbCtrlF4, cmClose,
+     StatusItem '', kbShiftF9, cmPrev,
+
 
   StatusDef hcDialer, hcDialer,
 ;{BASE}
@@ -2632,7 +2642,7 @@ MENU dlgMainMenu
 ;$ENDIF
 ;$ENDIF
     MenuLine
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
     MenuItem 'Пеpе~з~апyстить', 'Ctrl-Alt-X', kbCtrlAltX, cmRestart, hcFileMenu,
 ;$ENDIF
     MenuItem 'В~ы~ход', 'Alt-X', kbAltX, cmQuit, hcFileMenu,
@@ -3337,7 +3347,7 @@ DIALOG dlgDriveInfoSetup, 61, 14, 'Установки панели информации'
       ITEM 'Физическая ~п~амять'
       ITEM 'Память для программ'
       ITEM '~В~иртуальная память'
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
       ITEM '~Е~MS-память'
       ITEM '~Х~MS-память'
 ;$ENDIF
@@ -3413,7 +3423,7 @@ DIALOG dlgSystemSetup, 72, 21, 'Системные установки'
 ;$ENDIF
       ITEM 'С~н~имать атpибут R/O на CD-ROM'
       ITEM 'Рас~ш~иренное копирование'
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
       ITEM 'Сбрасывать дисковые буфера'
 ;$ENDIF
     END
@@ -3555,7 +3565,7 @@ EDITOR COMMANDS
     COMMAND       cmUpString,     kbCtrlShiftSqBracketL, 0, #0#0,      #0#0
     COMMAND       cmLowString,    kbCtrlShiftSqBracketR, 0, #0#0,      #0#0
     COMMAND       cmCapString,    kbCtrlShiftBSlash, 0,     #0#0,      #0#0
-    COMMAND       cmCapitalizeBlock,    0,       0,         ^\#0,      #0#0
+    COMMAND       cmCapitalizeBlock, kbCtrlBSlash,   0,     ^\#0,      #0#0
     COMMAND       cmPrintBlock,   0,             0,         ^K^P,      #0#0
     COMMAND       cmClear,        kbCtrlDel,     0,         ^K^Y,      #0#0
     COMMAND       cmCopyBlock,    0,             0,         ^K^C,      #0#0

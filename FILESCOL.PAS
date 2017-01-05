@@ -232,7 +232,7 @@ function CreateFileRec(Name: String): PFileRec;
     iLFN: TUseLFN;
   begin
   Name := lFExpand(Name);
-  lFindFirst(Name, AnyFile, lsr);
+  lFindFirst(Name, AnyFileDir, lsr);
   lFindClose(lsr);
   path := GetPath(Name);
   Name := GetName(Name);
@@ -857,7 +857,6 @@ Lab1:
             C := CmpName(Name1, Name2, Own1, Own2);
           end;
         {JO}
-        {$IFNDEF OS_DOS}
         {$IFNDEF DPMI32}
         {Creat.DATE}psmCrTime:
           begin
@@ -902,7 +901,6 @@ Lab1:
             C := CmpName(Name1, Name2, Own1, Own2);
           end;
         {$ENDIF}
-        {$ENDIF OS_DOS}
 
         {DIZ}psmDIZ:
           begin
@@ -1133,6 +1131,15 @@ function SelectDrive; {-$VIV, JO}
   DrvCnt := 0; {JO}
   MaxFullSLength := 0;
   Tabulated := (InterfaceData.DrvInfType.Tabulated and 1 <> 0);
+
+  {$IFDEF NetBrowser}
+  if IncludeTemp then
+    begin
+    Items := NewItem('~@:~ Network:', '', kbNoKey, 1400,
+              hcNoContext, Items);
+    Inc(N);
+    end;
+  {$ENDIF}
 
   {Cat}
   {$IFDEF PLUGIN}
@@ -1461,6 +1468,10 @@ function SelectDrive; {-$VIV, JO}
     SelectDrive := Char(N-1000)+':';
   if N = 1200 then
     SelectDrive := cTEMP_;
+  {$IFDEF NetBrowser}
+  if N = 1400 then
+    SelectDrive := cNET_;
+  {$ENDIF}
   if N > 2000 then
     SelectDrive := '+'+Char(N-2000);
   {$IFDEF PLUGIN}
@@ -1667,7 +1678,7 @@ procedure DosReread(Files: PFilesCollection);
     if not PathFoundInArc(p^.Owner^) then
       begin
       with p^ do
-        lFindFirst(MakeNormName(Owner^, FlName[True]), AnyFile, sr);
+        lFindFirst(MakeNormName(Owner^, FlName[True]), AnyFileDir, sr);
       {JO}
       lFindClose(sr);
       if  (DosError <> 0) or Abort then
@@ -1699,7 +1710,7 @@ procedure DosReread(Files: PFilesCollection);
         S[2] := ';';
       {JO: реально не важно, какой символ взять, лишь бы не ':'}
       S := Copy(p^.Owner^, 1, PosChar(':', S)-1);
-      lFindFirst(S, AnyFile, sr);
+      lFindFirst(S, AnyFileDir, sr);
       lFindClose(sr);
       if  (DosError <> 0) or Abort then
         Files^.AtFree(i)

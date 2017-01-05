@@ -575,22 +575,22 @@ EndLFN:
             StrModified := True;
             CE2;
             end;
-          #127:
-            begin
-            while (CurX > 0) and not (Str[CurX] in Separators) do
-              begin
-              Delete(Str, CurX, 1);
-              Dec(CurX)
-              end;
-            while (CurX > 0) and (Str[CurX] in Separators) do
-              begin
-              Delete(Str, CurX, 1);
-              Dec(CurX)
-              end;
-            CE2;
-            end;
           else {case}
             case Event.KeyCode of
+              kbCtrlBack:
+                begin
+                while (CurX > 0) and not (Str[CurX] in Separators) do
+                  begin
+                  Delete(Str, CurX, 1);
+                  Dec(CurX)
+                  end;
+                while (CurX > 0) and (Str[CurX] in Separators) do
+                  begin
+                  Delete(Str, CurX, 1);
+                  Dec(CurX)
+                  end;
+                CE2;
+                end;
               kbAltSlash,
               kbAltShiftSlash:
                 begin

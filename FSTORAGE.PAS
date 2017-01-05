@@ -78,14 +78,7 @@ type
   {    длину String, а только реальную длину имени                         }
   {-DataCompBoy-}
 
-  TSwapLevel = (slNone,
-    {$IFDEF OS_DOS}
-    slXMS, slEMS, slDsk, slCnv,
-    {DataCompBoy: For DPMI no EMS/XMS needed}
-    {$ELSE}
-    slCnv,
-    {$ENDIF}
-    slFail);
+  TSwapLevel = (slNone, slCnv, slFail);
 
   PDirStorage = ^TDirStorage;
   TDirStorage = object(TObject)
@@ -219,19 +212,6 @@ procedure TDirStorage.InitStream;
         Stream := nil
         end;
       end;
-    {$IFDEF OS_DOS}
-    {JO: невозможно представить ситуацию под OS/2 или Win32, когда бы это понадобилось}
-    slDsk:
-      begin
-      {    да и де факто это в VP-версиях не работало, что впрочем ни разу не привело к ошибке}
-      Stream := New(PTempFile, Init('SWD', 4096));
-      if Stream^.Status <> stOK then
-        begin
-        Dispose(Stream, Done);
-        Stream := nil
-        end;
-      end;
-    {$ENDIF}
   end {case};
   end { TDirStorage.InitStream };
 
@@ -452,7 +432,7 @@ procedure TDirStorage.DosReread;
         begin
         Abort := False;
         DosError := 0;
-        lFindFirst(Dr+SF.Name, AnyFile, SR); {JO}
+        lFindFirst(Dr+SF.Name, AnyFileDir, SR); {JO}
         lFindClose(SR);
         TotalLength := TotalLength-SF.Size;
         if  (DosError <> 0) or Abort then

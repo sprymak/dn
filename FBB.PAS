@@ -213,7 +213,7 @@ procedure LongCopy(Fn1: String);
     DosError := 0;
     OverWr := True;
     Abort := False;
-    lFindFirst(D+n+'.d??', AnyFile, SR); {JO}
+    lFindFirst(D+n+'.d??', AnyFileDir, SR); {JO}
     while (DosError = 0)
          and not (SR.FullName[Length(SR.FullName)] in ['0'..'9'])
       and not (SR.FullName[Length(SR.FullName)-1] in ['0'..'9'])
@@ -325,7 +325,7 @@ Rep:
           BlockWrite(F2.F, Bf[i].Buf^[Bf[i].NW+1], Word(wr), NumW);
         if DiskVerify then
           begin
-          {$IFDEF OS_DOS}
+          {$IFDEF DPMI32}
           asm
              mov ah,0dh
              int 21h
@@ -601,26 +601,6 @@ Rep:
       begin
       CopyDir := S;
       Mask := x_x
-      end
-    else if (Pos('*', S) = 0) and (Pos('?', S) = 0) then
-      begin
-      DosError := 0;
-      lFindFirst(S+'\*.*', $3E {$IFNDEF OS2} xor VolumeID {$ENDIF}, SR);
-      {JO}
-      lFindClose(SR);
-      if Abort or CopyCancelled then
-        Exit;
-      if  (DosError = 0)
-      then
-        begin
-        CopyDir := S+'\';
-        Mask := x_x
-        end
-      else
-        begin
-        lFSplit(S, CopyDir, n, X);
-        Mask := n+X
-        end
       end
     else
       begin

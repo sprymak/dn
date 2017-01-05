@@ -234,13 +234,8 @@ constructor TZIPArchive.Init;
   q := GetVal(@Sign[1], @FreeStr[1], PPutDirs, '0');
   {$ENDIF}
   PutDirs := q <> '0';
-  {$IFDEF OS_DOS}
-  q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
-  Swap := q <> '0';
-  {$ELSE}
   q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '0');
   ShortCmdLine := q <> '0';
-  {$ENDIF}
   {$IFNDEF OS2}
   q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '1');
   UseLFN := q <> '0';

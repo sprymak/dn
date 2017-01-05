@@ -305,7 +305,7 @@ procedure StoreViewInfo(P: Pointer);
       begin
       if VFileName = '' then
         goto Q;
-      {$IFDEF OS_DOS}
+      {$IFDEF DPMI32}
       FName := NewStr(' '+lfGetLongFileName(VFileName)); {DataCompBoy}
       {$ELSE}
       FName := NewStr(' '+VFileName);
@@ -363,7 +363,7 @@ fBufPos: AWord оно может не помещаться. Но, с другой стороны,
   else if TypeOf((PObject(P)^)) = TypeOf(TCalcWindow) then
     with SSView^, R^ do
       begin
-      {$IFDEF OS_DOS}
+      {$IFDEF DPMI32}
       FName := NewStr(' '+lfGetLongFileName(CnvString(CalcView^.SName)));
       {$ELSE}
       FName := NewStr(' '+CnvString(CalcView^.SName));
@@ -422,7 +422,7 @@ procedure StoreExtViewer(const FileName: String);
 
   with R^ do
     begin
-    {$IFDEF OS_DOS}
+    {$IFDEF DPMI32}
     FName := NewStr(' '+lfGetLongFileName(FileName)); {DataCompBoy}
     {$ELSE}
     FName := NewStr(' '+FileName);
@@ -457,7 +457,7 @@ procedure StoreEditInfo(P: Pointer);
   New(R);
   with PFileEditor(E^.Intern)^, R^ do
     begin
-    {$IFDEF OS_DOS}
+    {$IFDEF DPMI32}
     FName := NewStr(' '+lfGetLongFileName(EditName)); {DataCompBoy}
     {$ELSE}
     FName := NewStr(' '+EditName);
@@ -846,7 +846,7 @@ procedure AddToDirectoryHistory(S: String; DriveType: Integer);
   then
     Exit;
   {Cat: добавил проверку на сетевые пути}
-  {$IFDEF OS_DOS}
+  {$IFDEF DPMI32}
   S := lfGetLongFileName(S);
   {$ENDIF}
   if DirHistory = nil then
@@ -1180,8 +1180,8 @@ procedure ClearHistories;
       Dec(A, J-I);
       end;
     end;
-  if HistoryUsed < 4 then
-    HistoryUsed := 0;
+  if (HistoryUsed - Word(HistoryBlock)) < 4 then
+    HistoryUsed := Word(HistoryBlock);
   I := 0;
   ClearStrCollection(CmdStrings);
   ClearStrCollection(DirHistory);

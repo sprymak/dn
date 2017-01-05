@@ -69,13 +69,18 @@ uses
   ;
 
 type
+{$IFDEF DPMI32}
+  lAPIType = (lDOS, lWIN95);
+  CompRec = record
+             Lo, Hi: LongInt
+            end;
+{$ENDIF}
 
   TSize = Comp; {64 bit integer type for file sizes}
 
   {Extended search structure to be used instead of SearchRec}
   lSearchRec = record
     SR: TOSSearchRecNew; {Basic field set}
-    {FileHandle: Word;} {Search handle, undefined in lDOS mode}
     FullSize: TSize; {True file size}
     (*  LoCreationTime: Longint; {Time created (low-order byte)}
     HiCreationTime: Longint; {Time created (high-order byte)}
@@ -88,6 +93,10 @@ type
     {$IFDEF OS2}
     PrevName: String;
     {$ENDIF}
+    {$IFDEF DPMI32}
+    FileHandle: Word; {Search handle, undefined in lDOS mode}
+    FindFirstMode : lAPIType;
+    {$ENDIF}
     { Other fields will be added later }
     end;
 
@@ -97,52 +106,67 @@ type
   lFile = record
     {Extended file record to be used instead of File}
     F: file;
+    {$IFDEF DPMI32}
+    FullName       : TNameZ;
+    AssignFileMode : lAPIType;
+    {$ENDIF}
     { Other fields will be added later }
     end;
 
   lText = record
     {Extended text file record to be used instead of Text}
     T: Text;
+    {$IFDEF DPMI32}
+    FullName       : TNameZ;
+    AssignTextMode : lAPIType;
+    {$ENDIF}
     { Other fields will be added later }
     end;
+
+{$IFDEF DPMI32}
+var
+  lAPI       : lApiType = lWin95;
+{$ENDIF}
 
   {   Basic parameters   }
 const
 
-  (*
+  {$IFDEF DPMI32}
   ltMod = 0;    {Store time modified}
   ltAcc = 1;    {Store time accessed}
   ltCre = 2;    {Store time created}
+
   LFNTimes: Byte = ltMod; { What time info to store in lSearchRec.SR.Time? }
-*)
+
+  faOpen = 1;
+  faTruncate = 2;
+  faCreate = $10;
+  faRewrite = faTruncate + faCreate;
+
+  faGetAttr = 0;
+  faSetAttr = 1;
+  {$ENDIF}
   MaxPathLen: Byte = 255; { Maximum name length for the present moment }
 
 const
-  IllegalChars: String[15] = '<>|:';
+  IllegalChars = '<>|:';
   { Characters invalid for short names }
-  IllegalCharSet: set of Char = ['<', '>', '|', ':'];
+  IllegalCharSet = ['<', '>', '|', ':'];
   { Characters invalid for short names }
-
-const
-  IllegalCharsDos: String[15] = ';,=+<>|"[]';
-  { Characters invalid for DOS names }
-  IllegalCharSetDos: set of Char = [';', ',', '=', '+', '<', '>', '|',
-   '"', '[', ']']; { Characters invalid for DOS names }
 
   { File searching routines. lFindClose must be called /in all cases/ }
 procedure lFindFirst(const Path: String; Attr: Word; var R: lSearchRec);
 procedure lFindNext(var R: lSearchRec);
 procedure lFindClose(var R: lSearchRec);
 
-{$IFDEF WIN32}
-{ Name retrieval functions }
+{$IFDEF DualName}
 function lfGetShortFileName(const Name: String): String;
 {$ENDIF}
 {$IFDEF DPMI32}
-function lfGetShortFileName(const Name: String): String;
-{$ENDIF}
-{$IFDEF OS_DOS}
+function SysFileCreate(FileName: PChar; Mode,Attr: Longint; var Handle: Longint): Longint;
+function SysFileOpen(FileName: PChar; Mode: Longint; var Handle: Longint): Longint;
 function lfGetLongFileName(const Name: String): String;
+procedure lWIN95FindFirst(const Path: String; Attr: Word; var R: lSearchRec);
 {$ENDIF}
 
 { Name correction routine }
@@ -177,15 +201,19 @@ procedure lAppendText(var T: lText);
   Append(T.T);
   end;
 procedure lEraseFile(var F: lFile);
+{$IFNDEF DPMI32}
   inline;
   begin
   Erase(F.F);
   end;
+{$ENDIF}
 procedure lEraseText(var T: lText);
+{$IFNDEF DPMI32}
   inline;
   begin
   Erase(T.T);
   end;
+{$ENDIF}
 procedure lRenameFile(var F: lFile; const NewName: String);
 procedure lRenameText(var T: lText; const NewName: String);
 procedure lChangeFileName(const Name, NewName: String);
@@ -208,7 +236,7 @@ procedure lGetDir(D: Byte; var Path: String);
 function lFExpand(const Path: String): String;
 procedure lFSplit(const Path: String; var Dir, Name, ext: String);
 
-{$IFDEF WIN32}
+{$IFDEF DualName}
 const
   NoShortName: String[12] = #22#22#22#22#22#22#22#22'.'#22#22#22;
   {JO, AK155: зачем нужны эти #22:
@@ -235,6 +263,7 @@ uses
   {$IFDEF WIN32}Windows, {$ENDIF}
   Strings, Commands {Cat}
   , Advance
+  {$IFDEF DPMI32} ,Startup ,Dpmi32 ,Dpmi32df {$ENDIF}
   ;
 
 function StrPas_(S: array of Char): String;
@@ -336,13 +365,612 @@ procedure CorrectSearchRec(var R: lSearchRec);
   R.FullSize := R.SR.Size;
   end;
 
+{$IFDEF DPMI32}{lfn functions for dpmi32}
+type
+  lFindDataRec = record
+    LoAttr: SmallWord;
+    HiAttr: SmallWord;
+    LoCreationTime: Longint;
+    HiCreationTime: Longint;
+    LoLastAccessTime: Longint;
+    HiLastAccessTime: Longint;
+    LoLastModificationTime: Longint;
+    HiLastModificationTime: Longint;
+    HiSize: Longint;
+    LoSize: Longint;
+    Reserved: Array[0..7] of Byte;
+    FullName: TNameZ;
+    ShortName: Array[0..13] of Char;
+  end;
+
+Const
+      DriveBuffer: array[1..4] of char = ('?',':','\',#0);
+
+procedure CheckColonAndSlash(const Name: String; var S: String);
+var
+  ColonPos: Integer;
+begin
+  ColonPos := Pos(':', S);
+  if (ColonPos > 2) and (Name[2] = ':') then
+  begin
+    Delete(S, 1, ColonPos - 1);
+    S := Name[1] + S;
+  end;
+
+  if Name[Length(Name)] <> '\' then
+    while S[Length(S)] = '\' do Dec(S[0])
+  else if (Name[Length(Name)] = '\') and
+    (S[Length(S)] <> '\') and (Length(S) < 255) then
+  begin
+    Inc(S[0]);
+    S[Length(S)] := '\';
+  end;
+end;
+
+procedure FindDataToSearchRec(var FindData: lFindDataRec; var R: lSearchRec);
+begin
+  R.SR.Attr := FindData.LoAttr;
+  if LFNTimes = ltCre then R.SR.Time := FindData.LoCreationTime
+   else if LFNTimes = ltAcc then R.SR.Time := FindData.LoLastAccessTime
+    else R.SR.Time := FindData.LoLastModificationTime;
+  R.SR.Name := StrPas(FindData.ShortName);
+  R.FullName := StrPas(FindData.FullName);
+  if R.SR.Name = '' then R.SR.Name := R.FullName;
+  if R.FullName = '' then R.FullName := R.SR.Name;
+  R.FullSize:= FindData.LoSize;
+  if FindData.HiSize=0 then R.SR.Size := FindData.LoSize
+  else
+   begin
+    R.SR.Size := MaxLongInt;
+    CompRec(R.FullSize).Hi:=FindData.HiSize;
+   end;
+end;
+
+(*
+ INT 21h  AX=714E
+ INT 21 - Windows95 - LONG FILENAME - FIND FIRST MATCHING FILE
+         AX = 714Eh
+         CL = allowable-attributes mask (bits 0 and 5 ignored)
+         CH = required-attributes mask
+         SI = date/time format
+         DS:DX -> ASCIZ filespec (both "*" and "*.*" match any filename)
+         ES:DI -> FindData record
+ Return: CF clear if successful
+             AX = filefind handle (needed to continue search)
+             CX = Unicode conversion flags
+         CF set on error
+             AX = error code
+                 7100h if function not supported
+ Notes:  this function is only available when IFSMgr is running,
+         not under bare MS-DOS 7
+         the application should close the filefind handle
+         with AX=71A1h as soon as it has completed its search
+*)
+
+procedure lWIN95FindFirst(const Path: String; Attr: Word; var R: lSearchRec);
+var
+  FindData: ^lFindDataRec;
+  regs: real_mode_call_structure_typ;
+begin
+  FindData:=Ptr(segdossyslow32);
+  NameToNameZ(Path, FindData^.FullName);
+  init_register(regs);
+  with regs do
+   begin
+    ax_:= $714E;
+    cx_:= Attr;
+    si_:= 1;
+    ds_:= segdossyslow16;
+    dx_:= $2c;
+    es_:= segdossyslow16;
+    di_:= 0;
+    flags_:=fCarry;
+    intr_realmode(regs,$21);
+    if flags_ and fCarry <> 0 then
+     begin
+      R.FileHandle := $FFFF;
+      DosError := ax_;
+    end
+    else
+    begin
+      R.FileHandle := ax_;
+      FindDataToSearchRec(FindData^, R);
+      DosError := 0;
+    end;
+  end;
+end;
+
+(*
+ INT 21h  AX=714F
+ INT 21 - Windows95 - LONG FILENAME - FIND NEXT MATCHING FILE
+         AX = 714Fh
+         BX = filefind handle (from AX=714Eh)
+         SI = date/time format
+         ES:DI -> buffer for FindData record
+ Return: CF clear if successful
+             CX = Unicode conversion flags
+         CF set on error
+             AX = error code
+                 7100h if function not supported
+ Note:   this function is only available when IFSMgr is running,
+         not under bare MS-DOS 7
+
+*)
+
+procedure lWIN95FindNext(var R: lSearchRec);
+var
+  FindData: ^lFindDataRec;
+  regs: real_mode_call_structure_typ;
+begin
+  FindData:=Ptr(segdossyslow32);
+  init_register(regs);
+  with regs do
+   begin
+    ax_:= $714F;
+    bx_:= R.FileHandle;
+    si_:= 1;
+    es_:= segdossyslow16;
+    di_:= 0;
+    flags_:=fCarry;
+    intr_realmode(regs,$21);
+    if flags_ and fCarry <> 0 then DosError := ax_
+    else
+    begin
+      FindDataToSearchRec(FindData^, R);
+      DosError := 0;
+    end;
+  end;
+end;
+
+(*
+ INT 21h  AX=71A1
+ INT 21 - Windows95 - LONG FILENAME - "FindClose" -
+          TERMINATE DIRECTORY SEARCH
+         AX = 71A1h
+         BX = filefind handle (from AX=714Eh)
+ Return: CF clear if successful
+         CF set on error
+            AX = error code
+                 7100h if function not supported
+ Notes:  this function must be called after starting a search
+         with AX=714Eh, to indicate that the search handle
+         returned by that function will no longer be used
+         this function is only available when IFSMgr is running,
+         not under bare MS-DOS 7
+*)
+
+procedure lWIN95FindClose(var R: lSearchRec);
+var
+  regs: real_mode_call_structure_typ;
+begin
+  init_register(regs);
+  if R.FileHandle <> $FFFF then with regs do
+  begin
+    ax_:= $71A1;
+    bx_:= R.FileHandle;
+    intr_realmode(regs,$21);
+  end;
+end;
+
+procedure lWIN95GetFileNameFunc(const Name: String; var S: String; AFunction: Byte);
+var
+  NameZ, GetNameZ: TNameZ;
+  regs: real_mode_call_structure_typ;
+begin
+  NameToNameZ(Name, NameZ);
+  init_register(regs);
+  with regs do
+  begin
+    ax_ := $7160;
+    cl_ := AFunction;
+    ch_ := $80;
+    ds_ := segdossyslow16;
+    si_ := 0;
+    es_ := segdossyslow16;
+    di_ := SizeOf(TNameZ);
+    Move(NameZ,Mem[segdossyslow32],SizeOf(TNameZ));
+    flags_:=fCarry;
+    intr_realmode(regs,$21);
+    if flags_ and fCarry <> 0 then S := Name
+    else
+    begin
+      Move(Mem[segdossyslow32+SizeOf(TNameZ)],GetNameZ,SizeOf(TNameZ));
+      S := StrPas(GetNameZ);
+      CheckColonAndSlash(Name, S);
+    end;
+  end;
+end;
+
+procedure WIN95TrueName(const Name: String; var S: String);
+var
+  NameZ, GetNameZ: TNameZ;
+  regs: real_mode_call_structure_typ;
+begin
+  NameToNameZ(Name, NameZ);
+  init_register(regs);
+  with Regs do
+  begin
+    ax_ := $7160;
+    cl_ := 0;
+    ch_ := $00;
+    ds_ := segdossyslow16;
+    si_ := 0;
+    es_ := segdossyslow16;
+    di_ := SizeOf(TNameZ);
+    Move(NameZ,Mem[segdossyslow32],SizeOf(TNameZ));
+    flags_:=fCarry;
+    intr_realmode(regs,$21);
+    if flags_ and fCarry <> 0 then S := Name
+    else
+    begin
+      Move(Mem[segdossyslow32+SizeOf(TNameZ)],GetNameZ,SizeOf(TNameZ));
+      S := StrPas(GetNameZ);
+      CheckColonAndSlash(Name, S);
+    end;
+  end;
+end;
+
+function SysFileCreate(FileName: PChar; Mode,Attr: Longint; var Handle: Longint): Longint;
+var
+  regs     : real_mode_call_structure_typ;
+  FullName : TNameZ;
+begin
+ FillChar(FullName, SizeOf(FullName), #0);
+ NameToNameZ(StrPas(FileName), FullName);
+ init_register(regs);
+ with regs do
+  begin
+   if lAPI=lDOS then
+    begin
+     ah_ := $3C;
+     al_ := Mode;
+     bx_ := 0;
+     cx_ := Attr;
+     ds_ := segdossyslow16;
+    end else
+    begin
+     ax_ := $716C;
+     bx_ := Mode;
+     cx_ := Attr;
+     dx_ := $12;
+     ds_ := segdossyslow16;
+     si_ := 0;
+     di_ := 0;
+    end;
+   Move(FullName, Mem[segdossyslow32], SizeOf(FullName));
+   flags_:=fCarry;
+   intr_realmode(regs, $21);
+   if flags_ and fCarry <> 0
+     then begin
+           Handle := 0;
+           SysFileCreate := ax_;
+          end
+     else begin
+           SysFileCreate := 0;
+           Handle := ax_;
+          end;
+  end;
+end;
+
+function SysFileOpen(FileName: PChar; Mode: Longint; var Handle: Longint): Longint;
+var
+  regs     : real_mode_call_structure_typ;
+  FullName : TNameZ;
+begin
+ FillChar(FullName, SizeOf(FullName), #0);
+ NameToNameZ(StrPas(FileName), FullName);
+ init_register(regs);
+ with regs do
+  begin
+   If lapi=ldos then
+    begin
+     ah_ := $3D;
+     al_ := Mode;
+     bx_ := 0;
+     cx_ := 0;
+     ds_ := segdossyslow16;
+    end else
+    begin
+     ax_ := $716C;
+     bx_ := Mode;
+     cx_ := 0;
+     dx_ := 1;
+     ds_ := segdossyslow16;
+     si_ := 0;
+     di_ := 0;
+    end;
+   Move(FullName, Mem[segdossyslow32], SizeOf(FullName));
+   flags_ := fCarry;
+   intr_realmode(regs, $21);
+   if flags_ and fCarry <> 0
+     then begin
+           Handle := 0;
+           SysFileOpen := ax_;
+          end
+     else begin
+           SysFileOpen := 0;
+           Handle := ax_;
+          end;
+  end;
+end;
+
+procedure lWIN95ChDir(const Path: string);
+var
+  regs: real_mode_call_structure_typ;
+  C: Char;
+  NameZ: TNameZ;
+begin
+  NameToNameZ(Path, NameZ);
+  Move(NameZ,Mem[segdossyslow32],SizeOf(TNameZ));
+  init_register(regs);
+  with regs do
+  begin
+    C := Upcase(NameZ[0]);
+    if (C in ['A'..'Z']) and (NameZ[1] = ':') then
+    begin
+      ah_ := $0E;
+      dl_ := Byte(C) - $41;
+      intr_realmode(regs,$21);
+    end;
+
+    ax_ := $713B;
+    ds_ := segdossyslow16;
+    dx_ := 0;
+    flags_:=fCarry;
+    intr_realmode(regs, $21);
+
+    if (flags_ and fCarry <> 0)
+    then InOutRes := ax_
+    else InOutRes := 0;
+  end;
+end;
+
+procedure lWIN95GetDir(D: Byte; var Path: string);
+var
+  regs: real_mode_call_structure_typ;
+  NameZ: TNameZ;
+begin
+  init_register(regs);
+  with regs do
+  begin
+    ax_ := $7147;
+    dl_ := D;
+    ds_ := segdossyslow16;
+    si_ := 0;
+    flags_:=fCarry;
+    intr_realmode(regs,$21);
+    if flags_ and fCarry <> 0 then NameZ[0] := #0
+    else
+     Move(Mem[segdossyslow32],NameZ,SizeOf(TNameZ));
+    Path := Char(D + $40) + ':\' + StrPas(NameZ);
+  end;
+end;
+
+procedure lWIN95OpenFile(var F: lFile; RecSize: Word; Action: Byte; Attr:Word);
+var
+  regs: real_mode_call_structure_typ;
+begin
+  init_register(regs);
+  if FileRec(F.F).Mode <> fmClosed then Close(F.F);
+  InOutRes := 0;
+
+  if F.FullName[0] = #0 then
+  begin
+    FileRec(F.F).Mode := fmInOut;
+    FileRec(F.F).RecSize := RecSize;
+  end
+  else with regs do
+  begin
+    ax_ := $716C;
+    bx_ := FileMode;
+    cx_ := Attr;
+    dx_ := Action;
+    ds_ := segdossyslow16;
+    si_ := 0;
+    di_ := 0;
+    Move(F.FullName,Mem[segdossyslow32],SizeOf(F.FullName));
+    flags_:=fCarry;
+    intr_realmode(regs,$21);
+    if flags_ and fCarry <> 0 then InOutRes := ax_
+    else
+    begin
+      FileRec(F.F).Mode := fmInOut;
+      FileRec(F.F).Handle := ax_;
+      FileRec(F.F).RecSize := RecSize;
+    end;
+  end;
+end;
+
+procedure lWIN95EraseFile(var F: lFile);
+var
+  regs: real_mode_call_structure_typ;
+begin
+  Move(F.FullName,Mem[segdossyslow32],SizeOf(F.FullName));
+  init_register(regs);
+  with regs do
+  begin
+    ax_ := $7141;
+    ds_ := segdossyslow16;
+    dx_ := 0;
+    si_ := 0;
+    flags_:=fCarry;
+    intr_realmode(regs, $21);
+    if flags_ and fCarry <> 0
+    then InOutRes := ax_
+    else InOutRes := 0;
+  end;
+end;
+
+procedure lWIN95EraseText(var T: lText);
+var
+  regs: real_mode_call_structure_typ;
+begin
+  Move(T.FullName,Mem[segdossyslow32],SizeOf(T.FullName));
+  init_register(regs);
+  with regs do
+  begin
+    ax_ := $7141;
+    ds_ := segdossyslow16;
+    dx_ := 0;
+    si_ := 0;
+    flags_:=fCarry;
+    intr_realmode(regs, $21);
+    if flags_ and fCarry <> 0
+    then InOutRes := ax_
+    else InOutRes := 0;
+  end;
+end;
+
+procedure lWIN95RenameFile(var F: lFile; const NewName: string);
+var
+  NameZ: TNameZ;
+  regs: real_mode_call_structure_typ;
+begin
+  NameToNameZ(NewName, NameZ);
+  Move(F.FullName,Mem[segdossyslow32],SizeOf(F.FullName));
+  Move(NameZ,Mem[segdossyslow32+SizeOf(F.FullName)],SizeOf(NameZ));
+  init_register(regs);
+  with Regs do
+  begin
+    ax_ := $7156;
+    ds_ := segdossyslow16;
+    dx_ := 0;
+    es_ := segdossyslow16;
+    di_ := SizeOf(NameZ);
+    flags_:=fCarry;
+    intr_realmode(regs,$21);
+    if flags_ and fCarry <> 0
+    then InOutRes := ax_
+    else InOutRes := 0;
+  end;
+end;
+
+procedure lWIN95RenameText(var T: lText; const NewName: shortstring);
+var
+  NameZ: TNameZ;
+  regs: real_mode_call_structure_typ;
+begin
+  NameToNameZ(NewName, NameZ);
+  Move(T.FullName,Mem[segdossyslow32],SizeOf(T.FullName));
+  Move(NameZ,Mem[segdossyslow32+SizeOf(T.FullName)],SizeOf(NameZ));
+  init_register(regs);
+  with Regs do
+  begin
+    ax_ := $7156;
+    ds_ := segdossyslow16;
+    dx_ := 0;
+    es_ := segdossyslow16;
+    di_ := SizeOf(NameZ);
+    flags_:=fCarry;
+    intr_realmode(regs, $21);
+    if flags_ and fCarry <> 0
+    then InOutRes := ax_
+    else InOutRes := 0;
+  end;
+end;
+
+procedure lWIN95FileAttrFunc(var F: lFile; var Attr: Word; Action: Byte);
+var
+  regs: real_mode_call_structure_typ;
+begin
+  Move(F.FullName,Mem[segdossyslow32],SizeOf(F.FullName));
+  init_register(regs);
+  with regs do
+  begin
+    ax_ := $7143;
+    bl_ := Action;
+    if Action = faSetAttr then cx_ := Attr;
+    ds_ := segdossyslow16;
+    dx_ := 0;
+    flags_:=fCarry;
+    intr_realmode(regs,$21);
+    if flags_ and fCarry <> 0
+    then DosError := ax_
+    else
+    begin
+      if Action = faGetAttr then Attr := cx_;
+      DosError := 0;
+    end;
+  end;
+end;
+
+procedure lWIN95TextAttrFunc(var T: lText; var Attr: Word; Action: Byte);
+var
+  regs: real_mode_call_structure_typ;
+begin
+  Move(T.FullName,Mem[segdossyslow32],SizeOf(T.FullName));
+  init_register(regs);
+  with Regs do
+  begin
+    ax_ := $7143;
+    bl_ := Action;
+    if Action = faSetAttr then cx_ := Attr;
+    ds_ := segdossyslow16;
+    dx_ := 0;
+    flags_:=fCarry;
+    intr_realmode(regs,$21);
+    if flags_ and fCarry <> 0
+    then DosError := ax_
+    else
+    begin
+      if Action = faGetAttr then Attr := cx_;
+      DosError := 0;
+    end;
+  end;
+end;
+
+procedure lWIN95DirFunc(const Path: shortstring; AFunction: Word);
+var
+  regs: real_mode_call_structure_typ;
+  NameZ: TNameZ;
+begin
+  NameToNameZ(Path, NameZ);
+  Move(NameZ,Mem[segdossyslow32],SizeOf(TNameZ));
+  init_register(regs);
+  with regs do
+  begin
+    ax_ := AFunction;
+    ds_ := segdossyslow16;
+    dx_ := 0;
+    flags_:=fCarry;
+    intr_realmode(regs,$21);
+    if flags_ and fCarry <> 0
+    then InOutRes := ax_
+    else InOutRes := 0;
+  end;
+end;
+
+procedure lEraseFile(var F: lFile);
+  begin
+  if F.AssignFileMode = lWIN95 then lWIN95EraseFile(F) else
+  Erase(F.F);
+  end;
+
+procedure lEraseText(var T: lText);
+  begin
+  if T.AssignTextMode = lWIN95 then lWIN95EraseText(T) else
+  Erase(T.T);
+  end;
+
+{$ENDIF}{*** lfn functions for dpmi32 ***}
+
 procedure lFindFirst(const Path: String; Attr: Word; var R: lSearchRec);
   var
     PathBuf: array[0..SizeOf(PathStr)-1] of Char;
   begin
   R.FullName := '';
+{$IFDEF DPMI32}
+  if lAPI = lDOS then begin
+  R.FindFirstMode := lDOS;
+{$ENDIF}
   SetDosError(SysFindFirstNew(StrPCopy(PathBuf, Path), Attr, R.SR, False));
   CorrectSearchRec(R);
+{$IFDEF DPMI32}
+  end else begin
+            R.FindFirstMode := lWIN95;
+            lWIN95FindFirst(Path, Attr, R);
+           end;
+{$ENDIF}
   {$IFDEF OS2}
   R.PrevName := R.FullName;
   {$ENDIF}
@@ -351,8 +979,14 @@ procedure lFindFirst(const Path: String; Attr: Word; var R: lSearchRec);
 procedure lFindNext(var R: lSearchRec);
   begin
   R.FullName := '';
+{$IFDEF DPMI32}
+  if R.FindFirstMode = lDOS then begin
+{$ENDIF}
   SetDosError(SysFindNextNew(R.SR, False));
   CorrectSearchRec(R);
+{$IFDEF DPMI32}
+  end else lWIN95FindNext(R);
+{$ENDIF}
   {JO: ошибка 49 в оси зарезервирована; мы её будем использовать для}
   {    отлова дупов на HPFS}
   {$IFDEF OS2}
@@ -372,6 +1006,9 @@ procedure lFindClose(var R: lSearchRec);
     DEr: LongInt;
   begin
   DEr := DosError; {JO}
+  {$IFDEF DPMI32}
+  if R.FindFirstMode = lWin95 then lWIN95FindClose(R) else
+  {$ENDIF}
   SysFindCloseNew(R.SR);
   DosError := DEr; {JO}
   end;
@@ -408,18 +1045,24 @@ function lfGetShortFileName(const Name: String): String;
 {$IFDEF DPMI32}
 function lfGetShortFileName(const Name: String): String;
   begin
-  lfGetShortFileName := Name; {Cat:todo DPMI32}
+  if lApi = lDOS
+  then Result := Name
+  else lWIN95GetFileNameFunc(Name, Result, 1);
   end;
-{$ENDIF}
-{$IFDEF OS_DOS}
+
 function lfGetLongFileName(const Name: String): String;
   begin
-  lfGetLongFileName := Name;
+  if lApi = lDOS
+  then Result := Name
+  else lWIN95GetFileNameFunc(Name, Result, 2);
   end;
 {$ENDIF}
 
 procedure lTrueName(const Name: String; var S: String);
   begin
+  {$IFDEF DPMI32}
+  if lApi = lWin95 then WIN95TrueName(Name, S) else
+  {$ENDIF}
   S := FExpand(Name);
   end;
 
@@ -540,6 +1183,9 @@ procedure lReWriteFile(var F: lFile; RecSize: Word);
   begin
   OldMode := FileMode;
   FileMode := FileMode and $FC or 2;
+{$IFDEF DPMI32}
+  if F.AssignFileMode = lWIN95 then lWIN95OpenFile(F, RecSize, faRewrite, 0) else
+{$ENDIF}
   Rewrite(F.F, RecSize);
   FileMode := OldMode;
   end;
@@ -569,7 +1215,21 @@ procedure lRewriteText(var F: lText);
 
 procedure lAssignFile(var F: lFile; const Name: String);
   begin
+{$IFDEF DPMI32}
+  if lAPI = lDOS then
+  begin
+    F.AssignFileMode := lDOS;
+    Assign(F.F, Name);
+  end else
+  begin
+    F.AssignFileMode := lWIN95;
+    FileRec(F.F).Handle := 0;
+    FileRec(F.F).Mode := fmClosed;
+    NameToNameZ(Name, F.FullName);
+  end;
+{$ELSE}
   Assign(F.F, Name);
+{$ENDIF}
   end;
 procedure lAssignText(var T: lText; const Name: String);
   begin
@@ -577,41 +1237,66 @@ procedure lAssignText(var T: lText; const Name: String);
   end;
 procedure lResetFile(var F: lFile; RecSize: Word);
   begin
+{$IFDEF DPMI32}
+  if F.AssignFileMode = lWIN95 then lWIN95OpenFile(F, RecSize, faOpen, 0) else
+{$ENDIF}
   Reset(F.F, RecSize);
   end;
 procedure lRenameFile(var F: lFile; const NewName: String);
   begin
+{$IFDEF DPMI32}
+  if F.AssignFileMode = lWIN95 then lWIN95RenameFile(F, NewName) else
+{$ENDIF}
   Rename(F.F, NewName);
   end;
 procedure lRenameText(var T: lText; const NewName: String);
   begin
+{$IFDEF DPMI32}
+  if T.AssignTextMode = lWIN95 then lWIN95RenameText(T, NewName) else
+{$ENDIF}
   Rename(T.T, NewName);
   end;
 procedure lChangeFileName(const Name, NewName: String);
   var
-    F: file;
+    F: lFile;
   begin
-  Assign(F, Name);
-  Rename(F, NewName);
+  lAssignFile(F, Name);
+  lRenameFile(F, NewName);
   end;
 procedure lGetFAttr(var F: lFile; var Attr: Word);
   begin
+{$IFDEF DPMI32}
+  if F.AssignFileMode = lWIN95 then lWIN95FileAttrFunc(F, Attr, faGetAttr) else
+{$ENDIF}
   Dos.GetFAttr(F.F, Attr);
   end;
 procedure lSetFAttr(var F: lFile; Attr: Word);
   begin
+{$IFDEF DPMI32}
+  if F.AssignFileMode = lWIN95 then lWIN95FileAttrFunc(F, Attr, faSetAttr) else
+{$ENDIF}
   Dos.SetFAttr(F.F, Attr);
   end;
 procedure lGetTAttr(var T: lText; var Attr: Word);
   begin
+{$IFDEF DPMI32}
+  if T.AssignTextMode = lWIN95 then lWIN95TextAttrFunc(T, Attr, faGetAttr) else
+{$ENDIF}
   Dos.GetFAttr(T.T, Attr);
   end;
 procedure lSetTAttr(var T: lText; Attr: Word);
   begin
+{$IFDEF DPMI32}
+  if T.AssignTextMode = lWIN95 then lWIN95TextAttrFunc(T, Attr, faSetAttr) else
+{$ENDIF}
   Dos.SetFAttr(T.T, Attr);
   end;
 procedure lMkDir(const Path: String);
   begin
+{$IFDEF DPMI32}
+  if lAPI = lWin95
+  then lWIN95DirFunc(Path, $7139) else
+{$ENDIF}
   MkDir(Path);
   end;
 
@@ -620,18 +1305,22 @@ procedure lMkDir(const Path: String);
 случай надо ReadOnly снять. }
 procedure lRmDir(const Path: String);
   var
-    f: file;
+    f: lFile;
     Attr: Word;
   begin
-  Assign(f, Path);
-  Dos.GetFAttr(f, Attr);
+  lAssignFile(f, Path);
+  lGetFAttr(f, Attr);
   if Attr and ReadOnly <> 0 then
-    Dos.SetFAttr(f, Attr and not ReadOnly);
+    lSetFAttr(f, Attr and not ReadOnly);
   if DosError <> 0 then
     begin
     InOutRes := DosError;
     Exit;
     end;
+{$IFDEF DPMI32}
+  if lAPI = lWin95
+  then lWIN95DirFunc(Path, $713A) else
+{$ENDIF}
   RmDir(Path);
   end;
 {/AK155}
@@ -663,6 +1352,9 @@ function lFExpand(const Path: String): String;
 
 procedure lChDir(const Path: String);
   begin
+  {$IFDEF DPMI32}
+  if lApi = lWin95 then lWIN95ChDir(Path) else
+  {$ENDIF}
   ChDir(Path);
   {$IFDEF WIN32}
   if  (InOutRes = 0) and (Length(Path) > 2) and (Path[2] = ':') then
@@ -685,6 +1377,11 @@ procedure lGetDir(D: Byte; var Path: String);
   else
     Path := CurrentPaths[D];
   {$ELSE}
+  {$IFDEF DPMI32}
+  if (D <> 0) and (lApi = lWin95)
+  then lWIN95GetDir(D, Path)
+  else
+  {$ENDIF}
   GetDir(D, Path);
   {$ENDIF}
   end;

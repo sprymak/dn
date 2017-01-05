@@ -267,9 +267,15 @@ function GetFileAges(S: ShortString;
         FileTimeToLocalFileTime(ftCreationTime, LocalFileTime_Cr) and
         FileTimeToDosDateTime(LocalFileTime_Cr,
            TDateTimeRec(Age_Cr).FDate, TDateTimeRec(Age_Cr).FTime) and
-        FileTimeToLocalFileTime(ftLastAccessTime, LocalFileTime_LAc) and
-        FileTimeToDosDateTime(LocalFileTime_LAc,
-           TDateTimeRec(Age_LAc).FDate, TDateTimeRec(Age_LAc).FTime));
+        FileTimeToLocalFileTime(ftLastAccessTime, LocalFileTime_LAc));
+
+  if not FileTimeToDosDateTime(LocalFileTime_LAc,
+           TDateTimeRec(Age_LAc).FDate, TDateTimeRec(Age_LAc).FTime)
+  then
+    begin // файловая система не поддержвает время последнего доступа
+    TDateTimeRec(Age_LAc).FDate := 0;
+    TDateTimeRec(Age_LAc).FTime := 0;
+    end;
   end { GetFileAges };
 
 function SetFileAges(S: ShortString; Age_LWr, Age_Cr, Age_LAc: LongInt)

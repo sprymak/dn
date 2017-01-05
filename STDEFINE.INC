@@ -77,7 +77,6 @@
  {$ENDIF}
 
  {$DEFINE BIT_16}
- {$DEFINE OS_DOS}
 
  {.$DEFINE StreamDebug}
  {.$DEFINE SORTDEBUG}
@@ -96,8 +95,9 @@
                             {а перекодируются только при использовании}
  {$ENDIF}
  {$IFDEF DPMI32}
-  {$DEFINE NOASM} {Cat:todo DPMI32}
+  {.$DEFINE NOASM} {Cat:todo DPMI32}
   {$DEFINE USELFN}
+  {$DEFINE DualName}
  {$ENDIF}
  {$IFDEF USELFN}
   {$DEFINE STRINGLFN} {включает более быстрый, но жрущий много памяти алгоритм работы с виндовыми LFN}
@@ -214,3 +214,4 @@
 {$IFDEF VIRTUALPASCAL} {$IFDEF USEANSISTRING} {$H+} {$DEFINE USELONGSTRING} {$ELSE} {$H-} {$ENDIF} {$ENDIF} {Cat}
 
 {$IFDEF Win32}{$DEFINE DualName } {$ENDIF} {AK155}
+{$IFDEF Win32} {$DEFINE NetBrowser} {$ENDIF} {JO}

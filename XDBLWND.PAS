@@ -81,9 +81,6 @@ procedure TXDoubleWindow.SetState(AState: Word; Enable: Boolean);
       (AState and (sfSelected+sfActive) <> 0)
   then
     Separator^.Draw;
-  if ((AState and sfDragging) <> 0) and not Enable then
-    with Separator do
-      OldX := Origin.X+1;
   if AState = sfSelected then
     begin
     SetState(sfActive, Enable);

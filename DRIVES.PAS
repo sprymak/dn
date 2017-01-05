@@ -743,7 +743,7 @@ procedure TDrive.lChDir;
 {-DataCompBoy-}
 function TDrive.GetDir;
   begin
-  {$IFDEF OS_DOS}
+  {$IFDEF DPMI32}
   GetDir := lfGetLongFileName(CurDir);
   {$ELSE}
   GetDir := CurDir;
@@ -874,7 +874,7 @@ function TDrive.GetDirectory;
     Files: PFilesCollection;
     MemReq: LongInt;
     MAvail: LongInt;
-
+    SearchAttr: word;
   begin
   ClrIO;
   TFiles := 0;
@@ -892,36 +892,15 @@ function TDrive.GetDirectory;
   MemReq := LowMemSize;
   MAvail := MaxAvail;
 
-  lFindFirst(MakeNormName(CurDir, x_x), AnyFile, SR); {JO}
-  while (DosError = 0) and not Abort and (IOResult = 0)
-       and (MAvail > MemReq)
+  SearchAttr := AnyFileDir;
+  if Security then
+    SearchAttr := AnyFileDir and not Hidden;
+  lFindFirst(MakeNormName(CurDir, x_x), SearchAttr, SR);
+  while (DosError = 0) and not Abort and (MAvail > MemReq)
   do
     begin
-    if  ( {$IFNDEF OS2}(SR.SR.Attr and VolumeID = 0) and
-          (SR.SR.Name <> '.')
-        {$IFDEF Win32}
-        and (SR.FullName <> '.')
-        and not ((SR.FullName = '..') and (SR.SR.Name[1] <> '.'))
-        {$ENDIF}
-        {$ELSE}
-          (SR.FullName <> '.')
-        {$ENDIF}
-        ) and
-        ( (not Security) or
-          (SR.SR.Attr and Hidden = 0)
-        or
-        {$IFNDEF OS2}(SR.SR.Name[1] = '.') {$ELSE}(SR.FullName = '..')
-        {$ENDIF}
-
-        ) and
-        ( (SR.SR.Attr and Directory <> 0) or
-          ( InFilter(SR.FullName, FileMask)
-           or InFilter(SR.SR.Name, FileMask) )
-        ) and
-        ( (SR.SR.Attr and Directory = 0) or
-        not IsDummyDir(SR.SR.Name) or
-          (Length(CurDir) > 3)
-        )
+    if not IsDummyDir(SR.SR.Name) and
+      ((SR.SR.Attr and Directory <> 0) or InFilter(SR.SR.Name, FileMask))
     then
       begin
       P := NewFileRec(SR.FullName {$IFDEF DualName}, SR.SR.Name {$ENDIF}
@@ -946,14 +925,11 @@ function TDrive.GetDirectory;
   lFindClose(SR);
   NoMemory := (MAvail <= MemReq);
   if  (Length(CurDir) > GetRootStart(CurDir)) then
-    if  ( (Files^.Count = 0) or
-          (PFileRec(Files^.At(0))^.TType <> ttUpDir))
-    then
-      begin
-      Files^.AtInsert(0, NewFileRec('..',
-        {$IFDEF DualName} '..', {$ENDIF}
-        TotalInfo, 0, 0, 0, Directory, @CurDir));
-      end;
+    begin
+    Files^.AtInsert(0, NewFileRec('..',
+      {$IFDEF DualName} '..', {$ENDIF}
+      -1, 0, 0, 0, Directory, @CurDir));
+    end;
   GetDirectory := Files;
   end { TDrive.GetDirectory };
 {-DataCompBoy-}
@@ -1213,7 +1189,7 @@ function TDrive.OpenDirectory(const Dir: String;
       D: DateTime;
     begin
     ClrIO;
-    lFindFirst(Dr^+x_x, AnyFile, SR); {JO}
+    lFindFirst(Dr^+x_x, AnyFileDir, SR); {JO}
     while not Abort and (DosError = 0) and (MAvail > MemReq) do
       begin
       if  (SR.SR.Attr and Hidden = 0) or (not Security) then
@@ -1314,7 +1290,7 @@ procedure RereadDirectory;
     end;
 
   begin
-  {$IFDEF OS_DOS}
+  {$IFDEF DPMI32}
   Dir := lfGetLongFileName(Dir);
   {$ENDIF}
   Desktop^.ForEach(@Action);

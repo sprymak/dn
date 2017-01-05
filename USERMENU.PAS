@@ -122,6 +122,8 @@ constructor TUserWindow.Init;
   Insert(New(PUserView, Init(R,
            StandardScrollBar(sbHorizontal+sbHandleKeyboard),
         StandardScrollBar(sbVertical+sbHandleKeyboard))));
+  ClearPositionalEvents := False;
+    { пусть единообразно обработается в dnapp }
   end;
 
 procedure TUserWindow.CalcBounds(var Bounds: TRect; Delta: TPoint);
@@ -1298,7 +1300,7 @@ RL:
     repeat
       ClrIO;
       Inc(I);
-      lFindFirst(SwpDir+'$DN'+ItoS(I)+'$.CMD', AnyFile, SR); {JO}
+      lFindFirst(SwpDir+'$DN'+ItoS(I)+'$.CMD', AnyFileDir-Directory, SR); {JO}
       lFindClose(SR);
     until (DosError <> 0) or (I = 99) or Abort;
     ClrIO;

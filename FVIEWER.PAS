@@ -1266,7 +1266,7 @@ function GetTabSize: Word;
     TS: Word;
   begin
   GetTabSize := 1;
-  if  (EditorDefaults.EdOpt {$IFNDEF OS_DOS} shl 2 {$ENDIF} and ebfTRp) <> 0
+  if EditorDefaults.EdOpt and ebfTRp <> 0
   then
     begin
     TS := StoI(EditorDefaults.TabSize);
@@ -1311,8 +1311,7 @@ procedure TFileViewer.Draw;
   for I := 1 to 8 do
     CC[I] := GetColor(I);
   TS := GetTabSize;
-  ExpandTabs := (EditorDefaults.EdOpt {$IFNDEF OS_DOS} shl 2 {$ENDIF}
-       and ebfTRp) <> 0;
+  ExpandTabs := EditorDefaults.EdOpt and ebfTRp <> 0;
   if  (Buf = nil) and not QuickView and
     not (VFileName = ' ')
     {AK155 11-01-2004
@@ -3138,7 +3137,7 @@ NotKb:
                       if Event.CharCode in ['A'..'F', '0'..'9'] then
                         begin
                         BufModified := True;
-                        I := PosChar(Event.CharCode, '0123456789ABCDEF')-1;
+                        I := PosChar(Event.CharCode, HexStr)-1;
                         {$IFDEF DisAsm}
                         if  (ViewMode <> vmAsm) then
                           {JO}

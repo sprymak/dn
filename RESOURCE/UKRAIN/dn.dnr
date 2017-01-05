@@ -252,6 +252,14 @@ ColorDialog
          ColorItem 'Заголовок поля',                    169,
          ColorItem 'Нормальний текст',                  170,
          ColorItem 'Курсор',                            171,
+    ColorGroup 'Календар',
+         ColorItem 'Статичний текст',                205,
+         ColorItem 'Група 1',                        206,
+         ColorItem 'Група 2',                        207,
+         ColorItem 'Група 3',                        208,
+         ColorItem 'Група 4',                        209,
+         ColorItem 'Заголовок',                      210,
+         ColorItem 'Цвет сообщения',                 211,
 END
 
 DIALOG dlgCountrySetup, 54, 22, 'Iнформацiя про країну'
@@ -607,7 +615,7 @@ END
 
 DIALOG dlgEditorDefaults, 59, 23, 'Установки pедактоpа/пеpегляду'
     HELPCTX hcEditorDefaults
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
     CheckBoxes 2, 2, 57, 10, ofPostProcess, ofPreProcess
 ;$ELSE
     CheckBoxes 2, 2, 57, 9, ofPostProcess, ofPreProcess
@@ -625,7 +633,7 @@ DIALOG dlgEditorDefaults, 59, 23, 'Установки pедактоpа/пеpегляду'
       ITEM '~П~остiйнi блоки'
       ITEM 'Пеpезапис ~б~локу'
       ITEM '"~З~ахист" файла'
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
       ITEM 'Використання EMS'
       ITEM 'Використання XMS'
 ;$ENDIF
@@ -633,7 +641,7 @@ DIALOG dlgEditorDefaults, 59, 23, 'Установки pедактоpа/пеpегляду'
       ITEM 'За~м~iна табуляцiї'
     END
     Label 2, 1, 'Опцiї редактора', ofPostProcess, ofPreProcess
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
     CheckBoxes 18, 10, 55, 12, ofPostProcess, ofPreProcess
 ;$ELSE
     CheckBoxes 18,  9, 55, 11, ofPostProcess, ofPreProcess
@@ -1677,15 +1685,9 @@ DIALOG dlgSetupArc, 78, 22, 'Установки архiватора'
     CheckBoxes 32, 16, 65, 17, ofPostProcess, ofPreProcess
       ITEM 'Список файлiв в пiдкаталогах'
     END
-;$IFDEF OS_DOS
-    CheckBoxes 2, 17, 22, 18, ofPostProcess, ofPreProcess
-      ITEM '~С~воп при роботi'
-    END
-;$ELSE
     CheckBoxes 2, 17, 32, 18, ofPostProcess, ofPreProcess
       ITEM 'Короткий командний рядок'
     END
-;$ENDIF
 ;$IFNDEF OS2
     CheckBoxes 32, 17, 64, 18, ofPostProcess, ofPreProcess
       ITEM 'Використовувати довгi iмена'
@@ -1736,18 +1738,19 @@ STATUSLINE
   StatusDef hcHelp, hcHelp,
       StatusItem '~F1~ Допомога', kbF1, cmDefault,
       StatusItem ':~F1~ Iндекс', kbShiftF1, cmCancel,
-      StatusItem '~Tab~ Наступний пункт', kbNoKey, cmYes,
-      StatusItem ':~Tab~ Попереднiй пункт', kbNoKey, cmSave,
-      StatusItem '~─┘~ Перехiд на видiлене',kbNoKey, cmOk,
+      StatusItem '~Tab~ Наступне посилання', kbNoKey, cmYes,
+      StatusItem ':~Tab~ Попереднє посилання', kbNoKey, cmSave,
+      StatusItem '~─┘~ Перехiд',kbNoKey, cmOk,
+      StatusItem '~Alt-F1~ Назад', kbNoKey, cmNo,
       StatusItem '-~F1~ Назад', kbNoKey, cmNo,
       StatusItem '-~Z~ Розгорнути вiкно', kbAltZ, cmZoom,
       StatusItem '', kbCtrlF5, cmResize,
-      StatusItem '~Esc~ Закрити вiкно', kbNoKey, cmClose,
+      StatusItem '~Esc~ Закрити', kbNoKey, cmClose,
       StatusItem '', kbF9, cmNext,
       StatusItem '', kbShiftF9, cmPrev,
       StatusItem '', kbF10, cmMenu,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
   StatusDef hcFilePanel, hcFilePanel,
@@ -1804,7 +1807,7 @@ STATUSLINE
      StatusItem '', kbShiftF9, cmPrev,
      StatusItem '', kbCtrlJ, cmTerminal,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Розгорнути', kbCtrlAltZ, cmMaxi,
@@ -1839,7 +1842,7 @@ STATUSLINE
      StatusItem '', kbCtrlJ, cmTerminal,
      StatusItem '', kbAltBack, cmDirHistory,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Розгорнути', kbCtrlAltZ, cmMaxi,
@@ -1879,7 +1882,7 @@ STATUSLINE
      StatusItem '', kbCtrlJ, cmTerminal,
      StatusItem '', kbAltBack, cmDirHistory,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Розгорнути', kbCtrlAltZ, cmMaxi,
@@ -1912,7 +1915,7 @@ STATUSLINE
      StatusItem '', kbCtrlF5, cmResize,
      StatusItem '', kbAltBack, cmDirHistory,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Розгорнути', kbCtrlAltZ, cmMaxi,
@@ -1950,7 +1953,7 @@ STATUSLINE
      StatusItem '', kbCtrlJ, cmTerminal,
      StatusItem '', kbCtrlF5, cmResize,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Розгорнути', kbCtrlAltZ, cmMaxi,
@@ -1985,7 +1988,7 @@ STATUSLINE
      StatusItem '', kbShiftF9, cmPrev,
      StatusItem '', kbCtrlF5, cmResize,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Розгорнути', kbCtrlAltZ, cmMaxi,
@@ -2019,7 +2022,7 @@ STATUSLINE
 ;{ALT-CTRL}
      StatusItem '^~~ Запис вверх', kbCtrlAltUp, cmUpDBRec,
      StatusItem '^~~ Запис вниз', kbCtrlAltDown, cmDownDBRec,
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Розгорнути', kbCtrlAltZ, cmMaxi,
@@ -2073,7 +2076,7 @@ STATUSLINE
      StatusItem '', kbCtrlS, cmSaveText,
      StatusItem '', kbCtrlF5, cmResize,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Розгорнути', kbCtrlAltZ, cmMaxi,
@@ -2087,7 +2090,7 @@ STATUSLINE
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
   StatusDef hcTerminal, hcTerminal,
@@ -2119,7 +2122,7 @@ STATUSLINE
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Розгорнути', kbCtrlAltZ, cmMaxi,
@@ -2163,7 +2166,7 @@ STATUSLINE
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
   StatusDef hcReanimator, hcReanimator,
@@ -2207,7 +2210,7 @@ STATUSLINE
      StatusItem '', kbShiftF9, cmPrev,
      StatusItem '', kbCtrlJ, cmTerminal,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
    StatusDef hcDiskInfo, hcDiskInfo,
@@ -2232,7 +2235,7 @@ STATUSLINE
 ;{-$VIV}
      StatusItem '', kbCtrlJ, cmTerminal,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Розгорнути', kbCtrlAltZ, cmMaxi,
@@ -2249,7 +2252,7 @@ STATUSLINE
      StatusItem '', kbShiftF9, cmPrev,
      StatusItem '', kbCtrlJ, cmTerminal,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Розгорнути', kbCtrlAltZ, cmMaxi,
@@ -2272,7 +2275,7 @@ STATUSLINE
      StatusItem '+~F10~ Вiдео/2', kbCtrlF10, cmChangeUserMode2,
      StatusItem '', kbCtrlJ, cmTerminal,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
   StatusDef hcLUserMenu, hcLUserMenu,
@@ -2312,7 +2315,7 @@ STATUSLINE
      StatusItem '', kbShiftF9, cmPrev,
      StatusItem '', kbF10, cmMenu,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
   StatusDef hcLinkStatusWnd, hcLinkStatusWnd
@@ -2322,28 +2325,34 @@ STATUSLINE
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
 ;{JO}
   StatusDef hcCalendar, hcCalendar,
      StatusItem '~F1~ Допомога', kbF1, cmHelp,
-     StatusItem '~=>~ Мiсяць вперед',KbNoKey, 0,
-     StatusItem '~<=~ Мiсяць назад', KbNoKey, 0,
-     StatusItem '~Пробiл~ Повернення до поточної дати', KbNoKey, 0,
-     StatusItem '+~<=~ Попереднiй рiк', KbNoKey, 0,
-     StatusItem '+~=>~ Наступний рiк',KbNoKey, 0,
-     StatusItem '', kbEsc, cmClose,
-     StatusItem '', kbCtrlF4, cmClose,
-     StatusItem '', kbCtrlF5, cmResize,
-     StatusItem '', kbF10, cmMenu,
-     StatusItem '', kbF9, cmNext,
-     StatusItem '', kbShiftF9, cmPrev,
-;{JO}
-;{Alt+Ctrl}
-;$IFDEF OS_DOS
+     StatusItem '~Пробiл~ Повернення до поточної дати', kbNoKey, 0,
+     StatusItem '~'#27'~ День назад', kbNoKey, 0,
+     StatusItem '~'#26'~ День вперед', kbNoKey, 0,
+     StatusItem '~'#24'~ Неделю назад', kbNoKey, 0,
+     StatusItem '~'#25'~ Неделю вперед', kbNoKey, 0,
+;{ALT}
+     StatusItem '-~'#27'~ Попереднiй рiк', kbNoKey, 0,
+     StatusItem '-~'#26'~ Наступний рiк', kbNoKey, 0,
+;{CTRL}
+     StatusItem '+~'#27'~ Мiсяць назад', kbNoKey, 0,
+     StatusItem '+~'#26'~ Мiсяць вперед', kbNoKey, 0,
+     StatusItem '+~F5~ Размер/Позиция', kbCtrlF5, cmResize,
+;{ALT-CTRL}
+;$IFDEF DPMI32
      StatusItem '^~X~ Пеpезапyск', kbCtrlAltX, cmRestart,
 ;$ENDIF
+;{NO SHOW}
+     StatusItem '', kbF9, cmNext,
+     StatusItem '', kbF10, cmMenu,
+     StatusItem '', kbEsc, cmClose,
+     StatusItem '', kbCtrlF4, cmClose,
+     StatusItem '', kbShiftF9, cmPrev,
 
   StatusDef hcDialer, hcDialer,
 ;{BASE}
@@ -2618,7 +2627,7 @@ MENU dlgMainMenu
 ;$ENDIF
 ;$ENDIF
     MenuLine
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
     MenuItem 'Пеpе~з~апyстити', 'Ctrl-Alt-X', kbCtrlAltX, cmRestart, hcFileMenu,
 ;$ENDIF
     MenuItem 'В~и~хiд', 'Alt-X', kbAltX, cmQuit, hcFileMenu,
@@ -3322,7 +3331,7 @@ DIALOG dlgDriveInfoSetup, 61, 14, 'Установки панелi iнформацiї'
       ITEM 'Фiзична ~п~ам''ять'
       ITEM 'Пам''ять для програм'
       ITEM 'Вiртуальна пам''ять'
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
       ITEM '~Е~MS-память'
       ITEM '~Х~MS-память'
 ;$ENDIF
@@ -3397,7 +3406,7 @@ DIALOG dlgSystemSetup, 72, 21, 'Системнi установки'
 ;$ENDIF
       ITEM '~З~нiмати атpибут R/O на CD-ROM'
       ITEM 'Роз~ш~ирене копiювання'
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
       ITEM 'Скидати дисковi буфери'
 ;$ENDIF
     END
@@ -3539,7 +3548,7 @@ EDITOR COMMANDS
     COMMAND       cmUpString,     kbCtrlShiftSqBracketL, 0, #0#0,      #0#0
     COMMAND       cmLowString,    kbCtrlShiftSqBracketR, 0, #0#0,      #0#0
     COMMAND       cmCapString,    kbCtrlShiftBSlash, 0,     #0#0,      #0#0
-    COMMAND       cmCapitalizeBlock,    0,       0,         ^\#0,      #0#0
+    COMMAND       cmCapitalizeBlock,  kbCtrlBSlash,  0,     ^\#0,      #0#0
     COMMAND       cmPrintBlock,   0,             0,         ^K^P,      #0#0
     COMMAND       cmClear,        kbCtrlDel,     0,         ^K^Y,      #0#0
     COMMAND       cmCopyBlock,    0,             0,         ^K^C,      #0#0

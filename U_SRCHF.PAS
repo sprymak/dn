@@ -96,7 +96,7 @@ function RecursiveCheck(Name, pPath: String; DoMore: Boolean;
       goto q;
       end;
 
-    lFindFirst(MakeNormName(pPath, x_x), AnyFile, SR);
+    lFindFirst(MakeNormName(pPath, x_x), AnyFileDir, SR);
     while DosError = 0 do
       begin
       DispatchEvents(Info, Abort);

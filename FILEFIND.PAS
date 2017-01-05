@@ -471,12 +471,13 @@ function FindFiles;
       MemReq: LongInt;
       MAvail: LongInt;
       {/JO}
+      SearchAttr: word;
 
     function SearchF: Boolean;
       var
         S: TDOSStream;
-        CaseSensitive: Boolean;
         {AK155: было TBufStream; буферизация здесь абсолютно не нужна }
+        CaseSensitive: Boolean;
       begin
       PInfo^.Write(2, Cut(Path+SR.FullName, 50));
       Inc(TotalNum); {-$VIV}
@@ -539,18 +540,15 @@ function FindFiles;
       if Path[Length(Path)] <> '|' then
         {JO}
         begin {начало поиска не в архиве}
-        lFindFirst(Path+x_x, AnyFile, SR); {JO}
+        SearchAttr := AnyFileDir;
+        if Security then
+          SearchAttr := AnyFileDir and not Hidden;
+        lFindFirst(Path+x_x, SearchAttr, SR);
 
         while (DosError = 0) and not CancelSearch and (MAvail > MemReq)
         do
           begin
-          if {$IFNDEF OS2}(SR.SR.Attr and VolumeID = 0)
-               and (SR.SR.Name[1] <> '.') and (SR.FullName <> '.')
-               and (SR.FullName <> '..')
-            {$ELSE}(SR.SR.Name <> '..') and (SR.SR.Name <> '.')
-            {$ENDIF}
-            and (not Security or (Security and (SR.SR.Attr and Hidden =
-                 0)))
+          if not IsDummyDir(SR.SR.Name)
             and (InFilter(SR.FullName, FindRec.Mask+FindRec.AddChar))
             and ((FindRec.Options and ffoAdvanced = 0) or (SR.SR.Time >=
                  DateAfter)
@@ -787,12 +785,11 @@ NotArchive:
       then
         goto Skip;
       DosError := 0;
-      lFindFirst(Path+x_x, AnyFile {$IFNDEF OS2} and not VolumeID
-         {$ENDIF}, SR); {JO}
+      lFindFirst(Path+x_x, AnyFileDir, SR);
       while (DosError = 0) and not LowMemory and not CancelSearch do
         begin
-        if {$IFNDEF OS2}(SR.SR.Attr and VolumeID = 0)
-             and (SR.SR.Name[1] <> '.') and (SR.FullName <> '.')
+        if {$IFNDEF OS2} {<VolumeId.001>}
+             (SR.SR.Name[1] <> '.') and (SR.FullName <> '.')
              and (SR.FullName <> '..')
           {$ELSE}(SR.SR.Name <> '..') and (SR.SR.Name <> '.') {$ENDIF}
         then
@@ -977,7 +974,7 @@ function InsertFile(const S: String; var DC: PSortedCollection;
     then
     Exit;
   ClrIO;
-  lFindFirst(S, AnyFile, SR); {JO}
+  lFindFirst(S, AnyFileDir, SR); {JO}
   if  (DosError = 0) and not Abort then
     begin
     InsertFile := True;

@@ -114,12 +114,8 @@ type
     {AK155}
     PutDirs: Boolean; {Checkbox}
     {JO}
-    {$IFDEF OS_DOS}
-    Swap: Boolean; {Checkbox}
-    {$ELSE}
     ShortCmdLine: Boolean; {Checkbox}
     {JO}
-    {$ENDIF}
     {$IFNDEF OS2}
     UseLFN: Boolean; {Checkbox}
     {$ENDIF}
@@ -419,19 +415,11 @@ procedure TARJArchive.Save;
     q := '0'#0;
   WritePrivateProfileString(@Sign[1], PPutDirs, @q[1], @FreeStr[1]);
 
-  {$IFDEF OS_DOS}
-  if Swap then
-    q := '1'#0
-  else
-    q := '0'#0;
-  WritePrivateProfileString(@Sign[1], PSwap, @q[1], @FreeStr[1]);
-  {$ELSE}
   if ShortCmdLine then
     q := '1'#0
   else
     q := '0'#0;
   WritePrivateProfileString(@Sign[1], PShortCmdLine, @q[1], @FreeStr[1]);
-  {$ENDIF}
   {$IFNDEF OS2}
   if UseLFN then
     q := '1'#0
@@ -619,13 +607,8 @@ constructor TARJArchive.Init;
   AllVersion := q <> '0';
   q := GetVal(@Sign[1], @FreeStr[1], PPutDirs, '0');
   PutDirs := q <> '0';
-  {$IFDEF OS_DOS}
-  q := GetVal(@Sign[1], @FreeStr[1], PSwap, '1');
-  Swap := q <> '0';
-  {$ELSE}
   q := GetVal(@Sign[1], @FreeStr[1], PShortCmdLine, '0');
   ShortCmdLine := q <> '0';
-  {$ENDIF}
   {$IFNDEF OS2}
   q := GetVal(@Sign[1], @FreeStr[1], PUseLFN, '1');
   UseLFN := q <> '0';
@@ -817,7 +800,7 @@ procedure MakeArchive;
           Writeln(F.T, {$IFDEF RecodeWhenDraw}CharToOemStr {$ENDIF}(SS));
       {piwamoto.src.end}
       ClrIO;
-      lFindFirst(MakeNormName(SS, x_x), AnyFile, SR); {JO}
+      lFindFirst(MakeNormName(SS, x_x), AnyFileDir, SR); {JO}
       while (DosError = 0) and not Abort {and (Length(S) < 100)} do
         begin
         {$IFNDEF OS2}
@@ -840,7 +823,7 @@ procedure MakeArchive;
             Writeln(F.T, {$IFDEF RecodeWhenDraw}CharToOemStr {$ENDIF}(S1));
         {piwamoto.src.begin}
         if  (SR.SR.Attr and Directory <> 0)
-          and (not IsDummyDir( {$IFDEF OS_DOS}SR.SR.Name
+          and (not IsDummyDir( {$IFDEF DPMI32}SR.SR.Name
                {$ELSE}SR.FullName {$ENDIF})) and {JO}
             (D.Options and $40 <> 0)
         then
@@ -911,12 +894,12 @@ procedure MakeArchive;
         {архиваторы их игнорируют; для непустых каталогов такая подстановка приводит}
         ClrIO;
         {с некоторыми архиваторами (ZIP) к тому, что файлы попадают в архив дважды}
-        lFindFirst(MakeNormName(S1, x_x), AnyFile, SR);
-        if IsDummyDir( {$IFDEF OS_DOS}SR.SR.Name {$ELSE}SR.FullName
+        lFindFirst(MakeNormName(S1, x_x), AnyFileDir, SR);
+        if IsDummyDir( {$IFDEF DPMI32}SR.SR.Name {$ELSE}SR.FullName
             {$ENDIF})
         then
           lFindNext(SR);
-        if IsDummyDir( {$IFDEF OS_DOS}SR.SR.Name {$ELSE}SR.FullName
+        if IsDummyDir( {$IFDEF DPMI32}SR.SR.Name {$ELSE}SR.FullName
             {$ENDIF})
         then
           lFindNext(SR);
@@ -990,20 +973,16 @@ procedure MakeArchive;
     begin { ArcExec }
     ArcExec := True;
     S := Prg+' '+Cmd;
-    {$IFDEF OS_DOS}
-    if Arc^.Swap then
-      begin
-      ArcExec := Message(Application, evCommand, cmExecString, @S) = nil;
-      Exit;
-      end;
+    {$IFDEF DPMI32}
+    S := S + ' ' + Lst;
+    Message(Application, evCommand, cmExecString, @S);
     {$ENDIF}
     DoneSysError;
     DoneEvents;
     DoneVideo;
     DoneDOSMem;
     DoneMemory;
-    {$IFDEF OS_DOS}asm cld; mov ax,3; int $10; end; {$ENDIF}
-    {$IFDEF OS_DOS} //AK155
+    {$IFDEF DPMI32}
     {AK155, дописано позже, чем комментарий к OS/2.
   Под Win32 тоже не следует заниматься самодеятельностью.
   Во-первых, мы отдаем консоль в каком-то не таком состоянии,
@@ -1341,7 +1320,7 @@ TryAgain:
   {JO}
   // проверяем, содержит ли каталог назначения файлы
   DosError := 0;
-  lFindFirst(MakeNormName(ExtrDir, x_x), AnyFile, SR); {JO}
+  lFindFirst(MakeNormName(ExtrDir, x_x), AnyFileDir, SR); {JO}
   if IsDummyDir(SR.FullName) then
     lFindNext(SR);
   if IsDummyDir(SR.FullName) then

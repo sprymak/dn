@@ -58,6 +58,7 @@ uses
   fnotify,
   Views, Drivers, Dos, FilesCol, PDSetup, Drives, Filediz, Collect
   {$IFDEF ARVID}, Arvid {$ENDIF}, xTime
+  {$IFDEF NetBrowser}, NetBrwsr{$ENDIF}
   ;
 
 type
@@ -812,13 +813,15 @@ procedure TFilePanelRoot.CommandHandle;
     var
       A: LongInt;
     begin
-    A := 0;
-    while (A < Files^.Count) and
-        (PFileRec(Files^.At(A))^.FlName[True] <> Name)
-    do
-      Inc(A);
-    if A >= Files^.Count then
-      A := 0;
+    A := Files^.Count;
+    UpStr(Name);
+    while A <> 0 do
+      begin
+      Dec(A);
+      if UpStrg(PFileRec(Files^.At(A))^.FlName[True]) = Name then
+        Break;
+      {AK155 странно, почему тут сравнивается только длинное имя. }
+      end;
     IncDrawDisabled;
     OldDirectory := DirectoryName;
     ScrollBar^.SetValue(A);
@@ -911,10 +914,10 @@ procedure TFilePanelRoot.CommandHandle;
     if  (Dr[Length(Dr)] = '\') and ((Dr[2] <> ':') or (Length(Dr) > 3))
     then
       SetLength(Dr, Length(Dr)-1);
-    if  (Dr[2] = ':')
+    if ((Dr[2] = ':') or (Copy(Dr, 1, 2) = '\\'))
          and not (Drive^.DriveType in [dtDisk, dtLink, dtArc])
     then
-      {Cat:warn могут быть проблемы с сетевыми путями}
+      { переходим с панели поиска, списка и т.п. на диск }
       begin
       Dispose(Drive, Done);
       New(Drive, Init(Byte(UpCase(Dr[1]))-64, @Self));
@@ -924,8 +927,17 @@ procedure TFilePanelRoot.CommandHandle;
     OldDirectory := Dr;
     DeltaX := 0;
     Drive^.lChDir(Dr); {AK155, was Drive^.lChDir(DirectoryName);}
-    Drive^.SizeX := Size.X;
     DirectoryName := Drive^.GetDir;
+{JO: переходим с панельки Network на шару}
+    if (Drive^.DriveType = dtNet)
+        and (Copy(DirectoryName, 1, 2) = '\\') then
+      begin
+      Dispose(Drive, Done);
+      New(Drive, Init($1B, @Self));
+      Drive^.lChDir(DirectoryName);
+      end;
+{/JO}
+    Drive^.SizeX := Size.X;
     OldDelta := -1;
     Delta := 0;
     ReadDirectory;
@@ -1072,7 +1084,6 @@ WrongArc:
       end;
     Abort := False;
     Recount;
-    DrawView;
     if InfoView <> nil then
       InfoView^.DrawView;
     end { CountLen };
@@ -1093,7 +1104,7 @@ WrongArc:
       CE;
       Exit
       end;
-    if PDrive(Event.InfoPtr)^.DriveType in [dtDisk, dtLink] then
+    if PDrive(Event.InfoPtr)^.DriveType in [dtDisk, dtNet, dtLink] then
       begin
       if Drive <> nil then
         Dispose(Drive, Done);
@@ -1344,14 +1355,9 @@ WrongArc:
       SetLength(S, Length(S)-1);
     I := Length(S);
     if  (Drive^.DriveType <> dtDisk) or
-      {$IFDEF OS_DOS} {AK155 при чем тут OS_DOS?? }
-        (S = Copy(UpStrg(lfGetLongFileName(DirectoryName)), 1,
+        (S = Copy(UpStrg({$IFDEF DPMI32}lfGetLongFileName{$ENDIF}(DirectoryName)), 1,
          Length(S)))
     then
-      {$ELSE}
-        (S = Copy(UpStrg(DirectoryName), 1, Length(S)))
-    then
-      {$ENDIF}
       begin
       Drive^.RereadDirectory(S);
       RereadDir;
@@ -1420,6 +1426,16 @@ WrongArc:
       end
     else
       {$ENDIF}
+      {$IFDEF NetBrowser}
+     if S = cNET_ then
+      begin
+      Event.InfoPtr := New(PNetDrive, Init(@Self));
+      if Event.InfoPtr <> nil then
+        InsertDrive;
+      Exit;
+      end
+    else
+      {$ENDIF}
       {$IFDEF MODEM}
       {$IFDEF LINK}
      if S[1] = '+' then
@@ -1477,6 +1493,14 @@ WrongArc:
       InsertDrive;
       Exit;
       end
+   {$IFDEF NetBrowser}
+    else if S = cNET_ then
+      begin
+      Event.InfoPtr := New(PNetDrive, Init(@Self));
+      InsertDrive;
+      Exit;
+      end
+   {$ENDIF}
       {$IFDEF MODEM}
       {$IFDEF LINK}
     else if S[1] = '+' then
@@ -1602,6 +1626,10 @@ WrongArc:
            на самый последний диск в списке}
       if  (DirectoryName = cTEMP_) then
         DirectoryName[1] := '*'
+    {$IFDEF NetBrowser}
+      else if (Copy(DirectoryName, 1, Length(cNET_)) = cNET_) then
+        DirectoryName[1] := '@'
+    {$ENDIF}
       else if Drive^.DriveType = dtArc then
         DirectoryName[1] := PArcDrive(Drive)^.ArcName[1]
           {JO}
@@ -1631,11 +1659,16 @@ WrongArc:
                 if DirectoryName[1] > #65 then
                   Dec(DirectoryName[1])
                 else if DirectoryName[1] = #65 then
+              {$IFDEF NetBrowser}
+                  DirectoryName[1] := '@'
+                else if DirectoryName[1] = '@' then
+              {$ENDIF}
                   DirectoryName[1] := '*'
                 else
                   DirectoryName[1] := 'Z';
               until ValidDrive(DirectoryName[1])
-                 or (DirectoryName[1] = '*');
+                 or (DirectoryName[1] = '*')
+{$IFDEF NetBrowser} or (DirectoryName[1] = '@') {$ENDIF};
               end;
             kbCtrlRight, kbCtrlShiftRight:
               begin
@@ -1645,10 +1678,15 @@ WrongArc:
                   Inc(DirectoryName[1])
                 else if DirectoryName[1] = 'Z' then
                   DirectoryName[1] := '*'
+              {$IFDEF NetBrowser}
+                else if DirectoryName[1] = '*' then
+                  DirectoryName[1] := '@'
+              {$ENDIF}
                 else
                   DirectoryName[1] := 'A';
               until ValidDrive(DirectoryName[1])
-                 or (DirectoryName[1] = '*');
+                 or (DirectoryName[1] = '*')
+{$IFDEF NetBrowser} or (DirectoryName[1] = '@') {$ENDIF};
               end;
           end {case};
           DriveLine^.DrawView;
@@ -1658,6 +1696,9 @@ WrongArc:
       if DriveLetter <> DirectoryName[1] then
         begin
           if DirectoryName[1] = '*' then DirectoryName := cTEMP_;
+        {$IFDEF NetBrowser}
+          if DirectoryName[1] = '@' then DirectoryName := cNET_;
+        {$ENDIF}
           Message(@Self, evCommand, cmChangeDrv, @DirectoryName);
           Drive^.SizeX := Size.X;
           DirectoryName := Drive^.GetDir;
@@ -1802,8 +1843,8 @@ WrongArc:
         CE;
         Exit;
         end;
-      {$IFDEF OS_DOS}
-      if OS2exec and (Copy(PF^.Name, 10, 3) = 'cmd') then
+      {$IFDEF DPMI32}
+      if OS2exec and (UpStrg(GetExt(PF^.FlName[uLfn])) = '.CMD') then
         begin
         S := 'call "'+S+'"';
         if ShiftState and 3 <> 0 then
@@ -1825,7 +1866,7 @@ WrongArc:
     begin
     CE;
     if not ChangeUp then
-      if Drive^.DriveType in [dtDisk, dtLink] then
+      if Drive^.DriveType in [dtDisk, dtNet, dtLink] then
         GotoFile(DirectoryName)
     end;
 
@@ -3023,7 +3064,6 @@ WrongArc:
             SelectFlag := not PF^.Selected;
             end;
           repeat
-            PSpecScroll(ScrollBar)^.ForceScroll := not MSelect; {AK155}
             Message(Owner, evKeyDown, kbUp, nil)
           until not MouseEvent(Event, evMouseMove+evMouseAuto);
           RepeatDelay := LastRDelay;

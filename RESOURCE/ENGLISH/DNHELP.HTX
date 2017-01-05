@@ -2994,6 +2994,12 @@ a preset 2 has settings for the maximum detail view. If usually you work
 without such a view and need that view, you simply press Ctrl-2, later when
 you want your previous settings back, press Ctrl-"-".
 
+   When trying to load view preset identical to current by number
+and contents (which has no sense) with hot key or Alt-minus menu,
+the preset menu is called, like on Alt-minus. This behavious can be changed
+by setting MenuOnError=0 in dn.ini. In this case the second loading
+of already loaded preset is simply ignored.
+
    Loading certain groups of settings for a certain panel type is done in the
 panel settings dialog. For example, to load from a preset 6 sorting
 preferences for the list panel, you open any list panel (for instance, go to
@@ -4152,25 +4158,52 @@ compression methods.
 .title Calendar
 Calendar window looks like this:
 
-  ษอ[þ]ออออ Calendar อออออออออป
-  บApril, 2000             บ
-  บMo  Tu  We  Th  Fr  Sa  Su บ
-  บ                     1   2 บ
-  บ 3   4   5   6   7   8   9 บ
-  บ10  11  12  13  14  15  16 บ
-  บ17  18  19  20  21  22  23 บ
-  บ24  25  26  27  28  29  30 บ
-  บ                           บ
-  ศอออออออออออออออออออออออออออผ
+  ษอ[þ]อออออ Calendar อออออออออป
+  บ April         2000 <  >  = บ
+  บ Mo  Tu  We  Th  Fr  Sa  Su บ
+  บ                      1   2 บ
+  บ  3   4   5   6   7   8   9 บ
+  บ 10  11  12  13  14  15  16 บ
+  บ 17  18  19  20  21  22 >23<บ
+  บ 24  25  26  27  28  29  30 บ
+  บ                    [16/114]บ <- [week/day] indicator
+  ศออออออออออออออออออออออออออออผ
 
- Use cursor keys "Up" and "Down", or left mouse button click on
-"" and "" symbols (in line with the month name) to jump to next or
-previous month.
- Use Ctrl in combination with cursor keys "Up" and "Down", or right
-mouse button click on "" and "" symbols to jump to next or previous
+Use cursor keys "Left" and "Right" to jump to previous or next day.
+
+Use cursor keys "Up" and "Down" to jump to previous or next week.
+
+Use Ctrl in combination with cursor keys "Left" and "Right", or left
+mouse button click on "<" and ">" symbols (in line with the month name)
+to jump to previous or next month.
+
+Use Alt in combination with cursor keys "Left" and "Right", or right
+mouse button click on "<" and ">" symbols to jump to previous or next
 year.
- Space bar or any mouse button click on "" symbol will return you to
+
+Space bar or any mouse button click on "=" symbol will return you to
 current date.
+
+The standard calendar configuration consists of the following parameters:
+
+  [Language]
+  ActiveLanguage=<string>
+
+  [Clock]
+  DaysOfWeek=<string>
+
+  [Calendar]
+  SundayFirst=<byte>      ;0=False, 1=True, 2=Autodetect
+  OptionFlags=<integer>
+
+The "OptionFlags" is a bitfield.
+
+If flag 8 is set then [week/day] indicator is enabled. The indicator
+shows a week number and a day number in the year.
+
+If flag 16 is set then week number in the indicator is not compatible
+with international standard IS-8601 but rather with calendar itself
+and the week number is the same for whole row of seven days.
 
 .topic EditBlockMenu=48085
 .title Edit->Block Menu

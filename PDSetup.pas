@@ -69,7 +69,7 @@ type
   {`}
 
   TDriveType = (dtUndefined, dtDisk, dtFind, dtTemp, dtList, dtArcFind,
-       dtArc, dtLink, dtArvid);
+       dtArc, dtNet, dtLink, dtArvid);
 
 var
   PanSetupPreset: array[1..10] of TPanelSetupSet;
@@ -78,7 +78,7 @@ var
 const
   dt2pc: array[TDriveType] of TPanelClass =
     (pcDisk, pcDisk, pcList, pcList, pcList, pcList,
-     pcArc, pcDisk, pcArvid);
+     pcArc, pcDisk, pcDisk, pcArvid);
 
 type
   TFileColWidht = array[TFileColNumber] of ShortInt;

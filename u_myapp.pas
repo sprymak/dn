@@ -79,7 +79,7 @@ uses
 
 (*{$I  runcmd.inc}*)
 
-{$IFDEF OS_DOS}
+{$IFDEF DPMI32}
 {Gimly}
 procedure PostQuitMessage;
   var
@@ -113,7 +113,7 @@ procedure MyApp.GetEvent;
     Killer.fQuit := False;
     end;
   {$ENDIF}
-  {$IFDEF OS_DOS}
+  {$IFDEF DPMI32}
   if  (not w95locked) and w95QuitCheck then
     PostQuitMessage; {Gimly}
   {$ENDIF}

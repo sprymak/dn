@@ -450,9 +450,35 @@ function SysDirGetCurrent(Drive: Longint; Path: PChar): Longint;
     mov esi,edi
     sub eax,eax
     stosd
+    // LFN extension by piwamoto
+(*
+INT 21 - Windows95 - LONG FILENAME - GET CURRENT DIRECTORY
+        AX = 7147h
+        DL = drive number (00h = current, 01h = A:, etc.)
+        DS:SI -> buffer for ASCIZ directory name
+Return: CF clear if successful
+        CF set on error
+            AX = error code (see #01680)
+                7100h if function not supported
+Notes:  the returned pathname does not include the drive letter, colon, or
+          leading backslash, and is not necessarily a long filename -- this
+          function returns whatever path was used when changing to the
+          current directory, and may include a mixture of long and short
+          components
+        the provided buffer must be at least as large as the value indicated
+          by AX=71A0h
+        for compatibility with DOS versions prior to v7.00, the carry flag
+          should be set on call to ensure that it is set on exit
+SeeAlso: AH=47h,AX=713Bh,AX=7160h,AX=71A0h
+*)
     mov ah,$47    // get current directory -> ESI (without 'X:\')
     int $21       // DL 1=A 2=B ..
     jc @ret
+// LFN extension by piwamoto
+// we don't care if int21(ax=7147) is not supported by OS
+// buffer already filled with int21(ah=47)
+    mov ax,$7147  // get current directory -> ESI (without 'X:\')
+    int $21       // DL 1=A 2=B ..
 
     sub eax,eax   // SysDirGetCurrent:=0
 
@@ -4161,16 +4187,25 @@ procedure SysBeep;
 function SysGetValidDrives: Longint;
   {&Frame-}{&Uses ebx,ecx,edx}
   asm
+    sub ebx,ebx  // Bits
+
+    movzx eax,SmallWord [Seg0040+$10] // Equipment list
+    test al, 1
+    jz  @CountCtoZ
+    mov ebx,$C0000000 //2 floppies maximum
+    and al, $40       //mask out 'A' and 'B' floppies
+    jnz @CountCtoZ
+    shr ebx,1         //only 'A' floppy present
+
+   @CountCtoZ:
+
     mov ah,$19   // Get Current Default Drive -> al
     int $21
     mov cl,al    // -> cl
-
-    sub edx,edx  // Counter
-    sub ebx,ebx  // Bits
+    mov edx,2    //drive counter == 'C'
 
   @0:
     mov ah,$0e   // Select Disk
-  //mov dl,dl
     int $21
 
     mov ah,$19   // Get Current Default Drive
@@ -4183,8 +4218,10 @@ function SysGetValidDrives: Longint;
   @1:
     ror ebx,1
     inc edx
-    cmp edx,32
+    cmp edx,26 //don't call int21 for nonexisting drives, i.e. > 'Z'
     jne @0
+
+    ror ebx,6  //correct bitmask
 
     mov ah,$0e   // Select Disk
     mov dl,cl

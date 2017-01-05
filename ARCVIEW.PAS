@@ -243,7 +243,7 @@ constructor TArcDrive.Init;
   if  ( (xt = '') or (xt = '.')) and (ArcName[Length(ArcName)] <> '.')
   then
     ArcName := ArcName+'.';
-  lFindFirst(ArcName, AnyFile, SR); {JO}
+  lFindFirst(ArcName, AnyFileDir, SR); {JO}
   lFindClose(SR);
   if DosError <> 0 then
     begin
@@ -277,7 +277,7 @@ constructor TArcDrive.InitCol;
   TObject.Init;
   ArcName := lFExpand(AName);
   {VArcName := lFExpand(VAName);}
-  lFindFirst(ArcName, AnyFile, SR); {JO}
+  lFindFirst(ArcName, AnyFileDir, SR); {JO}
   ArcDate := SR.SR.Time;
   ArcSize := SR.SR.Size;
   lFindClose(SR);
@@ -336,7 +336,7 @@ constructor TArcDrive.Load;
   DriveType := dtArc;
   ArcFileName := ArcName;
   VArcFileName := VArcName;
-  lFindFirst(ArcName, AnyFile, SR); {JO}
+  lFindFirst(ArcName, AnyFileDir, SR); {JO}
   lFindClose(SR);
   if DosError <> 0 then
     goto Failure;
@@ -421,7 +421,7 @@ function TArcDrive.ReadArchive;
   begin
   {AK155 26-11-2002 Перечитываем архив тогда и только тогда, когда
  у него изменилась дата/время или длина }
-  lFindFirst(ArcName, AnyFile, SR);
+  lFindFirst(ArcName, AnyFileDir, SR);
   lFindClose(SR);
   if  (ArcDate = SR.SR.Time) and (ArcSize = SR.SR.Size) then
     begin
@@ -877,20 +877,15 @@ function TArcDrive.Exec;
   begin { TArcDrive.Exec }
   Exec := True;
   S := Prg+' '+Cmd;
-  {$IFDEF OS_DOS}
-  if AType^.Swap then
-    begin
-    Exec := Message(Application, evCommand, cmExecString, @S) = nil;
-    Exit;
-    end;
+  {$IFDEF DPMI32}
+  Message(Application, evCommand, cmExecString, @S);
   {$ENDIF}
   DoneSysError;
   DoneEvents;
   DoneVideo;
   DoneDOSMem;
   DoneMemory;
-  {$IFDEF OS_DOS}asm cld; mov ax,3; int $10; end; {$ENDIF}
-  {$IFDEF OS_DOS} //AK155
+  {$IFDEF DPMI32}
   {AK155, дописано позже, чем комментарий к OS/2.
 Под Win32 тоже не следует заниматься самодеятельностью.
 Во-первых, мы отдаем консоль в каком-то не таком состоянии,
@@ -1223,7 +1218,7 @@ procedure TArcDrive.ExtractFiles(AFiles: PCollection; ExtrDir: String;
   {JO}
   // проверяем, содержит ли каталог назначения файлы
   DosError := 0;
-  lFindFirst(MakeNormName(ExtrDir, x_x), AnyFile, SR); {JO}
+  lFindFirst(MakeNormName(ExtrDir, x_x), AnyFileDir, SR); {JO}
   if IsDummyDir(SR.FullName) then
     lFindNext(SR);
   if IsDummyDir(SR.FullName) then

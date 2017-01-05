@@ -74,6 +74,7 @@ uses
    VideoMan, Events,
   fnotify,
   {$IFNDEF DPMI32}Killer, {$ENDIF}
+  {$IFDEF DPMI32} lfnvp, Dpmi32, Dpmi32df, {$ENDIF}
   Tree
   , filetype, PDSetup
   ;
@@ -182,6 +183,9 @@ procedure UpdateConfig;
 procedure DoStartup;
   var
     SavePos, SPos1: LongInt;
+{$IFDEF DPMI32}
+    lsr: lSearchRec;
+{$ENDIF}
 
     {JO}
   procedure ReadHighlite;
@@ -527,7 +531,7 @@ procedure DoStartup;
       SwpDir := ''
     else
       SwpDir := TempDir;
-    {$IFDEF OS_DOS}
+    {$IFDEF DPMI32}
     if RunFirst then
       EraseFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
     {$ENDIF}
@@ -560,6 +564,13 @@ procedure DoStartup;
   var
     i: Integer;
   begin { DoStartup }
+  {$IFDEF DPMI32}
+  //check LFN Api presence
+  lsr.FindFirstMode := lWIN95;
+  lWIN95FindFirst(ParamStr(0), AnyFileDir, lsr);
+  lFindClose(lsr);
+  if DosError <> 0 then lApi := lDOS;
+  {$ENDIF}
   {AK155 10.03.2005 }
   i := FindParam('/DNHIS=');
   if i <> 0 then
@@ -577,7 +588,7 @@ procedure DoStartup;
   if OS2exec or (opSys and opWNT <> 0)
   then
     Executables := Executables+';cmd';
-  {$IFDEF OS_DOS}
+  {$IFDEF DPMI32}
   if Chk4Dos
   then
     Executables := Executables+';btm';
@@ -610,7 +621,7 @@ procedure DoStartup;
 {-DataCompBoy-}
 
 procedure CrLf;
-  {$IFNDEF OS_DOS}
+  {$IFNDEF DPMI32}
   begin
   Writeln;
   end;
@@ -638,18 +649,10 @@ procedure RUN_IT;
     {$ENDIF}
   var
     Ev: TEvent;
+    {$IFDEF DPMI32}
+    Regs: real_mode_call_structure_typ;
+    {$ENDIF}
   begin
-  {if memAvail < 100000 then begin}
-  {WriteLn(#10#13'Not enough memory for Navigator.');}
-  {WriteLn(      'Please check if 400K memory is available');}
-  {Halt(203);}
-  {end}
-  {else}
-  Writeln
-    ('Dos Navigator /2 Open Source  '+VersionName+'  Based on DN by RIT Labs'
-    )
-  ;
-
   {$IFDEF WIN95_HIGHPRIORITY}
   if opSys = opWin then
     {Win9x}
@@ -659,13 +662,45 @@ procedure RUN_IT;
 
   Randomize;
 
-  LoaderSeg := 0;
   LSliceCnt := -3;
 
   RunFirst := True;
+  {$IFDEF DPMI32}
+  //get info from Dn.Com
+  LoaderSeg := 0;
+  init_register(Regs);
+  Regs.ax_ := $9900;
+  intr_realmode(Regs, $2F);
+
+  if Regs.bx_= $444E{'DN'} then
+    begin
+    DnNumber := Regs.al_;
+    RunFirst := boolean(Regs.ah_);
+
+    init_register(Regs);
+    Regs.ax_ := $9901;
+    Regs.es_ := 0;
+    intr_realmode(Regs, $2F);
+    CommandOfs := Regs.bx_;
+    LoaderSeg  := Regs.es_;
+
+    init_register(Regs);
+    Regs.ax_ := $9905;
+    Regs.dx_ := 0;
+    Regs.cx_ := 0;
+    intr_realmode(Regs, $2F);
+    DDTimer := Regs.cx_;
+    DDTimer := DDTimer shl 16 + Regs.dx_;
+  end;
+  {$ENDIF}{dpmi32}
 
   if DDTimer > 0 then
     DDTimer := GetCurMSec - DDTimer;
+
+  if RunFirst then Writeln
+    ('Dos Navigator /2 Open Source  '+VersionName+'  Based on DN by RIT Labs'
+    )
+  ;
 
   TempBounds.Assign(0, 0, 0, 0);
 
@@ -694,7 +729,7 @@ procedure RUN_IT;
   if RunFirst then
     if  (StartupData.Load and osuKillHistory <> 0) then
       ClearHistories;
-  {$IFDEF OS_DOS}
+  {$IFDEF DPMI32}
   if not RunFirst then
     EraseFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
   {$ENDIF}
@@ -738,7 +773,7 @@ procedure RUN_IT;
     Clock^.MakeFirst;
     UnLock;
     end;
-  {$IFDEF OS_DOS}
+  {$IFDEF DPMI32}
   w95QuitInit; {Gimly}
   {$ENDIF}
   MyApplication.Run;

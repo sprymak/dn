@@ -678,7 +678,7 @@ type
     end;
 
   TDriveType = (dtUndefined, dtDisk, dtFind, dtTemp, dtList, dtArcFind,
-     dtArc, dtLink, dtArvid);
+     dtArc, dtNet, dtLink, dtArvid);
   TAvdType = (avdTdr, avdAvt);
   TLineType = (ltNormal, ltOS2FullScreen, ltOS2Window, ltTimer);
 

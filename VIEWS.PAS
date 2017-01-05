@@ -213,6 +213,15 @@ type
     EventMask: AWord;
     UpTmr: TEventTimer;
     UpdTicks: LongInt;
+    ClearPositionalEvents: Boolean;
+      {AK155 Очищать мышиное событие, не обработанное членами группы.
+        Введение этого флага вызвано тем, что слишком во многих случаях
+      члены группы не очищают событие с принадлежащими им координатами.
+      Например, evMouseDown на рамке окна (вне кнопок) не очищается.
+      А хотелось бы, чтобы на уровне Desktop после HandleEvent всех
+      окон сохранялось только такое событие, координаты которого
+      лежат вне всех окон.
+      }
     constructor Init(var Bounds: TRect);
     constructor Load(var S: TStream);
     destructor Done; virtual;
@@ -339,6 +348,18 @@ type
     Max: LongInt;
     PgStep: LongInt;
     ArStep: LongInt;
+    Step: Longint;
+    ForceScroll: Boolean;
+      { AK155 06-02-2006.
+        Этот флаг устанавливается, если мышью нажимать на стрелочки
+      скроллбара, и сбрасывается после посылки cmScrollBarChanged.
+      Смысл - рекомендация тому, кто обрабатывает cmScrollBarChanged,
+      сразу же скроллировать изображение, а не бессмысленно гнать
+      курсор по экрану. Если бы пользователь хотел переместить
+      курсор в пределах экрана, он бы ткнул мышью, куда ему надо,
+      а не брался за стрелочки скроллбара.
+        Это флаг можно также установить снаружи перед вызовом SetValue,
+      которое в концце концов приведёт к посылке cmScrollBarChanged.}
     constructor Init(var Bounds: TRect);
     constructor Load(var S: TStream);
     procedure Draw; virtual;
@@ -1727,7 +1748,7 @@ constructor TScrollBar.Init(var Bounds: TRect);
 constructor TScrollBar.Load(var S: TStream);
   begin
   TView.Load(S);
-  S.Read(Value, SizeOf(LongInt)*5+SizeOf(TScrollChars));
+  S.Read(Value, SizeOf(LongInt)*6+SizeOf(Boolean)+SizeOf(TScrollChars));
   end;
 
 procedure TScrollBar.Draw;
@@ -1875,10 +1896,12 @@ procedure TScrollBar.HandleEvent(var Event: TEvent);
 
   begin { TScrollBar.HandleEvent }
   TView.HandleEvent(Event);
+  ForceScroll := False;
   case Event.What of
     evMouseDown:
       begin
       Clicked;
+      ForceScroll := True;
       MakeLocal(Event.Where, Mouse);
       GetExtent(Extent);
       Extent.Grow(1, 1);
@@ -1890,7 +1913,10 @@ procedure TScrollBar.HandleEvent(var Event: TEvent);
         repeat
           MakeLocal(Event.Where, Mouse);
           if GetPartCode = ClickPart then
+            begin
+            ForceScroll := True;
             SetValue(Value+ScrollStep(ClickPart));
+            end;
         until not MouseEvent(Event, evMouseAuto);
         end
       else
@@ -1975,20 +2001,18 @@ procedure TScrollBar.HandleEvent(var Event: TEvent);
 procedure TScrollBar.ScrollDraw;
   begin
   Message(Owner, evBroadcast, cmScrollBarChanged, @Self);
+  ForceScroll := False;
   end;
 
 function TScrollBar.ScrollStep(Part: LongInt): LongInt;
-  var
-    Step: LongInt;
   begin
   if Part and 2 = 0 then
     Step := ArStep
   else
     Step := PgStep;
   if Part and 1 = 0 then
-    ScrollStep := -Step
-  else
-    ScrollStep := Step;
+    Step := -Step;
+  ScrollStep := Step;
   end;
 
 procedure TScrollBar.SetParams(AValue, AMin, AMax, APgStep,
@@ -2034,7 +2058,7 @@ procedure TScrollBar.SetValue(AValue: LongInt);
 procedure TScrollBar.Store(var S: TStream);
   begin
   TView.Store(S);
-  S.Write(Value, SizeOf(LongInt)*5+SizeOf(TScrollChars));
+  S.Write(Value, SizeOf(LongInt)*6+SizeOf(Boolean)+SizeOf(TScrollChars));
   end;
 
 { TGroup }
@@ -2626,7 +2650,11 @@ end;
         begin
         Phase := phFocused;
         if  (Event.What and PositionalEvents <> 0) then
-          DoHandleEvent(FirstThat(@ContainsMouse))
+          begin
+          DoHandleEvent(FirstThat(@ContainsMouse));
+          if ClearPositionalEvents then
+            ClearEvent(Event);
+          end
         else
           FirstThat(@DoHandleEvent);
         end;
@@ -2923,6 +2951,7 @@ end;
         Insert(Frame);
       GetBounds(ZoomRect);
       MaxiRect.A.X := High(MaxiRect.A.X);
+      ClearPositionalEvents := True;
       end;
 
     constructor TWindow.Load(var S: TStream);
@@ -2938,6 +2967,7 @@ end;
         {Cat}
         Fail;
       Title := S.ReadStr;
+      ClearPositionalEvents := True;
       end;
 
     destructor TWindow.Done;

@@ -140,6 +140,9 @@ DataCompBoy}
   CLSAct: Boolean = True;
   CurrentBlink: Boolean = False;
   MouseWhere: TPoint = (X: 0; Y: 0);
+  WheelEvent: Boolean = False;
+    { Вращение колеса превращается в курсорные клавиши, сопровождаемые
+    WheelEvent=True. Для нормальных курсорных клавиш WheelEvent=False.}
 
 var
 

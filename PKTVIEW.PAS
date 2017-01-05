@@ -1120,7 +1120,7 @@ function GetPrevMsg(FName: String): String;
       if  (VM = nil) and TimerExpired(Tm) then
         VM := WriteMsg(GetString(dlPleaseStandBy));
       Dec(Num);
-      lFindFirst(MakeNormName(D, ItoS(Num)+'.msg'), AnyFile-Directory, Sr);
+      lFindFirst(MakeNormName(D, ItoS(Num)+'.msg'), AnyFileDir-Directory, Sr);
       if DosError = 0 then
         begin
         GetPrevMsg := MakeNormName(D, Sr.FullName);
@@ -1165,7 +1165,7 @@ function GetNextMsg(FName: String): String;
       if  (VM = nil) and TimerExpired(Tm) then
         VM := WriteMsg(GetString(dlPleaseStandBy));
       Inc(Num);
-      lFindFirst(MakeNormName(D, ItoS(Num)+'.msg'), AnyFile-Directory, Sr);
+      lFindFirst(MakeNormName(D, ItoS(Num)+'.msg'), AnyFileDir-Directory, Sr);
       if DosError = 0 then
         begin
         GetNextMsg := MakeNormName(D, Sr.FullName);

@@ -409,7 +409,7 @@ procedure TPrintManager.PrintFile;
   begin
   if List = nil then
     List := New(PStringCol, Init(10, 10));
-  {$IFDEF OS_DOS}
+  {$IFDEF DPMI32}
   List^.Insert(NewStr(lfGetLongFileName(FileName)));
   {$ELSE}
   List^.Insert(NewStr(FileName));

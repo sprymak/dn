@@ -52,10 +52,20 @@ interface
 
 uses
   Defines, Advance, Views
+  {$IFDEF DPMI32}, Streams{$ENDIF}
   ;
 
 var
   ErrorFCode: Byte;
+
+const
+  AnyFileDir = $37;
+    {` Сюда не входит VolumeID. Под OS/2 это то же самое, что и
+     AnyFile, так как есть соответствующий IFDEF в DOS.PAS.
+     Для DPMI на (кажется, Новеловских) сетевых дисках наличие
+     бита VolumeId блокирует поиск всех файлов, кроме метки диска.
+     Так что настоятельно рекомендуется использовать везде
+     AnyFileDir вместо AnyFile и не читать метку без надобности. `}
 
 function ExistFile(const FName: String): Boolean; {DataCompBoy}
 //function  ExistDir(const DName: string): Boolean; { VK }
@@ -121,7 +131,7 @@ function GetName(const S: String): String;
 function GetSName(const S: String): String;
 function GetIName(const S: String): String;
 function GetAttrStr(Attr: Word): Str6;
-{$IFNDEF OS2}
+{$IFDEF DualName}
 function GetShortRelPath(Path: String): String;
 {$ENDIF}
 function GetLongRelPath(Path: String): String;
@@ -160,7 +170,7 @@ function QuickSearchString(SizeX: Word): String;
 procedure FileChanged(const Name: String);
 {-DataCompBoy-}
 
-{$IFDEF OS_DOS}
+{$IFDEF DPMI32}
 type
   PTempFile = ^TTempFile;
   TTempFile = object(TBufStream)
@@ -173,7 +183,8 @@ function CompareFiles(const N1, N2: String): Boolean;
 
 implementation
 uses
-  {VPUtils, }Drivers, Streams, Dos, Lfn,
+  Drivers, Dos, Lfn,
+  {$IFNDEF DPMI32}Streams,{$ENDIF}
   Advance1, Advance3, Strings,
   Commands, DNApp, DnIni, Memory, FlPanelX, dnHelp
   , VpSysLow, U_KeyMap
@@ -183,7 +194,7 @@ var
   QSPanel: PView;
   SaveHelpCtx: Word;
 
-{$IFDEF OS_DOS}
+{$IFDEF DPMI32}
 constructor TTempFile.Init(const AExt: String; ABufSize: SW_Word);
   var
     S: FNameStr;
@@ -921,7 +932,7 @@ function IsDir(const s: String): Boolean;
   var
     SR: lSearchRec;
   begin
-  lFindFirst(s, Directory shl 8 or AnyFile, SR);
+  lFindFirst(s, Directory shl 8 or AnyFileDir, SR);
   if DosError = 0 then
     IsDir := SR.SR.Attr and Directory <> 0
   else
@@ -1087,7 +1098,7 @@ function GetAttrStr(Attr: Word): Str6;
   GetAttrStr := AttrStr;
   end;
 
-{$IFNDEF OS2}
+{$IFDEF DualName}
 {-DataCompBoy-}
 function GetShortRelPath(Path: String): String;
   var
@@ -1116,7 +1127,7 @@ function GetLongRelPath(Path: String): String;
   begin
   if Path[Length(Path)] in ['\', '/'] then
     SetLength(Path, Length(Path)-1);
-  {$IFDEF OS_DOS}
+  {$IFDEF DPMI32}
   Path := lfGetLongFileName(Path);
   {$ENDIF}
   lGetDir(0, CD);
@@ -1194,7 +1205,7 @@ function PathExist(s: String): Boolean;
   Параметр допускается как со слешем на конце, так и без него.
 }
   var
-    SR: TOSSearchRec;
+    SR: lSearchRec;
     l: Integer;
     Attr: Longint;
   begin
@@ -1213,10 +1224,9 @@ function PathExist(s: String): Boolean;
       Result := ValidDrive(S[1]);
       exit;
       end;
-    Attr := AnyFile or (Directory shl 8);
-    s[l + 1] := #0;
-    Result := SysFindFirst(@s[1], Attr, SR, True) = 0;
-    if not Result then
+    Attr := AnyFileDir or (Directory shl 8);
+    lFindFirst(S, Attr, SR);
+    if DosError <> 0 then
       begin { Бывает, что каталог есть, а SysFindFirst даёт ошибку.
        Так бывает, например, в корне шары, а также при каких-то
        невыясненных обстоятельствах под OS/2 на FAT16. Поэтому, если
@@ -1224,12 +1234,12 @@ function PathExist(s: String): Boolean;
        каталога. Ограничиваться только этом тоже нельзя, так как бывает,
        что каталог совсем-совсем пустой, даже без '.' и '..' внутри.
        Так бывает, например, под Win на DirectCD CDRW.}
-      Attr := AnyFile;
+      Attr := AnyFileDir;
       S := S + '\*';
-      s[l + 3] := #0;
-      Result := SysFindFirst(@s[1], Attr, SR, True) = 0;
+      lFindFirst(S, Attr, SR);
       end;
-    SysFindClose(SR);
+    Result := (DosError = 0);
+    lFindClose(SR);
     end;
   end;
 
@@ -1250,7 +1260,7 @@ procedure GetFTimeSizeAttr(const A: String; var ATime: LongInt;
     SR: lSearchRec;
   begin
   ClrIO;
-  lFindFirst(A, AnyFile and not VolumeID, SR);
+  lFindFirst(A, AnyFileDir, SR);
   ATime := SR.SR.Time;
   ASize := SR.FullSize;
   AAttr := SR.SR.Attr;

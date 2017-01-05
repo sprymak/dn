@@ -35,7 +35,7 @@ if not exist EXE.%Target% md EXE.%Target%
 Echo        Compiling VERSION.EXE for %Host%
 if exist EXE.%Host%\version.exe goto dover
 vpc version /b /q /c%H%
-@if errorlevel 1 pause Error
+@if errorlevel 1 goto Error
 if exist EXE.%Host%\tvhc.exe del EXE.%Host%\thvc.exe
 :dover
 EXE.%Host%\version.exe EXE.%Target%\version.inc %Target%  %rplugin%
@@ -44,7 +44,7 @@ EXE.%Host%\version.exe EXE.%Target%\version.inc %Target%  %rplugin%
 if exist EXE.%Host%\tvhc.exe goto comphelp
 Echo        Compiling TVHC.EXE for %Host%
 vpc tvhc /m  /q /c%H%
-@if errorlevel 1 pause Error
+@if errorlevel 1 goto Error
 
 :comphelp
 Echo   Compiling help files for %Target%
@@ -57,12 +57,13 @@ rem EXE.%Target%\tvhc resource\hungary\dnhelp.htx EXE.%Target%\hungary.hlp EXE.%
 if exist EXE.%Host%\rcp.exe goto dores
 Echo        Compiling RCP.EXE for %Host%
 vpc rcp /b /dRCP /q %plugin% /c%H%
-@if errorlevel 1 pause Error
+@if errorlevel 1 goto Error
 :dores
 
 Echo        Compiling resource files for %Target% %rplugin%
 set RCP_Target=%Target%
 if [%RCP_Target%]==[W32] set RCP_Target=Win32
+if [%RCP_Target%]==[D32] set RCP_Target=DPMI32
 EXE.%Host%\rcp %T% %RCP_Target% %rplugin%
 :endres
 %pause%
@@ -73,14 +74,14 @@ rem vpc dn2CAT /b /dDN /dDNPRG /dPLUGIN /q /c%T%
 rem if not errorlevel 1 goto end_dn2cat
 rem @echo Это что-то переполняется в VP, со второго раза получится.
 rem vpc dn2CAT /m /dDN /dDNPRG /dPLUGIN /q /c%T%
-rem @if errorlevel 1 pause Error
+rem @if errorlevel 1 goto Error
 rem :end_dn2cat
 rem %pause%
 
 if not %Target%==OS2 goto end_dnpmapil
 Echo        Compiling dnpmapil.dll for %Target%
 vpc dnpmapil /q /b %plugin% /c%T%
-@if errorlevel 1 pause Error
+@if errorlevel 1 goto Error
 %pause%
 :end_dnpmapil
 
@@ -93,10 +94,10 @@ vpc dn /dDN /dDNPRG -b -q -CW:d32:DPMI32
 @if not errorlevel 1 goto pe2LE
 @echo Это что-то переполняется в VP, со второго раза получится.
 vpc dn /dDN /dDNPRG -m -q -CW:d32:DPMI32
-@if errorlevel 1 pause Error
+@if errorlevel 1 goto Error
 :pe2LE
-PE2LE.EXE EXE.D32\dn.EXE /* /S:WDOSXLE.EXE /Q'
-@if errorlevel 1 pause Error
+PE2LE.EXE EXE.D32\DN.EXE EXE.D32\DN.PRG /S:LIB.D32\PMODEW.EXE /Q
+@if errorlevel 1 goto Error
 del EXE.D32\dn.exe
 goto end_dn
 
@@ -106,7 +107,7 @@ vpc dn /b /dDN /dDNPRG /q %plugin% /c%T%
 if not errorlevel 1 goto end_dn
 @echo Это что-то переполняется в VP, со второго раза получится.
 vpc dn /m /dDN /dDNPRG /q %plugin% /c%T%
-@if errorlevel 1 pause Error
+@if errorlevel 1 goto Error
 :end_dn
 if [%Target%]==[OS2] if [%Host%]==[OS2] rc -p -x2 exe.os2\dn.res exe.os2\dn.exe
 
@@ -116,7 +117,7 @@ vpc plugman /m /q /c%T%
 if not errorlevel 1 goto end_plgman
 @echo Это что-то переполняется в VP, со второго раза получится.
 vpc plugman /m /q /c%T%
-@if errorlevel 1 pause Error
+@if errorlevel 1 goto Error
 :end_plgman
 %pause%
 
@@ -137,5 +138,9 @@ goto ret
 @echo если она отлична от текущей.
 @echo Параметр должен отсутствовать или иметь значение P
 @echo (для компиляции плагинной версии).
+@goto ret
 
+:Error
+  echo Error
 :ret
+

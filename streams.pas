@@ -175,6 +175,7 @@ implementation
 uses
   {$IFDEF PLUGIN}Plugin, {$ENDIF}
   Strings, Memory
+  {$IFDEF DPMI32}, LfnVP {$ENDIF}
   ;
 
 const
@@ -638,9 +639,9 @@ function AFileOpen(var FileName: AsciiZ; Mode: Word; var Handle: Word)
   : Word;
   begin
   if Mode = stCreate then
-    AFileOpen := SysFileCreate(@FileName, stOpen, $20 {Archive}, Handle)
+    AFileOpen := {$IFDEF DPMI32}LfnVP.{$ENDIF}SysFileCreate(@FileName, stOpen, $20 {Archive}, Handle)
   else
-    AFileOpen := SysFileOpen(@FileName, Mode, Handle);
+    AFileOpen := {$IFDEF DPMI32}LfnVP.{$ENDIF}SysFileOpen(@FileName, Mode, Handle);
   end;
 
 function AFileRead(Handle: Word; var Buf; Count: SW_Word;

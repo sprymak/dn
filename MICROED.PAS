@@ -290,7 +290,7 @@ uses
   {$IFDEF PLUGIN}Plugin, {$ENDIF}
   Gauge, FViewer, HistList, Macro, Editor, WinClp, DNUtil, Histries,
   xTime, FileCopy, ASCIITab, DnIni, U_SrchF, EdWin, MicroEd2 {-$VIV}
-  , Events
+  , Events, VpSysLow
   ;
 
 const
@@ -359,7 +359,9 @@ procedure TFileEditor.ChangeBlockCase(C: Word);
     begin { Команда типа cmUpString: выделяем текущую строку }
     Mark.Assign(0, Delta.Y, MaxLongStringLength, Delta.Y);
     end
-  else if (Mark.A.X = Mark.B.X) and (Mark.A.Y >= Mark.B.Y) then
+  else if not BlockVisible or
+      ((Mark.A.X = Mark.B.X) and (Mark.A.Y >= Mark.B.Y))
+  then
     begin { Пустое выделение - выделяем слово, содержащее курсор }
     Mark.Assign(Delta.X, Delta.Y, Delta.X, Delta.Y);
     S := GetLine(Mark.A.Y);
@@ -849,8 +851,7 @@ constructor TFileEditor.Init;
   EdOpt.AutoJustify := EditorDefaults.EdOpt and ebfJwr <> 0;
   EdOpt.AutoBrackets := EditorDefaults.EdOpt and ebfABr <> 0;
   EdOpt.AutoWrap := EditorDefaults.EdOpt and ebfAwr <> 0;
-  TabReplace := (EditorDefaults.EdOpt {$IFNDEF OS_DOS} shl 2 {$ENDIF})
-     and ebfTRp <> 0;
+  TabReplace := EditorDefaults.EdOpt and ebfTRp <> 0;
   EdOpt.SmartTab := EditorDefaults.EdOpt2 and ebfSmt <> 0;
 
   Val(EditorDefaults.RM, EdOpt.RightSide, I);
@@ -1374,7 +1375,7 @@ begin
       HistoryAdd(HistoryID, S);
     end;
   Dispose(D,Done);
-{$IFDEF OS_DOS}
+{$IFDEF DPMI32}
   GetFileNameDialog := lfGetLongFileName(S);
 {$ELSE}
   GetFileNameDialog := S;
@@ -3686,11 +3687,13 @@ L1:
       R: TRect;
     label Ex;
 
-    procedure Chk;
+    procedure Chk(S: string);
       begin
       DelLeft(S);
       DelRight(S);
       if S = '' then
+        Exit;
+      if Abort then
         Exit;
       if Res = '' then
         Res := FindFileWithSPF(S, Info);
@@ -3706,180 +3709,113 @@ L1:
         Exit;
       if Res = '' then
         Res := FindFileWithSPF(GetSName(S)+GetExt(EditName), Info);
-      if Abort then
-        Exit;
       end { Chk };
 
-    begin { OpenFileAtCursor }
-    if WorkString <> '' then
-      {Cat: работаем только на непустой строчке}
+    type
+      TSetChar = set of Char;
+
+    function GetMin(BreakChar: TSetChar): Integer;
+      var
+        I: Integer;
       begin
-      Res := '';
-      S := '';
-      R.Assign(0, 0, 20, 7);
-      New(Info, Init(R));
-      Info^.Write(1, Copy(GetString(dlPleaseStandBy), 4, MaxStringLength));
-      Application^.Insert(Info);
-      Abort := False;
-
-      P := Delta.X+1;
-
-      Min1 := 1;
-      for I := P downto 1 do
-        if WorkString[I] in IllegalCharSet+['*', '?']
-        then
+      for I := P DownTo 1 do
+        if WorkString[I] in BreakChar then
           begin
-          Min1 := I+1;
-          Break
+          Result := I+1;
+          Exit;
           end;
-      DispatchEvents(Info, Abort);
-      if Abort then
-        goto Ex;
+      Result := 1;
+      end;
 
-      Min2 := 1;
-      for I := P downto 1 do
-        if WorkString[I] in IllegalCharSet-['\']
-        then
+    function GetMax(BreakChar: TSetChar): Integer;
+      var
+        I: Integer;
+      begin
+      for I := P+1 to Length(WorkString) do
+        if WorkString[I] in BreakChar then
           begin
-          Min2 := I+1;
-          Break
+          Result := I;
+          Exit;
           end;
-      DispatchEvents(Info, Abort);
-      if Abort then
-        goto Ex;
+      Result := Length(WorkString)+1;
+      end;
 
-      Min3 := 1;
-      for I := P downto 1 do
-        if WorkString[I] in IllegalCharSetDos+['*', '?']
-        then
-          begin
-          Min3 := I+1;
-          Break
-          end;
-      DispatchEvents(Info, Abort);
-      if Abort then
-        goto Ex;
+    const
+      IllegalCharSetDos =
+        [';', ',', '=', '+', '<', '>', '|', '"', '[', ']', ' ', '*', '?'];
+      Break2 = IllegalCharSet+['*', '?'];
+      Break1 = Break2+['\', '/'];
+      Break4 = IllegalCharSetDos;
+      Break3 = Break4+['\', '/'];
 
-      Min4 := 1;
-      for I := P downto 1 do
-        if WorkString[I] in IllegalCharSetDos-['\']
-        then
-          begin
-          Min4 := I+1;
-          Break
-          end;
-      DispatchEvents(Info, Abort);
-      if Abort then
-        goto Ex;
+    begin { OpenFileAtCursor }
+    if WorkString = '' then
+      Exit; {Cat: работаем только на непустой строчке}
+    Res := '';
+    S := '';
+    R.Assign(0, 0, 20, 7);
+    New(Info, Init(R));
+    Info^.Write(1, Copy(GetString(dlPleaseStandBy), 4, 255));
+    Desktop^.Insert(Info); (* X-Man *)
+    Abort := False;
 
-      Max1 := Length(WorkString)+1;
-      for I := P to Length(WorkString) do
-        if WorkString[I] in IllegalCharSet+['*', '?']
-        then
-          begin
-          Max1 := I;
-          Break
-          end;
-      DispatchEvents(Info, Abort);
-      if Abort then
-        goto Ex;
+    P := Delta.X+1;
 
-      Max2 := Length(WorkString)+1;
-      for I := P to Length(WorkString) do
-        if WorkString[I] in IllegalCharSet-['\']
-        then
-          begin
-          Max2 := I;
-          Break
-          end;
-      DispatchEvents(Info, Abort);
-      if Abort then
-        goto Ex;
+    Min1 := GetMin(Break1);
+    Min2 := GetMin(Break2);
+    Min3 := GetMin(Break3);
+    Min4 := GetMin(Break4);
 
-      Max3 := Length(WorkString)+1;
-      for I := P to Length(WorkString) do
-        if WorkString[I] in IllegalCharSetDos+['*', '?']
-        then
-          begin
-          Max3 := I;
-          Break
-          end;
-      DispatchEvents(Info, Abort);
-      if Abort then
-        goto Ex;
+    Max1 := GetMax(Break1);
+    Max2 := GetMax(Break2);
+    Max3 := GetMax(Break3);
+    Max4 := GetMax(Break4);
 
-      Max4 := Length(WorkString)+1;
-      for I := P to Length(WorkString) do
-        if WorkString[I] in IllegalCharSetDos-['\']
-        then
-          begin
-          Max4 := I;
-          Break
-          end;
-      DispatchEvents(Info, Abort);
-      if Abort then
-        goto Ex;
+    DispatchEvents(Info, Abort);
+    if Abort then
+      goto Ex;
 
-      Res := '';
-      S := Copy(WorkString, Min1, Max1-Min1);
-      Chk;
-      if Abort then
-        goto Ex;
-      S := Copy(WorkString, Min1, Max2-Min1);
-      Chk;
-      if Abort then
-        goto Ex;
-      S := Copy(WorkString, Min2, Max1-Min2);
-      Chk;
-      if Abort then
-        goto Ex;
-      S := Copy(WorkString, Min2, Max2-Min2);
-      Chk;
-      if Abort then
-        goto Ex;
-      S := Copy(WorkString, Min3, Max3-Min3);
-      Chk;
-      if Abort then
-        goto Ex;
-      S := Copy(WorkString, Min3, Max4-Min3);
-      Chk;
-      if Abort then
-        goto Ex;
-      S := Copy(WorkString, Min4, Max3-Min4);
-      Chk;
-      if Abort then
-        goto Ex;
+    Res := '';
+    Chk(Copy(WorkString, Min1, Max1-Min1));
+    if Res = '' then
+      Chk(Copy(WorkString, Min1, Max2-Min1));
+    if Res = '' then
+      Chk(Copy(WorkString, Min2, Max1-Min2));
+    if Res = '' then
+      Chk(Copy(WorkString, Min2, Max2-Min2));
+    if Res = '' then
+      Chk(Copy(WorkString, Min3, Max3-Min3));
+    if Res = '' then
+      Chk(Copy(WorkString, Min3, Max4-Min3));
+    if Res = '' then
+      Chk(Copy(WorkString, Min4, Max3-Min4));
+    if Res = '' then
+      Chk(Copy(WorkString, Min4, Max4-Min4));
+    if Abort then
+      goto Ex;
+
+    if Res = '' then
+      begin
+      Info^.Hide;
       S := Copy(WorkString, Min4, Max4-Min4);
-      Chk;
-      if Abort then
-        goto Ex;
-
-      S := Copy(WorkString, Min4, Max4-Min4);
-      DelLeft(S);
-      DelRight(S);
       if  (PosChar('.', S) = 0) then
         S := S+GetExt(EditName);
-
-      if Res = '' then
-        begin
-        Info^.Hide;
-        Res := Cut(S, 20);
-        Q := @Res;
-        case ExecResource(dlgSrchFailed, Q) of
-          cmYes:
-            PDNApplication(Application)^.EditFile(True,
-               SourceDir+'DN.SPF');
-          cmNo:
-            PDNApplication(Application)^.EditFile(True, S);
-        end
-        end
-      else
-        PDNApplication(Application)^.EditFile(True, Res);
+      Res := Cut(S, 20);
+      Q := @Res;
+      case ExecResource(dlgSrchFailed, Q) of
+        cmYes:
+          PDNApplication(Application)^.EditFile(True,
+             SourceDir+'DN.SPF');
+        cmNo:
+          PDNApplication(Application)^.EditFile(True, S);
+      end
+      end
+    else
+      PDNApplication(Application)^.EditFile(True, Res);
 
 Ex:
-      Info^.Free;
-      Abort := False;
-      end;
+    Info^.Free;
+    Abort := False;
     end { OpenFileAtCursor };
   {-DataCompBoy-}
 
@@ -4305,6 +4241,7 @@ Ex:
         cmSortBlock,
         cmRevSortBlock,
         cmCalcBlock,
+        cmInsertText,
         cmInsertDate,
         cmInsertTime,
         cmPrintBlock,
@@ -4711,9 +4648,10 @@ Ex:
       end {case};
     evKeyDown:
       begin
-      {AK155 Для вертикальных стрелок (возможно, с шифтом) ScrollLock
-      и Ctrl берутся по xor. См. чуть ниже обработку kbCtrlUp и далее}
-      if ShiftState and kbScrollState <> 0 then
+      {AK155 Для вертикальных стрелок (возможно, с шифтом) ScrollLock,
+      WheelEvent и Ctrl берутся по xor. См. чуть ниже обработку
+      kbCtrlUp и далее}
+      if (ShiftState and kbScrollState <> 0) xor WheelEvent then
         for i := Low(UpDnKey) to High(UpDnKey) do
           if Event.KeyCode = UpDnKey[i] then
             begin
@@ -4883,7 +4821,11 @@ Ex:
           if HScroll <> nil then
             Delta.X := HScroll^.Value;
           if VScroll <> nil then
+            begin
             Delta.Y := VScroll^.Value;
+            if VScroll^.ForceScroll then
+              Inc(Pos.Y, Delta.Y-LastY);
+            end;
           if LastY <> Delta.Y then
             ChangeLine;
           ChPosition := (not EdOpt.HiliteColumn or

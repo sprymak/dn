@@ -866,7 +866,7 @@ procedure FilesCopy(Files: PCollection; SourcePanel: PView;
       begin
       if  (ExAttr and (ReadOnly+SysFile+Hidden) <> 0) then
         begin
-        {$IFDEF OS_DOS}DisableAppend; {$ENDIF}
+        {$IFDEF DPMI32}DisableAppend; {$ENDIF}
         lSetFAttr(WriteStream, Archive);
         ClrIO;
         end;
@@ -974,7 +974,7 @@ procedure FilesCopy(Files: PCollection; SourcePanel: PView;
             begin
             {--- start -------- Eugeny Zvyagintzev ---- 29-08-2002 ----}
             {We have to check for existing file's size when not enough free space}
-            lFindFirst(CnvString(P^.NewName), AnyFile and not VolumeID, DirInfo);
+            lFindFirst(CnvString(P^.NewName), AnyFileDir, DirInfo);
             NFBigger := (DosError <> 0) or
                         (P^.Size > DirInfo.FullSize +
                                    SysDiskFreeLongX(@PathBuffer));
@@ -1008,7 +1008,7 @@ procedure FilesCopy(Files: PCollection; SourcePanel: PView;
 
           if P^.Eof and eoCheck <> 0 then
             begin
-            {$IFDEF OS_DOS}DisableAppend; {$ENDIF}
+            {$IFDEF DPMI32}DisableAppend; {$ENDIF}
             if DOS40 and Use40 then
               begin
 lRetryToReset:
@@ -1180,7 +1180,7 @@ lbStartCheck:
           if P^.Eof and eoAppend <> 0 then
             begin
 DoAppend:
-            {$IFDEF OS_DOS}DisableAppend; {$ENDIF}
+            {$IFDEF DPMI32}DisableAppend; {$ENDIF}
             FileMode := $42;
             lResetFile(WriteStream, 1);
             J := IOResult;
@@ -1197,7 +1197,7 @@ DoAppend:
                 if ExAttr = $FFFF then
                   begin
                   ClrIO;
-                  {$IFDEF OS_DOS}DisableAppend; {$ENDIF}
+                  {$IFDEF DPMI32}DisableAppend; {$ENDIF}
                   lGetFAttr(WriteStream, ExAttr);
                   if DosError = 0 then
                     TrySetArch
@@ -1207,7 +1207,7 @@ DoAppend:
                 if CheckI24Abort then
                   Break;
                 ExAttr := ExAttr or $FE00;
-                {$IFDEF OS_DOS}DisableAppend; {$ENDIF}
+                {$IFDEF DPMI32}DisableAppend; {$ENDIF}
                 lResetFile(WriteStream, 1);
                 if IOResult = 0 then
                   Seek(WriteStream.F, FileSize(WriteStream.F));
@@ -1218,7 +1218,7 @@ DoAppend:
             begin
 DoRewrite:
             ClrIO;
-            {$IFDEF OS_DOS}DisableAppend; {$ENDIF}
+            {$IFDEF DPMI32}DisableAppend; {$ENDIF}
             lReWriteFile(WriteStream, 1);
             if CheckI24Abort then
               Break;
@@ -1227,7 +1227,7 @@ DoRewrite:
               ClrIO;
               if ExAttr = $FFFF then
                 begin
-                {$IFDEF OS_DOS}DisableAppend; {$ENDIF}
+                {$IFDEF DPMI32}DisableAppend; {$ENDIF}
                 lGetFAttr(WriteStream, ExAttr);
                 if DosError = 0 then
                   TrySetArch;
@@ -1236,7 +1236,7 @@ DoRewrite:
                 TrySetArch;
               if CheckI24Abort then
                 Break;
-              {$IFDEF OS_DOS}DisableAppend; {$ENDIF}
+              {$IFDEF DPMI32}DisableAppend; {$ENDIF}
               lReWriteFile(WriteStream, 1);
               end;
             end;
@@ -1312,7 +1312,7 @@ lbStartWrite:
         if not Abort and (CopyOptions and cpoVerify <> 0) and (J > 0)
         then
           begin
-          {$IFDEF OS_DOS}
+          {$IFDEF DPMI32}
           asm
                      mov ah,0dh
                      int 21h
@@ -1380,7 +1380,7 @@ lbStartWrite:
           WriteProgress;
           WPWas := False;
           Close(WriteStream.F);
-          {$IFDEF OS_DOS}DisableAppend; {$ENDIF}
+          {$IFDEF DPMI32}DisableAppend; {$ENDIF}
           case ExAttr shr 8 of
             $FF: { Set Source Attribute, if Necessary }
               if P^.Attr <> Archive then
@@ -1656,7 +1656,7 @@ lbStartWrite:
       Attr := Attr and not ReadOnly;
 
     FileMode := $40;
-    {$IFDEF OS_DOS}DisableAppend; {$ENDIF}
+    {$IFDEF DPMI32}DisableAppend; {$ENDIF}
     lResetFile(ReadStream, 1);
     ReadPos := 0;
 
@@ -1712,7 +1712,7 @@ lbStartWrite:
     if not CopyPrn then
       {AK155 на устройстве незачем искать файлы}
       begin
-      lFindFirst(S2, AnyFile and not VolumeID, SR); {JO}
+      lFindFirst(S2, AnyFileDir, SR); {JO}
       DEr := (DosError <> 0);
       lFindClose(SR);
       end;
@@ -1851,7 +1851,7 @@ FileRead:
       if WW > 0 then
         BlockRead(ReadStream.F, B^, WW, J);
       {AK155}
-      {$IFNDEF OS_DOS}
+      {$IFNDEF DPMI32}
       { Под OS/2 и Win32 не вызывается, как в ДОС, обработчик критических ошибок,
  так что надо самим анализировать результат и вызывать обработчик }
       I := IOResult;
@@ -1927,7 +1927,7 @@ FileRead:
       L: LongInt;
     begin
     ClrIO;
-    lFindFirst(DirName+'\*.*', AnyFile and not VolumeID, SR); {JO}
+    lFindFirst(DirName+'\*.*', AnyFileDir, SR); {JO}
     while (DosError = 0) and not Abort and not CopyCancel do
       begin
       SSS := MakeNormName(AddDir, SR.FullName);
@@ -2127,7 +2127,6 @@ FileRead:
 *)
         if SourcePanel <> nil then
           Message(SourcePanel, evCommand, cmCopyUnselect, o);
-        o^.Attr := o^.Attr or VolumeID;
         KillDescrOf := @o^.FlName;
           { При переименовании каталога описание со старым именем
            надо прибивать }
@@ -2209,20 +2208,13 @@ FileRead:
         ClrIO;
         end;
       {/AK155}
-      lFindFirst(Source+'\*.*', AnyFile and not VolumeID, SR); {JO}
+      lFindFirst(Source+'\*.*', AnyFileDir, SR); {JO}
       while (DosError = 0) and not Abort and not CopyCancel do
         begin
         if  (SR.SR.Attr and Directory <> 0) and
           {!!!} not IsDummyDir(SR.SR.Name)
         then
           begin
-          {$IFDEF OS_DOS}
-          if NoCopyLFN
-          then
-            CopyI(Dest, MakeNormName(Source, SR.SR.Name), SR.SR.Name, nil,
-              CopyIt, SR.SR.Attr)
-          else {$ENDIF}
-            {MessageBox('CopyI in CopyF: '+Dest, nil, mfOKButton);}
             CopyI(Dest, MakeNormName(Source, SR.FullName), SR.FullName,
                nil,
               CopyIt, SR.SR.Attr)
@@ -2467,7 +2459,7 @@ TryGetInfo:
   label 1;
 
   var
-    {$IFDEF OS_DOS}
+    {$IFDEF DPMI32}
     Flush: Boolean;
     {$ENDIF}
     DrvC: Integer;
@@ -2592,7 +2584,7 @@ qqqq:
   CopyQueue := nil;
   DoneStreams;
 1:
-  {$IFDEF OS_DOS}
+  {$IFDEF DPMI32}
   Flush := ((SystemData.Options shl 3) and ossFlushDsk <> 0);
   if Flush then
     begin
@@ -2603,7 +2595,7 @@ qqqq:
     {$ENDIF}
     Dispose(Info, Done);
 
-  {$IFDEF OS_DOS}
+  {$IFDEF DPMI32}
   if AppendInstalled then
     asm
       mov ax, $B708
@@ -2640,7 +2632,7 @@ qqqq:
     SourcePanel^.DrawView;
     PFilePanelRoot(SourcePanel)^.InfoView^.DrawView;
     end;
-  {$IFDEF OS_DOS}
+  {$IFDEF DPMI32}
   if Flush then
     begin
     asm
@@ -2951,7 +2943,7 @@ AK155. При этом то восстанавливалось зацикливание, то становилось
             (UpStrg(S) = UpStrg(PFileRec(Files^.At(0))^.FlName[True])))
       then
         begin
-        lFindFirst(SSS, AnyFile and not VolumeID, SR); {JO}
+        lFindFirst(SSS, AnyFileDir, SR); {JO}
         DEr := (DosError <> 0);
         lFindClose(SR);
         if Abort then
@@ -2997,7 +2989,7 @@ AK155. При этом то восстанавливалось зацикливание, то становилось
   else
     S := UpStrg(Nm)+#0;
   I := 0;
-  if SysFileOpen(@S[1], Open_Access_ReadOnly or open_share_DenyNone,
+  if {$IFDEF DPMI32}LfnVP.{$ENDIF}SysFileOpen(@S[1], Open_Access_ReadOnly or open_share_DenyNone,
        hFile) = 0
   then
     begin
@@ -3013,9 +3005,6 @@ AK155. При этом то восстанавливалось зацикливание, то становилось
     CopyDir := SSS;
     Mask := '';
     CopyPrn := True;
-    {$IFDEF OS_DOS}
-    NoCopyLFN := True;
-    {$ENDIF}
     end
   else
     begin
@@ -3060,7 +3049,7 @@ procedure CopyFiles;
       CopyDir := '';
     end;
   {$IFDEF COPYTIMER}
-  DDTimer := Get100s;
+  DDTimer := GetCurMSec;
   {$ENDIF}
   Inc(SkyEnabled);
   LongWorkBegin;
@@ -3071,7 +3060,7 @@ procedure CopyFiles;
   LongWorkEnd;
   Dec(SkyEnabled);
   {$IFDEF COPYTIMER}
-  DDTimer := Get100s-DDTimer;
+  DDTimer := GetCurMSec-DDTimer;
   ev.What := evCommand;
   ev.Command := cmShowTimeInfo;
   ev.InfoPtr := nil;
@@ -3091,7 +3080,7 @@ procedure CopyDirContent(Source, Destination: String;
     Source := Source+'\';
   New(FC, Init($10, $10));
   ClrIO;
-  lFindFirst(Source+x_x, AnyFile and not VolumeID, SR);
+  lFindFirst(Source+x_x, AnyFileDir, SR);
   while (DosError = 0) and not Abort do
     begin
     if not IsDummyDir(SR.FullName) then

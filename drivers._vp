@@ -249,6 +249,7 @@ procedure GetMouseEvent(var Event: TEvent);
   // GetMouseEvent body
 
   begin { GetMouseEvent }
+  WheelEvent := False;
   if not MouseEvents then
     Event.What := evNothing
   else
@@ -403,7 +404,11 @@ WriteKey:
       What := evKeyDown;
       KeyCode := SysKeyEvent.skeKeyCode or ((SysKeyEvent.skeShiftState
              and $0F) shl 16); {Cat}
-      ShiftState := SysKeyEvent.skeShiftState;
+      {AK155}
+      WheelEvent := (SysKeyEvent.skeShiftState and $80) <> 0;
+        { см. vpsysos2.pas и vpkbdw32.pas}
+      ShiftState := SysKeyEvent.skeShiftState and $7F;
+      {/AK155}
       {Cat}
       if  (KeyCode and $030000) <> 0 then
         KeyCode := KeyCode or $030000;
@@ -559,8 +564,6 @@ procedure FormatStr(var Result: String; const Format: String; var Params);
     ParOfs: LongInt;
     Filler, Justify: Byte;
     Buffer: array[1..12] of Byte;
-  const
-    HexDigits: array[0..15] of Char = '0123456789ABCDEF';
 
     // Convert next parameter to string
     // EXPECTS:     al    = Conversion character
@@ -593,7 +596,7 @@ procedure FormatStr(var Result: String; const Format: String; var Params);
               @@1:
                 mov     edx,eax
                 and     edx,0Fh
-                mov     dl,HexDigits.Byte[edx]
+                mov     dl,HexStr.Byte[edx]
                 dec     esi
                 inc     ecx
                 mov     [esi],dl
@@ -605,7 +608,7 @@ procedure FormatStr(var Result: String; const Format: String; var Params);
               @@3:
                 mov     edx,eax
                 and     edx,0Fh
-                mov     dl,HexDigits.Byte[edx]
+                mov     dl,HexStr.Byte[edx]
                 dec     esi
                 inc     ecx
                 mov     [esi],dl

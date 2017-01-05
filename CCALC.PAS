@@ -107,7 +107,7 @@ procedure GetNValue(L: LongInt; A: Integer; var S: String);
   else
     while (L <> 0) do
       begin
-      S := HexStr[(L and ((1 shl A)-1))+1]+S;
+      S := HexStr[(L and ((1 shl A)-1))]+S;
       L := L shr A;
       end;
   end;

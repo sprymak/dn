@@ -349,12 +349,7 @@ const
   AutoRefreshPanels: Boolean = False;
 
   EditorDefaults: TEditorDefaultsData = (
-    EdOpt: ebfBSU+
-    {$IFDEF OS_DOS}
-    ebfEMS+
-    ebfXMS+
-    {$ENDIF}
-    ebfTRp {$IFNDEF OS_DOS} shr 2 {$ENDIF}; {-$VOL}
+    EdOpt: ebfBSU+ebfTRp;
     EdOpt2: ebfHlt+ebfSmt;
     ViOpt: vbfScrollAfterEOF;
     LM: '0';
@@ -382,9 +377,6 @@ const
   SystemData: TSystemData = (
     Options: ossEditor+
     ossUseSysClip+
-    {$IFDEF OS_DOS}
-    ossCheckDDA+
-    {$ENDIF}
     ossRemoveCD_RO shr 3;
     Mode1: '147';
     Mode2: '148';
@@ -489,7 +481,7 @@ if SourceDir = '' then
 if SourceDir[Length(SourceDir)] <> '\' then
   AddStr(SourceDir, '\');
 
-{$IFDEF OS_DOS}
+{$IFDEF DPMI32}
 StartupDir := lfGetLongFileName(StartupDir);
 SourceDir := lfGetLongFileName(SourceDir);
 TempDir := lfGetLongFileName(TempDir);

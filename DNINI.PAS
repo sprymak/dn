@@ -207,6 +207,12 @@ const
   {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
   {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
   {'.________________________;____________;____________________;___________________'}
+  {}{Calendar}
+  {}CalSundayFirst : Byte = 2; {piwamoto}{PZ}
+  {}CalOptionFlags : LongInt = 8; {PZ}
+  {,'~~~~~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~~~;~~~~~~~~~~~~~~~~~~`,}
+  {;      Variable name      ;   Type     ; Default value      ;          Comments ;}
+  {`.________________________;____________;____________________;___________________'}
   {} {RegExp}
   {}RegExpStr0: String = ''; {PZ}
   {}RegExpStr1: String = ''; {PZ}
@@ -277,8 +283,7 @@ uses
   Dos, Lfn, profile, Advance, Advance1, Collect, Messages, DNApp,
   {$IFDEF WIN32}VpSysLow, {$ENDIF}
   U_KeyMap, Country_,
-  Strings,
-  Streams
+  Strings, Streams, Advance2
   ;
 
 const
@@ -319,6 +324,7 @@ const
   CSNetInfo: PChar = 'NetInfo';
   CSTaskList: PChar = 'TaskList';
   CSLanguage: PChar = 'Language';
+  CSCalendar: PChar = 'Calendar';
   CSRegExp: PChar = 'RegExp';
   CSQuickDirs: PChar = 'QuickDirs';
   CSSetupStorage: PChar = 'SetupStorage';
@@ -568,6 +574,11 @@ procedure Proceed(RegisterVar: TDoProc);
        SizeOf(HelpLanguageOverride), @HelpLanguageOverride);
   RegisterVar(CSLanguage, 'ShowLanguageMenu', ikBool,
        SizeOf(ShowLanguageMenu), @ShowLanguageMenu);
+  {Calendar}
+  RegisterVar(CSCalendar, 'SundayFirst', ikUInt,
+       SizeOf(CalSundayFirst), @CalSundayFirst);
+  RegisterVar(CSCalendar, 'OptionFlags', ikSInt,
+       SizeOf(CalOptionFlags), @CalOptionFlags);
   {$IFDEF REGEXP}
   {RegExp}
   RegisterVar(CSRegExp, 'RegExpStr0', ikStr, SizeOf(RegExpStr0),
@@ -908,7 +919,7 @@ function ProbeINI(var INItime, INIsize: LongInt): Boolean;
   begin
   INItime := 0;
   INIsize := 0;
-  lFindFirst(DnIniFileName, AnyFile, SR);
+  lFindFirst(DnIniFileName, AnyFileDir, SR);
   if  (DosError = 0) and ((SR.SR.Attr and Directory) = 0) then
     begin
     ProbeINI := True;

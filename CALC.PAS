@@ -303,7 +303,7 @@ function GetFileName(var FileName: String; Mask, Title, ALabel: String;
     D^.GetFileName(S);
   GetFileName := C;
   Dispose(D, Done);
-  {$IFDEF OS_DOS}
+  {$IFDEF DPMI32}
   FileName := lfGetLongFileName(S);
   {$ELSE}
   FileName := S;
@@ -2263,7 +2263,7 @@ procedure TCalcView.LoadSheet;
     New(Cells, Init(10, 10));
     Exit
     end;
-  {$IFDEF OS_DOS}
+  {$IFDEF DPMI32}
   FName := lfGetLongFileName(lFExpand(FName));
   {$ELSE}
   FName := lFExpand(FName);
@@ -2323,7 +2323,7 @@ procedure TCalcView.SaveSheetAs;
      = cmCancel
   then
     Exit;
-  {$IFDEF OS_DOS}
+  {$IFDEF DPMI32}
   FName := lfGetLongFileName(lFExpand(FName));
   {$ELSE}
   FName := lFExpand(FName);

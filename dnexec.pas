@@ -91,18 +91,6 @@ uses
   Messages, Strings, filetype
   ;
 
-{$IFDEF OS_DOS}
-procedure SaveDsk;
-  begin
-  ClrIO;
-  if  ( (opSys <> opDOS) or (StartupData.Unload and osuAutosave = 0))
-    and not (TottalExit)
-  then
-    PDNApplication(Application)^.SaveDesktop
-      (SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
-  end;
-{$ENDIF}
-
 {JO}
 { AnsiExec - аналог DOS.Exec , который в качестве }
 { коммандлайна использует строку типа Ansistring }
@@ -273,15 +261,19 @@ procedure ExecStringRR(S: AnsiString; const WS: String; RR: Boolean); {JO}
     EV: TEvent;
     X, Y: SmallWord; {Cat}
     ScreenSize: TSysPoint; {Cat}
+    {$IFDEF DPMI32}
+    DosRunString: String;
+    {$ENDIF}
 
   begin
+  {$IFNDEF DPMI32}
   DoneSysError;
   DoneEvents;
   DoneVideo;
   DoneDOSMem;
   DoneMemory;
-  {$IFDEF OS_DOS}asm cld; mov eax,3; int $10; end; {$ENDIF}
   SwapVectors;
+  {$ENDIF}
   if TimerMark then
     DDTimer := GetCurMSec
   else
@@ -311,7 +303,32 @@ procedure ExecStringRR(S: AnsiString; const WS: String; RR: Boolean); {JO}
     {$ENDIF}
     ;
   {$ENDIF}
+  {$IFNDEF DPMI32}
   AnsiExec(GetEnv('COMSPEC'), '/c ' + S);
+  {$ELSE}
+  SaveDsk;
+  Application^.Done;
+  DosRunString:=' ' + S + #13;
+  Move(DosRunString, Pointer(LongInt(LoaderSeg)*$10+CommandOfs)^, Length(DosRunString) + 2);
+  if TimerMark
+    then DDTimer:=GetCurMSec
+    else DDTimer:=0;
+  asm
+   mov ax, 9904h
+   mov dx, word ptr DDTimer
+   mov cx, word ptr DDTimer+2
+   int 2Fh
+
+   mov ax, 9902h
+   mov cl, 1
+   int 2Fh
+
+   mov ax, 1 {dpmiFreeDesc}
+   mov bx, LoaderSeg
+   int 31h   {DPMI}
+  end;
+  Halt(1);
+  {$ENDIF}
   fExec := False;
   {AK155, Cat: чтобы комстрока и меню не налазили на вывод}
   SysGetCurPos(X, Y);
@@ -576,8 +593,9 @@ RepeatLocal:
 1111:
   Delete(S, 1, Succ(Length(S1)));
   Dispose(F, Done);
-{$IFDEF OS_DOS} {AK155 27/08/05 Поскольку DN/2 не завершается при выполнении
-  внешней команды, то и незачем проверять Valid(cmQuit) }
+{$IFDEF DPMI32}
+  // AK155 27/08/05 Поскольку DN/2 не завершается при выполнении
+  // внешней команды, то и незачем проверять Valid(cmQuit)
   if not Application^.Valid(cmQuit) then
     begin
     Exit;
@@ -602,7 +620,7 @@ RepeatLocal:
   if S[1] = '*' then
     Delete(S, 1, 1); {DelFC(S);}
   lGetDir(0, S1);
-  {$IFDEF OS_DOS}
+  {$IFDEF DPMI32}
   if UpStrg(MakeNormName(lfGetLongFileName(UserParams^.Active^.Owner^),
          '.')) <>
     UpStrg(MakeNormName(S1, '.'))

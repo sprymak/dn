@@ -1828,7 +1828,7 @@ function TRegExp.RegLoadNumber(Base: Integer; Digits: Integer;
   repeat
     if FInput >= FInputEol then
       Exit;
-    j := Pos(UpCase(FInput[0]), '0123456789ABCDEF');
+    j := Pos(UpCase(FInput[0]), HexStr);
     if  (j = 0) or (j > (Base and $FF)) then
       Break;
     v := v*(Base and ParseNumBaseMask)+j-1;

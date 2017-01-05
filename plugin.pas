@@ -296,7 +296,7 @@ procedure ApllyRuntimePatches;
   PlugDir := SourceDir+'PLUG_X\';
 
   { сначала запускаем все плагины из подкаталога PLUG_X }
-  lFindFirst(PlugDir+'*.DLL', AnyFile, SR);
+  lFindFirst(PlugDir+'*.DLL', AnyFileDir-Directory, SR);
   while DosError = 0 do
     begin
     if  (SR.SR.Attr and (Directory or Hidden)) = 0 then
@@ -736,7 +736,7 @@ function CreateDriveMenus(var Items: PMenuItem; var MaxL: Integer)
       end { Ok: };
 
     begin { LoadLibs }
-    lFindFirst(SourceDir+'P_*.DLL', AnyFile, SR);
+    lFindFirst(SourceDir+'P_*.DLL', AnyFileDir-Directory, SR);
     while DosError = 0 do
       begin
       if Ok then

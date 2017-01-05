@@ -77,6 +77,7 @@ uses
   {$IFDEF Game}Tetris, {$ENDIF}
   {$IFDEF NetInfo}NetInfo, {$ENDIF}
   {$IFDEF PHONES}Phones, {$ENDIF}
+  {$IFDEF NetBrowser}NetBrwsr, {$ENDIF}
   {$ENDIF !RCP}
   ColorSel,
   Dialogs, Menus, Streams, ObjType, Scroller, Setups,
@@ -635,6 +636,14 @@ RTempDrive : TStreamRec = (
       VmtLink: (TypeOf(FileFind.TTempDrive));
       Load: @FileFind.TTempDrive.Load;
       Store: @FileFind.TTempDrive.Store);
+    {$IFDEF NetBrowser}
+    { NetBrwsr }
+RNetDrive : TStreamRec = (
+     ObjType: otNetDrive;
+     VmtLink: (TypeOf(NetBrwsr.TNetDrive));
+     Load: @NetBrwsr.TNetDrive.Load;
+     Store: @NetBrwsr.TNetDrive.Store);
+    {$ENDIF}
     { FilesCol }
 RFilesCollection : TStreamRec = (
       ObjType: otFilesCollection;
@@ -662,11 +671,6 @@ RSeparator : TStreamRec = (
       VmtLink: (TypeOf(DblWnd.TSeparator));
       Load: @DblWnd.TSeparator.Load;
       Store: @DblWnd.TSeparator.Store);
-RSpecScroll : TStreamRec = (
-      ObjType: otSpecScroll;
-      VmtLink: (TypeOf(FlPanel.TSpecScroll));
-      Load: @FlPanel.TSpecScroll.Load;
-      Store: @FlPanel.TSpecScroll.Store);
 RDriveLine : TStreamRec = (
       ObjType: otDriveLine;
       VmtLink: (TypeOf(FlPanel.TDriveLine));

@@ -201,6 +201,13 @@ procedure THelpViewer.Draw;
     Pos.X := Delta.X-Size.X+1;
   if Pos.Y+Size.Y-1 < Delta.Y then
     Pos.Y := Delta.Y-Size.Y+1;
+  if (VScrollBar <> nil) and (WheelEvent or VScrollBar^.ForceScroll)
+  then
+    begin
+    Inc(Pos.Y, VScrollBar^.Step);
+    if Pos.Y < 0 then
+      Pos.Y := 0;
+    end;
   SetCursor(Delta.X-Pos.X, Delta.Y-Pos.Y);
   ShowCursor;
   Topic^.SetWidth(Size.X);

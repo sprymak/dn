@@ -32,6 +32,16 @@ procedure KbdInit(var _pSysKeyCount, _pSysKeyQue, _pSysShiftState, _pSysMouCount
 procedure KbdUpdateEventQueues;
 function GetWinShiftState2: byte;
 
+var
+  WindowNotFocused: Boolean;
+    { Эта переменная отслеживает потерю и возврат фокуса окном DN }
+const
+  WheelScrollLines: Integer = 3;
+    { число "вертикальных стрелок", генерируемых из одного щелчка
+    мышиного колеса. Если -1 - генерировать не стрелки, а страницы.
+    Можно установить снаружи, значение желательно брать из
+    HCU\Control Panel\Desktop\WheelScrollLines. }
+
 implementation
 {$Endif}
 
@@ -39,7 +49,6 @@ const
   Ctrl_Pressed = Right_Ctrl_Pressed or Left_Ctrl_Pressed;
   Alt_Pressed = Right_Alt_Pressed or Left_Alt_Pressed;
   AltCtrl_Pressed = Alt_Pressed or Ctrl_Pressed;
-
 
 // Type definitions duplicated from VpSysLow
 type
@@ -546,6 +555,11 @@ begin
     {$ENDIF}
     with InRec do
       case EventType of
+        FOCUS_EVENT:
+          begin
+          WindowNotFocused := not InRec.FocusEvent.bSetFocus;
+          ReadConsoleInput(SysFileStdIn, InRec, 1, EventCount);
+          end;
         key_Event:
           if SysKeyCount <= High(SysKeyQue) then
           with SysKeyQue[SysKeyCount], KeyEvent do
@@ -621,7 +635,38 @@ End и т.п. на _некоторых_ компьютерах тоже недопустимо при использовании
           end;
         _mouse_Event:
          begin
-          if SysMouCount <= High(SysMouQue) then
+          if InRec.MouseEvent.dwEventFlags = 4{MOUSE_WHEELED} then
+            begin { Имитируем клавиши Up/Dn или PgUp/PgDn,
+             но сопровождаем их "регистром" $80. }
+            if SysKeyCount <= High(SysKeyQue) then
+              with SysKeyQue[SysKeyCount] do
+                begin
+                skeShiftState := SysShiftState or $80;
+                if WheelScrollLines = -1 then
+                  begin
+                  if (MouseEvent.dwButtonState and $80000000) <> 0 then
+                    skeKeyCode := $005100{kbPgDn}
+                  else
+                    skeKeyCode := $004900{kbPgUp};
+                  Inc(SysKeyCount);
+                  end
+                else
+                  begin
+                  if (MouseEvent.dwButtonState and $80000000) <> 0 then
+                    skeKeyCode := $005000{kbDown}
+                  else
+                    skeKeyCode := $004800{kbUp};
+                  Inc(SysKeyCount);
+                  for i := 2 to WheelScrollLines do
+                    if SysKeyCount <= High(SysKeyQue) then
+                      begin
+                      SysKeyQue[SysKeyCount] := SysKeyQue[SysKeyCount-1];
+                      Inc(SysKeyCount);
+                      end;
+                  end;
+                end;
+            end
+          else if SysMouCount <= High(SysMouQue) then
           with SysMouQue[SysMouCount] do
           begin
             smePos.X := MouseEvent.dwMousePosition.X;

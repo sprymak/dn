@@ -19,6 +19,8 @@ function QueryToAscii(CP: Word; var ToAscii: TXLat): Boolean;
   {` Для кодовой страницы CP запрашивается у ОС таблица перекодировки
   из CP в текущую кодовую страницу`}
 
+function QueryABCSort(CP: Word; var ABCSortXlat: TXLat): Boolean;
+
 implementation
 
 uses
@@ -91,6 +93,11 @@ procedure GetSysCountryInfo;
 function QueryToAscii(CP: word; var ToAscii: TXLat): Boolean;
   begin
   NullXlat(ToAscii);
+  end;
+
+function QueryABCSort(CP: Word; var ABCSortXlat: TXLat): Boolean;
+  begin
+  Result := False; //!! Пока не реализовано (04.09.2005)
   end;
 
 end.

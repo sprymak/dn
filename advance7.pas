@@ -120,7 +120,7 @@ function LngId: String;
     S := 'English';
   if not ValidLngId(S, False) then
     begin
-     lFindFirst(StartupDir+'*.LNG', AnyFile - Directory, SR);
+     lFindFirst(StartupDir+'*.LNG', AnyFileDir - Directory, SR);
      S := SR.FullName;
      if S <> '' then
        SetLength(S, Length(s)-4);

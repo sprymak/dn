@@ -1652,6 +1652,9 @@ begin
   KbdSetStatus(Key^, 0);
 end;
 
+const
+  KeyTime: ULong = 0;
+
 function SysTVGetPeekKeyEvent(var Event: TSysKeyEvent; _Peek: Boolean): Boolean;
 var
   Key  : ^KbdKeyInfo;
@@ -1669,6 +1672,25 @@ begin
       begin
         skeKeyCode := Ord(Key^.chChar) + Key^.chScan shl 8;
         skeShiftState := Lo(Key^.fsState);
+{ AK155  Отлов колеса мыши в AMouse. Для настоящих клавиш время следующей
+клавиши всегда отличается от времени предыдущей. А Amouse, если задать
+генерацию нескольких событий, генерирует их с одним и тем же временем.
+Одиночное событие отлавливать не умею. Помечаем колёсные события
+искусственным "шифтом" $80, см. drivers._vp. }
+        skeShiftState := skeShiftState and $0F;
+          //это всё равно будет сделано в drivers_vp
+        if Key^.Time = KeyTime then
+          skeShiftState := skeShiftState or $80 // как предыдущее
+        else
+          begin
+          KeyTime := Key^.Time;
+          KbdPeek(Key^, 0);
+          if ((Key^.fbStatus and kbdtrf_Final_Char_In) <> 0) and
+            (Key^.Time = KeyTime)  // как следующее
+          then
+            skeShiftState := skeShiftState or $80;
+          end;
+{/AK155}
         Result := True;
       end;
 end;

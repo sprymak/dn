@@ -93,10 +93,10 @@ procedure DoDump;
   I := Length(SourceDir);
   SourceDir := SourceDir+'DN.ERR'#0;
 
-  if SysFileOpen(@SourceDir[1], Open_Access_ReadWrite or
+  if {$IFDEF DPMI32}LfnVP.{$ENDIF}SysFileOpen(@SourceDir[1], Open_Access_ReadWrite or
        open_share_DenyNone, FH) <> 0
   then
-    if SysFileCreate(@SourceDir[1], Open_Access_ReadWrite or
+    if {$IFDEF DPMI32}LfnVP.{$ENDIF}SysFileCreate(@SourceDir[1], Open_Access_ReadWrite or
          open_share_DenyNone, $20 {Archive}, FH) <> 0
     then
       FH := Word(-1);

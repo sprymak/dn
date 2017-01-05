@@ -3062,11 +3062,11 @@ procedure THexLine.HandleEvent;
               if Sec then
                 S[CurX+1] := Char((Byte(S[CurX+1]) and $F0) or
                            (Pos(UpCase(Event.CharCode),
-                        '0123456789ABCDEF')-1))
+                        HexStr)-1))
               else
                 S[CurX+1] := Char((Byte(S[CurX+1]) and $F) or
                            (Pos(UpCase(Event.CharCode),
-                        '0123456789ABCDEF')-1) shl 4);
+                        HexStr)-1) shl 4);
               InputLine^.Data:= Copy(S, 1, InputLine^.MaxLen);
               InputLine^.DrawView;
               if Sec then

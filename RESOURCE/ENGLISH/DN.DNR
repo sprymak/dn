@@ -252,6 +252,14 @@ ColorDialog
          ColorItem 'Fields titles',     169,
          ColorItem 'Normal text',       170,
          ColorItem 'Cursor',            171,
+    ColorGroup 'Calendar',
+         ColorItem 'Numbers',           205,
+         ColorItem '(not used)',        206,
+         ColorItem 'Not today selected',207,
+         ColorItem 'Today not selected',208,
+         ColorItem 'Today selected',    209,
+         ColorItem 'Header',            210,
+         ColorItem 'Buttons',           211,
 END
 
 DIALOG dlgCountrySetup, 54, 22, 'Country information'
@@ -366,7 +374,7 @@ MENU dlgEditorMenu
       MenuItem '~C~opy', 'Ctrl-K C', kbNoKey, cmCopyBlock, hcedParagraph,
       MenuItem '~I~ndent', 'Ctrl-K I', kbNoKey, cmIndentBlock, hcedParagraph,
       MenuItem '~U~nindent', 'Ctrl-K U', kbNoKey, cmUnIndentBlock, hcedParagraph,
-      MenuItem '~T~oggle srlrction', 'Ctrl-H', kbCtrlH, cmHideBlock, hcedParagraph,
+      MenuItem '~T~oggle selection', 'Ctrl-H', kbCtrlH, cmHideBlock, hcedParagraph,
       MenuLine
 ;{Added by PaSkol}
       MenuItem 'Re~v~erse sort', 'Ctrl-R', kbCtrlR, cmRevSortBlock, hcedParagraph,
@@ -518,7 +526,7 @@ MENU dlgMainMenu
 ;$ENDIF
 ;$ENDIF
     MenuLine
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
     MenuItem 'Res~t~art', 'Ctrl-Alt-X', kbCtrlAltX, cmRestart, hcFileMenu,
 ;$ENDIF
     MenuItem 'E~x~it', 'Alt-X', kbAltX, cmQuit, hcFileMenu,
@@ -785,21 +793,21 @@ STATUSLINE
   StatusDef hcHelp, hcHelp,
 ;{BASE}
       StatusItem '~F1~ Help on help', kbF1, cmDefault,
-      StatusItem '~Tab~ Next topic', kbNoKey, cmYes,
+      StatusItem '~Tab~ Next reference', kbNoKey, cmYes,
       StatusItem '~ENTER~ Open',kbNoKey, cmOk,
       StatusItem '~Esc~ Cancel', kbNoKey, cmClose,
 ;{csablak}
-      StatusItem '~Back with mouse~', kbNoKey, cmNo,
+      StatusItem '~Alt-F1~ Go back~', kbAltF1, cmNo,
 ;{SHIFT}
       StatusItem ':~F1~ Index', kbShiftF1, cmCancel,
-      StatusItem ':~Tab~ Previous topic', kbNoKey, cmSave,
+      StatusItem ':~Tab~ Previous reference', kbNoKey, cmSave,
 ;{ALT}
       StatusItem '-~F1~ Go back', kbNoKey, cmNo,
       StatusItem '-~Z~ Zoom', kbAltZ, cmZoom,
 ;{CTRL}
       StatusItem '+~F5~ Resize', kbCtrlF5, cmResize,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
       StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
 ;$ENDIF
 ;{NO SHOW}
@@ -863,7 +871,7 @@ STATUSLINE
      StatusItem '+~Q~ Preview', kbCtrlQ, cmQuickView,
      StatusItem '+~Y~ Show', kbCtrlY, cmToggleShowMode,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Maximize', kbCtrlAltZ, cmMaxi,
@@ -905,7 +913,7 @@ STATUSLINE
      StatusItem ':~F3~ Phones', kbShiftF3, cmPhoneBook,
      StatusItem ':~F8~ Del', kbShiftF8, cmSingleDel,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Maximize', kbCtrlAltZ, cmMaxi,
@@ -955,7 +963,7 @@ STATUSLINE
      StatusItem ':~F7~ Format', kbShiftF7, cmFormatDisk,
      StatusItem ':~F8~ Erase', kbShiftF8, cmSingleDel,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Maximize', kbCtrlAltZ, cmMaxi,
@@ -994,7 +1002,7 @@ STATUSLINE
      StatusItem '-~Z~ Zoom', kbAltZ, cmZoom,
      StatusItem '-~X~ Quit', kbAltX, cmQuit,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Maximize', kbCtrlAltZ, cmMaxi,
@@ -1039,7 +1047,7 @@ STATUSLINE
      StatusItem ':~F7~ Cont. Search', kbShiftF7, cmContinueSearch,
      StatusItem ':~F10~ Video', kbShiftF10, cmChangeMode,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Maximize', kbCtrlAltZ, cmMaxi,
@@ -1080,7 +1088,7 @@ STATUSLINE
      StatusItem ':~F7~ Continue Search', kbShiftF7, cmContinueSearch,
      StatusItem ':~F10~ Video', kbShiftF10, cmChangeMode,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
 ;$ENDIF
 ;{NO SHOW}
@@ -1121,7 +1129,7 @@ STATUSLINE
 ;{Alt+Ctrl}
      StatusItem '^~~ Move up', kbCtrlAltUp, cmUpDBRec,
      StatusItem '^~~ Move down', kbCtrlAltDown, cmDownDBRec,
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
      StatusItem '^Maximi~z~e', kbCtrlAltZ, cmMaxi,
 ;     StatusItem '^~F8~ Reanimator', kbCtrlAltF8, cmReanimator,
@@ -1171,7 +1179,7 @@ STATUSLINE
      StatusItem ':~F8~ Print Block', kbShiftF8, cmPrintBlock,
      StatusItem ':~F10~ Video', kbShiftF10, cmChangeMode,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Maximize', kbCtrlAltZ, cmMaxi,
@@ -1227,7 +1235,7 @@ STATUSLINE
      StatusItem ':~F7~ Format', kbShiftF7, cmFormatDisk,
      StatusItem ':~F10~ Video', kbShiftF10, cmChangeMode,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Maximize', kbCtrlAltZ, cmMaxi,
@@ -1329,7 +1337,7 @@ STATUSLINE
      StatusItem ':~F7~ Format', kbShiftF7, cmFormatDisk,
      StatusItem ':~F10~ Video', kbShiftF10, cmChangeMode,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
 ;$ENDIF
 ;{NO SHOW}
@@ -1357,7 +1365,7 @@ STATUSLINE
      StatusItem ':~F7~ Format', kbShiftF7, cmFormatDisk,
      StatusItem ':~F10~ Video', kbShiftF10, cmChangeMode,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Maximize', kbCtrlAltZ, cmMaxi,
@@ -1379,7 +1387,7 @@ STATUSLINE
 ;{ALT}
      StatusItem '-~X~ Quit', kbAltX, cmQuit,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
 ;$ENDIF
      StatusItem '^~Z~ Maximize', kbCtrlAltZ, cmMaxi,
@@ -1409,7 +1417,7 @@ STATUSLINE
      StatusItem ':~F7~ Format', kbShiftF7, cmFormatDisk,
      StatusItem ':~F10~ Video', kbShiftF10, cmChangeMode,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
 ;$ENDIF
 ;{NO SHOW}
@@ -1470,7 +1478,7 @@ STATUSLINE
 ;{ALT}
      StatusItem '-~X~ Quit', kbAltX, cmQuit,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
 ;$ENDIF
 ;{NO SHOW}
@@ -1497,7 +1505,7 @@ STATUSLINE
      StatusItem '~F2~ Setup', kbF2, cmSetupModem,
      StatusItem '~F10~ Menu', kbF10, cmMenu,
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
 ;$ENDIF
 ;{NO SHOW}
@@ -1509,20 +1517,25 @@ STATUSLINE
   StatusDef hcCalendar, hcCalendar,
 ;{BASE}
      StatusItem '~F1~ Help', kbF1, cmHelp,
-     StatusItem '~=>~ Next month',KbNoKey, 0,
-     StatusItem '~<=~ Previous month', KbNoKey, 0,
-     StatusItem '~Space~ Return to current date', KbNoKey, 0,
+     StatusItem '~Space~ Current date', KbNoKey, 0,
+     StatusItem '~'#27'~ Prev day', KbNoKey, 0,
+     StatusItem '~'#26'~ Next day',KbNoKey, 0,
+     StatusItem '~'#24'~ Prev week', KbNoKey, 0,
+     StatusItem '~'#25'~ Next week',KbNoKey, 0,
+;{ALT}
+     StatusItem '-~Left~ Previous year', KbNoKey, 0,
+     StatusItem '-~Right~ Next year',KbNoKey, 0,
 ;{CTRL}
-     StatusItem '+~<=~ Previous year', KbNoKey, 0,
-     StatusItem '+~=>~ Next year',KbNoKey, 0,
-;{Alt+Ctrl}
-;$IFDEF OS_DOS
+     StatusItem '+~Left~ Previous month', KbNoKey, 0,
+     StatusItem '+~Right~ Next month',KbNoKey, 0,
+     StatusItem '+~F5~ Size/Move', kbCtrlF5, cmResize,
+;{ALT-CTRL}
+;$IFDEF DPMI32
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
 ;$ENDIF
 ;{NO SHOW}
      StatusItem '', kbEsc, cmClose,
      StatusItem '', kbCtrlF4, cmClose,
-     StatusItem '', kbCtrlF5, cmResize,
      StatusItem '', kbF10, cmMenu,
      StatusItem '', kbF9, cmNext,
      StatusItem '', kbShiftF9, cmPrev,
@@ -1534,7 +1547,7 @@ STATUSLINE
      StatusItem '~F1~ Help', kbF1, cmHelp,
 ;{CTRL}
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
 ;$ENDIF
 ;{NO SHOW}
@@ -1552,7 +1565,7 @@ STATUSLINE
      StatusItem '~F1~ Help', kbF1, cmHelp,
 ;{CTRL}
 ;{Alt+Ctrl}
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
      StatusItem '^~X~ Restart', kbCtrlAltX, cmRestart,
 ;$ENDIF
 ;{NO SHOW}
@@ -1929,7 +1942,7 @@ END
 
 DIALOG dlgEditorDefaults, 56, 23, 'Editor/Viewer Defaults'
     HELPCTX hcEditorDefaults
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
     CheckBoxes 2, 2, 54, 10, ofPostProcess, ofPreProcess
 ;$ELSE
     CheckBoxes 2, 2, 54, 9, ofPostProcess, ofPreProcess
@@ -1947,7 +1960,7 @@ DIALOG dlgEditorDefaults, 56, 23, 'Editor/Viewer Defaults'
       ITEM '~P~ersistent blocks'
       ITEM '~O~verwrite blocks'
       ITEM 'Lock ~f~ile'
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
       ITEM 'Use ~E~MS memory'
       ITEM 'Use XM~S~ memory'
 ;$ENDIF
@@ -1955,7 +1968,7 @@ DIALOG dlgEditorDefaults, 56, 23, 'Editor/Viewer Defaults'
       ITEM 'Tab Replace'
     END
     Label 2, 1, 'Editor options', ofPostProcess, ofPreProcess
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
     CheckBoxes 17, 10, 54, 12, ofPostProcess, ofPreProcess
 ;$ELSE
     CheckBoxes 17,  9, 54, 11, ofPostProcess, ofPreProcess
@@ -2606,7 +2619,7 @@ DIALOG dlgPanelShowSetup, 74, 22, 'File Panel appearance'
       ITEM 'AUTO'
     END
     Label 1, 14, 'Dirnames ~C~ase', ofPostProcess, ofPreProcess
-    ComboBox 17, 15, 30, 16 
+    ComboBox 17, 15, 30, 16
       ITEM 'aS Is'
       ITEM 'lower'
       ITEM 'Capitalized'
@@ -3009,15 +3022,9 @@ DIALOG dlgSetupArc, 78, 22, 'Archiver Setup'
     CheckBoxes 27, 16, 54, 17, ofPostProcess, ofPreProcess
       ITEM 'List files in subdirs'
     END
-;$IFDEF OS_DOS
-    CheckBoxes 3, 17, 33, 18, ofPostProcess, ofPreProcess
-      ITEM '~S~wap when unpack/del/test'
-    END
-;$ELSE
     CheckBoxes 3, 17, 26, 18, ofPostProcess, ofPreProcess
       ITEM 'Short command line'
     END
-;$ENDIF
 ;$IFNDEF OS2
     CheckBoxes 27, 17, 53, 18, ofPostProcess, ofPreProcess
       ITEM 'Use long ~f~ile names'
@@ -3512,7 +3519,7 @@ DIALOG dlgDriveInfoSetup, 55, 14, 'Information Panel Setup'
       ITEM '~P~hysical Memory'
       ITEM '~M~emory for user'
       ITEM '~V~irtual memory'
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
       ITEM '~E~MS Information'
       ITEM '~X~MS Information'
 ;$ENDIF
@@ -3587,7 +3594,7 @@ DIALOG dlgSystemSetup, 72, 21, 'System Setup'
 ;$ENDIF
       ITEM '~C~lear R/O flag from CDRom'
       ITEM 'A~d~vanced copy'
-;$IFDEF OS_DOS
+;$IFDEF DPMI32
       ITEM 'F~l~ush disk buffers'
 ;$ENDIF
     END
@@ -3728,7 +3735,7 @@ EDITOR COMMANDS
     COMMAND       cmUpString,     kbCtrlShiftSqBracketL, 0, #0#0,      #0#0
     COMMAND       cmLowString,    kbCtrlShiftSqBracketR, 0, #0#0,      #0#0
     COMMAND       cmCapString,    kbCtrlShiftBSlash, 0,     #0#0,      #0#0
-    COMMAND       cmCapitalizeBlock,    0,       0,         ^\#0,      #0#0
+    COMMAND       cmCapitalizeBlock,  kbCtrlBSlash,  0,     ^\#0,      #0#0
     COMMAND       cmPrintBlock,   0,             0,         ^K^P,      #0#0
     COMMAND       cmClear,        kbCtrlDel,     0,         ^K^Y,      #0#0
     COMMAND       cmCopyBlock,    0,             0,         ^K^C,      #0#0

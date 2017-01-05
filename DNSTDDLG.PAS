@@ -259,7 +259,7 @@ function PathValid(var Path: String): Boolean;
     PathValid := ValidDrive(ExpPath[1])
   else
     begin
-    lFindFirst(ExpPath+'\*.*', AnyFile, SR);
+    lFindFirst(ExpPath+'\*.*', AnyFileDir, SR);
     PathValid := DosError = 0;
     lFindClose(SR);
     end;
@@ -841,7 +841,7 @@ procedure TFileInfoPane.Draw;
     {$ENDIF}
   begin
   { Display path }
-  {$IFDEF OS_DOS}
+  {$IFDEF DPMI32}
   Path := #0+Cut
           (lfGetLongFileName(lFExpand(PFileDialog(Owner)^.Directory^))+
       PFileDialog(Owner)^.WildCard^, Size.X-1)+#0;
@@ -1215,7 +1215,7 @@ procedure TFileDialog.GetFileName(var S: String);
       end;
     end;
   S := DelSquashes(S);
-  {$IFDEF OS_DOS}
+  {$IFDEF DPMI32}
   S := lfGetLongFileName(lfGetLongFileName(GetPath(S))+GetName(S));
   {$ELSE}
   S := GetPath(S)+GetName(S);
@@ -1510,7 +1510,7 @@ function GetFileNameDialog(Mask, Title, Name: String;
   Dispose(D, Done);
   if S <> '' then
     begin
-    {$IFDEF OS_DOS}
+    {$IFDEF DPMI32}
     S := lFExpand(lfGetLongFileName(S));
     {$ENDIF}
     HistoryAdd(HistoryId, S);
@@ -1550,7 +1550,7 @@ function GetFileNameMenu(Path, Mask, Default: String;
   begin { GetFileNameMenu }
   UpStr(Default);
   L.Init(5, 5, False);
-  lFindFirst(MakeNormName(Path, '*.*'), AnyFile, SR);
+  lFindFirst(MakeNormName(Path, '*.*'), AnyFileDir, SR);
   while DosError = 0 do
     begin
     if  ( (SR.SR.Attr and Directory) = 0) and (SR.FullSize > 0) and

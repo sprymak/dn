@@ -207,7 +207,7 @@ constructor TDoubleWindow.Init;
 
 procedure TDoubleWindow.InitPanel(N: TPanelNum; R: TRect);
   var
-    PV: PSpecScroll;
+    PV: PMyScrollBar;
     P: PFilePanel;
     P1: PInfoView;
     P2: PDirView;
@@ -223,7 +223,6 @@ procedure TDoubleWindow.InitPanel(N: TPanelNum; R: TRect);
   Dec(B.B.Y, 3);
   New(PV, Init(B));
   New(P, Init(R, Panel[N].Drive, PV));
-  PV^.Panel := P;
   if Abort then
     begin
     Dispose(P, Done);
@@ -844,7 +843,7 @@ procedure TDoubleWindow.HandleCommand;
         D := D*Panel[N].FilePanel^.LineLength;
         end;
       Sp^.OldW := Size.X;
-      X := Sp^.OldX + D;
+      X := Sp^.Origin.X + D + 1;
       Sp^.OldX := Min(Max(X, 0), Sp^.OldW);
       GetBounds(R);
       ChangeBounds(R);

@@ -353,7 +353,7 @@ implementation
 uses
   Dos, DNHelp, Advance, Advance1, Advance2, VideoMan,
   UserMenu, Microed, FViewer, DblWnd, CmdLine,
-  {$IFDEF DNPRG} {$IFDEF OS2}Dn2PmApi, {$ENDIF} {$ENDIF} {AK155}
+  {$IFDEF DNPRG} Dn2PmApi, {$ENDIF} {AK155}
   {$IFDEF SS}Idlers, {$ENDIF}
   VpSysLow,
   DnIni,
@@ -987,11 +987,15 @@ procedure TProgram.GetEvent(var Event: TEvent);
     GetMouseEvent(Event);
     if Event.What = evNothing then
       begin
-      {$IFDEF DNPRG} {$IFDEF OS2}
+      {$IFDEF DNPRG}
       {AK155 В неактивном оконном состоянии не надо реагировать на
-          Shift, Alt, Ctrl}
-      if  (not DN_IsBGWindow) then
-        {$ENDIF} {$ENDIF}
+          Shift, Alt, Ctrl. И надо прекратить отлов комбинаций вроде
+          нажатия и отпускания Alt, что не не попадать в быстрый поиск,
+          если покинули DN по Alt-Tab и вернулись по Alt-Tab }
+      if  DN_IsBGWindow then
+        OldShiftState := 0
+      else
+        {$ENDIF}
         GetKeyEvent(Event);
       if Event.What = evNothing then
         begin
@@ -1334,7 +1338,6 @@ destructor TApplication.Done;
 
 procedure TApplication.ShowUserScreen;
   var
-    (* B, BB: Word; *)
     PV: PView;
     R: TRect;
   begin
@@ -1342,16 +1345,6 @@ procedure TApplication.ShowUserScreen;
   PV := New(PBackground, Init(R, ' '));
   if CommandLine <> nil then
     CommandLine^.SetState(sfDisabled, True);
-  {$IFDEF OS_DOS}
-  asm
-    mov cx, $2020
-    xor bx, bx
-    mov ah, 1
-    push bp
-    int 10h
-    pop  bp
- end;
-  {$ENDIF}
   Insert(PV);
   if  (StartupData.Load and osuResetPalette <> 0) and VGASystem
   then
@@ -1425,6 +1418,12 @@ procedure TApplication.HandleEvent(var Event: TEvent);
                 ClearEvent(Event);
                end;
 *)
+    evMouseDown:
+      begin {AK155 Щелчок мыши вне всего - как Ctrl-O }
+      Event.What := evCommand; Event.Command := cmShowOutput;
+      PutEvent(Event);
+      ClearEvent(Event);
+      end;
   end {case};
   end { TApplication.HandleEvent };
 

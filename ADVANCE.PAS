@@ -232,11 +232,12 @@ const
   '&', '*', '!', '#', '$', '/', '\', '"', '%', '>', '<',
   '-', '+', '=', '|', '?', #13, #10, #9, #26, #12, '@'];
 
-  HexStr: array[1..$10] of Char = '0123456789ABCDEF';
+  HexStr: array[0..$F] of Char = '0123456789ABCDEF';
   LoHexChar: array[0..$F] of Char = '0123456789abcdef';
   N_O_E_M_S: array[1..5] of Char = 'NOEMS';
   cTEMP_: String[5] = 'TEMP:';
   cLINK_: String[5] = 'LINK:';
+  cNET_: String[7] = 'Network';
   {.$IFNDEF OS2}
   x_x: String[3] = '*.*';
   {.$ELSE}
@@ -251,6 +252,9 @@ var
   { is running                                    }
   FreeStr: String;
   FreeLongStr: LongString;
+  InterfaceStr: String;
+    {` Статическая строка для передачи данных между программами.
+    Использовать её без крайней необходимости не следует. `}
   ActiveDir: String; {DataCompBoy}
   DNNumber: Byte;
 
@@ -289,7 +293,14 @@ const
     Currency: '$';
     KbdToggleLayout: 'ru441.xlt';
     ABCSortTable: 'sort866.xlt';
+{$IFDEF DPMI32}
+    WinCodeTable: 'win866r.xlt';
+{$ELSE} {$IFDEF Win32}
     WinCodeTable: '1251';
+{$ELSE} //OS2
+    WinCodeTable: '0';
+{$ENDIF}
+{$ENDIF}
     CodeTables: 'KOI:koi8-r.xlt'
     );
 
@@ -781,7 +792,7 @@ CheckOS;
 { - OS/2 2.10+, OS2COMSPEC environment variable is required }
 { - OS/2 Warp 3+, no additional requirements                }
 { - OS/2 for PPC, future versions for IA64 (I hope)         }
-{$IFDEF OS_DOS}
+{$IFDEF DPMI32}
 OS2exec := (opSys and opOS2 <> 0) and
     ( (Lo(DosVersion) > 20) or
       ( (Lo(DosVersion) = 20) and

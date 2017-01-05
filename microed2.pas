@@ -478,7 +478,7 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
     S: PDosStream;
     B: ^ByteArray;
     I, FFSize: LongInt;
-    J: LongInt;
+    J: LongInt; // длина прочитанного в буфер куска
     K: LongInt;
     LCount: LongInt;
     Lines: PLineCollection {PCollector}; {-SBlocks}
@@ -488,189 +488,107 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
     CodePageDetector: TCodePageDetector;
     OD, OA, ODOA: LongInt;
 
-  procedure CountLines;
-    var
-      K: LongInt;
-    begin
-    for K := 1+Byte(i > 0) to j do
-      if  (B^[K] = $0D) and ((K <= j-1) and (B^[K+1] = $0A)) then
-        begin
-        Inc(ODOA);
-        Inc(LCount);
-        Inc(K);
-        end
-      else if (B^[K] = $0D) then
-        begin
-        Inc(OD);
-        Inc(LCount)
-        end
-      else if (B^[K] = $0A) then
-        begin
-        Inc(OA);
-        Inc(LCount)
-        end;
-    end;
-
-  {Cat: добавил поддержку длинных строк}
-  {Cat:todo исправить замену табуляций пробелами}
+{AK155  15-02-2006 Полностью переписал, выкинув ассемблер и исправив
+   ошибку в развороте табуляции в конце промежуточного буфера. }
   procedure SearchLines;
     var
-      P, P2: Pointer;
-      K, L, M: LongInt;
-      QQQ: LongInt;
-      MMM: ShortString;
+      L: LongInt;
+      MMM: array[0..1124] of Char;
+        // промежуточный буфер, чтобы не дёргать зря AnsiString
+      TS: LongInt; // ширина табуляции
+      i: Integer; // заполнение MMM
+      InChar, BufEnd: PChar;
       C: Char;
-      TS: LongInt;
-      LLL: Boolean;
-      NNN: Boolean;
-    label 1, L2;
+    label
+      WrChar;
     begin
+    if KeyMapDetecting then
+      CodePageDetector.CheckString(PChar(B), J);
     with AED^ do
       begin
-      if  ( (EditorDefaults.EdOpt {$IFNDEF OS_DOS} shl 2 {$ENDIF}) and
-           ebfTRp) = 0
-      then
-        TabStep := 0
-      else
-        begin
-        TabStep := StoI(EditorDefaults.TabSize);
-        if TabStep = 0 then
-          TabStep := 8;
-        end;
-      K := 1;
-      P := B;
-      L := j;
       TS := TabStep;
-      repeat
-        MMM := '';
-        (*{$Uses Edi Ebx Esi Edx}*) {&Frame-}
-        asm
-    push edi
-    push ebx
-    push esi
-    push edx
-    push ecx
-    mov edi, P
-    add edi, K
-    dec edi
-    lea ebx, MMM
-    xor eax, eax
-    mov al, [ebx]
-    inc al
-    mov esi, eax
-   @@1:
-    mov al, [edi]
-    cmp al, 10
-    jne  @@L
-    xor eax, eax
-    inc eax
-    mov LLL, al
-    jmp @@E
-@@L:cmp al, 13
-    jne  @@5
-    mov al, [edi+1]
-    cmp al, 10
-    jz  @@O
-    xor eax, eax
-    inc eax
-    mov LLL, al
-    jmp @@E
-@@O:inc K
-    xor eax, eax
-    inc eax
-    mov LLL, al
-    jmp @@E
-  @@5:
-    cmp al, 9
-    jnz @@3
-    {-$VOL begin}
-    mov ecx, TS
-    or  ecx, ecx
-    jz  @@3
-    {-$VOL end}
-   @@4:
-    mov ECX, Ts
-    mov EAX, ESI
-    add EAX, ECX
-    xor EDX, EDX
-    idiv ECX
-    xor EDX, EDX
-    imul ECX
-    mov ECX, EAX
-    inc ECX
-    sub ECX, ESI
-    mov al, ' '
-   @@4_l:
-    mov [ebx+esi], al
-    inc byte ptr [ebx]
-    mov eax, esi
-    inc esi
-    mov ecx, ts
-    div cl
-    or  ah, ah
-    jz  @@2
-    mov al, [ebx]
-    cmp al, 254
-    jne @@4
-    xor eax, eax
-    inc eax
-    mov LLL, al
-    jmp @@EL
-   @@3:
-    mov [ebx+esi], al
-    inc esi
-    inc byte ptr [ebx]
-    mov al, [ebx]
-    cmp al, 254
-    jne @@2
-    xor eax, eax
-    inc eax
-    mov LLL, al
-    jmp @@EL
-   @@2:
-    inc K
-    inc edi
-    mov eax, K
-    cmp eax, L
-    jng @@1
-    xor eax, eax
-    mov LLL, al
-{Cat}
-     jmp @@E
-@@EL:
-    mov NNN,1
-    jmp @@EX
-@@E:
-    mov NNN,0
-@@EX:
- {/Cat}
-    pop ecx
-    pop edx
-    pop esi
-    pop ebx
-    pop edi
-   end;
-        if LLL then
-          goto L2;
-        ST := ST+MMM;
-        Exit;
-L2:
-        ST := ST+MMM;
-        if not NNN then
+      InChar := PChar(B);
+      BufEnd := PChar(B)+J;
+      while True do
+        begin { цикл строк; выход - катапультирование по концу буфера }
+        i := 0;
+        while True do { цикл символов; выход по разделителю строк или
+            катапультирование по концу буфера }
           begin
-          while (ST <> '') and (ST[Length(ST)] = ' ') do
-            SetLength(ST, Length(ST)-1);
-          if KeyMapDetecting then
-                  CodePageDetector.CheckString(@ST[1], Length(ST));
-          Lines^.Insert(NewLongStr(ST)); {Lines^.AddStr(ST);}
-          {-SBlocks}
-          ST := '';
+          if InChar = BufEnd then
+            begin // катапультирование по концу буфера
+            if i <> 0 then
+              begin
+              L := Length(ST);
+              SetLength(ST, L + i);
+              Move(MMM, ST[L+1], i);
+              end;
+            Exit;
+            end;
+          C := InChar^;
+          inc(InChar);
+          case C of
+           #$0D:
+             begin
+             if InChar^ = #$0A then
+               begin
+               inc(InChar);
+               inc(ODOA);
+               Break
+               end;
+             inc(OD);
+             Break;
+             end;
+           #$0A:
+             begin
+             inc(OA);
+             Break;
+             end;
+          end {case};
+          { Запись символа в промежуточный буфер }
+          if (C <> #$09) or (TS = 0) then
+            begin { Просто запись символа }
+            MMM[i] := C;
+            inc(i);
+            { Анализируем переполнение промежуточного буфера. В конце
+              буфера оставляем резерв на максимальный размер TabStep}
+            if i > SizeOf(MMM)-101 then
+              begin
+              L := Length(ST);
+              SetLength(ST, L + i);
+              Move(MMM, ST[L+1], i);
+              i := 0;
+              end;
+            end
+          else
+            begin { Замена табуляции пробелами. Тут переполнение
+              буфера не анализируем, хватит запаса (см. выше). }
+            L := (i div TS + 1)*TS;
+            while i <> L do
+              begin
+              MMM[i] := ' ';
+              inc(i);
+              end;
+            end
           end;
-        Inc(K);
-      until K > j;
+
+        if i <> 0 then
+          begin
+          L := Length(ST);
+          SetLength(ST, L + i);
+          Move(MMM, ST[L+1], i);
+          end;
+
+{!! Отбрасывание хвостовых пробелов. Надо сделать опциональным }
+        if (ST <> '') and (ST[Length(ST)] = ' ') then
+          LongDelRight(ST);
+
+        Lines^.Insert(NewLongStr(ST));
+        ST := '';
+        end;
       end
     end { SearchLines };
-
+{/AK155}
   var
     Info: PView;
     ep: Boolean;
@@ -695,16 +613,7 @@ L2:
     S := New(PBufStream, Init(FileName, stOpenRead, 1024));
     if  (S^.Status <> stOK) then
       begin
-      {$IFDEF OS_DOS}
-      asm
-         mov ax, $5900
-         xor bx, bx
-         int 21h
-         mov K, ax
-      end;
-      {$ELSE}
       K := S^.ErrorInfo;
-      {$ENDIF}
       isValid := (K = 2) or (K = 3) or (K = 110);
       if  (K <> 2) and (K <> 3) and (K <> 110) then
         MessFileNotOpen(FileName, K); {JO, AK155}
@@ -712,8 +621,6 @@ L2:
       Exit
       end;
     if  (S^.GetSize > MemAvail-$4000)
-      {$IFDEF OS_DOS} and (EditorDefaults.EdOpt and (ebfEMS+ebfXMS) = 0)
-      {$ENDIF}
     then
       begin
       Application^.OutOfMemory;
@@ -729,65 +636,12 @@ L2:
       FileName := '';
       Exit
       end;
-    Info := WriteMsg(^M^M^C+GetString(dlReadingFile));
+    Info := nil;
     I := 0;
     FFSize := S^.GetSize;
-    LCount := 1;
-    if FFSize-I > FBufSize then
-      J := FBufSize
-    else
-      J := FFSize-I;
-    ep := False;
-    NewTimer(tmr, 1);
-    while I < FFSize do
-      begin
-      S^.Read(B^[1+Byte(I > 0)], J);
-      UpdateWriteView(Info);
-      if TimerExpired(tmr) then
-        begin
-        NewTimer(tmr, 150);
-        ep := ESC_Pressed;
-        end;
-      if  (S^.Status <> stOK) or Abort or ep then
-        begin
-        FreeMem(B, FBufSize);
-        Dispose(S, Done);
-        Info^.Free;
-        FileName := '';
-        isValid := False;
-        Exit
-        end;
-      CountLines;
-      if S^.Eof then
-        Break; {-$VOL}
-      B^[1] := B^[J+Byte(I > 0)-1];
-      I := S^.GetPos;
-      if FFSize-I > FBufSize-1 then
-        J := FBufSize-1
-      else
-        J := FFSize-I;
-      end;
-    if  (LCount > MaxCollectionSize) or
-        ( (MemAvail-$4000 < 4*(LCount+50)+FFSize)
-        {$IFDEF OS_DOS} and (EditorDefaults.EdOpt and (ebfXMS+ebfEMS) =
-           0) {$ENDIF})
-    then
-      begin
-      Application^.OutOfMemory;
-      FreeMem(B, FBufSize);
-      Dispose(S, Done);
-      FileName := '';
-      Info^.Free;
-      isValid := False;
-      Exit
-      end;
-    {if RetCollector then Lines := GetCollector(LCount*11, LCount+50)}
-    {else Lines := New(PStdCollector, Init(LCount+50));}
-    Lines := New(PLineCollection, Init(LCount+250, 1000, True));
-    {-SBlocks}
+    Lines := New(PLineCollection, Init(1000 + (FFSize div 20), 1000, True));
     {-$VOL begin}
-    if  (EditorDefaults.EdOpt {$IFNDEF OS_DOS} shl 2 {$ENDIF})
-       and ebfTRp = 0
+    if EditorDefaults.EdOpt and ebfTRp = 0
     then
       TabStep := 0
     else
@@ -803,11 +657,13 @@ L2:
     I := 0;
     FFSize := S^.GetSize;
     LCount := 1;
+    ep := False;
+    NewTimer(tmr, 150);
     ST := '';
-    if FFSize-I > FBufSize then
+    if FFSize > FBufSize then
       J := FBufSize
     else
-      J := FFSize-I;
+      J := FFSize;
     while I < FFSize do
       begin
       UpdateWriteView(Info);
@@ -815,6 +671,8 @@ L2:
       if TimerExpired(tmr) then
         begin
         NewTimer(tmr, 150);
+        if Info = nil then
+          Info := WriteMsg(^M^M^C+GetString(dlReadingFile));
         ep := ESC_Pressed;
         end;
       if  (S^.Status <> stOK) or ep or Abort or (MemAvail < $4000) or

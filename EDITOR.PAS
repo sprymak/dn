@@ -1276,12 +1276,10 @@ function TXFileEditor.HandleCommand;
       end;
     end { CalcBlock };
 
-  procedure InsertDateTime(Time: Boolean);
+  procedure InsertText(const S: String);
     var
-      S: String[30];
       SS: Integer;
     begin
-    S := GetDateTime(Time);
     ChangeLine;
     WorkModify;
     WorkString := LongAddSpace(WorkString, LastX+1);
@@ -1704,8 +1702,10 @@ function TXFileEditor.HandleCommand;
         CalcBlock;
       HandleCommand := True;
       end;
+    cmInsertText:
+      InsertText(InterfaceStr);
     cmInsertDate, cmInsertTime:
-      InsertDateTime(Event.Command = cmInsertTime);
+      InsertText(GetDateTime(Event.Command = cmInsertTime));
     cmStartSearch:
       begin
       ChangeLine;

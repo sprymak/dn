@@ -3,13 +3,13 @@ unit Files;
 interface
 
 type
-  TUseLFN = True..True;
+  TUseLFN = Boolean;
 
 const
-  uLfn = True;
+  uLfn: TUseLFN = True;
 
 const
-  InvLFN = False;
+  InvLFN = True;
 
 implementation
 

@@ -187,6 +187,7 @@ uses
   {$IFDEF WIN32}Windows, {$ENDIF}Dos, VpSysLow, Drivers, Defines, DNApp,
    DnIni, Startup,
   Commands, VPUtils {$IFDEF OS2}, Os2Base {$ENDIF}, Messages
+  {$IFDEF DPMI32},Dpmi32, Dpmi32df{$ENDIF}
   ;
 
 var
@@ -224,9 +225,30 @@ procedure DetectVideoType; {JO}
   else
     VideoType := vtUnknown;
   end { DetectVideoType }; {/JO}
-{$ELSE}
+{$ENDIF}
+{$IFDEF WIN32}
   begin { DetectVideoType }
   VideoType := vtUnknown;
+  end { DetectVideoType };
+{$ENDIF}
+{$IFDEF DPMI32}
+  var
+    regs: real_mode_call_structure_typ;
+  begin { DetectVideoType }
+  init_register(regs);
+  regs.ax_ := $1C00;
+  regs.cx_ := 7;
+  intr_realmode(regs, $10);
+  if regs.al_ = $1C{VGA} then begin VideoType := vtVga; Exit; end;
+
+  init_register(regs);
+  regs.ax_ := $1200;
+  regs.bl_ := $32;
+  intr_realmode(regs, $10);
+  if regs.al_ = $12{MCGA}
+  then VideoType := vtVga
+  else VideoType := vtEga;
+
   end { DetectVideoType };
 {$ENDIF}
 
@@ -373,6 +395,17 @@ function SetVideoMode(Mode: Word): Boolean;
         Rows := 10;
       end;
   end {case};
+{$IFDEF DPMI32}
+{
+piwamoto: current mode == target mode
+VPSYSD32.SysSetVideoMode всегда чистит экран при смене видеорежима и делает
+кучу проверок, что тормозит и не нужно нам в случае если размер экрана до
+запуска DN и его рабочий размер совпадают
+}
+  if (Rows = Byte(MemL[seg0040+$84] + 1)) and
+     (Cols = Byte(MemL[seg0040+$4A]))
+    then Exit;
+{$ENDIF}
   if Rows <> 0 then
     if SysSetVideoMode(Cols, Rows) then
       begin
@@ -652,7 +685,9 @@ procedure SetBlink(Mode: Boolean); {JO}
   VioSetState(I, TVVioHandle);
   end;
 
-{$ELSE}
+{$ENDIF}
+
+{$IFDEF WIN32}
 procedure ResetVGApalette(Update: Boolean);
   begin
   end;
@@ -674,6 +709,76 @@ procedure Get_palette(color: Byte; var R, G, B: Byte);
 procedure SetBlink(Mode: Boolean);
   begin
   end;
+{$ENDIF}
+
+{$IFDEF DPMI32}
+procedure ResetVGApalette(Update: Boolean);
+begin
+  if Update then VGA_palette := VGA_default;
+  SetPalette(VGA_default);
+end;
+
+procedure GetPalette(var Buf);
+var
+  PAL: VGA_pal absolute Buf;
+  I: byte;
+begin
+  PAL:=VGA_default;
+  if not VGAsystem then Exit;
+  for I:=0 to 15 do
+    Get_palette(sl[I], pal[1,i], pal[2,i], pal[3,i]);
+end;
+
+procedure SetPalette(var Buf);
+var
+  PAL: VGA_pal absolute Buf;
+  I: byte;
+begin
+  if not VGAsystem then Exit;
+  for i:=0 to 15 do
+    Set_palette(sl[i], pal[1,i], pal[2,i], pal[3,i]);
+end;
+
+function VGASystem: Boolean;
+begin
+  VGASystem := VideoType >= vtVGA;
+end;
+
+procedure Set_palette(color, r, g, b: Byte);
+var
+  regs: real_mode_call_structure_typ;
+begin
+  init_register(regs);
+  regs.ax_ := $1010;
+  regs.bx_ := color;
+  regs.dh_ := r;
+  regs.ch_ := g;
+  regs.cl_ := b;
+  intr_realmode(regs, $10);
+end;
+
+procedure Get_palette(color: Byte; var R, G, B: Byte);
+var
+  regs: real_mode_call_structure_typ;
+begin
+  init_register(regs);
+  regs.ax_ := $1015;
+  regs.bx_ := color;
+  intr_realmode(regs, $10);
+  r := regs.dh_;
+  g := regs.ch_;
+  b := regs.cl_;
+end;
+
+procedure SetBlink(Mode: Boolean);
+var
+  regs: real_mode_call_structure_typ;
+begin
+  init_register(regs);
+  regs.ax_ := $1003;
+  regs.bl_ := Byte(Mode);
+  intr_realmode(regs, $10);
+end;
 {$ENDIF}
 
 {Procedure GetCrtMode;                                begin end;}

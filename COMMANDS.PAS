@@ -754,9 +754,7 @@ const
   ebfPBl = 1 shl 10;
   ebfObl = 1 shl 11;
   ebfLck = 1 shl 12;
-  ebfEMS = 1 shl 13;
-  ebfXMS = 1 shl 14;
-  ebfTRp = 1 shl 15; {-$VOL}
+  ebfTRp = 1 shl 13;
   {TabReplace}
   ebfHlt = 1 shl 0; {Highlight}
   ebfSmt = 1 shl 1; {SmartTab}
@@ -812,7 +810,9 @@ const
   ossCheckDDA = $10;
   ossRemoveCD_RO = $20;
   ossAdvCopy = $40;
-  { ossFlushDsk    = $100; }
+  {$IFDEF DPMI32}
+  ossFlushDsk = $100;
+  {$ENDIF}
 
   ossVerify = $01;
   ossCheckFreeSpace = $02; {DataCompBoy}
@@ -1187,6 +1187,7 @@ const
   cmToggleCaseString = 12163;
   cmRusEngConvString = 12164;
 
+  cmInsertText = 12165;
   cmInsertTime = 12166;
   cmInsertDate = 12167;
   cmMoveBlockStart = 12168;
@@ -2450,6 +2451,7 @@ type
     dlTeam2_009,
     dlTeam2_010,
     dlTeam2_011,
+    dlTeam2_012,
     dlTeam000,
     dlTeam001,
     dlTeam002,
@@ -2601,7 +2603,6 @@ type
     dlTeam148,
     dlTeam149,
     dlTeam150,
-    dlTeam151,
 
     dlHelp,
     dlOutputTitle,

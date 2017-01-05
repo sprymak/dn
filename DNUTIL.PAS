@@ -102,8 +102,10 @@ const
   NullStr: Byte = 0;
 
 var
-  LoaderSeg: Word;
-  CommandOfs: Word;
+{$IFDEF DPMI32}
+  LoaderSeg: SmallWord;
+  CommandOfs: SmallWord;
+{$ENDIF}
   RunFirst: Boolean;
 const
   Virgin: Boolean = False; {JO}
@@ -147,7 +149,7 @@ procedure WriteConfig;
 procedure ShowTimeInfo;
 procedure SetSysColors(var Pal);
 procedure LoadPalFromFile(const FN: String); {DataCompBoy}
-{$IFDEF OS_DOS}
+{$IFDEF DPMI32}
 procedure w95QuitInit; {Gimly}
 function w95QuitCheck: Boolean; {Gimly}
 procedure w95QuitCancel;
@@ -253,6 +255,9 @@ const
   DataSaver: PDataSaver = nil;
 
 procedure ExecDNAutoexec;
+{$IFDEF DPMI32}
+procedure SaveDsk;
+{$ENDIF}
 
 implementation
 
@@ -264,7 +269,7 @@ uses
   modemio,
   {$endif}
   ColorSel {, Crt}
-  , FileType, PDSetup
+  , FileType, PDSetup, U_KeyMap
   ;
 
 { Load and Store Palette routines }
@@ -501,7 +506,7 @@ procedure ClearSwap;
   PackTime(DT, L);
   SetFileAttr(SwpDir+'DN.FLG', 0);
   ClrIO;
-  {$IFDEF OS_DOS}
+  {$IFDEF DPMI32}
   ClearFiles('DN*.SWP');
   {$ENDIF}
   ClearFiles('$DN*.*');
@@ -565,7 +570,7 @@ constructor TDNApplication.Init;
     NewArchiveName:='';
    end;
 *)
-  {$IFDEF OS_DOS}
+  {$IFDEF DPMI32}
   LoadStream := PresentFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
   if LoadStream = nil then
     {$ENDIF}
@@ -612,7 +617,7 @@ constructor TDNApplication.Init;
     Event.Command := cmUserMenu;
     PutEvent(Event);
     end;
-  {$IFDEF OS_DOS}
+  {$IFDEF DPMI32}
   if ExistFile(SwpDir+'DN'+ItoS(DNNumber)+'.SWP') then
     EraseByName(SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
   {$ENDIF}
@@ -650,6 +655,18 @@ procedure SaveRealDsk;
   end;
 {-DataCompBoy-}
 
+{$IFDEF DPMI32}
+procedure SaveDsk;
+  begin
+  ClrIO;
+  if  ( (opSys <> opDOS) or (StartupData.Unload and osuAutosave = 0))
+    and not (TottalExit)
+  then
+    PDNApplication(Application)^.SaveDesktop
+      (SwpDir+'DN'+ItoS(DNNumber)+'.SWP');
+  end;
+{$ENDIF}
+
 {-DataCompBoy-}
 destructor TDNApplication.Done;
   var
@@ -684,6 +701,10 @@ destructor TDNApplication.Done;
   if  (StartupData.Unload and osuAutosave <> 0)
   then
     SaveRealDsk
+  {$IFDEF DPMI32}
+  else
+    SaveDsk
+  {$ENDIF}
     ;
   {AK155 SaveHistories;}
   {все запоминалось по ходу дела, притом с чтением,}
@@ -1006,7 +1027,7 @@ DN завершается. Так что я поставил весь этот кусок под IFDEF. При этом
 S^.ReadStr тоже втаскивать под ifdef нельзя: десктоп читается криво,
 хотя строка и пуста. Так что при окончательном искоренении OS_DOS
 надо будет убрать и запись этой пустой строки где-то, и чтение здесь. }
-{$IFDEF OS_DOS}
+{$IFDEF DPMI32}
     if  (PJ <> nil) and (PJ^ <> '') then
       if PosChar(PJ^[1], '+-=<>|[!') = 0 then
         begin
@@ -1061,7 +1082,7 @@ S^.ReadStr тоже втаскивать под ifdef нельзя: десктоп читается криво,
           end;
         RunMenu := False;
         end;
-{$ENDIF OS_DOS} //AK155
+{$ENDIF}
     DisposeStr(PJ);
     S^.ReadStrV(FreeStr);
     {S^.Read(FreeStr,1); S^.Read(FreeStr[1],length(FreeStr));} {Cat}
@@ -1556,7 +1577,8 @@ procedure TDNApplication.EditFile;
           EdOpt.RightSide := fRightSide;
           EdOpt.InSide := fInSide;
           InsertMode := fInsMode;
-          KeyMap := fKeyMap; {-$VIV}
+          if fKeyMap <= MaxKeyMap then
+            KeyMap := fKeyMap; {-$VIV}
           { Flash >>> }
           EdOpt.BackIndent := fBackIndent;
           EdOpt.AutoWrap := fAutoWrap;
@@ -2066,7 +2088,7 @@ procedure TDNApplication.HandleCommand;
         end;
       S := SD; {AK155 CommandLine^.GetData(S);}
       end;
-    {$IFDEF OS_DOS} {AK155}
+    {$IFDEF DPMI32} {AK155}
     if not CheckExit then
       begin
       ClearEvent(Event);
@@ -2112,7 +2134,7 @@ procedure TDNApplication.HandleCommand;
     then
       Exit;
     {$IFNDEF Win32}
-    if not TryRunOS2(@ST) {$IFDEF OS_DOS} and CheckExit {$ENDIF} {JO}
+    if not TryRunOS2(@ST) {$IFDEF DPMI32} and CheckExit {$ENDIF} {JO}
       then
       {$ENDIF}
       ExecString(St, #13#10+ActiveDir+'>'+ST);
@@ -2310,7 +2332,7 @@ procedure TDNApplication.HandleCommand;
     if
       {$IFNDEF Win32}
       not TryRunOS2(PString(Event.InfoPtr))
-       {$IFDEF OS_DOS} and CheckExit {$ENDIF} {JO}
+       {$IFDEF DPMI32} and CheckExit {$ENDIF} {JO}
       and
       {$ENDIF}
       not ExecCommandLine
@@ -2323,7 +2345,7 @@ procedure TDNApplication.HandleCommand;
     begin
     {$IFNDEF Win32}
     if not TryRunOS2(PString(Event.InfoPtr))
-       {$IFDEF OS_DOS} and CheckExit {$ENDIF} {JO}
+       {$IFDEF DPMI32} and CheckExit {$ENDIF} {JO}
       then
       {$ENDIF}
       ExecString(PString(Event.InfoPtr)^, '');
@@ -2363,7 +2385,7 @@ procedure TDNApplication.HandleCommand;
     S := SourceDir;
     if S[Length(S)] <> '\' then
       S := S+'\';
-    lFindFirst(S+'*.LNG', AnyFile, SR);
+    lFindFirst(S+'*.LNG', AnyFileDir, SR);
     while DosError = 0 do
       begin
       if  ( (SR.SR.Attr and Directory) = 0) and (SR.FullSize > 0) then
@@ -2382,7 +2404,7 @@ procedure TDNApplication.HandleCommand;
     S := StartupDir;
     if S[Length(S)] <> '\' then
       S := S+'\';
-    lFindFirst(S+'*.LNG', AnyFile, SR);
+    lFindFirst(S+'*.LNG', AnyFileDir, SR);
     while DosError = 0 do
       begin
       if  ( (SR.SR.Attr and Directory) = 0) and (SR.FullSize > 0) then
@@ -2445,7 +2467,7 @@ procedure TDNApplication.HandleCommand;
       else
         CurIdx := (CurIdx+1) mod L.Count;
       if  (CurIdx >= 0) and (PString(L.At(CurIdx))^ <>
-          LngMixCase(ActiveLanguage)) {$IFDEF OS_DOS} and CheckExit
+          LngMixCase(ActiveLanguage)) {$IFDEF DPMI32} and CheckExit
         {$ENDIF} {JO}
       then
         begin
@@ -2631,7 +2653,7 @@ procedure TDNApplication.HandleCommand;
       if  (ExecUserMenu(Event.Command = cmGlobalUserMenu)) then
         begin
         ST := FreeStr;
-        {$IFDEF OS_DOS}
+        {$IFDEF DPMI32}
         if CheckExit then
           {$ENDIF} {JO}
           begin
@@ -2717,7 +2739,7 @@ procedure TDNApplication.HandleCommand;
            0)*MaxStringLength)+'dn.edt');
     cmShowUserScreen:
       ShowUserScreen;
-    {$IFDEF OS_DOS}
+    {$IFDEF DPMI32}
     {-DataCompBoy-}
     cmRestart:
       if not CheckExit
@@ -2895,7 +2917,7 @@ procedure TDNApplication.HandleCommand;
         W := cmYes;
       if  (W <> cmYes) or not CheckExit then
         begin
-        {$IFDEF OS_DOS}
+        {$IFDEF DPMI32}
         if w95locked then
           w95QuitCancel; {Gimly}
         {$ENDIF}
@@ -3006,7 +3028,7 @@ procedure SetSysColors(var Pal);
      }
   end;
 
-{$IFDEF OS_DOS}
+{$IFDEF DPMI32}
 {Gimly}
 const
   w95QuitEnabled: Byte = 1;
@@ -3043,7 +3065,7 @@ asm
    JZ  @@No
 
 {Checking DN.INI setting...}
-   MOV AL, SmartWindowsBoxClose
+   MOV AL, Byte(SmartWindowsBoxClose)
    OR  AL, AL
    JZ  @@No
 
