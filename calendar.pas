@@ -74,7 +74,7 @@ implementation
 
 uses
   Commands, DNApp, Dos, Dialogs, advance1, DNHelp, DnIni, advance, xTime,
-  advance7
+  advance7, dnutil
   ;
 
 var
@@ -574,8 +574,7 @@ procedure TCalendarWindow.HandleEvent(var Event: TEvent);
           end;
         kbCtrlIns:
           begin
-          S := CalendarView^.GetDateText;
-          Message(Application, evCommand, cmPutInClipboard, @S);
+          PutInClip(CalendarView^.GetDateText);
           ClearEvent(Event);
           end;
       end {case};

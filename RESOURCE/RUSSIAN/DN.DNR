@@ -2927,9 +2927,9 @@ DIALOG dlgManualDial, 47, 7, 'Набор телефонного номера'
   Button 28, 4, 38, 6, 'Помо~щ~ь', cmHelp, ofPostProcess, ofPreProcess
 END
 
-DIALOG dlgCalculator, 52, 16, 'Калькулятор'
+DIALOG dlgCalculator, 64, 16, 'Калькулятор'
    HELPCTX hcCalculator
-#1 InputLine 2, 3, 48, 4, 250, hsCalcLine, ofPreProcess
+#1 InputLine 2, 3, 60, 4, 250, hsCalcLine, ofPreProcess
    Label 2, 2, 'Выражение', ofPostProcess, ofPreProcess
 #2 RadioButtons 2,6,11,12, 0, 0
      ITEM '~D~EC'
@@ -2942,8 +2942,32 @@ DIALOG dlgCalculator, 52, 16, 'Калькулятор'
    Label 2,5, '~Ф~орма:', ofPostProcess, ofPreProcess
    Button 1,13,14,15, 'Вы~ч~ислить', cmCalcValue, bfDefault, ofPostProcess, ofPreProcess
    Button 14,13,29,15, '~С~копировать', cmCopyClip, bfBroadcast, ofPostProcess, ofPreProcess
-   Button 29,13,40,15, 'Закрыть', cmCancel, bfBroadcast, ofPostProcess, ofPreProcess
-   Button 40,13,50,15, 'Помо~щ~ь', cmHelp, bfNormal, ofPostProcess, ofPreProcess
+   Button 29,13,41,15, 'Точность', cmChangeFormat, bfBroadcast, ofPostProcess, ofPreProcess
+   Button 41,13,52,15, 'Закрыть', cmCancel, bfBroadcast, ofPostProcess, ofPreProcess
+   Button 52,13,62,15, 'Помо~щ~ь', cmHelp, bfNormal, ofPostProcess, ofPreProcess
+END
+
+DIALOG dlgCalcFormat, 28, 18, 'Точность'
+   InputLine 7, 2, 11, 3, 2, 0
+   Label 1, 2, '~D~EC', ofPostProcess, ofPreProcess
+   StaticText 12, 2, 26, 3, ' дробных цифр'
+   InputLine 7, 4, 11, 5, 2, 0
+   Label 1, 4, '~H~EX', ofPostProcess, ofPreProcess
+   StaticText 12, 4, 26, 5, ' цифр'
+   InputLine 7, 6, 11, 7, 2, 0
+   Label 1, 6, '~B~IN', ofPostProcess, ofPreProcess
+   StaticText 12, 6, 26, 7, ' цифр'
+   InputLine 7, 8, 11, 9, 2, 0
+   Label 1, 8, '~O~CT', ofPostProcess, ofPreProcess
+   StaticText 12, 8, 26, 9, ' цифр'
+   InputLine 7, 10, 11, 11, 2, 0
+   Label 1, 10, '~E~XP', ofPostProcess, ofPreProcess
+   StaticText 12, 10, 26, 11, ' дробных цифр'
+   InputLine 7, 12, 11, 13, 2, 0
+   Label 1, 12, '~T~IME', ofPostProcess, ofPreProcess
+   StaticText 12, 12, 26, 13, ' дробных цифр'
+   Button 3,15,13,17, 'О~К~', cmOK, bfDefault, ofPostProcess, ofPreProcess
+   Button 15,15,25,17, 'Отмена', cmCancel, bfNormal, ofPostProcess, ofPreProcess
 END
 
 DIALOG dlgWindowManager, 70, 14, 'Менеджер окон'

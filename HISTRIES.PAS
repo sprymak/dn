@@ -71,7 +71,7 @@ type
     fToAscii: TXLat; // нужно только при fKeyMap = kmXlat
     fCodeTag: Str8;
     case Byte of
-      0: (fPos: LongInt;
+      0: (fPos: Comp;
         fBufPos: AWord;
         fFilter: Byte;
         fHexEdit: Boolean;

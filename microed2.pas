@@ -86,6 +86,7 @@ uses
   {$IFDEF PLUGIN}Plugin, {$ENDIF}
   ErrMess
   , Events {AK155 для LongWorkBegin - LongWorkEnd}
+  , Advance0
   ;
 
 type
@@ -476,7 +477,8 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
   var
     S: PDosStream;
     B: ^ByteArray;
-    I, FFSize: LongInt;
+    I: LongInt;
+    FFSize: LongInt; {!!s}
     J: LongInt; // длина прочитанного в буфер куска
     K: LongInt;
     LCount: LongInt;
@@ -637,7 +639,7 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
       end;
     Info := nil;
     I := 0;
-    FFSize := S^.GetSize;
+    FFSize := i32(S^.GetSize);
     Lines := New(PLineCollection, Init(1000 + (FFSize div 20), 1000, True));
     {-$VOL begin}
     if EditorDefaults.EdOpt and ebfTRp = 0
@@ -654,7 +656,7 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
     {-$VOL end}
     S^.Seek(0);
     I := 0;
-    FFSize := S^.GetSize;
+    FFSize := i32(S^.GetSize);
     LCount := 1;
     ep := False;
     NewTimer(tmr, 150);
@@ -694,7 +696,7 @@ function MIReadBlock(AED: PFileEditor; var FileName: String;
         S^.Seek(S^.GetPos-1);
         end;
       SearchLines;
-      I := S^.GetPos;
+      I := i32(S^.GetPos){!!s};
       if FFSize-I > FBufSize then
         J := FBufSize
       else

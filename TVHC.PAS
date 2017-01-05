@@ -567,7 +567,7 @@ procedure RecordReference(var Topic: String; var S: TStream);
   else
     begin
     New(FixUp);
-    FixUp^.Pos := S.GetPos;
+    FixUp^.Pos := Round(S.GetPos);
     I := -1;
     S.Write(I, SizeOf(I));
     FixUp^.Next := Ref^.FixUpList;
@@ -589,7 +589,7 @@ procedure ResolveReference(var Topic: String; Value: AWord;
     var
       Pos: LongInt;
     begin
-    Pos := S.GetPos;
+    Pos := Round(S.GetPos);
     while P <> nil do
       begin
       S.Seek(P^.Pos);

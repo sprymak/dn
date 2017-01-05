@@ -68,13 +68,14 @@ const
     строк в режиме unwrap }
 
 type
+  PComp = ^TFileSize;
 
   { TViewScroll }
 
   PViewScroll = ^TViewScroll;
   TViewScroll = object(TView)
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
-    MaxV, Value: LongInt;
+    MaxV, Value: TFileSize;
     function GetPalette: PPalette; virtual;
     procedure HandleEvent(var Event: TEvent); virtual;
     function GetPartCode: LongInt;
@@ -100,14 +101,15 @@ type
     SearchResultVisible: Boolean; {AK155}
     PrevSearchDir: Boolean; {Эта переменная принимается во внимание
       только при SearchResultVisible }
-    SearchX: LongInt;
+    SearchX: TFileSize;
     SB: PView;
     Wrap: Byte; {DataCompBoy}
     Lines: array[0..MaxILines] of record
       Pos: LongInt;
       len: Word;
       end;
-    FilePos, FileSize, NumLines: LongInt;
+    FilePos, FileSize: TFileSize;
+    NumLines: LongInt;
     ExposedPos, ExposedLine: LongInt; {AK155}
     Cur: TPoint;
     Info: PView;
@@ -139,7 +141,7 @@ type
     function WriteModify: Boolean;
     procedure CountDown(ANumber: Integer); virtual;
     procedure CountUp(ANumber: Integer); virtual;
-    procedure Seek(APos: LongInt);
+    procedure Seek(APos: TFileSize);
     procedure MakeLines; virtual;
     procedure SaveToFile(FN: String);
     function Valid(Command: Word): Boolean; virtual;
@@ -231,12 +233,12 @@ function SearchFileStr(
       not CaseSensitive - то одновременно и перевод на верхний регистр}
     const What: String;
       { в ASCII. Для not CaseSensitive регистр What не критичен }
-    Pos: LongInt; // точка старта
+    Pos: TFileSize; // точка старта
     CaseSensitive,
     Display, // отображать информацию о ходе поиска
     WholeWords, Back,
     AllCP, // если AllCP, то XLAT игнорируется
-    IsRegExp: Boolean): LongInt;
+    IsRegExp: Boolean): TFileSize;
  {`}
 
 type
@@ -255,7 +257,7 @@ uses
   ErrMess, {AK155}
   DiskInfo, Files,
   Gauge, DNStdDlg, Histries, Drives, DNUtil, DnIni
-  , FileDiz
+  , FileDiz, Advance0
   ;
 
 function MaxAvail: LongInt;
@@ -272,7 +274,8 @@ function SearchFileStr;
     Buf: PByteArray;
     Count: LongInt;
     BufLen, BufPos, BPos, T, StPos, StDelta: LongInt;
-    I, L, J, OldPos, NextPos: LongInt;
+    J: LongInt;
+    I, L, OldPos, NextPos: TFileSize;
     CancelSearch: Boolean;
     Info: PWhileView;
     R: TRect;
@@ -302,7 +305,7 @@ function SearchFileStr;
   BufLen := $80000;
   {Cat: тут лучше с памятью не мелочиться, иначе сильно проигрываем в скорости}
   if BufLen > L then
-    BufLen := L;
+    BufLen := i32(L);
   if BufLen > MaxAvail then
     BufLen := MaxAvail;
   if BufLen < Length(What) then
@@ -335,16 +338,16 @@ function SearchFileStr;
         NextPos := 0;
         BPos := 0;
         end;
-      J := I-NextPos;
+      J := i32(I-NextPos);
       if J <= 0 then
         Break;
       end
     else
       begin
       NextPos := F^.GetPos;
-      J := L-I+BPos;
-      if J > BufLen then
-        J := BufLen;
+      J := BufLen;
+      if J > L-I+BPos then
+        J := i32(L-I+BPos);
       ClrIO;
       end;
     if Display then
@@ -408,19 +411,19 @@ function SearchFileStr;
         end;
       FreeMem(Buf, BufLen);
       F^.Seek(OldPos);
-      SearchFileStr := NextPos-LongInt(BPos)+LongInt(BufPos)-1+StPos;
+      SearchFileStr := NextPos-BPos+BufPos-1+StPos;
       goto LExit;
       end;
     if Back then
       begin
-      Dec(I, T);
+      I := I - T;
       if I < -T then
         Break;
       if I < 0 then
         I := 0;
       end
     else
-      Inc(I, T);
+      I := I + T;
     StPos := 1;
     BPos := Length(What)+1;
     if I < L then
@@ -458,6 +461,13 @@ procedure TViewInfo.Store(var S: TStream);
   PutPeerViewPtr(S, Viewer);
   end;
 
+function trunc32(w: TFileSize): Longint;
+  var
+    q: record Lo,Hi: Longint end absolute w;
+  begin
+  Result := q.Lo;
+  end;
+
 procedure TViewInfo.Draw;
   var
     B: TDrawBuffer;
@@ -493,8 +503,8 @@ procedure TViewInfo.Draw;
     if ViewMode = vmHex then
       begin
       S := Hex8(Cur.X div (1+Byte(HexEdit))+
-          Cur.Y*HexPos+BufPos+FilePos)+' ';
-      J := (FilePos+BufPos) mod Max(1, HexPos);
+          Cur.Y* trunc32(HexPos+BufPos+FilePos))+' ';
+      J := trunc32(FilePos+BufPos) mod Max(1, HexPos);
       for I := 0 to HexPos-1 do
         S := S+Hex2(I+J)+#196;
       SetLength(S, Length(S)-1);
@@ -506,7 +516,7 @@ procedure TViewInfo.Draw;
       J := 0;
       for I := 0 to (Cur.Y-1) do
         Inc(J, Lines[I].len);
-      S := '['+Hex8(((Cur.X-10) div 2)+J+BufPos+FilePos)+']';
+      S := '['+Hex8(((Cur.X-10) div 2)+trunc32(J+BufPos+FilePos))+']';
       end
     else
       case Wrap of
@@ -798,12 +808,13 @@ procedure TViewScroll.HandleEvent;
     Tracking: Boolean;
 
     {JO}
-  function GetPrecValue: LongInt;
+  function GetPrecValue: TFileSize;
     var
       Max1: Double; {JO}
     begin
     Max1 := MaxV;
-    GetPrecValue := Round(Max1*(SP-1)/(Size.Y-3))+1;
+    GetPrecValue := {$ifndef LargeFileSupport} Round {$endif}
+      (Max1*(SP-1)/(Size.Y-3)) + 1;
     end;
   {/JO}
 
@@ -814,7 +825,7 @@ procedure TViewScroll.HandleEvent;
       case Event.Command of
         cmChangeValue:
           begin
-          Value := Event.InfoLong;
+          Value := PComp(Event.InfoPtr)^;
           DrawView;
           ClearEvent(Event)
           end;
@@ -856,7 +867,7 @@ procedure TViewScroll.HandleEvent;
             Value := GetPrecValue; {JO}
           {AK155: скроллер уже нарисован и еще дважды будет нарисован }
           {                DrawView; }
-          MessageL(Owner, evCommand, cmScrollBarChanged, Value);
+          Message(Owner, evCommand, cmScrollBarChanged, @Value);
           Exit;
           end;
 
@@ -1058,9 +1069,7 @@ procedure TFileViewer.AdjustBuf;
   var
     NewBufSize: LongInt;
   begin
-  NewBufSize := ViewerBufSize;
-  if NewBufSize > FileSize then
-    NewBufSize := FileSize;
+  NewBufSize := MinBufSize(FileSize, ViewerBufSize);
   if  (Buf <> nil) and (NewBufSize = BufSize) then
     Exit;
   if Buf <> nil then
@@ -1155,7 +1164,7 @@ destructor TFileViewer.Done;
 
 constructor TFileViewer.Load;
   var
-    I: LongInt;
+    FP: TFileSize;
   begin
   inherited Load(S);
   NoEdit := False;
@@ -1166,7 +1175,7 @@ constructor TFileViewer.Load;
   {S.Read(FileName[0], 1); S.Read(FileName[1], Length(FileName));}
   S.ReadStrV(VFileName);
   {S.Read(VFileName[0], 1); S.Read(VFileName[1], Length(VFileName));}
-  S.Read(I, SizeOf(LongInt));
+  S.Read(FP, SizeOf(FP));
   S.Read(QuickView, 1);
   S.Read(Wrap, 1);
   {???}
@@ -1186,7 +1195,7 @@ constructor TFileViewer.Load;
     begin
     try
       ReadFile(FileName, VFileName, True);
-      Seek(I);
+      Seek(FP);
       isValid := True;
     except
       on E: eFileError do
@@ -1199,15 +1208,15 @@ constructor TFileViewer.Load;
 
 procedure TFileViewer.Store;
   var
-    I: LongInt;
+    FP: TFileSize;
   begin
   inherited Store(S);
   PutPeerViewPtr(S, SB);
   PutPeerViewPtr(S, Info);
   S.WriteStr(@FileName); {S.Write(FileName[0], 1 + Length(FileName));}
   S.WriteStr(@VFileName); {S.Write(VFileName[0], 1 + Length(VFileName));}
-  I := FilePos+LongInt(BufPos);
-  S.Write(I, SizeOf(LongInt));
+  FP := FilePos+LongInt(BufPos);
+  S.Write(FP, SizeOf(FP));
   S.Write(QuickView, 1);
   S.Write(Wrap, 1);
   S.Write(FakeKillAfterUse, 1);
@@ -1285,7 +1294,7 @@ procedure TFileViewer.Draw;
     C: Byte;
     I, K, M, Src: Integer;
     J: LongInt;
-    L: LongInt;
+    L: TFileSize;
     S, SZ: String;
     IZ: Byte;
     TS: Word;
@@ -1398,12 +1407,12 @@ procedure TFileViewer.Draw;
         MoveChar(B[XDelta], ' ', C, WDH);
         if L+LongInt(HexPos) > FileSize
         then
-          J := FileSize-L
+          J := trunc32(FileSize-L)
         else
           J := HexPos;
         if J > 0 then
           begin
-          S := DumpStr(Buf^[W], L, J, Filter);
+          S := DumpStr(Buf^[W], trunc32(L), J, Filter);
           W2 := Pos(#179, S);
           SetLength(SZ, Length(S)-W2);
           for IZ := 1 to Length(SZ) do
@@ -1445,16 +1454,16 @@ procedure TFileViewer.Draw;
             if  (L <= SearchX) and (L+J > SearchX) then
               begin
               Cur.Y := I;
-              Cur.X := (SearchX-L)*2;
+              Cur.X := i32(SearchX-L)*2;
               if HexEdit
               then
                 SetCursor(10+(Cur.X div 2)*3+Cur.X and 1, Cur.Y)
               else
                 SetCursor(12+HexPos*3+Cur.X, Cur.Y);
               ShowCursor;
-              Src := Min(L+J-SearchX, Length(SearchString.What));
-              MoveColor(B[10+(SearchX-L)*3], Src*3-1, CC[2]);
-              MoveColor(B[12+HexPos*3+SearchX-L], Src, CC[2]);
+              Src := Min(i32(L+J-SearchX), Length(SearchString.What));
+              MoveColor(B[10+i32(SearchX-L)*3], Src*3-1, CC[2]);
+              MoveColor(B[12+HexPos*3+i32(SearchX-L)], Src, CC[2]);
               Src := Length(SearchString.What)-Src;
               end
             else if Src > 0 then
@@ -1473,7 +1482,7 @@ procedure TFileViewer.Draw;
             MoveColor(B[12+HexPos*3+K], 1, CC[2]);
             end; {-piwamoto}
           Inc(W, J);
-          Inc(L, LongInt(J));
+          L := L + J;
           end;
         {WriteLine(0, I, Size.X, 1, B[XDelta]);} {???}
         WriteLine(0, I, WDH, 1, B[XDelta]);
@@ -1501,22 +1510,18 @@ procedure TFileViewer.Draw;
         else
           WDH := Size.X;
         MoveChar(B[XDelta], ' ', C, WDH);
-        if L+LongInt(HexPos) > FileSize
-        then
-          J := FileSize-L
-        else
-          J := HexPos;
+        J := MinBufSize(FileSize-L, HexPos);
         if J > 0 then
           begin
-          XDumpStr(S, Buf^[W], L, J, Filter);
+          XDumpStr(S, Buf^[W], trunc32(L), J, Filter); //!!s
           XLatBuf(S[10], Length(S)-9, XCoder.XLatCP[ToAscii]);
           Drivers.MoveStr(B, S, C);
           if SearchActive then
             begin
             if  (L <= SearchX) and (L+J > SearchX) then
               begin
-              Src := Min(L+J-SearchX, Length(SearchString.What));
-              MoveColor(B[9+SearchX-L], Src, CC[2]);
+              Src := Min(i32(L+J-SearchX), Length(SearchString.What));
+              MoveColor(B[9+i32(SearchX-L)], Src, CC[2]);
               Src := Length(SearchString.What)-Src;
               end
             else if Src > 0 then
@@ -1526,7 +1531,7 @@ procedure TFileViewer.Draw;
               end;
             end;
           Inc(W, J);
-          Inc(L, LongInt(J));
+          L := L + J;
           end;
         WriteLine(0, I, WDH, 1, B[XDelta]);
         end;
@@ -1560,16 +1565,16 @@ procedure TFileViewer.Draw;
         if L < FileSize-1 then
           begin
           if Cur.Y = I then
-            HexPos := L-FilePos-BufPos+((Cur.X-10) div 2);
-          D.InstrMaxLen := FileSize-L;
+            HexPos := i32(L-FilePos-BufPos)+((Cur.X-10) div 2);
+          D.InstrMaxLen := i32(FileSize-L);
           {Draw - doesn't matter}
           ScanCode(D);
-          S := UpStrg(Hex8(L))
+          S := UpStrg(Hex8(trunc32(L)))
                 +': '+D.CodeStr+Strg(' ', 29-Length(D.CodeStr))+
             D.Command+Strg(' ', 10-Length(D.Command))+
             D.Operands;
           Drivers.MoveStr(B, S, C);
-          Inc(L, D.InstrLen);
+          L := L + D.InstrLen;
           end;
         WriteLine(0, I, WDH, 1, B[XDelta]);
         end;
@@ -1588,7 +1593,7 @@ procedure TFileViewer.Draw;
         begin
         for I := 0 to Size.Y-1 do
           begin
-          J := SearchX-FilePos-Lines[I].Pos;
+          J := i32(SearchX-FilePos-Lines[I].Pos);
           if  (J >= 0) and (J < Lines[I].len) then
             begin
             if not ExpandTabs then
@@ -1844,7 +1849,9 @@ procedure TFileViewer.SetState;
       Info^.Draw;
   end { TFileViewer.SetState };
 
-procedure TFileViewer.Seek(APos: LongInt);
+procedure TFileViewer.Seek(APos: TFileSize);
+  var
+    NewPos: TFileSize;
   begin
   if Buf = nil then
     Exit;
@@ -1867,14 +1874,12 @@ procedure TFileViewer.Seek(APos: LongInt);
   if  (FileSize-FilePos < BufSize) then
     begin
     FreeMem(Buf, BufSize);
-    BufSize := FileSize-FilePos;
-    if BufSize < 0 then
-      BufSize := 0;
+    BufSize := Max(i32(FileSize-FilePos), 0);
     Buf := MemAlloc(BufSize);
     if Buf = nil then
       Exit;
     end;
-  BufPos := APos-FilePos;
+  BufPos := i32(APos-FilePos);
   if BufPos < 0 then
     BufPos := 0;
   if BufPos >= BufSize then
@@ -1882,7 +1887,8 @@ procedure TFileViewer.Seek(APos: LongInt);
   Fl^.Read(Buf^, BufSize);
   BreakOnStreamReadError;
   MakeLines;
-  MessageL(SB, evCommand, cmChangeValue, FilePos+BufPos);
+  NewPos := FilePos+BufPos;
+  Message(SB, evCommand, cmChangeValue, @NewPos);
   end { TFileViewer.Seek };
 
 procedure TFileViewer.MakeLines;
@@ -1933,7 +1939,7 @@ procedure TFileViewer.MakeLines;
       for K := 0 to MaxLines do
         begin
         Lines[K].Pos := X.Offset;
-        X.InstrMaxLen := FileSize-X.Offset-FilePos-1;
+        X.InstrMaxLen := i32(FileSize-X.Offset-FilePos-1);
         ScanCode(X);
         Lines[K].len := X.InstrLen;
         if X.InstrLen = 0 then
@@ -2023,7 +2029,7 @@ procedure TFileViewer.SaveToFile(FN: String);
     W, L: Word;
     PS: Pointer;
     Xl: Boolean;
-    Sz: LongInt;
+    Sz: TFileSize;
   label 2;
 
   begin
@@ -2081,10 +2087,7 @@ procedure TFileViewer.SaveToFile(FN: String);
     Sz := Fl^.GetSize;
     while Fl^.GetPos < Sz do
       begin
-      if Sz-Fl^.GetPos < 4096 then
-        L := Sz-Fl^.GetPos
-      else
-        L := 4096;
+      L := MinBufSize(Sz-Fl^.GetPos, 4096);
       Fl^.Read(PS^, L);
       BreakOnStreamReadError;
       XLatBuf(PS^, L, XCoder.XLatCP[ToAscii]);
@@ -2151,8 +2154,11 @@ function TFileViewer.BreakOnStreamReadError: Boolean;
 procedure TFileViewer.SeekEof;
   var
     i, j: Integer;
-    OldFileSize: LongInt;
-    OldStart, OldLen1: LongInt;
+    OldFileSize: TFileSize;
+    OldStart: TFileSize;
+    WC: TFileSize;
+    WL: Longint absolute WC;
+    OldLen1: LongInt;
     Temp: LongInt;
   label
     EndProc;
@@ -2174,7 +2180,8 @@ procedure TFileViewer.SeekEof;
     OldStart := FilePos+Lines[Cur.Y].Pos;
     OldLen1 := HexPos;
     end;
-  i := (FilePos+BufPos) mod 16;
+  WC := FilePos+BufPos;
+  i := WL mod 16;
   Owner^.Lock;
   {AK155}
   if TypeOf(Fl^) = TypeOf(TDOSStream) then
@@ -2185,14 +2192,14 @@ procedure TFileViewer.SeekEof;
         goto EndProc;
 
       OldFileSize := FileSize;
-      SysFileSeek(Handle, 0, 2, StreamSize);
+      Seek(StreamSize);
       FileSize := StreamSize;
       if FileSize < OldFileSize then
         begin { Файл сжался }
         if Position > FileSize then
           Position := StreamSize;
         end;
-      SysFileSeek(Handle, Position, 0, Temp);
+      Seek(Position);
       end;
 
     if  (OldFileSize < FileSize) and (BufSize < FileSize) then
@@ -2206,7 +2213,7 @@ procedure TFileViewer.SeekEof;
   Seek(FileSize-BufSize);
   if  (ViewMode = vmHex) or (ViewMode = vmDump) then
     begin
-    BufPos := Max(OldStart-FilePos, BufSize-Size.Y*HexPos);
+    BufPos := Max(I32(OldStart-FilePos), BufSize-Size.Y*HexPos);
     MakeLines;
     end
   else
@@ -2225,7 +2232,7 @@ procedure TFileViewer.SeekEof;
       begin
       if FilePos+Lines[i].Pos > OldStart then
         begin
-        Lines[0].Pos := OldStart-FilePos;
+        Lines[0].Pos := i32(OldStart-FilePos);
         Lines[0].len := OldLen1;
         j := 1;
         end
@@ -2239,7 +2246,7 @@ procedure TFileViewer.SeekEof;
 
   if  (ViewMode = vmHex) and (FileSize <> 0) then
     begin
-    i := FileSize-(FilePos+BufPos)-1;
+    i := i32(FileSize-(FilePos+BufPos)-1);
     Cur.Y := i div HexPos;
     Cur.X := i mod HexPos*2;
     end;
@@ -2319,9 +2326,9 @@ procedure TFileViewer.HandleEvent;
           текст, только что найденный в другом направлении }
       begin
       if Backward then
-        Dec(SearchX, length(SearchString.What))
+        SearchX := SearchX - length(SearchString.What)
       else
-        Inc(SearchX, length(SearchString.What))
+        SearchX := SearchX + length(SearchString.What);
       end;
     CaseSensitive := SearchString.Opts and 1 <> 0;
     SearchX := SearchFileStr(Fl,
@@ -2343,7 +2350,7 @@ procedure TFileViewer.HandleEvent;
       DrawView;
       SearchActive := False;
       if not Backward then
-        Inc(SearchX, length(SearchString.What));
+        SearchX := SearchX + length(SearchString.What);
       PrevSearchDir := Backward;
       end
     else if SearchX <> -2 then
@@ -2390,6 +2397,8 @@ procedure TFileViewer.HandleEvent;
 
   var
     ScrollerPos: LongInt;
+    WC: TFileSize;
+    WL: Longint absolute WC;
 
   begin { TFileViewer.HandleEvent }
 
@@ -2474,7 +2483,7 @@ DoSave:
                   TempFile := '*^&'+FileName;
                 PDNApplication(Application)^.EditFile(True, FileName);
                 MessageL(Application, evCommand, cmGotoLineNumber2,
-                  GetLineNumberForOffset(FileName, FilePos+BufPos)
+                  GetLineNumberForOffset(FileName, trunc32(FilePos+BufPos))
                   );
                 end;
               {if Desktop<>nil then Desktop^.UnLock;}
@@ -2494,7 +2503,7 @@ DoSave:
                   +Cur.Y*256+Cur.X)
               then
                 MarkPos[I].Assign(Byte(HexEdit)*256*256
-                  +Cur.Y*256+Cur.X, FilePos+BufPos)
+                  +Cur.Y*256+Cur.X, trunc32(FilePos+BufPos))
               else
                 MarkPos[I].Assign(-1, -1);
               DrawView;
@@ -2546,8 +2555,8 @@ DoSave:
               if ViewMode <> vmAsm then
                 begin
                 {$ENDIF}
-                while ((LFR mod HexPos) <>
-                      ( (BufPos+FilePos) mod HexPos)) and (LFR > 0)
+                WC := BufPos+FilePos;
+                while ((LFR mod HexPos) <> (WL mod HexPos)) and (LFR > 0)
                 do
                   begin
                   Dec(LFR);
@@ -2671,7 +2680,7 @@ DoSave:
           cmScrollBarChanged:
             begin
             Desktop^.Lock;
-            Seek(Event.InfoLong);
+            Seek(PComp(Event.InfoPtr)^);
             if  (ViewMode = vmText) and (Event.InfoLong <> 0) then
               begin
               { стать на начало строки, но так,
@@ -3251,6 +3260,8 @@ procedure TFileViewer.CountDown;
   var
     D: XCHGData; {GRM!}
     {$ENDIF}
+  var
+    NewPos: TFileSize;
   begin
   if Buf = nil then
     Exit;
@@ -3283,7 +3294,7 @@ procedure TFileViewer.CountDown;
       D.MemBuff := Buf;
       while (ANumber > 0) do
         begin
-        D.InstrMaxLen := FileSize-FilePos-BufPos-1;
+        D.InstrMaxLen := i32(FileSize-FilePos-BufPos-1);
         D.Offset := BufPos;
         ScanCode(D);
         if BufPos+D.InstrLen+15*Size.Y > BufSize then
@@ -3327,14 +3338,16 @@ procedure TFileViewer.CountDown;
   end {case};
 
   DrawView;
-  MessageL(SB, evCommand, cmChangeValue, FilePos+BufPos);
+  NewPos := FilePos+BufPos;
+  Message(SB, evCommand, cmChangeValue, @NewPos);
   end { TFileViewer.CountDown };
 
 procedure TFileViewer.CountUp;
   var
     I, LineStart, LineEnd: LongInt;
     NextLineStart: LongInt;
-    NewFilePos, ReadLen: LongInt;
+    NewFilePos: TFileSize;
+    ReadLen: LongInt;
     {$IFDEF DisAsm}
     D: XCHGData; {GRM!}
     {$ENDIF}
@@ -3537,8 +3550,10 @@ procedure TFileViewer.CountUp;
         begin
         { начало буфера не в начале файла: сдвинуться по файлу
               на полбуфера и повторить поиск начала строки }
-        NewFilePos := Max(0, FilePos-(BufSize div 2));
-        ReadLen := FilePos-NewFilePos;
+        NewFilePos := FilePos-(BufSize div 2);
+        if NewFilePos < 0 then
+          NewFilePos := 0;
+        ReadLen := i32(FilePos-NewFilePos);
         Move(Buf^[0], Buf^[ReadLen], BufSize-ReadLen);
         Fl^.Seek(NewFilePos);
         Fl^.Read(Buf^, ReadLen);
@@ -3576,7 +3591,8 @@ procedure TFileViewer.CountUp;
     Cur.X := 10; {GRM!}
   {$ENDIF}
   DrawView;
-  MessageL(SB, evCommand, cmChangeValue, FilePos+BufPos);
+  NewFilePos := FilePos+BufPos;
+  Message(SB, evCommand, cmChangeValue, @NewFilePos);
   end { TFileViewer.CountUp };
 
 function TFileViewer.Valid;

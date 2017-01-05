@@ -71,7 +71,7 @@ type
     KillAfterUse: Boolean;
     FakeKillAfterUse: Boolean; {временная пустышка}
     ArcDate: LongInt;
-    ArcSize: Comp; {сохраняются вместе}
+    ArcSize: TFileSize; {сохраняются вместе}
     ForceRescan: Boolean;
     Password: String;
     constructor Init(const AName, VAName: String);
@@ -416,7 +416,7 @@ function TArcDrive.ReadArchive;
     PF: PArcFile;
     P: PWhileView;
     R: TRect;
-    Ln: LongInt;
+    Ln: TFileSize;
     Cancel: Boolean;
     T: TEventTimer;
     SR: lSearchRec;
@@ -483,8 +483,10 @@ function TArcDrive.ReadArchive;
         P^.Write(1, GetString(dlPercentComplete));
         Desktop^.Insert(P);
         end;
-      P^.Write(2, Copy(Strg(#219, 25 div (Ln div
-           (ArcFile^.GetPos+1)))+Strg(#177, 25), 1, 25));
+      P^.Write(2,
+         Copy(Strg(#219, 25 div Trunc(Ln / (ArcFile^.GetPos+1))) +
+           Strg(#177, 25),
+         1, 25));
       P^.Write(3, ItoS(Files^.Files)+GetString(dlFilesFound));
       NewTimer(T, 300);
       end;

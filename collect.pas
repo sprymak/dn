@@ -250,7 +250,7 @@ implementation
 uses
   Memory,
   Strings,
-  Advance1
+  Advance1, Advance0
   ;
 
 constructor TCollection.Init(ALimit, ADelta: LongInt);
@@ -1110,7 +1110,7 @@ constructor TStringList.Load(var S: TStream);
   TObject.Init;
   Stream := @S;
   S.Read(Size, SizeOf(Size));
-  BasePos := S.GetPos;
+  BasePos := i32(S.GetPos);
   S.Seek(BasePos+Size);
   S.Read(IndexSize, SizeOf(IndexSize));
   GetMem(Index, IndexSize*SizeOf(TStrIndexRec));

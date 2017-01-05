@@ -226,7 +226,7 @@ function CharToOemStr(const CharS: String): String;
 
 implementation
   uses
-    Country_, advance, advance1, Streams;
+    Country_, advance, advance1, Streams, Advance0;
 
 procedure XLatBuf(var B; Len: Integer; const XTable: TXLat);
   assembler;
@@ -382,9 +382,9 @@ function ReadXlt(FN: string; var N: Integer): PCodeConv;
     if Pos('\', FN) = 0 then
       FN := SourceDir+'XLT\' + FN;
     S.Init(FN, stOpenRead);
-    N := S.GetSize;
-    if  N >= 2 then
+    if  (S.GetSize >= 2) and (S.GetSize <= 256*4) then
       begin
+      N := i32(S.GetSize);
       GetMem(Result, N);
       S.Read(Result^, N);
       end;

@@ -104,7 +104,7 @@ const
 implementation
 uses
   Dos, Commands, DNApp, Dialogs, Advance, Advance1, Advance2,
-  Startup, RStrings, xTime, Messages
+  Startup, RStrings, xTime, Messages, DNUtil
   , Microed, Histries, FViewer, FlPanelX
   {$IFDEF SS}, Idlers {$ENDIF}
   , VpSysLow
@@ -718,21 +718,20 @@ EndLFN:
               kbCtrlIns, kbCtrlShiftIns:
                 if Str <> '' then
                   begin
-                  Message(Application, evCommand, cmPutInClipboard, @Str);
+                  PutInClip(Str);
                   CE;
                   end;
               kbShiftIns: {if ShiftState and 4 = 0 then}
                 {Cat}
                 begin
-                S := '';
-                Message(Application, evCommand, cmGetFromClipboard, @S);
+                GetFromClip(S);
                 if S <> '' then
                   Message(@Self, evCommand, cmInsertName, @S);
                 CE2;
                 end
                 {else
                                begin
-                                 Message(Application, evCommand, cmPutInClipboard, @Str);
+                                 PutInClip(Str);
                                  CE;
                                end};
               kbIns:

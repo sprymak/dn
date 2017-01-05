@@ -76,7 +76,7 @@ uses
   {$IFNDEF DPMI32}Killer, {$ENDIF}
   {$IFDEF DPMI32} lfnvp, Dpmi32, Dpmi32df, {$ENDIF}
   Tree
-  , filetype, PDSetup
+  , filetype, PDSetup, Advance0
   ;
 
 {AK155 Мало проверить, что имя временного каталога непусто, надо
@@ -471,7 +471,7 @@ procedure DoStartup;
         {$IFDEF SS}
         cfgSavers:
           begin
-          I := S.GetPos;
+          I := i32(S.GetPos);
           SaversData.Selected.List := PTextCollection(S.Get);
           if (S.Status <> stOK) or (S.GetPos <> I + L) then
             begin
@@ -499,6 +499,9 @@ procedure DoStartup;
         cfgFullMenuPanelSetup:
           if SizeOf(FullMenuPanelSetup) = L then
             SRead(FullMenuPanelSetup) else SSkip;
+        cfgCalcFormat:
+          if SizeOf(CalcFormat) = L then
+            SRead(CalcFormat) else SSkip;
         else {case}
           S.Seek(S.GetPos+L);
       end {case};

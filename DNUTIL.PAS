@@ -233,6 +233,7 @@ const
   cfgPanSetupPreset = 66;
   cfgSortCurPanTypeOnly = 67; {JO}
   cfgFullMenuPanelSetup = 68; {JO}
+  cfgCalcFormat = 69; {AK155}
 
   dlAbout = #13#3'DN/2 Open Source'+
   #13#3'Version %s, %s'+
@@ -265,6 +266,15 @@ procedure ExecDNAutoexec;
 procedure SaveDsk;
 {$ENDIF}
 
+procedure GetFromClip(var S: String);
+  {` Взять строку из буфера обмена. Если в буфере пусто - будет '' `}
+procedure GetFromClipLong(var S: LongString);
+  {` Взять строку из буфера обмена. Если в буфере пусто - будет '' `}
+procedure PutInClip(const S: String);
+  {` Положить строку в буфера обмена и в его историю `}
+procedure PutInClipLong(const S: LongString);
+  {` Положить строку в буфера обмена и в его историю `}
+
 implementation
 
 uses
@@ -276,6 +286,7 @@ uses
   {$endif}
   ColorSel {, Crt}
   , FileType, PDSetup, U_KeyMap
+  , Advance0
   ;
 
 { Load and Store Palette routines }
@@ -392,7 +403,7 @@ procedure TDataSaver.Store;
 
   var
     D: AWord;
-    I, Q, Q2, SPos: LongInt;
+    I, Q, Q2, SPos{!!s}: LongInt;
 
   procedure StoreBlock(I: AWord; var B; Sz: AWord);
     begin
@@ -405,12 +416,12 @@ procedure TDataSaver.Store;
     begin
     S.Write(Blk, SizeOf(Blk));
     S.Write(Blk, SizeOf(Blk));
-    SPos := S.GetPos;
+    SPos := i32(S.GetPos);
     end;
 
   procedure UnMark;
     begin
-    i := S.GetPos-SPos;
+    i := i32(S.GetPos)-SPos;
     S.Seek(SPos-SizeOf(AWord));
     S.Write(i, SizeOf(AWord));
     S.Seek(S.GetSize);
@@ -589,7 +600,8 @@ constructor TDNApplication.Init;
     if  (LoadStream <> nil) and (ClipBoardStream <> nil) then
       begin
       LoadStream^.Seek(0);
-      ClipBoardStream^.CopyFrom(LoadStream^, LoadStream^.GetSize);
+      ClipBoardStream^.CopyFrom(LoadStream^,
+        i32(LoadStream^.GetSize){!!s-});
       if SystemData.Options and ossUseSysClip <> 0 then
         SyncClipOut {(false)};
       end;
@@ -687,7 +699,8 @@ destructor TDNApplication.Done;
     then
       begin
       ClipBoardStream^.Seek(0);
-      SaveStream^.CopyFrom(ClipBoardStream^, ClipBoardStream^.GetSize);
+      SaveStream^.CopyFrom(ClipBoardStream^,
+        i32(ClipBoardStream^.GetSize){!!s});
       end;
     Dispose(SaveStream, Done);
     SaveStream := nil;
@@ -797,12 +810,12 @@ procedure WriteConfig;
     begin
     S.Write(Blk, SizeOf(Blk));
     S.Write(Blk, SizeOf(Blk));
-    SPos := S.GetPos;
+    SPos := i32(S.GetPos);
     end;
 
   procedure UnMark;
     begin
-    i := S.GetPos-SPos;
+    i := i32(S.GetPos)-SPos;
     S.Seek(SPos-SizeOf(AWord));
     S.Write(i, SizeOf(AWord));
     S.Seek(S.GetSize);
@@ -867,6 +880,8 @@ procedure WriteConfig;
        SizeOf(SortCurPanTypeOnly));
   StoreBlock(cfgFullMenuPanelSetup, FullMenuPanelSetup,
        SizeOf(FullMenuPanelSetup));
+  StoreBlock(cfgCalcFormat, CalcFormat,
+       SizeOf(CalcFormat));
 
   StoreBlock(0, I, 0);
   S.Done;
@@ -1483,7 +1498,7 @@ db:
             fPos := 0;
             fBufPos := 0;
             end;
-          Seek(fPos);
+          Seek({$ifndef LargeFileSupport} Round {$endif}(fPos));
           XCoder.FromHistory(fKeyMap, fToAscii, fCodeTag);
           ViewMode := fViewMode and not vmInternal;
           Filter := fFilter;
@@ -2260,56 +2275,6 @@ procedure TDNApplication.HandleCommand;
     ClearEvent(Event);
     end;
 
-  {Cat: переписал для поддержки длинных строк в Clipboard-е}
-  procedure GetFromClip;
-    begin
-    if SystemData.Options and ossUseSysClip <> 0 then
-      SyncClipOut {(true)};
-    if  (Microed.ClipBoard = nil) or (Microed.ClipBoard^.At(0) = nil)
-    then
-      PString(Event.InfoPtr)^:= ''
-    else
-      PString(Event.InfoPtr)^:= PLongString(Microed.ClipBoard^.At(0))^;
-    end;
-
-  procedure GetFromClipLong;
-    begin
-    if SystemData.Options and ossUseSysClip <> 0 then
-      SyncClipOut {(true)};
-    if  (Microed.ClipBoard = nil) or (Microed.ClipBoard^.At(0) = nil)
-    then
-      PLongString(Event.InfoPtr)^:= ''
-    else
-      PLongString(Event.InfoPtr)^:= PLongString(Microed.ClipBoard^.At(0))^;
-    end;
-
-  procedure PutInClip;
-    begin
-    if Microed.ClipBoard <> nil then
-      Dispose(Microed.ClipBoard, Done);
-    Microed.ClipBoard := New(PLineCollection, Init(1, 1, True));
-    Microed.ClipBoard^.Insert(NewLongStr(PString(Event.InfoPtr)^));
-    if SystemData.Options and ossUseSysClip <> 0 then
-      SyncClipIn;
-    if ClipBoardStream <> nil then
-      ClipBoardStream^.Seek(Max(ClipBoardStream^.GetPos-4, 0));
-    CopyLines2Stream(Microed.ClipBoard, ClipBoardStream);
-    end;
-
-  procedure PutInClipLong;
-    begin
-    if Microed.ClipBoard <> nil then
-      Dispose(Microed.ClipBoard, Done);
-    Microed.ClipBoard := New(PLineCollection, Init(1, 1, True));
-    Microed.ClipBoard^.Insert(NewLongStr(PLongString(Event.InfoPtr)^));
-    if SystemData.Options and ossUseSysClip <> 0 then
-      SyncClipIn;
-    if ClipBoardStream <> nil then
-      ClipBoardStream^.Seek(Max(ClipBoardStream^.GetPos-4, 0));
-    CopyLines2Stream(Microed.ClipBoard, ClipBoardStream);
-    end;
-  {/Cat}
-
   procedure DoQuickChange;
     var
       R: TRect;
@@ -2567,14 +2532,6 @@ procedure TDNApplication.HandleCommand;
   case Event.Command of
     cmFirstTimePanel:
       OpenWindow(False);
-    cmGetFromClipboard:
-      GetFromClip;
-    cmGetFromClipboardLong:
-      GetFromClipLong;
-    cmPutInClipboard:
-      PutInClip;
-    cmPutInClipboardLong:
-      PutInClipLong;
     cmSearchAdvance:
       SearchAdvance;
     cmListOfDirs:
@@ -3136,6 +3093,56 @@ procedure ClearSelection(AFP: Pointer; FC: Pointer);
       InfoView^.DrawView;
     end;
   end;
+
+{Cat: переписал для поддержки длинных строк в Clipboard-е}
+procedure GetFromClip;
+  begin
+  if SystemData.Options and ossUseSysClip <> 0 then
+    SyncClipOut {(true)};
+  if  (Microed.ClipBoard = nil) or (Microed.ClipBoard^.At(0) = nil)
+  then
+    S := ''
+  else
+    S := PLongString(Microed.ClipBoard^.At(0))^;
+  end;
+
+procedure GetFromClipLong(var S: LongString);
+  begin
+  if SystemData.Options and ossUseSysClip <> 0 then
+    SyncClipOut {(true)};
+  if  (Microed.ClipBoard = nil) or (Microed.ClipBoard^.At(0) = nil)
+  then
+    S := ''
+  else
+    S := PLongString(Microed.ClipBoard^.At(0))^;
+  end;
+
+procedure PutInClip(const S: String);
+  begin
+  if Microed.ClipBoard <> nil then
+    Dispose(Microed.ClipBoard, Done);
+  Microed.ClipBoard := New(PLineCollection, Init(1, 1, True));
+  Microed.ClipBoard^.Insert(NewLongStr(S));
+  if SystemData.Options and ossUseSysClip <> 0 then
+    SyncClipIn;
+  if ClipBoardStream <> nil then
+    ClipBoardStream^.Seek(Positive(ClipBoardStream^.GetPos-4));
+  CopyLines2Stream(Microed.ClipBoard, ClipBoardStream);
+  end;
+
+procedure PutInClipLong(const S: LongString);
+  begin
+  if Microed.ClipBoard <> nil then
+    Dispose(Microed.ClipBoard, Done);
+  Microed.ClipBoard := New(PLineCollection, Init(1, 1, True));
+  Microed.ClipBoard^.Insert(NewLongStr(S));
+  if SystemData.Options and ossUseSysClip <> 0 then
+    SyncClipIn;
+  if ClipBoardStream <> nil then
+    ClipBoardStream^.Seek(Positive(ClipBoardStream^.GetPos-4));
+  CopyLines2Stream(Microed.ClipBoard, ClipBoardStream);
+  end;
+{/Cat}
 
 end.
 

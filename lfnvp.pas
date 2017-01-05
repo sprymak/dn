@@ -64,6 +64,7 @@ unit LFNVP;
 interface
 
 uses
+  VPSysLow, // см. комментарий в конце vpsysos2
   VPSysLo2, Dos
   ;
 
@@ -277,7 +278,6 @@ implementation
 
 uses
   {$IFDEF WIN32}Windows, {$ENDIF}
-  VpSysLow,
   Strings, Commands {Cat}
   , Advance, Advance1, Advance2
   {$IFDEF DPMI32} ,Startup ,Dpmi32 ,Dpmi32df {$ENDIF}

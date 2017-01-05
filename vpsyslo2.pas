@@ -36,11 +36,14 @@ type
     NameLStr: Pointer;
     Attr: Byte;
     Time: LongInt;
+(*
 {$IFNDEF DPMI32}
     Size: Comp; {AK155 то есть TSize}
 {$ELSE}
     Size: Longint;
 {$ENDIF}
+*)
+    Size: TFileSize;
     Name: ShortString;
     Filler: array[0..3] of Char;
     {$IFDEF OS2}
@@ -51,12 +54,13 @@ type
      буфера в некоротых ситуациях работает неправильно, в частности, для
      RAMFS, подмонтированного как сетевой диск. Андрей Белов, автор
      текущей версии RAMFS, говорит, что ничего поделать не может - в этом
-     случае система некорректно передаёт ему данные для продолжения поиска.}
+     случае система некорректно передаёт ему данные для продолжения поиска.
+     }
     //JO: Внимание! размер FindBuf должен быть согласован с размером аналогичной
     //    переменной в _Defines.lSearchRec
     FindBuf: array[0..8*1024-1] of Byte;
     FindCount: Integer; {число необработанных записей}
-    FindPtr: ^FileFindBuf3; {первая необработанная запись}
+    FindPtr: ^FileFindBuf3L; {первая необработанная запись}
     {$ENDIF}
     {$IFDEF WIN32}
     ShortName: ShortString;
@@ -238,18 +242,61 @@ function SysFindCloseNew(var F: TOSSearchRecNew): LongInt;
 
 {$IFDEF OS2}
 
+procedure CopyFindData(var F: TOSSearchRecNew; IsPChar: Boolean);
+  begin
+  with F do
+    begin
+    with F.FindPtr^ do
+      begin
+      TDateTimeRec(Time).FTime := ftimeLastWrite;
+      TDateTimeRec(Time).FDate := fdateLastWrite;
+      TDateTimeRec(CreationTime).FTime := ftimeCreation;
+      TDateTimeRec(CreationTime).FDate := fdateCreation;
+      TDateTimeRec(LastAccessTime).FTime := ftimeLastAccess;
+      TDateTimeRec(LastAccessTime).FDate := fdateLastAccess;
+      end;
+{$IfDef LargeFileSupport}
+    if LargeFileSupport = LargeFileSupport_yes then
+      with F.FindPtr^ do
+        begin
+        Attr := attrFile;
+        Size := Comp(cbFile);
+        if IsPChar then
+          StrPCopy(PChar(@Name), achName)
+        else
+          Name := achName;
+        end
+    else
+{$endif}
+      with PFileFindBuf3(F.FindPtr)^ do
+        begin
+        Attr := attrFile;
+        Size := cbFile;
+        if IsPChar then
+          StrPCopy(PChar(@Name), achName)
+        else
+          Name := achName;
+        end;
+    Dec(FindCount);
+    Inc(PChar(FindPtr), F.FindPtr^.oNextEntryOffset);
+    end
+  end;
+
 function SysFindFirstNew(Path: PChar; Attr: LongInt;
      var F: TOSSearchRecNew; IsPChar: Boolean): LongInt;
   var
-    Count: LongInt;
     Path2: array[0..259] of Char;
   begin
   Attr := Attr and not $8; // No VolumeID under OS/2
-  Count := 1;
   F.Handle := hdir_Create;
   F.FindPtr := @F.FindBuf;
-  Result := DosFindFirst(Path, F.Handle, Attr,
-      F.FindBuf, SizeOf(F.FindBuf), Count, fil_Standard);
+  F.FindCount := 1;
+  if LargeFileSupport = LargeFileSupport_yes then
+    Result := DosFindFirst(Path, F.Handle, Attr,
+      F.FindBuf, SizeOf(F.FindBuf), F.FindCount, fil_StandardL)
+  else
+    Result := DosFindFirst(Path, F.Handle, Attr,
+      F.FindBuf, SizeOf(F.FindBuf), F.FindCount, fil_Standard);
 
   // If a specific error occurs, and the call is to look for directories, and
   // the path is a UNC name, then retry
@@ -261,29 +308,16 @@ function SysFindFirstNew(Path: PChar; Attr: LongInt;
     begin
     DosFindClose(F.Handle);
     StrCat(StrCopy(Path2, Path), '\*.*');
-    Result := DosFindFirst(Path2, F.Handle, Attr,
-        F.FindBuf, SizeOf(F.FindBuf), Count, fil_Standard);
-    F.FindPtr := @F.FindBuf;
+    if LargeFileSupport = LargeFileSupport_yes then
+      Result := DosFindFirst(Path, F.Handle, Attr,
+        F.FindBuf, SizeOf(F.FindBuf), F.FindCount, fil_StandardL)
+    else
+      Result := DosFindFirst(Path, F.Handle, Attr,
+        F.FindBuf, SizeOf(F.FindBuf), F.FindCount, fil_Standard);
     end;
 
   if Result = 0 then
-    with F, F.FindPtr^ do
-      begin
-      Attr := attrFile;
-      TDateTimeRec(Time).FTime := ftimeLastWrite;
-      TDateTimeRec(Time).FDate := fdateLastWrite;
-      TDateTimeRec(CreationTime).FTime := ftimeCreation;
-      TDateTimeRec(CreationTime).FDate := fdateCreation;
-      TDateTimeRec(LastAccessTime).FTime := ftimeLastAccess;
-      TDateTimeRec(LastAccessTime).FDate := fdateLastAccess;
-      Size := 0;
-      Move(cbFile, Size, 4);
-      if IsPChar then
-        StrPCopy(PChar(@Name), achName)
-      else
-        Name := achName;
-      FindCount := 0;
-      end
+    CopyFindData(F, IsPChar)
   else
     F.Handle := hdir_Create;
   end { SysFindFirstNew };
@@ -299,24 +333,8 @@ function SysFindNextNew(var F: TOSSearchRecNew; IsPChar: Boolean): LongInt;
       Exit;
     F.FindPtr := @F.FindBuf;
     end;
-  with F, F.FindPtr^ do
-    begin
-    Attr := attrFile;
-    TDateTimeRec(Time).FTime := ftimeLastWrite;
-    TDateTimeRec(Time).FDate := fdateLastWrite;
-    TDateTimeRec(CreationTime).FTime := ftimeCreation;
-    TDateTimeRec(CreationTime).FDate := fdateCreation;
-    TDateTimeRec(LastAccessTime).FTime := ftimeLastAccess;
-    TDateTimeRec(LastAccessTime).FDate := fdateLastAccess;
-    Size := cbFile;
-    if IsPChar then
-      StrPCopy(PChar(@Name), achName)
-    else
-      Name := achName;
-    Dec(FindCount);
-    Inc(PChar(FindPtr), oNextEntryOffset);
-    Result := 0;
-    end;
+  CopyFindData(F, IsPChar);
+  Result := 0;
   end { SysFindNextNew };
 
 function SysFindCloseNew(var F: TOSSearchRecNew): LongInt;

@@ -152,10 +152,10 @@ type
     BaseStream: PStream;
     constructor Init(AStream: PStream; Start, len: LongInt);
     destructor Done; virtual;
-    function GetPos: LongInt; virtual;
-    function GetSize: LongInt; virtual;
+    function GetPos: TFileSize; virtual;
+    function GetSize: TFileSize; virtual;
     procedure Read(var Buf; Count: Word); virtual;
-    procedure Seek(Pos: LongInt); virtual;
+    procedure Seek(Pos: TFileSize); virtual;
     procedure Truncate; virtual;
     procedure Write(const Buf; Count: Word); virtual;
     end;
@@ -207,7 +207,7 @@ implementation
 uses
   Advance, Advance1, Advance2, Startup, DNHelp, DNApp, Messages,
   Histries, Gauge, xTime, DnIni
-  , Events
+  , Events, Advance0
   ;
 
 function MaxAvail: LongInt;
@@ -304,9 +304,9 @@ destructor TMemoStream.Done;
   TObject.Done;
   end;
 
-function TMemoStream.GetPos: LongInt;
+function TMemoStream.GetPos: TFileSize;
   var
-    L: LongInt;
+    L: TFileSize;
   begin
   L := BaseStream^.GetPos-StartPos;
   if L < 0 then
@@ -319,7 +319,7 @@ function TMemoStream.GetPos: LongInt;
   Status := BaseStream^.Status;
   end;
 
-function TMemoStream.GetSize: LongInt;
+function TMemoStream.GetSize: TFileSize;
   begin
   GetSize := Length;
   end;
@@ -331,9 +331,9 @@ procedure TMemoStream.Read(var Buf; Count: Word);
   Status := BaseStream^.Status;
   end;
 
-procedure TMemoStream.Seek(Pos: LongInt);
+procedure TMemoStream.Seek(Pos: TFileSize);
   var
-    L: LongInt;
+    L: TFileSize;
   begin
   L := Pos+StartPos;
   BaseStream^.Seek(L);
@@ -631,7 +631,8 @@ procedure TDBViewer.HandleEvent;
       P: PByteArray;
       PFR: PFieldRec;
       S: String;
-      L, ML: LongInt;
+      L: LongInt;
+      ML: LongInt;{!!s}
       I: Integer;
       D: PDialog;
       R: TRect;
@@ -711,7 +712,7 @@ procedure TDBViewer.HandleEvent;
 
         L := L*ML;
         MemoStream^.Seek(L+4);
-        ML := MemoStream^.GetPos;
+        ML := i32(MemoStream^.GetPos);
         ML := 0;
         MemoStream^.Read(ML, 4);
         asm

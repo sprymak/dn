@@ -162,7 +162,7 @@ function TZOOArchive.GetSign;
 procedure TZOOArchive.GetFile;
   var
     P: ZOOHdr;
-    FP: LongInt;
+    FP: TFileSize;
     C: Char;
     S: String;
   begin

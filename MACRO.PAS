@@ -992,6 +992,7 @@ function InitHighLight
   InitHighLight := False; {PZ 2000.06.09 Default is No Highlight }
   FillChar(HiLitePar, SizeOf(HiLitePar), 0);
   F := New(PTextReader, Init(SourceDir+'DN.HGL'));
+  F^.Done; //!!
   if F = nil then
     Exit;
   while not F^.Eof do

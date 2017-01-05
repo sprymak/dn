@@ -171,7 +171,7 @@ function TruncSpace(S: String): String;
 
 constructor TIniSection.Load;
   var
-    Base, L: LongInt;
+    Base, L: TFileSize;
     Str: String;
   function Simplify(S: String): String;
     var

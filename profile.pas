@@ -82,7 +82,7 @@ procedure CloseProfile;
 implementation
 
 uses
-  Strings, Streams
+  Strings, Streams, Advance0
   ;
 
 { The most expensive operation with buffered streams is seeking --
@@ -220,13 +220,13 @@ function FindApplication(AppName: PChar): Boolean;
           (StrEnd(Buf)-1)[0] := #0;
         StrDispose(CurAppName);
         CurAppName := StrNew(Buf+1);
-        CurApp := CurFile^.GetPos;
+        CurApp := i32(CurFile^.GetPos);
         if  (CurAppName <> nil) and (StrIComp(CurAppName, AppName) = 0)
         then
           begin
           FindApplication := True;
           CurFile^.Reset;
-          CurApp := CurFile^.GetPos;
+          CurApp := i32(CurFile^.GetPos);
           Exit
           end
         end
@@ -248,7 +248,7 @@ procedure AddApplication(AppName: PChar);
     Write(_R, 3);
     StrDispose(CurAppName);
     CurAppName := StrNew(AppName);
-    CurApp := CurFile^.GetPos
+    CurApp := i32(CurFile^.GetPos)
     end
   end;
 
@@ -279,7 +279,7 @@ function FindKey(KeyName: PChar; Dest: PChar): Boolean;
   if KeyName = nil then
     Exit;
   repeat
-    pos := CurFile^.GetPos;
+    pos := i32(CurFile^.GetPos);
     ReadLine(Buf);
     P := StrScan(Buf, '=');
     if P <> nil then
@@ -313,7 +313,7 @@ procedure DeleteBuf(Dest, Source: LongInt);
     then
       Count := 256
     else
-      Count := CurFile^.GetSize-Source;
+      Count := i32(CurFile^.GetSize)-Source;
     CurFile^.Seek(Source);
     CurFile^.Read(Buf, Count);
     CurFile^.Seek(Dest);
@@ -330,10 +330,10 @@ procedure DeleteLine;
     pos: LongInt;
     Buf: array[0..255] of Char;
   begin
-  pos := CurFile^.GetPos;
+  pos := i32(CurFile^.GetPos);
   ReadLine(Buf);
   CurFile^.Reset;
-  DeleteBuf(pos, CurFile^.GetPos);
+  DeleteBuf(pos, i32(CurFile^.GetPos));
   end;
 
 procedure InsertLine(Size: Word);
@@ -341,8 +341,8 @@ procedure InsertLine(Size: Word);
     pos, Count, Source, Dest: LongInt;
     Buf: array[0..255] of Char;
   begin
-  pos := CurFile^.GetPos;
-  Source := CurFile^.GetSize;
+  pos := i32(CurFile^.GetPos);
+  Source := Round(CurFile^.GetSize);
   Dest := Source+Size;
   repeat
     if Source-pos >= 256
@@ -464,11 +464,11 @@ function WritePrivateProfileString;
       begin
       CurFile^.Seek(CurApp);
       repeat
-        p := CurFile^.GetPos;
+        p := i32(CurFile^.GetPos);
         ReadLine(Buf);
         Res := IsAppLine(Buf) or (CurFile^.Status <> 0);
         if not Res and (Buf[0] <> ';') then
-          DeleteBuf(p, CurFile^.GetPos);
+          DeleteBuf(p, i32(CurFile^.GetPos));
       until Res;
       CurFile^.Reset;
       end

@@ -71,14 +71,14 @@ type
     {Cat: этот объект вынесен в плагинную модель; изменять крайне осторожно!}
     Status: Integer;
     ErrorInfo: Integer;
-    StreamSize: LongInt; { Stream current size }
-    Position: LongInt; { Current position }
-    procedure CopyFrom(var S: TStream; Count: LongInt);
+    StreamSize: TFileSize; { Stream current size }
+    Position: TFileSize; { Current Position }
+    procedure CopyFrom(var S: TStream; Count: TFileSize);
     procedure Error(Code, Info: Integer); virtual;
     procedure Flush; virtual;
     function Get: PObject;
-    function GetPos: LongInt; virtual;
-    function GetSize: LongInt; virtual;
+    function GetPos: TFileSize; virtual;
+    function GetSize: TFileSize; virtual;
     procedure Put(P: PObject);
     procedure Read(var Buf; Count: SW_Word); virtual;
     function ReadStr: PString;
@@ -86,7 +86,7 @@ type
     procedure ReadStrV(var S: String);
     procedure ReadLongStrV(var S: LongString);
     procedure Reset;
-    procedure Seek(Pos: LongInt); virtual;
+    procedure Seek(Pos: TFileSize); virtual;
     function StrRead: PChar;
     procedure StrWrite(P: PChar);
     procedure Truncate; virtual;
@@ -110,7 +110,7 @@ type
     procedure Read(var Buf; Count: SW_Word); virtual;
     procedure ReadBlock(var Buf; Count: SW_Word; var BytesRead: Word);
      virtual;
-    procedure Seek(Pos: LongInt); virtual;
+    procedure Seek(Pos: TFileSize); virtual;
     procedure Truncate; virtual;
     procedure Write(const Buf; Count: SW_Word); virtual;
     procedure DoOpen(OpenMode: Word); virtual;
@@ -134,7 +134,7 @@ type
     destructor Done; virtual;
     procedure Flush; virtual;
     procedure Read(var Buf; Count: SW_Word); virtual;
-    procedure Seek(Pos: LongInt); virtual;
+    procedure Seek(Pos: TFileSize); virtual;
     procedure Truncate; virtual;
     procedure Write(const Buf; Count: SW_Word); virtual;
     procedure DoOpen(OpenMode: Word); virtual;
@@ -174,7 +174,7 @@ implementation
 
 uses
   {$IFDEF PLUGIN}Plugin, {$ENDIF}
-  Strings, Memory
+  Strings, Memory, Advance0
   {$IFDEF DPMI32}, LfnVP {$ENDIF}
   ;
 
@@ -261,7 +261,7 @@ asm
   call    DWord Ptr [eax].TStream_Error
 end;
 
-procedure TStream.CopyFrom(var S: TStream; Count: LongInt);
+procedure TStream.CopyFrom(var S: TStream; Count: TFileSize);
   var
     N: Word;
     Buffer: PByteArray;
@@ -269,9 +269,7 @@ procedure TStream.CopyFrom(var S: TStream; Count: LongInt);
     Allocated: Boolean;
     TTempBuf: array[0..255] of Byte;
   begin
-  BufSize := 32768;
-  if BufSize > Count then
-    BufSize := Count;
+  BufSize := MinBufSize(Count, 32768);
   GetMem(Buffer, BufSize);
   if Buffer = nil then
     begin
@@ -283,13 +281,10 @@ procedure TStream.CopyFrom(var S: TStream; Count: LongInt);
     Allocated := True;
   while Count > 0 do
     begin
-    if Count > BufSize then
-      N := BufSize
-    else
-      N := Count;
+    N := MinBufSize(Count, BufSize);
     S.Read(Buffer^, N);
     Write(Buffer^, N);
-    Dec(Count, N);
+    Count := Count - N;
     end;
   if Allocated then
     FreeMem(Buffer, BufSize);
@@ -373,7 +368,7 @@ asm
   { Return Self or nil }
 end;
 
-function TStream.GetPos: LongInt;
+function TStream.GetPos: TFileSize;
   begin
   if  (Status = stOK) then
     GetPos := Position
@@ -381,7 +376,7 @@ function TStream.GetPos: LongInt;
     GetPos := -1;
   end;
 
-function TStream.GetSize: LongInt;
+function TStream.GetSize: TFileSize;
   begin
   if  (Status = stOK) then
     GetSize := StreamSize
@@ -536,7 +531,7 @@ procedure TStream.Reset;
   ErrorInfo := 0;
   end;
 
-procedure TStream.Seek(Pos: LongInt);
+procedure TStream.Seek(Pos: TFileSize);
   begin
   if Status = stOK then
     if Pos < 0 then
@@ -544,7 +539,7 @@ procedure TStream.Seek(Pos: LongInt);
     else if Pos <= StreamSize then
       Position := Pos
     else
-      Error(stSeekError, Pos);
+      Error(stSeekError, 0{!!Pos});
   end;
 
 function TStream.StrRead: PChar;
@@ -658,15 +653,15 @@ function AFileWrite(Handle: Word; var Buf; Count: SW_Word;
   AFileWrite := SysFileWrite(Handle, Buf, Count, Actual);
   end;
 
-function ASetFilePos(Handle: Word; Pos: SW_Word; MoveType: Word;
-     var Actual: SW_Word): Word;
+function ASetFilePos(Handle: Word; Pos: TFileSize; MoveType: Word;
+     var Actual: TFileSize): Longint;
   begin
   Actual := 0;
   ASetFilePos := SysFileSeek(Handle, Pos, MoveType, Actual);
   end;
 
 {AK155}
-function ASetFileSize(Handle: Word; FileSize: SW_Word): Word;
+function ASetFileSize(Handle: Word; FileSize: TFileSize): Word;
   begin
   ASetFileSize := 0;
   if  (ASetFilePos(Handle, FileSize, 0, FileSize) <> 0) or
@@ -816,7 +811,7 @@ procedure TDOSStream.Read(var Buf; Count: SW_Word);
         Success := AFileRead(Handle, P^, W, BytesMoved);
       if Success = 0 then
         begin
-        Inc(Position, BytesMoved);
+        Position := Position + BytesMoved;
         P := Pointer(LongInt(P)+BytesMoved);
         Dec(Count, BytesMoved);
         end;
@@ -863,7 +858,7 @@ procedure TDOSStream.ReadBlock(var Buf; Count: SW_Word;
         Success := AFileRead(Handle, P^, W, BytesMoved);
       if Success = 0 then
         begin
-        Inc(Position, BytesMoved);
+        Position := Position + BytesMoved;
         P := Pointer(LongInt(P)+BytesMoved);
         Dec(Count, BytesMoved);
         Inc(BytesRead, BytesMoved);
@@ -879,10 +874,10 @@ procedure TDOSStream.ReadBlock(var Buf; Count: SW_Word;
     end;
   end { TDOSStream.ReadBlock };
 
-procedure TDOSStream.Seek(Pos: LongInt);
+procedure TDOSStream.Seek(Pos: TFileSize);
   var
     Success: Integer;
-    Li: LongInt;
+    Li: TFileSize;
   begin
   if Status = stOK then
     begin
@@ -960,7 +955,7 @@ procedure TDOSStream.Write(const Buf; Count: SW_Word);
         Success := AFileWrite(Handle, P^, W, BytesMoved);
         if Success = 0 then
           begin
-          Inc(Position, BytesMoved);
+          Position := Position + BytesMoved;
           P := Pointer(LongInt(P)+BytesMoved);
           Dec(Count, BytesMoved);
           if  (Position > StreamSize) then
@@ -1062,7 +1057,7 @@ procedure TBufStream.Flush;
   var
     Success: Integer;
     W, Len: SW_Word;
-    Pos: LongInt;
+    Pos: TFileSize;
   begin
   if ModBufEnd > ModBufStart then
     begin
@@ -1104,10 +1099,7 @@ procedure TBufStream.Read(var Buf; Count: SW_Word);
       begin
       if BufPtr = BufEnd then
         begin { Buffer is empty }
-        if Position+BufSize > StreamSize then
-          Bw := StreamSize-Position
-        else
-          Bw := BufSize;
+        Bw := MinBufSize(StreamSize-Position, BufSize);
         {$IFDEF PACKFILE}
         if  (FMode and $000F) = fmPacked then
           begin
@@ -1137,7 +1129,7 @@ procedure TBufStream.Read(var Buf; Count: SW_Word);
         Dec(Count, W);
         Inc(BufPtr, W);
         P := Pointer(LongInt(P)+W);
-        Inc(Position, W);
+        Position := Position + W;
         end;
       end;
     end;
@@ -1145,15 +1137,15 @@ procedure TBufStream.Read(var Buf; Count: SW_Word);
     FillChar(P^, Count, #0);
   end { TBufStream.Read };
 
-procedure TBufStream.Seek(Pos: LongInt);
+procedure TBufStream.Seek(Pos: TFileSize);
   var
-    BufStart: LongInt; // файловый адрес начала буфера
+    BufStart: TFileSize; // файловый адрес начала буфера
   begin
   Status := stOK;
   BufStart := Position-BufPtr;
   if (Pos >= BufStart) and (Pos < BufStart+BufEnd) then
     begin { AK155 Установка в пределах буфера без обращения к файлу}
-    BufPtr := Pos - BufStart;
+    BufPtr := i32(Pos - BufStart);
     Position := Pos;
     end
   else
@@ -1205,7 +1197,7 @@ procedure TBufStream.Write(const Buf; Count: SW_Word);
         if BufPtr > ModBufEnd then
           ModBufEnd := BufPtr;
         P := Pointer(LongInt(P)+W);
-        Inc(Position, W);
+        Position := Position + W;
         if Position > StreamSize then
           StreamSize := Position;
         if BufEnd < BufPtr then
@@ -1331,8 +1323,9 @@ function TMemoryStream.ChangeListSize(ALimit: LongInt): Boolean;
 
 procedure TMemoryStream.Read(var Buf; Count: SW_Word);
   var
-    W, CurBlock, BlockPos: Word;
-    Li: LongInt;
+    W, CurBlock: Word;
+    BlockPos: Longint;
+    Li: TFileSize;
     P, Q: PByteArray;
   begin
   P := @Buf;
@@ -1342,18 +1335,18 @@ procedure TMemoryStream.Read(var Buf; Count: SW_Word);
     begin
     while (Count > 0) and (Status = stOK) do
       begin
-      CurBlock := Position div BlkSize;
+      CurBlock := Trunc(Position / BlkSize);
       { * REMARK * - Do not shorten this, result can be > 64K }
       Li := CurBlock;
       Li := Li*BlkSize;
       { * REMARK END * - Leon de Boer }
-      BlockPos := Position-Li;
+      BlockPos := i32(Position-Li);
       W := BlkSize-BlockPos;
       if W > Count then
         W := Count;
       Q := Pointer(LongInt(BlkList^[CurBlock])+BlockPos);
       Move(Q^, P^, W);
-      Inc(Position, W);
+      Position := Position + W;
       P := Pointer(LongInt(P)+W);
       Dec(Count, W);
       end;
@@ -1371,7 +1364,7 @@ procedure TMemoryStream.Truncate;
     if Position = 0 then
       W := 1
     else
-      W := (Position+BlkSize-1) div BlkSize;
+      W := Trunc((Position+BlkSize-1) / BlkSize);
     if ChangeListSize(W) then
       StreamSize := Position
     else
@@ -1382,7 +1375,7 @@ procedure TMemoryStream.Truncate;
 procedure TMemoryStream.Write(const Buf; Count: SW_Word);
   var
     W, CurBlock, BlockPos: Word;
-    Li: LongInt;
+    Li: TFileSize;
     P, Q: PByteArray;
   begin
   if Position+Count > MemSize then
@@ -1390,7 +1383,7 @@ procedure TMemoryStream.Write(const Buf; Count: SW_Word);
     if Position+Count = 0 then
       W := 1
     else
-      W := (Position+Count+BlkSize-1) div BlkSize;
+      W := Trunc((Position+Count+BlkSize-1) / BlkSize);
     if not ChangeListSize(W) then
       begin
       Error(stWriteError, 0);
@@ -1400,18 +1393,18 @@ procedure TMemoryStream.Write(const Buf; Count: SW_Word);
   P := @Buf;
   while (Count > 0) and (Status = stOK) do
     begin
-    CurBlock := Position div BlkSize;
+    CurBlock := Trunc(Position / BlkSize);
     { * REMARK * - Do not shorten this, result can be > 64K }
     Li := CurBlock;
     Li := Li*BlkSize;
     { * REMARK END * - Leon de Boer }
-    BlockPos := Position-Li;
+    BlockPos := i32(Position-Li);
     W := BlkSize-BlockPos;
     if W > Count then
       W := Count;
     Q := Pointer(LongInt(BlkList^[CurBlock])+BlockPos);
     Move(P^, Q^, W);
-    Inc(Position, W);
+    Position := Position + W;
     P := Pointer(LongInt(P)+W);
     Dec(Count, W);
     if Position > StreamSize then

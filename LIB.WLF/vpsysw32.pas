@@ -129,6 +129,19 @@ const
   pGetDiskFreeSpaceEx : function( RootPathName: PChar;
     var FreeBytesAvailableToCaller, TotalNumberOfBytes: TQuad;
     pTotalNumberOfFreeBytes: PQuad ): Bool = nil;
+
+  // Other dynamically loaded Windows APIs.  These are not supported by
+  // OS extenders emulating the Windows API and are loaded dynamically
+  pOpenFileMapping: function(Acc: DWord; Inherit: Bool; Name: PChar): THandle = nil; // Win95+, WinNT+
+  pExitThread: procedure(ExitCode: Longint) = nil; // Win95+, WinNT+
+  pInitializeCriticalSectionAndSpinCount: procedure(CriticalSection: TRTLCriticalSection; SpinCount: DWord) = nil; // Win98+, WinNT SP3+
+  pGetKBCodePage: function: Longint = nil; // Win95+, WinNT31+
+  pIsClipboardFormatAvailable: function(Format: UInt): Bool = nil; // Win95+, WinNT31+
+  pOpenClipboard: function(Wnd: hWnd): Bool = nil; // Win95+, WinNT31+
+  pEmptyClipboard: function: Bool = nil; // Win95+, WinNT31+
+  pCloseClipboard: function: Bool = nil; // Win95+, WinNT31+
+  pSetClipboardData: function(Format: UInt; Mem: THandle): THandle = nil; // Win95+, WinNT31+
+  pGetClipboardData: function(Format: UInt): THandle = nil; // Win95+, WinNT31+
 {&StdCall-}
 
 function QueryProcAddr(Name: PChar; IsKernel: Boolean): Pointer;
@@ -144,11 +157,40 @@ begin
   Result := GetProcAddress(Handles[K], Name);
 end;
 
+procedure LoadWindowsFunctions;
+const
+  LoadedWindowsFunctions: Boolean = False;
+begin
+  if not LoadedWindowsFunctions then
+    begin
+      // Dynamically load functions only available in Win95 OSR2 and later
+      @pGetDiskFreeSpaceEx := QueryProcAddr('GetDiskFreeSpaceExA', True);
+
+      // Dynamically load functions only available in Windows (and not in
+      // some dos extenders like RTXDos and Pharlap)
+      @pExitThread := QueryProcAddr('ExitThread', True);
+      @pInitializeCriticalSectionAndSpinCount := QueryProcAddr('InitializeCriticalSectionAndSpinCount', True);
+      @pGetKBCodePage := QueryProcAddr('GetKBCodePage', False);
+      @pOpenClipboard := QueryProcAddr('OpenClipboard', False);
+      @pEmptyClipboard := QueryProcAddr('EmptyClipboard', False);
+      @pCloseClipboard := QueryProcAddr('CloseClipboard', False);
+      @pSetClipboardData := QueryProcAddr('SetClipboardData', False);
+      @pGetClipboardData := QueryProcAddr('GetClipboardData', False);
+
+      LoadedWindowsFunctions := True;
+    end; // if not LoadedWindowsFunctions then
+end;
+
 const
   AccessMode: array[0..2] of Integer = (
     generic_Read, generic_Write, generic_Read or generic_Write);
   ShareMode: array[0..4] of Integer = (
     0, 0, file_share_Read, file_share_Write, file_share_Read or file_share_Write);
+  CacheMode: array[0..3] of Integer = (
+    file_attribute_Normal,      // 0
+    file_Flag_Sequential_Scan,  // open_flags_Sequential
+    file_Flag_Random_Access,    // open_flags_Random
+    file_attribute_Normal);     // open_flags_RandomSequential
 
 function SetResult(Success: Boolean): Longint;
 begin
@@ -194,7 +236,7 @@ begin
   SA.lpSecurityDescriptor := nil;
   SA.bInheritHandle := True;
   Handle := CreateFile(FileName, AccessMode[Mode and 3], ShareMode[(Mode and $F0) shr 4],
-      @SA, APIFlags, file_attribute_Normal, 0);
+      @SA, APIFlags, CacheMode[(Mode and $300) shr 8], 0);
   Result := SetResult(Handle <> invalid_Handle_Value);
 end;
 
@@ -206,7 +248,7 @@ begin
   SA.lpSecurityDescriptor := nil;
   SA.bInheritHandle := True;
   Handle := CreateFile(FileName, AccessMode[Mode and 3], ShareMode[(Mode and $F0) shr 4],
-    @SA, open_Existing, file_attribute_Normal, 0);
+    @SA, open_Existing, CacheMode[(Mode and $300) shr 8], 0);
   Result := SetResult(Handle <> invalid_Handle_Value);
 end;
 
@@ -218,7 +260,7 @@ begin
   SA.lpSecurityDescriptor := nil;
   SA.bInheritHandle := True;
   Handle := CreateFile(FileName, AccessMode[Mode and 3], ShareMode[(Mode and $F0) shr 4],
-    @SA, create_Always, file_attribute_Normal, 0);
+    @SA, create_Always, CacheMode[(Mode and $300) shr 8], 0);
   Result := SetResult(Handle <> invalid_Handle_Value);
 end;
 
@@ -227,10 +269,16 @@ begin
   Result := CopyFile(_Old, _New, not _Overwrite);
 end;
 
-function SysFileSeek(Handle,Distance,Method: Longint; var Actual: Longint): Longint;
+function SysFileSeek(Handle: Longint;Distance: TFileSize;Method: Longint; var Actual: TFileSize): Longint;
 begin
+  {$IfDef LargeFileSupport}
+  Actual := Distance;
+  TFileSizeRec(Actual).lo32 := SetFilePointer(Handle, TFileSizeRec(Actual).lo32, @TFileSizeRec(Actual).hi32, Method);
+  Result := SetResult(TFileSizeRec(Actual).lo32 <> $FFFFFFFF);
+  {$Else LargeFileSupport}
   Actual := SetFilePointer(Handle, Distance, nil, Method);
   Result := SetResult(Actual <> $FFFFFFFF);
+  {$EndIf LargeFileSupport}
 end;
 
 function SysFileRead(Handle: Longint; var Buffer; Count: Longint; var Actual: Longint): Longint;
@@ -259,15 +307,34 @@ begin
     end;
 end;
 
-function SysFileSetSize(Handle,NewSize: Longint): Longint;
-var
-  CurPos: Longint;
+function SysFileSetSize(Handle: Longint; NewSize: TFileSize): Longint;
+ var
+  CurPos: TFileSize;
+  Actual: TFileSize;
+  rc    : Longint;
 begin
-  CurPos := SetFilePointer(Handle, 0, nil, file_Current);
-  Result := SetResult((CurPos <> $FFFFFFFF) and
-    (SetFilePointer(Handle, NewSize, nil, file_Begin) <> $FFFFFFFF) and
-    SetEndOfFile(Handle) or
-    (SetFilePointer(Handle, CurPos, nil, file_Begin) <> $FFFFFFFF));
+  // get current position
+  Result := SysFileSeek(Handle, 0, file_Current, CurPos);
+  if Result=0 then
+    begin
+
+      // seek to new size
+      if CurPos <> NewSize then
+        Result := SysFileSeek(Handle, NewSize, file_Begin, Actual);
+
+      // when successful, truncate and update result
+      if Result = 0 then
+        Result := SetResult(SetEndOfFile(Handle));
+
+      // try to restore old file position
+      if CurPos <> NewSize then
+        begin
+          rc := SysFileSeek(Handle, CurPos, file_Begin, Actual);
+          // only when evering else was successful, contribute to result
+          if Result = 0 then
+            Result := rc;
+        end;
+    end;
 end;
 
 function SysFileClose(Handle: Longint): Longint;
@@ -452,14 +519,10 @@ begin
 end;
 
 procedure SysCtrlExitThread(ExitCode: Longint);
-var
-  P: Pointer;
-type
-  TExitThread = procedure(ExitCode: Longint) stdcall;
 begin
-  P := QueryProcAddr('ExitThread', True);
-  if P <> nil then
-    TExitThread(P)(ExitCode)
+  LoadWindowsFunctions;
+  if Assigned(pExitThread) then
+    pExitThread(ExitCode)
   else
     SysCtrlExitProcess(ExitCode);
 end;
@@ -486,19 +549,14 @@ var
   InitCritSec: Boolean;
 
 procedure SysCtrlEnterCritSec;
-var
-  P: Pointer;
-type
-  TInitializeCriticalSectionAndSpinCount =
-    procedure(CriticalSection: TRTLCriticalSection; SpinCount: DWord) stdcall;
 begin
   if not InitCritSec then
     begin
-      P := QueryProcAddr('InitializeCriticalSectionAndSpinCount', True);
-      if assigned(P) then
-        TInitializeCriticalSectionAndSpinCount(P)(SysCritSec, 4000)
+      LoadWindowsFunctions;
+      if Assigned(pInitializeCriticalSectionAndSpinCount) then
+        pInitializeCriticalSectionAndSpinCount(SysCritSec, 4000)
       else
-       InitializeCriticalSection(SysCritSec);
+        InitializeCriticalSection(SysCritSec);
       InitCritSec := True;
     end;
   EnterCriticalSection(SysCritSec);
@@ -550,95 +608,111 @@ const
   cSysCmdLn: PChar = nil;
   cSysCmdLnCount: Longint = -1;
 
+
+// Set this define to use the UniCode version for SysCmdln
+{$DEFINE SysCmdlnUniCode}
+
 function SysCmdln: PChar;
 var
-  ProgramName: ShortString;
-  p : PChar;
+  {$IFDEF SysCmdlnUniCode}
+  pArgUni,
+  {$ENDIF SysCmdlnUniCode}
+  pArg: PChar;
+  ProgramName: string;
+  ArgLen,
+  ResLen: Longint;
 begin
-  if assigned(cSysCmdLn) then
+  if Assigned(cSysCmdLn) then
     Result := cSysCmdLn
   else
     begin
-      p := GetCommandLine;
-      GetMem(Result, StrLen(p) + 2);            // have 2 #0
-      FillChar(Result^, StrLen(p) + 2, 0);      // blank Result
-      StrCopy(Result, p);
-      if IsConsole then
-        CharToOemBuff(Result, Result, StrLen(Result));
+      // Get and process program name
+      GetMem(Result, MAX_PATH);                            // Allocate enough space for max path length and quotes
+      GetModuleFileName(0, Result, MAX_PATH);        // Get fully qualified program name
+      ResLen := (StrLen(Result) + 1);                      // Keep length of Result including #0 terminator
 
-      p := Result;
-      if not (p^ in [#1..' ']) then
-        p := GetParamStr(p, ProgramName);
-      p^ := #0;
+      // Get arguments and skip program name if given
+      {$IFDEF SysCmdlnUniCode}
+      ArgLen := WideCharToMultiByte(GetConsoleOutputCP, 0, Pointer(GetCommandLineW), -1, nil, 0, nil, nil);
+      GetMem(pArg, ArgLen); pArgUni := pArg;
+      WideCharToMultiByte(GetConsoleOutputCP, 0, Pointer(GetCommandLineW), -1, pArg, ArgLen, nil, nil);
+      {$ELSE}
+      pArg := GetCommandLine;                              // Get command-line from Windows
+      {$ENDIF SysCmdlnUniCode}
+      if not (pArg^ in [#1..' ']) then                     // Did Windows give us a program name? ...
+        pArg := GetParamStr(pArg, ProgramName);            // ... skip it as we are using the one from GetModuleFileName
+      Inc(pArg);                                           // We are now at a delimiter, skip that
+      ArgLen := (StrLen(pArg) + 1);                        // Keep length of pArg incuding #0 terminator
 
-      cSysCmdLn := Result;
-    end;
-end;
+      // Merge, translate and add the extra #0
+      ReAllocMem(Result, ResLen + ArgLen + 1);             // Resize memory allocation. (<progname> #0) + (<arguments> #0) + #0
+      {$IFNDEF SysCmdlnUniCode}
+      if not AreFileApisANSI then                          // Command-lines are always ANSI, convert to OEM if we are not using ANSI
+        CharToOemBuff(pArg, (Result + ResLen), ArgLen)     // Translate and append command-line to Result, module name has correct charset
+      else
+      {$ENDIF SysCmdlnUniCode}
+        Move(pArg^, (Result + ResLen)^, ArgLen);           // We are running in ANSI so no translation needed, just append command-line
+      (Result + ResLen + ArgLen)^ := #0;                   // Make sure there is another #0 at the end, (<prognam> #0) + (<arguments> #0) + put #0 here
+
+      {$IFDEF SysCmdlnUniCode}
+      FreeMem(pArgUni);                                    // Since we grabbed in UniCode we need to free our own buffer
+      {$ENDIF SysCmdlnUniCode}
+
+      cSysCmdLn := Result;                                 // Cache the result
+    end; // if Assigned(cSysCmdLn) then else
+end; // function SysCmdln
+
 function SysCmdlnCount: Longint;
 var
-  P: PChar;
-  S: ShortString;
+  pCmdln: PChar;
+  Arg: ShortString;
 begin
   if cSysCmdLnCount >= 0 then
     Result := cSysCmdLnCount
   else
     begin
-      P := SysCmdLn;
+      pCmdln := SysCmdLn;
+      Inc(pCmdln, (StrLen(pCmdln) + 1));
       Result := -1;
       repeat
-        P := GetParamStr(P, S);
-        if S = '' then
-          break;
+        pCmdln := GetParamStr(pCmdln, Arg);
         Inc(Result);
-        if Result = 0 then // Skip the first #0
-          Inc(P);
-      until False;
+      until (Arg = '');
       cSysCmdLnCount := Result;
     end;
 end;
 
 procedure SysCmdlnParam(Index: Longint; var Param: ShortString);
 var
-  I: Longint;
-  P: PChar;
-  Buffer: array[0..260] of Char;
+  i: Longint;
+  p: PChar;
 begin
-  I := Index;
-  if I = 0 then
-    begin
-      SysCtrlGetModuleName(0, Buffer);
-      P := Buffer;
-      Param := '';
-      while (P^ <> #0) and (I < 255) do
-      begin
-        Inc(I);
-        Param[I] := P^;
-        Inc(P);
-      end;
-      SetLength(Param, I);
-    end
+  if (Index > SysCmdlnCount) then
+    Param := ''
   else
     begin
-      P := SysCmdLn;
-      P := GetParamStr(P, Param); // Skip program name
-      inc(P);
-      dec(I);
-      repeat
-        P := GetParamStr(P, Param);
-        if (I = 0) or (Param = '') then
-          break;
-        Dec(I);
-      until False;
-    end;
+      p := SysCmdln;
+      if (Index = 0) then
+        begin
+          SetLength(Param, (StrLen(p) and $ff));
+          Move(p^, Param[1], Length(Param));
+        end // if (Index = 0) then
+      else
+        begin
+          Inc(p, (StrLen(p) + 1));
+          for i := 1 to Index do
+            begin
+              p := GetParamStr(p, Param);
+              Inc(p);
+            end; // for i := 0 to Index do
+        end; // if (Index = 0) then else
+    end; //  if (Index > SysCmdlnCount) then else
 end;
 
 function SysGetProcessId: Longint;
 begin
   Result := GetCurrentProcessID;
 end;
-
-type
-  TOpenFileMapping = function(Acc: DWord; Inherit: Bool; Name: PChar): THandle stdcall;
 
 function SysCtrlGetTlsMapMem: Pointer;
 var
@@ -650,28 +724,24 @@ var
     L2: Longint;
     ID: array[0..11] of Char;
   end;
-  P: Pointer;
 
 begin
   SharedMemName.L0 := Ord('S') + Ord('H') shl 8 + Ord('A') shl 16 + Ord('R') shl 24;
   SharedMemName.L1 := Ord('E') + Ord('D') shl 8 + Ord('M') shl 16 + Ord('E') shl 24;
-{$IFDEF B243}
-  SharedMemName.L2 := Ord('M') + Ord('4') shl 8 + Ord('V') shl 16 + Ord('S') shl 24;
-{$ELSE}
   SharedMemName.L2 := Ord('M') + Ord('5') shl 8 + Ord('V') shl 16 + Ord('S') shl 24;
-{$ENDIF}
   Str(GetCurrentProcessID, SharedMemName.ID);
   MapHandle := 0;
   IsNew := False;
-  P := QueryProcAddr('OpenFileMappingA', True);
-  if P = nil then
+  if not Assigned(pOpenFileMapping) then
+    @pOpenFileMapping := QueryProcAddr('OpenFileMappingA', True);
+  if not Assigned(pOpenFileMapping) then
     begin
       GetMem(Result, SharedMemSize);
       IsNew := True;
     end
   else
     begin
-      MapHandle := TOpenFileMapping(P)(file_map_Read+file_map_Write, False, PChar(@SharedMemName));
+      MapHandle := pOpenFileMapping(file_map_Read+file_map_Write, False, PChar(@SharedMemName));
       if MapHandle = 0 then
         begin
           MapHandle := CreateFileMapping($FFFFFFFF, nil, page_ReadWrite, 0, SharedMemSize, PChar(@SharedMemName));
@@ -755,20 +825,6 @@ begin
   Result := False;
 end;
 
-procedure LoadOSR2Functions;
-const
-  LoadedOSR2: Boolean = False;
-begin
-  if LoadedOSR2 then
-    exit;
-
-  // Dynamically load functions only available in Win95 OSR2 and later
-  if not assigned(pGetDiskFreeSpaceEx) then
-    @pGetDiskFreeSpaceEx := QueryProcAddr('GetDiskFreeSpaceExA', True);
-
-  LoadedOSR2 := True;
-end;
-
 function SysDiskFreeLong(Drive: Byte): TQuad;
 var
   RootPath: array[0..3] of Char;
@@ -785,19 +841,15 @@ begin
     RootPath[3] := #0;
     RootPtr := RootPath;
   end;
+  LoadWindowsFunctions;
+  if Assigned(pGetDiskFreeSpaceEx) then
+    if pGetDiskFreeSpaceEx(RootPtr, Result, TotalAvail, nil ) then
+      Exit; // Success!
 
-  LoadOSR2Functions;
-
-  if assigned(pGetDiskFreeSpaceEx) then
-    begin
-      if not pGetDiskFreeSpaceEx(RootPtr, Result, TotalAvail, nil ) then
-        Result := -1
-    end
+  if GetDiskFreeSpace(RootPtr, SectorsPerCluster, BytesPerSector, FreeClusters, TotalClusters) then
+    Result := 1.0 * SectorsPerCluster * BytesPerSector * FreeClusters
   else
-    if GetDiskFreeSpace(RootPtr, SectorsPerCluster, BytesPerSector, FreeClusters, TotalClusters) then
-      Result := 1.0 * SectorsPerCluster * BytesPerSector * FreeClusters
-    else
-      Result := -1;
+    Result := -1;
 end;
 
 function SysDiskSizeLong(Drive: Byte): TQuad;
@@ -816,15 +868,15 @@ begin
     RootPath[3] := #0;
     RootPtr := RootPath;
   end;
-  LoadOSR2Functions;
+  LoadWindowsFunctions;
+  if Assigned(pGetDiskFreeSpaceEx) then
+    if pGetDiskFreeSpaceEx(RootPtr, FreeBytes, Result, nil ) then
+      Exit; // Success!
 
-  if assigned(pGetDiskFreeSpaceEx) then
-    pGetDiskFreeSpaceEx(RootPtr, FreeBytes, Result, nil )
+  if GetDiskFreeSpace(RootPtr, SectorsPerCluster, BytesPerSector, FreeClusters, TotalClusters) then
+    Result := 1.0 *SectorsPerCluster * BytesPerSector * TotalClusters
   else
-    if GetDiskFreeSpace(RootPtr, SectorsPerCluster, BytesPerSector, FreeClusters, TotalClusters) then
-      Result := 1.0 *SectorsPerCluster * BytesPerSector * TotalClusters
-    else
-      Result := -1;
+    Result := -1;
 end;
 
 {Cat}
@@ -833,7 +885,7 @@ var
   SectorsPerCluster, BytesPerSector, FreeClusters, TotalClusters: DWord;
   AvailableForCaller, Total, Free: TQuad;
 begin
-  LoadOSR2Functions;
+  LoadWindowsFunctions;
   if Assigned(pGetDiskFreeSpaceEx) then
      if pGetDiskFreeSpaceEx(Path, AvailableForCaller, Total, @Free) then
        Result := Free
@@ -851,7 +903,7 @@ var
   SectorsPerCluster, BytesPerSector, FreeClusters, TotalClusters: DWord;
   AvailableForCaller, Total, Free: TQuad;
 begin
-  LoadOSR2Functions;
+  LoadWindowsFunctions;
   if Assigned(pGetDiskFreeSpaceEx) then
      if pGetDiskFreeSpaceEx(Path, AvailableForCaller, Total, @Free) then
        Result := Total
@@ -921,7 +973,15 @@ begin
       end;
     FileTimeToLocalFileTime(FindData.ftLastWriteTime, LocalFileTime);
     FileTimeToDosDateTime(LocalFileTime, TDateTimeRec(Time).FDate, TDateTimeRec(Time).FTime);
+    {$IfDef LargeFileSupport}
+    with TFileSizeRec(Size) do
+      begin
+        lo32 := FindData.nFileSizeLow;
+        hi32 := FindData.nFileSizeHigh;
+      end;
+    {$Else LargeFileSupport}
     Size := FindData.nFileSizeLow;
+    {$EndIf LargeFileSupport}
     Attr := FindData.dwFileAttributes;
     if IsPChar then
       StrCopy(PChar(@Name), FindData.cFileName)
@@ -999,6 +1059,7 @@ var
   I, P, L: Integer;
   Buffer: array[0..259] of Char;
 begin
+  // note: check for directory is missing?
   Result := Dest;
   StrCopy(Buffer, Name);
   P := 0;
@@ -1015,11 +1076,26 @@ begin
     if P >= L then
       Break;
     I := P;
-    while (P < L) and (List[P] <> ';') do
-      Inc(P);
-    StrLCopy(Buffer, List + I, P - I);
-    if not (List[P-1] in [':', '\']) then
-      StrLCat(Buffer, '\', 259);
+    if (P < l) and (List[P] = '"') then
+      begin
+        Inc(I);
+        Inc(P);
+        Buffer[0] := #0;
+        while (P < L) and (List[P] <> '"') do
+          Inc(P);
+        StrLCopy(Buffer, List + I, P - I);
+        if not (List[P-1] in [':', '\']) then
+          StrLCat(Buffer, '\', 259);
+        Inc(P);
+      end
+    else
+      begin
+        while (P < L) and (List[P] <> ';') do
+          Inc(P);
+        StrLCopy(Buffer, List + I, P - I);
+        if not (List[P-1] in [':', '\']) then
+          StrLCat(Buffer, '\', 259);
+      end;
     StrLCat(Buffer, Name, 259);
   end;
   Dest^ := #0;
@@ -1134,16 +1210,12 @@ begin
 end;
 
 function SysGetCodePage: Longint;
-var
-  P: Pointer;
-type
-  TGetKBCodePage = function: Longint;
 begin
-  P := QueryProcAddr('GetKBCodePage', False);
-  if P = nil then
-    Result := 0
+  LoadWindowsFunctions;
+  if Assigned(pGetKBCodePage) then
+    Result := pGetKBCodePage
   else
-    Result := TGetKBCodePage(P);
+    Result := 0
 end;
 
 function SysCompareStrings(s1, s2: PChar; l1, l2: Longint; IgnoreCase: Boolean): Longint;
@@ -2005,14 +2077,16 @@ function SysAccessSharedMemory(var _Base: Pointer; _Name: pChar): Longint;
 var
   P: Pointer;
 begin
-  Result := 0;
-  P := QueryProcAddr('OpenFileMappingA', True);
-  if P <> nil then
+  if not Assigned(pOpenFileMapping) then
+    @pOpenFileMapping := QueryProcAddr('OpenFileMappingA', True);
+  if Assigned(pOpenFileMapping) then
     begin
-      Result := TOpenFileMapping(P)(file_map_Read+file_map_Write, False, PChar(@_Name));
+      Result := pOpenFileMapping(file_map_Read+file_map_Write, False, PChar(@_Name));
       if Result <> 0 then
         _Base := MapViewOfFile(Result, file_map_Read+file_map_Write, 0, 0, 0);
-    end;
+    end
+  else
+    Result := 0;
 end;
 
 procedure SysFreeSharedMemory(_Base: Pointer; _Handle: Longint);
@@ -2353,7 +2427,7 @@ var
   Buffer: TConsoleScreenBufferInfo;
 begin
   SysTVInitCursor;
-  GetConsoleScreenBufferInfo(SysConOut, Buffer);
+  Result := GetConsoleScreenBufferInfo(SysConOut, Buffer);
 
   Cols := Buffer.dwSize.x;
   Rows := Buffer.dwSize.y;
@@ -2431,6 +2505,11 @@ begin
     Result := -1;
 end;
 
+function SemPostEvent(_Handle: TSemhandle): Boolean;
+begin
+  Result := SetEvent(_Handle);
+end;
+
 function SemResetEvent(_Handle: TSemhandle; var _PostCount: Longint): Boolean;
 begin
   Result := ResetEvent(_Handle);
@@ -2439,11 +2518,6 @@ begin
     _PostCount := 1
   else
     _PostCount := 0;
-end;
-
-function SemPostEvent(_Handle: TSemhandle): Boolean;
-begin
-  Result := SetEvent(_Handle);
 end;
 
 function SemWaitEvent(_Handle: TSemHandle; _TimeOut: Longint): Boolean;
@@ -2567,14 +2641,11 @@ var
   ClipFormat: longint;
 
 function SysClipCanPaste: Boolean;
-var
-  IsClipboardFormatAvailable: function(Format: UInt): Bool stdcall;
 begin
-  @IsClipboardFormatAvailable := QueryProcAddr('IsClipboardFormatAvailable', False);
-  if Assigned(IsClipboardFormatAvailable) then
+  LoadWindowsFunctions;
+  Result := Assigned(pIsClipboardFormatAvailable);
+  if Result then
     Result := IsClipboardFormatAvailable(ClipFormat)
-  else
-    Result := False;
 end;
 
 function SysClipCopy(P: PChar; Size: Longint): Boolean;
@@ -2582,67 +2653,60 @@ var
   Q: pChar; {Под NT - LPWSTR}
   MSize: longint;
   MemHandle: HGlobal;
-  OpenClipboard: function(Wnd: hWnd): Bool stdcall;
-  EmptyClipboard: function: Bool stdcall;
-  CloseClipboard: function: Bool stdcall;
-  SetClipboardData: function(Format: UInt; Mem: THandle): THandle stdcall;
 begin
-  Result := False;
-  @OpenClipboard := QueryProcAddr('OpenClipboard', False);
-  @EmptyClipboard := QueryProcAddr('EmptyClipboard', False);
-  @CloseClipboard := QueryProcAddr('CloseClipboard', False);
-  @SetClipboardData := QueryProcAddr('SetClipboardData', False);
-  if Assigned(OpenClipboard) and Assigned(EmptyClipboard) and
-    Assigned(CloseClipboard) and Assigned(SetClipboardData) then
-  begin
-    // Open clipboard
-    if OpenClipboard(0) then
+  LoadWindowsFunctions;
+  Result := Assigned(pOpenClipboard) and Assigned(pEmptyClipboard) and
+    Assigned(pCloseClipboard) and Assigned(pSetClipboardData);
+  if Result then
     begin
-      EmptyClipboard;
-      // Allocate a shared block of memory
-      MSize := Size+1;
-      if SysPlatform <> 1{Win 9x} then
-        MSize := 2*MSize; {for unicode string}
-      MemHandle := GlobalAlloc(gmem_Moveable or gmem_DDEShare, MSize);
-      Q := GlobalLock(MemHandle);
-      Result := Q <> nil;
-      if Result then
-        begin // Copy clipboard data across
-        if SysPlatform = 1{Win 9x} then
-          move(P^, Q^, MSize)
-        else
-          begin // Copy clipboard data across and translate to unicode
-          MSize := MultiByteToWideChar(CP_OEMCP, 0,
-             P, -1,    LPWSTR(Q), Size+1);
-          Result := MSize <> 0;
-          end;
-        end;
-      GlobalUnlock(MemHandle);
-      // Insert data into clipboard
-      if Result then
-        Result := SetClipboardData(ClipFormat, MemHandle) <> 0;
-      // Do not free memory: Windows does this!
-      // GlobalFree(MemHandle);
-
-{AK155 14/05/2002
-Без нижеследующего заклинания русские буквы превращаются в вопросики
-при вставке в Delphi или MS VC или в написанной на них программе.
-Интересно, какая локаль им мерещится вместо LOCALE_SYSTEM_DEFAULT?
-}
-      if Result and (SysPlatform <> 1) then
+      // Open clipboard
+      if pOpenClipboard(0) then
         begin
-        MemHandle := GlobalAlloc(gmem_Moveable or gmem_DDEShare, 8);
-        Q := GlobalLock(MemHandle);
-        Result := Q <> nil;
-        if Result then
-          begin
-          PDWORD(Q)^ := LOCALE_SYSTEM_DEFAULT;
+          pEmptyClipboard;
+          // Allocate a shared block of memory
+          MSize := Size+1;
+          if SysPlatform <> 1{Win 9x} then
+            MSize := 2*MSize; {for unicode string}
+          MemHandle := GlobalAlloc(gmem_Moveable or gmem_DDEShare, MSize);
+          Q := GlobalLock(MemHandle);
+          Result := Q <> nil;
+          if Result then
+            begin // Copy clipboard data across
+            if SysPlatform = 1{Win 9x} then
+              move(P^, Q^, MSize)
+            else
+              begin // Copy clipboard data across and translate to unicode
+              MSize := MultiByteToWideChar(CP_OEMCP, 0,
+                 P, -1,    LPWSTR(Q), Size+1);
+              Result := MSize <> 0;
+              end;
+            end;
           GlobalUnlock(MemHandle);
-          Result := SetClipboardData(CF_LOCALE, MemHandle) <> 0;
-          end;
+          // Insert data into clipboard
+          if Result then
+            Result := pSetClipboardData(ClipFormat, MemHandle) <> 0;
+          // Do not free memory: Windows does this!
+          // GlobalFree(MemHandle);
+
+    {AK155 14/05/2002
+    Без нижеследующего заклинания русские буквы превращаются в вопросики
+    при вставке в Delphi или MS VC или в написанной на них программе.
+    Интересно, какая локаль им мерещится вместо LOCALE_SYSTEM_DEFAULT?
+    }
+          if Result and (SysPlatform <> 1) then
+            begin
+            MemHandle := GlobalAlloc(gmem_Moveable or gmem_DDEShare, 8);
+            Q := GlobalLock(MemHandle);
+            Result := Q <> nil;
+            if Result then
+              begin
+              PDWORD(Q)^ := LOCALE_SYSTEM_DEFAULT;
+              GlobalUnlock(MemHandle);
+              Result := pSetClipboardData(CF_LOCALE, MemHandle) <> 0;
+              end;
+            end;
         end;
-    end;
-    CloseClipboard;
+    pCloseClipboard;
   end;
 end;
 
@@ -2651,18 +2715,12 @@ var
   P: Pointer;
   ActualClipFormat: UINT;
   MemHandle: HGlobal;
-  OpenClipboard: function(Wnd: hWnd): Bool stdcall;
-  CloseClipboard: function: Bool stdcall;
-  GetClipboardData: function(Format: UInt): THandle stdcall;
 begin
   Result := nil;
-  @OpenClipboard := QueryProcAddr('OpenClipboard', False);
-  @CloseClipboard := QueryProcAddr('CloseClipboard', False);
-  @GetClipboardData := QueryProcAddr('GetClipboardData', False);
-  if Assigned(OpenClipboard) and Assigned(CloseClipboard)
-    and Assigned(GetClipboardData) then
+  if Assigned(pOpenClipboard) and Assigned(pCloseClipboard)
+    and Assigned(pGetClipboardData) then
   begin
-    if OpenClipboard(0) then
+    if pOpenClipboard(0) then
     begin
 {AK155 14/05/2002
   Оказалось, что некоторые символы (например, номер) криво перекодируются
@@ -2685,7 +2743,7 @@ MS VC или написанная на них программа. Но, к счастью они кладут в буфер
           break;
         end {case};
       end;
-      MemHandle := GetClipboardData(ActualClipFormat);
+      MemHandle := pGetClipboardData(ActualClipFormat);
       P := GlobalLock(MemHandle);
       if Assigned(P) then
       begin
@@ -2715,7 +2773,7 @@ MS VC или написанная на них программа. Но, к счастью они кладут в буфер
 
       end;
       GlobalUnlock(MemHandle);
-      CloseClipBoard;
+      pCloseClipBoard;
     end;
   end;
 end;
@@ -2745,6 +2803,59 @@ begin
     Result := Result OR 1;
 end;
 
+const
+  gcOEMCodePages: array[0..15] of SmallWord = (
+    437,                          // OEM - United States
+    737,                          // OEM - Greek (formerly 437G)
+    775,                          // OEM - Baltic
+    850,                          // OEM - Multilingual Latin I
+    852,                          // OEM - Latin II
+    855,                          // OEM - Cyrillic (primarily Russian)
+    857,                          // OEM - Turkish
+    858,                          // OEM - Multlingual Latin I + Euro symbol
+    860,                          // OEM - Portuguese
+    861,                          // OEM - Icelandic
+    862,                          // OEM - Hebrew
+    863,                          // OEM - Canadian-French
+    864,                          // OEM - Arabic
+    865,                          // OEM - Nordic
+    866,                          // OEM - Russian
+    869                           // OEM - Modern Greek
+    );
+
+// The 8-bit console functions use the OEM code page by default. All other functions use the ANSI code page by default.
+procedure SetConsoleOEMState;
+var
+  lvCPLoop:                  Longint;
+  lvConsoleInputCP:          Longint;
+  lvConsoleInputOEM:         Boolean;
+  lvConsoleOutputCP:         Longint;
+  lvConsoleOutputOEM:        Boolean;
+
+begin
+  lvConsoleInputCP := GetConsoleCP;
+  lvConsoleOutputCP := GetConsoleOutputCP;
+
+  if (lvConsoleInputCP = GetOEMCP) and (lvConsoleOutputCP = GetOEMCP) then
+    SetFileApisToOEM
+  else
+    begin
+      lvConsoleInputOEM := False;
+      lvConsoleOutputOEM := False;
+
+      for lvCPLoop := Low(gcOEMCodePages) to High(gcOEMCodePages) do
+        begin
+          lvConsoleInputOEM := lvConsoleInputOEM or (gcOEMCodePages[lvCPLoop] = lvConsoleInputCP);
+          lvConsoleOutputOEM := lvConsoleOutputOEM or (gcOEMCodePages[lvCPLoop] = lvConsoleOutputCP);
+        end; // for lvCPLoop := Low(gcOEMCodePages) to High(gcOEMCodePages) do
+
+      if (lvConsoleInputOEM and lvConsoleOutputOEM) then
+        SetFileApisToOEM;
+
+    end; // if (lvConsoleInputCP = GetOEMCP) and (lvConsoleOutputCP = GetOEMCP) then
+
+end; // procedure SetConsoleOEMState
+
 procedure SysLowInit;
 var
   OSVersionInfo: TOSVersionInfo;
@@ -2769,13 +2880,13 @@ begin
     SetFileApisToAnsi;
 end;
 
+procedure SysLowInitPreTLS;
+begin
+  // Nothing
+end;
+
 procedure SysLowInitPostTLS; {for 2.1 build 279 and later}
   begin
+  SetConsoleOEMState;
   SysLowInit;
   end;
-
-{$IFDEF B243}{JO: in VP 2.1 build 274 SysLowInit called in System unit}
-begin
- SysLowInit;
-{$ENDIF}
-

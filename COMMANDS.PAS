@@ -1385,8 +1385,8 @@ const
   cmReanimateFile = 11024;
   cmNewGame = 11025;
   cmEraseGroup = 11026;
-  cmPutInClipboard = 11027;
-  cmGetFromClipboard = 11028;
+//  cmPutInClipboard = 11027;
+//  cmGetFromClipboard = 11028;
   cmReboundPanel = 11029;
   cmCopyCollection = 11030;
   cmSendInitModem = 11031;
@@ -1403,8 +1403,8 @@ const
   cmCloseLinked = 11042;
   cmGetUserParamsWL = 11043;
   {Cat}
-  cmPutInClipboardLong = 11077;
-  cmGetFromClipboardLong = 11078;
+//  cmPutInClipboardLong = 11077;
+//  cmGetFromClipboardLong = 11078;
   {/Cat}
 
   cmQuickChange1 = 11100;
@@ -3134,6 +3134,7 @@ type
     dlgPhoneBook,
     dlgManualDial,
     dlgCalculator,
+    dlgCalcFormat,
     dlgWindowManager,
     dlgVolumeLabel,
     dlgEditEnvironment,

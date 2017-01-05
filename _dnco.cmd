@@ -1,2 +1,2 @@
-set Host=OS2
+set Host=OLF
 _dnc %1

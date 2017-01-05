@@ -69,7 +69,7 @@ type
     CalcLine: PCalcLine;
     Radio: PRadioButtons;
     Value: CReal;
-    SResult: String[40];
+    SResult: array[0..5] of String[40];
     CalcError: Boolean;
     constructor Init(var R: TRect);
     constructor Load(var S: TStream);
@@ -80,6 +80,9 @@ type
     function GetPalette: PPalette; virtual;
     end;
 
+type
+  TCalcFormat = array[0..5] of SmallInt;
+
 procedure InsertCalc;
 
 const
@@ -89,8 +92,8 @@ implementation
 
 uses
   Advance, Advance1, Advance2,
-  RStrings, DNApp,
-  Commands, HistList
+  RStrings, DNApp, DNUtil,
+  Commands, HistList, startup
   , objects2
   ;
 
@@ -147,12 +150,13 @@ function GetNValue(L: LongInt; A: Integer): String;
       end;
   end;
 
+
 procedure TIndicator.HandleEvent;
   var
-    D: record
-      n: Word;
-      S: String[250];
-      end;
+    SelectedForm: Integer;
+    s: string;
+    sCalcFormat: array[Low(TCalcFormat)..High(TCalcFormat)] of string[2];
+    i, n, iErr: Integer;
 
   procedure CE;
     begin
@@ -168,6 +172,7 @@ procedure TIndicator.HandleEvent;
         begin
         CalcError := False;
         Value := PCReal(Event.InfoPtr)^;
+        Draw;
         CE
         end;
       cmSetError:
@@ -186,7 +191,28 @@ procedure TIndicator.HandleEvent;
       cmCopyClip:
         begin
         ClearEvent(Event);
-        Message(Application, evCommand, cmPutInClipboard, @SResult);
+        Radio^.GetData(SelectedForm);
+        PutInClip(SResult[SelectedForm]);
+        end;
+      cmChangeFormat:
+        begin
+        ClearEvent(Event);
+        for i := Low(TCalcFormat) to High(TCalcFormat) do
+          begin
+          Str(CalcFormat[i], s);
+          sCalcFormat[i] := s;
+          end;
+        if ExecResource(dlgCalcFormat, sCalcFormat) = cmOK then
+          begin
+          for i := Low(TCalcFormat) to High(TCalcFormat) do
+            begin
+            Val(sCalcFormat[i], n, iErr);
+            if (iErr = 0) and (n >= 0) and (n <= MaxCalcFormat[i]) then
+              CalcFormat[i] := n;
+            end;
+          ConfigModified := True;
+          Draw;
+          end;
         end;
     end {case};
   end { TIndicator.HandleEvent };
@@ -214,7 +240,7 @@ procedure TIndicator.WrtT(X: CReal; var S: String);
   Str(Min, sMin);
   if Length(sMin) < 2 then
     sMin := '0'+sMin;
-  Str(Sec: 0: 8, S);
+  Str(Sec: 0: CalcFormat[5], S);
   if PosChar('E', S) = 0 then
     while S[Length(S)] = '0' do
       SetLength(S, Length(S)-1);
@@ -231,15 +257,13 @@ procedure TIndicator.Draw;
     S: String[40];
     C: Byte;
     L, LL: LongInt;
-    SelectedForm: Integer;
 
   procedure Wrt(N: Integer);
     begin
     MoveChar(B, ' ', C, Size.X);
     MoveStr(B[Size.X-Length(S)-1], S, C);
     WriteLine(0, N, Size.X, 1, B);
-    if N = SelectedForm then
-      SResult := S;
+    SResult[N] := S;
     end;
 
   begin
@@ -255,8 +279,7 @@ procedure TIndicator.Draw;
     end
   else
     begin
-    Radio^.GetData(SelectedForm);
-    Str(Value: 0: 20, S);
+    Str(Value: 0: CalcFormat[0], S);
     if PosChar('E', S) = 0 then
       while S[Length(S)] = '0' do
         SetLength(S, Length(S)-1);
@@ -275,14 +298,20 @@ procedure TIndicator.Draw;
       begin
       LL := Trunc(Value);
       S := '$'+GetNValue(LL, 4);
+      if Length(s) > CalcFormat[1]+1 then
+        S := GetString(dlOverflow);
       Wrt(1);
       S := GetNValue(LL, 1) + 'b';
+      if Length(s) > CalcFormat[2]+1 then
+        S := GetString(dlOverflow);
       Wrt(2);
       S := GetNValue(LL, 3) + 'o';
+      if Length(s) > CalcFormat[3]+1 then
+        S := GetString(dlOverflow);
       Wrt(3);
       WrtT(Value, S); Wrt(5);
       end;
-    Str(Value, S);
+    Str(Value:CalcFormat[4]+8, S);
     Wrt(4);
     end;
   end { TIndicator.Draw };
@@ -344,6 +373,7 @@ destructor TCalcLine.Done;
 procedure TCalcLine.SetValues;
   var
     R: CReal;
+    SelectedForm: Integer;
     S: String;
   begin
   GetData(S);
@@ -374,7 +404,12 @@ procedure TCalcLine.SetValues;
       begin
       GetData(S);
       HistoryAdd(hsCalcLine, S);
-      SetData(PIndicator(PDialog(Owner)^.DirectLink[3])^.SResult);
+      with PIndicator(PDialog(Owner)^.DirectLink[3])^ do
+        begin
+        Radio^.GetData(SelectedForm);
+        S := SResult[SelectedForm];
+        end;
+      SetData(S);
       end;
     end;
   end { TCalcLine.SetValues };

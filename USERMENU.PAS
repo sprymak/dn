@@ -92,7 +92,7 @@ uses
   Lfn, {DataCompBoy}
   DNApp, Advance, Advance1, Advance2, Startup, Messages, Menus,
   Commands, Microed, WinClp, DNHelp, Dos, Memory, Dialogs, Tree, RStrings
-  , filediz
+  , filediz, Advance0
   ;
 
 type
@@ -1134,7 +1134,7 @@ procedure TGrabber.HandleEvent;
       SyncClipIn;
     if ClipBoardStream <> nil
     then
-      ClipBoardStream^.Seek(Max(ClipBoardStream^.GetPos-4, 0));
+      ClipBoardStream^.Seek(Positive(ClipBoardStream^.GetPos-4));
     CopyLines2Stream(ClipBoard, ClipBoardStream);
     end { MakeClip };
 

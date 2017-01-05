@@ -165,6 +165,9 @@ const
 
 implementation
 
+uses
+  Advance0;
+
 { THelpTopic }
 
 constructor THelpTopic.Init;
@@ -665,7 +668,7 @@ constructor THelpFile.Init(S: PStream);
 
 destructor THelpFile.Done;
   var
-    Magic, Size: LongInt;
+    Magic, Size{!!s}: LongInt;
   begin
   if Modified then
     begin
@@ -673,7 +676,7 @@ destructor THelpFile.Done;
     Stream^.Put(Index);
     Stream^.Seek(0);
     Magic := MagicHeader;
-    Size := Stream^.GetSize-8;
+    Size := i32(Stream^.GetSize-8);
     Stream^.Write(Magic, SizeOf(Magic));
     Stream^.Write(Size, SizeOf(Size));
     Stream^.Write(IndexPos, SizeOf(IndexPos));
@@ -726,7 +729,7 @@ procedure THelpFile.PutTopic(Topic: PHelpTopic);
   begin
   Stream^.Seek(IndexPos);
   Stream^.Put(Topic);
-  IndexPos := Stream^.GetPos;
+  IndexPos := i32(Stream^.GetPos){!!s};
   Modified := True;
   end;
 

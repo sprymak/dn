@@ -1,6 +1,5 @@
 @set pause=rem
 @Echo off
-@rem set pause=pause
 if [%1]==[P] goto plugin
 if [%1]==[p] goto plugin
 if not [%1]==[] goto help
@@ -10,18 +9,18 @@ set plugin=/dPLUGIN
 set rplugin=PLUGIN
 :end_plugin
 
-set H=O
-if [%Host%]==[OS2] goto end_host
-set H=W
-if [%Host%]==[W32] goto end_host
+set H=O:OLF:OS2;LargeFileSupport
+if [%Host%]==[OLF] goto end_host
+set H=W:WLF:Win32;LargeFileSupport
+if [%Host%]==[WLF] goto end_host
 goto Help
 :end_host
 
 if [%target%]==[] set target=%Host%
-set T=O
-if [%Target%]==[OS2] goto end_Target
-set T=W
-if [%Target%]==[W32] goto end_Target
+set T=O:OLF:OS2;LargeFileSupport
+if [%Target%]==[OLF] goto end_Target
+set T=W:WLF:Win32;LargeFileSupport
+if [%Target%]==[WLF] goto end_Target
 set T=D
 if [%Target%]==[D32] goto end_Target
 goto Help
@@ -62,32 +61,15 @@ vpc rcp /b /dRCP /q %plugin% /c%H%
 
 Echo        Compiling resource files for %Target% %rplugin%
 set RCP_Target=%Target%
-if [%RCP_Target%]==[W32] set RCP_Target=Win32
-if [%RCP_Target%]==[D32] set RCP_Target=DPMI32
-EXE.%Host%\rcp %T% %RCP_Target% %rplugin%
+if [%Target%]==[OLF] set RCP_P=O OS2
+if [%Target%]==[WLF] set RCP_P=W Win32
+if [%Target%]==[D32] set RCP_P=W DPMI32
+rem EXE.%Host%\rcp %T% %RCP_P% %rplugin%
+EXE.%Host%\rcp %RCP_P% %rplugin%
 :endres
 %pause%
 
-rem if [%plugin%]==[] goto end_dn2cat
-rem Echo        Compiling DNcat.EXE for %Target%
-rem vpc dn2CAT /b /dDN /dDNPRG /dPLUGIN /q /c%T%
-rem if not errorlevel 1 goto end_dn2cat
-rem @echo Это что-то переполняется в VP, со второго раза получится.
-rem vpc dn2CAT /m /dDN /dDNPRG /dPLUGIN /q /c%T%
-rem @if errorlevel 1 goto Error
-rem :end_dn2cat
-rem %pause%
-
-if not %Target%==OS2 goto end_dnpmapil
-Echo        Compiling dnpmapil.dll for %Target%
-vpc dnpmapil /q /b %plugin% /c%T%
-@if errorlevel 1 goto Error
-%pause%
-:end_dnpmapil
-
 Echo        Compiling DN.EXE for %Target%  %rplugin%
-del exe.%Target%\advance.*
-del exe.%Target%\drivers.*
 
 if not [%Target%]==[D32] goto OS2W32
 vpc dn /dDN /dDNPRG -b -q -CW:d32:DPMI32
@@ -102,14 +84,29 @@ del EXE.D32\dn.exe
 goto end_dn
 
 :OS2W32
-if [%Target%]==[W32] vpc LIB.W32\vpkbdw32.pas /m /dDN /dDNPRG /q %plugin% /c%T%
-vpc dn /b /dDN /dDNPRG /q %plugin% /c%T%
+if [%Target%]==[WLF] goto W32
+Echo        Compiling dnpmapil.dll
+vpc dnpmapil -c%T% /q /b %plugin%
+@if errorlevel 1 goto Error
+%pause%
+vpc dn -c%T% /b /dDN /dDNPRG /q %plugin%
 if not errorlevel 1 goto end_dn
 @echo Это что-то переполняется в VP, со второго раза получится.
-vpc dn /m /dDN /dDNPRG /q %plugin% /c%T%
+vpc dn -c%T% /m /dDN /dDNPRG /q %plugin%
 @if errorlevel 1 goto Error
+if [%Host%]==[OLF] rc -p -x2 EXE.OLF\dn.res EXE.OLF\dn.exe
+goto end_dn
+
+:W32
+LIB.W32\vpkbdw32.pas /m /dDN /dDNPRG /q %plugin% /c%T%
+vpc dn -c%T% /b /dDN /dDNPRG /q %plugin%
+if not errorlevel 1 goto end_dn
+@echo Это что-то переполняется в VP, со второго раза получится.
+vpc dn -c%T% /m /dDN /dDNPRG /q %plugin%
+@if errorlevel 1 goto Error
+
 :end_dn
-if [%Target%]==[OS2] if [%Host%]==[OS2] rc -p -x2 exe.os2\dn.res exe.os2\dn.exe
+%pause%
 
 if [%plugin%]==[] goto end_plgman
 Echo        Compiling plugman.dll for %Target%
@@ -133,8 +130,8 @@ del EXE.%Target%\*.obj
 goto ret
 
 :Help
-@echo Переменная Host должна указывать текущую платформу (OS2, W32);
-@echo Переменная Target должна указывать целевую платформу (OS2, W32),
+@echo Переменная Host должна указывать текущую платформу (OLF, WLF);
+@echo Переменная Target должна указывать целевую платформу (OLF, WLF, D32),
 @echo если она отлична от текущей.
 @echo Параметр должен отсутствовать или иметь значение P
 @echo (для компиляции плагинной версии).

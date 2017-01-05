@@ -1738,7 +1738,7 @@ WrongArc:
     {$IFDEF RecodeWhenDraw}
     S := CharToOemStr(S);
     {$ENDIF}
-    Message(Application, evCommand, cmPutInClipboardLong, @S);
+    PutInClipLong(S);
     end { _CtrlIns };
 
   {function _AltEnter: boolean; forward;} {Cat}

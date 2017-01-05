@@ -158,7 +158,7 @@ function TZXZArchive.GetSign;
 
 procedure TZXZArchive.GetFile;
   var
-    FP: LongInt;
+    FP: TFileSize;
     P: ZXZHdr;
     Len: AWord;
   begin

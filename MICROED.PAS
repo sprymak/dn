@@ -290,7 +290,7 @@ uses
   {$IFDEF PLUGIN}Plugin, {$ENDIF}
   Gauge, FViewer, HistList, Macro, Editor, WinClp, DNUtil, Histries,
   xTime, FileCopy, ASCIITab, DnIni, U_SrchF, EdWin, MicroEd2 {-$VIV}
-  , Events, VpSysLow
+  , Events, VpSysLow, Advance0
   ;
 
 const
@@ -2802,7 +2802,7 @@ EndDel:
     if  (ClipBoardStream <> nil)
       {AK155} and (ClipBoard^.Count < 1000) {/AK155}
       then
-      ClipBoardStream^.Seek(Max(ClipBoardStream^.GetPos-4, 0));
+      ClipBoardStream^.Seek(Positive(ClipBoardStream^.GetPos-4));
     CopyLines2Stream(ClipBoard, ClipBoardStream);
     end { CopyBlock };
 

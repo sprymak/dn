@@ -1,3 +1,3 @@
-set Host=W32
+set Host=WLF
 set Target=D32
 _dnc.cmd %1

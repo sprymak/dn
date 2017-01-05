@@ -1,3 +1,3 @@
-set Host=OS2
-set Target=W32
+set Host=OLF
+set Target=WLF
 _dnc %1

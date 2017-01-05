@@ -246,7 +246,7 @@ type
 
 procedure TRARArchive.GetFile;
   var
-    FP: LongInt;
+    FP: TFileSize;
     Ps: Integer;
     P: LocRarHdr;
     P2: LocRar2Hdr;

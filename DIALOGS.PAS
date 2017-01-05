@@ -646,7 +646,7 @@ implementation
 
 uses
   ASCIITab, HistList, Advance, Advance1, Advance2, Commands,
-  Startup, xTime, FlPanelX, DNApp, Objects2
+  Startup, xTime, FlPanelX, DNApp, Objects2, DNUtil
   {, Crt}, VpSysLow
   ;
 
@@ -1230,7 +1230,7 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
               begin
               S := Copy(Data, SelStart+1, SelEnd-SelStart);
               if S <> '' then
-                Message(Application, evCommand, cmPutInClipboardLong, @S);
+                PutInClipLong(S);
               ClearEvent(Event);
               Exit;
               end;
@@ -1261,7 +1261,7 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
             begin
             S := Copy(Data, SelStart+1, SelEnd-SelStart);
             if S <> '' then
-              Message(Application, evCommand, cmPutInClipboardLong, @S);
+              PutInClipLong(S);
             DeleteSelect;
             SelEnd := SelStart;
             DrawView;
@@ -1272,9 +1272,8 @@ procedure TInputLine.HandleEvent(var Event: TEvent);
           kbShiftIns:
             begin
             ClearEvent(Event);
-            S := '';
             DeleteSelect;
-            Message(Application, evCommand, cmGetFromClipboardLong, @S);
+            GetFromClipLong(S);
             if S = '' then
               Exit;
             SelStart := CurPos;

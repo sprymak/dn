@@ -262,7 +262,7 @@ procedure TZIPArchive.GetFile;
   var
     P: TZIPLocalHdr;
     HCF: TZIPCentralFileRec;
-    FP, FPP: LongInt;
+    FP, FPP: TFileSize;
   label 1;
   begin
   if CentralDirRecPresent then

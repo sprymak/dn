@@ -178,7 +178,7 @@ function TACEArchive.GetSign;
 procedure TACEArchive.GetFile;
   label 1;
   var
-    FP: LongInt;
+    FP: TFileSize;
     P: ACEFileHdr;
     C: Char;
   begin

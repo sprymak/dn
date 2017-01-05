@@ -155,7 +155,7 @@ function THAArchive.GetSign;
 
 procedure THAArchive.GetFile;
   var
-    FP: LongInt;
+    FP: TFileSize;
     P: HAHdr;
     C: Char;
     DT: DateTime;
@@ -194,7 +194,7 @@ procedure THAArchive.GetFile;
     FileInfo.Attr := Directory;
   ArcFile^.Read(C, 1);
   FP := ArcFile^.GetPos+P.PackedSize+Byte(C);
-  if  (_Cardinal(FP) > ArcFile^.GetSize) or (ArcFile^.Status <> stOK)
+  if  (Comp(FP) > ArcFile^.GetSize) or (ArcFile^.Status <> stOK)
   then
     begin
     FileInfo.Last := 2;

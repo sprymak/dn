@@ -200,7 +200,7 @@ uses
   {$IFNDEF DPMI32}Streams,{$ENDIF}
   Advance1, Strings,
   Commands, DNApp, DnIni, Memory, FlPanelX, dnHelp
-  , VpSysLow, U_KeyMap
+  , VpSysLow, U_KeyMap, Advance0
   ;
 
 var
@@ -1365,9 +1365,7 @@ function CompareFiles(const N1, N2: String): Boolean;
   while (S1.Status = stOK) and (S2.Status = stOK) and (I > 0) and not B
   do
     begin
-    I := BufSize;
-    if S1.GetSize-S1.GetPos < I then
-      I := S1.GetSize-S1.GetPos;
+    I := MinBufSize(S1.GetSize-S1.GetPos, BufSize);
     if I = 0 then
       Break;
     S1.Read(B1^, I);

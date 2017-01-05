@@ -72,7 +72,8 @@ uses
 
 function ZIPDetect: Boolean;
   var
-    ID, FP: LongInt;
+    ID: LongInt;
+    FP: TFileSize;
   begin
   ZIPDetect := False;
   CentralDirRecPresent := False;

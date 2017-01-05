@@ -71,8 +71,8 @@ type
     OutName: PString;
     LockUpdate: Byte;
     Paused: Boolean;
-    FileLen: LongInt;
-    FilePos: LongInt;
+    FileLen: TFileSize;
+    FilePos: TFileSize;
     Status: PView;
     PrintStream: PStream;
     Buffer: PByteArray;
@@ -121,6 +121,7 @@ implementation
 uses
   RStrings, Startup, DNHelp
   , VpSysLow {для Open_Access_ReadOnly}
+  , Advance0
   ;
 
 procedure TStringCol.FreeItem;
@@ -193,10 +194,11 @@ procedure TPrintStatus.Draw;
     S := GetString(dlPrinting);
     S := S+CutH(PString(Print^.List^.At(0))^, Size.X-CStrLen(S));
     if Print^.FileLen <> 0 then
-      S1 := '~'+Copy(Strg(#219, ((Size.X-6)*Print^.FilePos) div
-             Print^.FileLen)
-          +Strg(#177, Size.X-6), 1, Size.X-6)+' ~'+
-          Percent(Print^.FilePos+1, Print^.FileLen+1);
+      S1 := '~'+Copy(
+          Strg(#219, Trunc(((Size.X-6)*Print^.FilePos) / Print^.FileLen)) +
+            Strg(#177, Size.X-6),
+          1, Size.X-6) +
+        ' ~' + Percent(Print^.FilePos+1, Print^.FileLen+1);
     end;
   MoveCStr(B, '~'+S+'~', C);
   WriteLine(0, 0, Size.X, 1, B);
@@ -612,7 +614,7 @@ procedure TPrintManager.Update;
         begin
         BufCount := MaxBufCount;
         if BufCount > FileLen then
-          BufCount := FileLen;
+          BufCount := i32(FileLen);
         PrintStream^.Read(Buffer^, BufCount);
         end
       else
@@ -645,7 +647,7 @@ procedure TPrintManager.Update;
         begin
         BufCount := MaxBufCount;
         if BufCount+FilePos > FileLen then
-          BufCount := FileLen-FilePos;
+          BufCount := i32(FileLen-FilePos);
         PrintStream^.Read(Buffer^, BufCount);
         end;
       end;

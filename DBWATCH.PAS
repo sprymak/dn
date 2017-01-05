@@ -114,7 +114,7 @@ type
 implementation
 
 uses
-  Messages, Commands, DNApp
+  Messages, Commands, DNApp, Advance0
   ;
 
 procedure TFieldCollection.FreeItem;
@@ -234,6 +234,8 @@ constructor TDBFile.Init;
       end;
     end { ReadFldStru };
 
+  var
+    BaseFileSize: Longint; {!!s}
   begin { TDBFile.Init }
   inherited Init;
   BaseName := lFExpand(FileName); {DataCompBoy}
@@ -249,7 +251,8 @@ constructor TDBFile.Init;
     BaseFile.Done;
     Fail;
     end;
-  if BaseFile.GetSize-HeaderLen < 0 then
+  BaseFileSize := i32(BaseFile.GetSize);
+  if BaseFileSize-HeaderLen < 0 then
     begin
     BaseFile.Done;
     Fail;
@@ -296,16 +299,16 @@ constructor TDBFile.Init;
       end
     else
       RL := RecLen;
-  if NumRec <> ((BaseFile.GetSize-HeaderLen) div RL) then
+  if NumRec <> ((BaseFileSize-HeaderLen) div RL) then
     begin
     if MessageBox
           (GetString(dlInvalidDBFHeader)+GetString(dlInvalidRecNumber)+
         ItoS(NumRec)+
-        GetString(dlInvalidRecNumber1)+ItoS(((BaseFile.GetSize-HeaderLen
+        GetString(dlInvalidRecNumber1)+ItoS(((BaseFileSize-HeaderLen
               ) div RL))+GetString(dlUseCalcRecNumber),
         nil, mfError+mfYesNoConfirm) = cmNo
     then
-      NumRec := (BaseFile.GetSize-HeaderLen) div RL;
+      NumRec := (BaseFileSize-HeaderLen) div RL;
     end;
   {--- finish -------- Eugeny Zvyagintzev ---- 17-06-2002 ----}
   Loc := 0;

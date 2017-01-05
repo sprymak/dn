@@ -96,6 +96,7 @@ uses
   FileCopy, HistList, DNUtil
   , Events
   , use16
+  , Advance0
   ;
 
 function longmul(X, Y: LongInt): LongInt;
@@ -1888,7 +1889,7 @@ end;
       : Word;
 
       SouTime: LongInt;
-      SouSize: LongInt;
+      SouSize: Longint;
       WriteError: Boolean;
 
       MaxSectSize,
@@ -2492,7 +2493,7 @@ beg:
         Exit
         end;
 
-      SouSize := FileSize(ST.F);
+      SouSize := i32(FileSize(ST.F)); {!!s}
 
       if SouSize < 3 then
         begin

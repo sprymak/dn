@@ -76,7 +76,7 @@ procedure InitPMModules;
 {$IFDEF CHECK_NO_PM}
 const
   {$Far16+}
-  Dos16SMPresent  : function(var present:smallword):apiret16 = nil;
+  Dos16SmPmPresent  : function(var present:smallword):apiret16 = nil;
   {$Far16-}
 {$ENDIF CHECK_NO_PM}
 var
@@ -99,15 +99,15 @@ begin
 
           sm_present:=0;
 
-          if DosQueryProcAddr(dll_DOSCALLS, 712, nil, @Dos16SMPresent)=no_Error then
+          if DosQueryProcAddr(dll_DOSCALLS, 712, nil, @Dos16SmPmPresent)=no_Error then
             begin
-              //if Dos16SMPresent(sm_present)=no_Error then
+              //if Dos16SmPmPresent(sm_present)=no_Error then
               //  if sm_present=1 then
               //    PM_Initialised:=pmOK;
               asm
                 lea eax,sm_present
                 push eax
-                push [Dos16SMPresent]
+                push [Dos16SmPmPresent]
                 push 3 // B:0011: Addr
                 call _Far16Pas
 
@@ -342,6 +342,41 @@ begin
     // It doesn't: return original pointer
     Fix_64k := _Memory;
 end;
+{$IfDef LargeFileSupport}
+
+{&Cdecl+}
+var
+  DosOpenL:function(FileName: PChar; var F: HFile; var Action: ULong;
+    cbFile:TFileSize; Attribute, OpenFlags, OpenMode: ULong; EAs: PEaop2): ApiRet;
+
+  DosSetFilePtrL:function(F: HFile; Distance: TFileSize; Method: ULong;
+      var Actual: TFileSize): ApiRet;
+
+  DosSetFileSizeL:function(F: HFile; Size: TFileSize): ApiRet;
+
+{&Cdecl-}
+
+function LoadLargeFileSupport:boolean;
+  var
+    dll_DOSCALLS: HModule;
+  begin
+
+    if LargeFileSupport=LargeFileSupport_unknown then
+      begin
+
+        LargeFileSupport:=LargeFileSupport_no;
+
+        if DosQueryModuleHandle('DOSCALLS', dll_DOSCALLS) = 0 then
+          if  (DosQueryProcAddr(dll_DOSCALLS, 981, nil, @DosOpenL       )=no_Error)
+          and (DosQueryProcAddr(dll_DOSCALLS, 988, nil, @DosSetFilePtrL )=no_Error)
+          and (DosQueryProcAddr(dll_DOSCALLS, 989, nil, @DosSetFileSizeL)=no_Error)
+           then LargeFileSupport:=LargeFileSupport_yes;
+
+      end; (* unknown *)
+
+    LoadLargeFileSupport:=(LargeFileSupport=LargeFileSupport_yes);
+  end;
+{$EndIf LargeFileSupport}
 
 
 function SysFileStdIn: Longint;
@@ -380,7 +415,13 @@ begin
 
   if (Mode and $70) = 0 then
     Inc(Mode, open_share_DenyNone);
-  Result := DosOpen(FileName, Handle, ActionTaken, 0, 0, APIFlags, Mode, nil);
+
+  {$IfDef LargeFileSupport}
+  if LoadLargeFileSupport then
+    Result := DosOpenL(FileName, Handle, ActionTaken, 0, 0, APIFlags, Mode, nil)
+  else
+  {$EndIf}
+    Result := DosOpen (FileName, Handle, ActionTaken, 0, 0, APIFlags, Mode, nil);
 end;
 
 function SysFileOpen(FileName: PChar; Mode: Longint; var Handle: Longint): Longint;
@@ -389,7 +430,13 @@ var
 begin
   if (Mode and $70) = 0 then
     Inc(Mode, open_share_DenyNone);
-  Result := DosOpen(FileName, Handle, Action, 0, 0, file_Open, Mode, nil);
+
+  {$IfDef LargeFileSupport}
+  if LoadLargeFileSupport then
+    Result := DosOpenL(FileName, Handle, Action, 0, 0, file_Open, Mode, nil)
+  else
+  {$EndIf}
+    Result := DosOpen (FileName, Handle, Action, 0, 0, file_Open, Mode, nil);
 end;
 
 function SysFileCreate(FileName: PChar; Mode,Attr: Longint; var Handle: Longint): Longint;
@@ -398,7 +445,13 @@ var
 begin
   if (Mode and $70) = 0 then
     Inc(Mode, open_share_DenyNone);
-  Result := DosOpen(FileName, Handle, Action, 0, Attr, file_Create+file_Truncate, Mode, nil);
+
+  {$IfDef LargeFileSupport}
+  if LoadLargeFileSupport then
+    Result := DosOpenL(FileName, Handle, Action, 0, Attr, file_Create+file_Truncate, Mode, nil)
+  else
+  {$EndIf}
+    Result := DosOpen (FileName, Handle, Action, 0, Attr, file_Create+file_Truncate, Mode, nil);
 end;
 
 function SysFileCopy(_Old, _New: PChar; _Overwrite: Boolean): Boolean;
@@ -412,9 +465,26 @@ begin
   Result := (DosCopy(_Old, _New, Flag)=No_Error);
 end;
 
-function SysFileSeek(Handle,Distance,Method: Longint; var Actual: Longint): Longint;
+function SysFileSeek(Handle: Longint;Distance: TFileSize;Method: Longint; var Actual: TFileSize): Longint;
+{$IfDef LargeFileSupport}
+var
+  Actual32: LongInt;
+{$EndIf LargeFileSupport}
 begin
-  Result := DosSetFilePtr(Handle, Distance, Method, Actual);
+  {$IfDef LargeFileSupport}
+  if LoadLargeFileSupport then
+    Result := DosSetFilePtrL(Handle, Distance, Method, Actual)
+  else
+    if (Distance>High(Longint)) or (Distance<Low(Longint)) then
+      Result := -1
+    else
+      begin
+        Result := DosSetFilePtr (Handle, TFileSizeRec(Distance).lo32, Method, Actual32);
+        Actual := Actual32;
+      end;
+  {$Else LargeFileSupport}
+  Result := DosSetFilePtr (Handle, Round(Distance), Method, Actual);
+  {$EndIf LargeFileSupport}
 end;
 
 function SysFileRead(Handle: Longint; var Buffer; Count: Longint; var Actual: Longint): Longint;
@@ -427,9 +497,17 @@ begin
   Result := DosWrite(Handle, Buffer, Count, Actual);
 end;
 
-function SysFileSetSize(Handle,NewSize: Longint): Longint;
+function SysFileSetSize(Handle: Longint; NewSize: TFileSize): Longint;
 begin
-  Result := DosSetFileSize(Handle, NewSize);
+  {$IfDef LargeFileSupport}
+  if LoadLargeFileSupport then
+    Result := DosSetFileSizeL(Handle, NewSize)
+  else
+    if (NewSize>High(Longint)) or (NewSize<Low(Longint)) then
+      Result := -1
+    else
+  {$EndIf}
+      Result := DosSetFileSize (Handle, Round(NewSize));
 end;
 
 function SysFileClose(Handle: Longint): Longint;
@@ -595,13 +673,20 @@ begin
 end;
 
 function SysGetThreadId: Longint;
-var
-  TB: PTIB;
-  PB: PPIB;
-begin
-  DosGetInfoBlocks(TB, PB);
-  Result := TB^.tib_ordinal;
-end;
+
+//var
+//  TB: PTIB;
+//  PB: PPIB;
+//begin
+//  DosGetInfoBlocks(TB, PB);
+//  Result := TB^.Tib_Ordinal;
+//end;
+
+  {&Frame-}{&Uses None}
+  asm
+    mov eax,Tib[fs:0].Tib_Ordinal
+  end;
+
 
 function SysCtrlCreateThread(Attrs: Pointer; StackSize: Longint; Func,Param: Pointer; Flags: Longint; var Tid: Longint): Longint;
 begin
@@ -637,7 +722,9 @@ end;
 
 function SysCtrlGetModuleName(Handle: Longint; Buffer: PChar): Longint;
 begin
-  Result := DosQueryModuleName(0, 260, Buffer);
+  Result := DosQueryModuleName(Handle, 260, Buffer);
+  if Result<>0 then
+    Result := DosQueryModuleName(0, 260, Buffer);
 end;
 
 procedure SysCtrlEnterCritSec;
@@ -891,52 +978,112 @@ end;
 function SysGetFileAttr(FileName: PChar; var Attr: Longint): Longint;
 var
   Info: FileStatus3;
+  {$IfDef LargeFileSupport}
+  InfoL: FileStatus3L;
+  {$EndIf LargeFileSupport}
 begin
   Attr := 0;
-  Result := DosQueryPathInfo(FileName, fil_Standard, Info, SizeOf(Info));
+  {$IfDef LargeFileSupport}
+  Result := DosQueryPathInfo(FileName, fil_StandardL, InfoL, SizeOf(InfoL));
   if Result = 0 then
-    Attr := Info.attrFile;
+    Attr := InfoL.attrFile
+  else
+  if Result = Error_Invalid_Level then
+  {$EndIf LargeFileSupport}
+    begin
+      Result := DosQueryPathInfo(FileName, fil_Standard, Info, SizeOf(Info));
+      if Result = 0 then
+        Attr := Info.attrFile;
+    end;
 end;
 
 function SysSetFileAttr(FileName: PChar; Attr: Longint): Longint;
 var
   Info: FileStatus3;
+  {$IfDef LargeFileSupport}
+  InfoL: FileStatus3L;
+  {$EndIf LargeFileSupport}
 begin
-  Result := DosQueryPathInfo(FileName, fil_Standard, Info, SizeOf(Info));
+  {$IfDef LargeFileSupport}
+  Result := DosQueryPathInfo(FileName, fil_StandardL, InfoL, SizeOf(InfoL));
   if Result = 0 then
-  begin
-    Info.attrFile := Attr;
-    Result := DosSetPathInfo(FileName, fil_Standard, Info, SizeOf(Info), dspi_WrtThru);
-  end;
+    begin
+      InfoL.attrFile := Attr;
+      Result := DosSetPathInfo(FileName, fil_StandardL, InfoL, SizeOf(InfoL), dspi_WrtThru);
+    end
+  else
+  if Result = Error_Invalid_Level then
+  {$EndIf LargeFileSupport}
+    begin
+      Result := DosQueryPathInfo(FileName, fil_Standard, Info, SizeOf(Info));
+      if Result = 0 then
+      begin
+        Info.attrFile := Attr;
+        Result := DosSetPathInfo(FileName, fil_Standard, Info, SizeOf(Info), dspi_WrtThru);
+      end;
+    end;
 end;
 
 function SysGetFileTime(Handle: Longint; var Time: Longint): Longint;
 var
   Info: FileStatus3;
+  {$IfDef LargeFileSupport}
+  InfoL: FileStatus3L;
+  {$EndIf LargeFileSupport}
   FDateTime: TDateTimeRec absolute Time;
 begin
   Time := 0;
-  Result := DosQueryFileInfo(Handle, fil_Standard, Info, SizeOf(Info));
+  {$IfDef LargeFileSupport}
+  Result := DosQueryFileInfo(Handle, fil_StandardL, InfoL, SizeOf(InfoL));
   if Result = 0 then
     with FDateTime do
     begin
-      FTime := Info.ftimeLastWrite;
-      FDate := Info.fdateLastWrite;
+      FTime := InfoL.ftimeLastWrite;
+      FDate := InfoL.fdateLastWrite;
     end
+  else
+  if Result = Error_Invalid_Level then
+  {$EndIf LargeFileSupport}
+    begin
+      Result := DosQueryFileInfo(Handle, fil_Standard, Info, SizeOf(Info));
+      if Result = 0 then
+        with FDateTime do
+        begin
+          FTime := Info.ftimeLastWrite;
+          FDate := Info.fdateLastWrite;
+        end
+    end;
 end;
 
 function SysSetFileTime(Handle: Longint; Time: Longint): Longint;
 var
   Info: FileStatus3;
+  {$IfDef LargeFileSupport}
+  InfoL: FileStatus3L;
+  {$EndIf LargeFileSupport}
   FDateTime: TDateTimeRec absolute Time;
 begin
-  Result := DosQueryFileInfo(Handle, fil_Standard, Info, SizeOf(Info));
+  {$IfDef LargeFileSupport}
+    Result := DosQueryFileInfo(Handle, fil_StandardL, InfoL, SizeOf(InfoL));
   if Result = 0 then
     with FDateTime do
     begin
-      Info.ftimeLastWrite := FTime;
-      Info.fdateLastWrite := FDate;
-      Result := DosSetFileInfo(Handle, fil_Standard, Info, SizeOf(Info));
+      InfoL.ftimeLastWrite := FTime;
+      InfoL.fdateLastWrite := FDate;
+      Result := DosSetFileInfo(Handle, fil_StandardL, InfoL, SizeOf(InfoL));
+    end
+  else
+  if Result = Error_Invalid_Level then
+  {$EndIf LargeFileSupport}
+    begin
+      Result := DosQueryFileInfo(Handle, fil_Standard, Info, SizeOf(Info));
+      if Result = 0 then
+        with FDateTime do
+        begin
+          Info.ftimeLastWrite := FTime;
+          Info.fdateLastWrite := FDate;
+          Result := DosSetFileInfo(Handle, fil_Standard, Info, SizeOf(Info));
+        end;
     end;
 end;
 
@@ -944,12 +1091,24 @@ function SysFindFirst(Path: PChar; Attr: Longint; var F: TOSSearchRec; IsPChar: 
 var
   Count: Longint;
   SR: FileFindBuf3;
+  {$IfDef LargeFileSupport}
+  SRL: FileFindBuf3L;
+  {$EndIf LargeFileSupport}
   Path2: array[0..259] of char;
 begin
   Attr := Attr and not $8; // No VolumeID under OS/2
   Count := 1;
   F.Handle := hdir_Create;
-  Result := DosFindFirst(Path, F.Handle, Attr, SR, SizeOf(SR), Count, fil_Standard);
+  {$IfDef LargeFileSupport}
+  F.Level_3L:=false;
+  Result := DosFindFirst(Path, F.Handle, Attr, SRL, SizeOf(SRL), Count, fil_StandardL);
+  if (Result<>Error_Invalid_Level) and (Result<>Error_Invalid_Parameter) then
+    F.Level_3L:=true
+  else
+  {$EndIf LargeFileSupport}
+    begin
+      Result := DosFindFirst(Path, F.Handle, Attr, SR, SizeOf(SR), Count, fil_Standard);
+    end;
 
   // If a specific error occurs, and the call is to look for directories, and
   // the path is a UNC name, then retry
@@ -960,45 +1119,96 @@ begin
     begin
       DosFindClose(F.Handle);
       StrCat(StrCopy(Path2,Path), '\*.*');
-      Result := DosFindFirst(Path2, F.Handle, Attr, SR, SizeOf(SR), Count, fil_Standard);
+
+      {$IfDef LargeFileSupport}
+      if F.Level_3L then
+        Result := DosFindFirst(Path2, F.Handle, Attr, SRL, SizeOf(SRL), Count, fil_StandardL)
+      else
+      {$EndIf LargeFileSupport}
+        Result := DosFindFirst(Path2, F.Handle, Attr, SR, SizeOf(SR), Count, fil_Standard);
+
       if (Result = 0) and (Count <> 0) then
         Result := 0;
     end;
 
   if Result = 0 then
-    with F,SR do
     begin
-      Attr := attrFile;
-      TDateTimeRec(Time).FTime := ftimeLastWrite;
-      TDateTimeRec(Time).FDate := fdateLastWrite;
-      Size := cbFile;
-      if IsPChar then
-        StrPCopy(PChar(@Name), achName)
+
+      {$IfDef LargeFileSupport}
+      if F.Level_3L then
+        with F,SRL do
+          begin
+            Attr := attrFile;
+            TDateTimeRec(Time).FTime := ftimeLastWrite;
+            TDateTimeRec(Time).FDate := fdateLastWrite;
+            Size := TQuad(cbFile);
+            if IsPChar then
+              StrPCopy(PChar(@Name), achName)
+            else
+              Name := achName;
+          end
       else
-        Name := achName;
+      {$EndIf LargeFileSupport}
+        with F,SR do
+          begin
+            Attr := attrFile;
+            TDateTimeRec(Time).FTime := ftimeLastWrite;
+            TDateTimeRec(Time).FDate := fdateLastWrite;
+            Size := cbFile;
+            if IsPChar then
+              StrPCopy(PChar(@Name), achName)
+            else
+              Name := achName;
+          end
     end
+
   else
     F.Handle := hdir_Create;
+
 end;
 
 function SysFindNext(var F: TOSSearchRec; IsPChar: Boolean): Longint;
 var
   Count: Longint;
   SR: FileFindBuf3;
+  {$IfDef LargeFileSupport}
+  SRL: FileFindBuf3L;
+  {$EndIf LargeFileSupport}
 begin
   Count := 1;
-  Result := DosFindNext(F.Handle, SR, SizeOf(SR), Count);
-  if Result = 0 then
-    with F,SR do
+  {$IfDef LargeFileSupport}
+  if F.Level_3L then
     begin
-      Attr := attrFile;
-      TDateTimeRec(Time).FTime := ftimeLastWrite;
-      TDateTimeRec(Time).FDate := fdateLastWrite;
-      Size := cbFile;
-      if IsPChar then
-        StrPCopy(PChar(@Name), achName)
-      else
-        Name := achName;
+      Result := DosFindNext(F.Handle, SRL, SizeOf(SRL), Count);
+      if Result = 0 then
+        with F,SRL do
+        begin
+          Attr := attrFile;
+          TDateTimeRec(Time).FTime := ftimeLastWrite;
+          TDateTimeRec(Time).FDate := fdateLastWrite;
+          Size := TQuad(cbFile);
+          if IsPChar then
+            StrPCopy(PChar(@Name), achName)
+          else
+            Name := achName;
+        end;
+    end
+  else
+  {$EndIf LargeFileSupport}
+    begin
+      Result := DosFindNext(F.Handle, SR, SizeOf(SR), Count);
+      if Result = 0 then
+        with F,SR do
+        begin
+          Attr := attrFile;
+          TDateTimeRec(Time).FTime := ftimeLastWrite;
+          TDateTimeRec(Time).FDate := fdateLastWrite;
+          Size := cbFile;
+          if IsPChar then
+            StrPCopy(PChar(@Name), achName)
+          else
+            Name := achName;
+        end;
     end;
 end;
 
@@ -1045,13 +1255,33 @@ end;
 function SysFileSearch(Dest,Name,List: PChar): PChar;
 var
   Info: FileStatus3;
+  {$IfDef LargeFileSupport}
+  InfoL: FileStatus3L;
+  {$EndIf LargeFileSupport}
+  is_dir: boolean;
 begin
-  if (DosQueryPathInfo(Name, fil_Standard, Info, SizeOf(Info)) = 0)
-    and ((Info.attrFile and file_Directory) = 0) then
+  is_dir := false;
+  {$IfDef LargeFileSupport}
+  case DosQueryPathInfo(Name, fil_StandardL, InfoL, SizeOf(InfoL)) of
+    0:
+      is_dir := (InfoL.attrFile and file_Directory) = 0;
+
+    Error_Invalid_Level:
+  {$EndIf LargeFileSupport}
+      begin
+        if DosQueryPathInfo(Name, fil_Standard, Info, SizeOf(Info)) = 0 then
+          is_dir := (Info.attrFile and file_Directory) = 0;
+      end;
+  {$IfDef LargeFileSupport}
+  end;
+  {$EndIf LargeFileSupport}
+
+  if is_dir then
     SysFileExpand(Dest, Name)
   else
     if DosSearchPath(dsp_ImpliedCur+dsp_IgnoreNetErr,List,Name,Dest,260) <> 0 then
       Dest[0] := #0;
+
   SysFileAsOS( Dest );
   Result := Dest;
 end;
@@ -1445,16 +1675,16 @@ begin
     begin
       Key := Fix_64k(@LKey, SizeOf(Key^));
       KbdCharIn(Key^, io_Wait, 0);
-      case Key^.chChar of
-        #0: CrtScanCode := Key^.chScan;
-        #$E0:           {   Up, Dn, Left Rt Ins Del Home End PgUp PgDn C-Home C-End C-PgUp C-PgDn C-Left C-Right C-Up C-Dn }
-          if Key^.chScan in [$48,$50,$4B,$4D,$52,$53,$47, $4F,$49, $51, $77,   $75,  $84,   $76,   $73,   $74,    $8D, $91] then
-          begin
-            CrtScanCode := Key.chScan;
-            Key^.chChar := #0;
-          end;
-      end;
-      result:=Key^.chChar;
+
+      // extended key code and #0/#$e0?
+      if Odd(Key^.fbstatus shr 1) and (Key^.chChar in [#0,#$E0]) then
+        begin
+          CrtScanCode := Key^.chScan;
+          Result := #0
+        end
+      else
+        Result := Key^.chChar
+
     end;
 end;
 
@@ -1879,18 +2109,36 @@ begin
 end;
 
 procedure SysTVInitCursor;
-var
-  Font  : ^VioFontInfo;
-  LFont : Array[1..2] of VioFontInfo;
+// var
+//   Font  : ^VioFontInfo;
+//   LFont : Array[1..2] of VioFontInfo;
+//   VioMode  : ^VioModeInfo;
+//   LVioMode : Array[1..2] of VioModeInfo;
+//   cyCell : Integer;
 begin
-  Font := Fix_64k(@LFont, SizeOf(Font^));
 
-  FillChar(Font^, SizeOf(Font^), 0);
-  Font^.cb := SizeOf(VioFontInfo);
-  Font^.rType := vgfi_GetCurFont;
-  // Set underline cursor to avoid cursor shape problems
-  if VioGetFont(Font^, TVVioHandle) = 0 then
-    SysTVSetCurType(Font^.cyCell - 2, Font^.cyCell - 1, True);
+//   // VioGetFont is a very slow/costly function, flickers in fullscreen
+//   Font := Fix_64k(@LFont, SizeOf(Font^));
+//
+//   FillChar(Font^, SizeOf(Font^), 0);
+//   Font^.cb := SizeOf(VioFontInfo);
+//   Font^.rType := vgfi_GetCurFont;
+//   // Set underline cursor to avoid cursor shape problems
+//   if VioGetFont(Font^, TVVioHandle) = 0 then
+//     SysTVSetCurType(Font^.cyCell - 2, Font^.cyCell - 1, True);*)
+//
+//   // This is better. But do we need it?
+//   VioMode := Fix_64k(@LVioMode, SizeOf(VioMode^));
+//   VioMode^.cb := SizeOf(VioMode^);
+//   if VioGetMode(VioMode^, TVVioHandle) = 0 then
+//     begin
+//       cyCell := VioMode^.VRes div VioMode^.Row;
+//       SysTVSetCurType(cyCell - 2, cyCell - 1, True);
+//     end
+//   else
+
+    SysTVSetCurType(-90, -100, True);
+
 end;
 
 procedure SysTvDoneCursor;
@@ -1936,7 +2184,7 @@ var
   Name: Array[0..512] of char;
 begin
   MakeSharedMemName( @Name, _Name );
-  if DosAllocSharedMem(_Base, Name, _Size, obj_Giveable + pag_Read + pag_Write + pag_Commit) = 0 then
+  if DosAllocSharedMem(_Base, Name, _Size, {obj_Giveable + }pag_Read + pag_Write + pag_Commit) = 0 then
     Result := 0 // OS/2 does not use handles; 0 is its "handle"
   else
     Result := -1; // Error
@@ -1947,7 +2195,7 @@ var
   Name: Array[0..512] of char;
 begin
   MakeSharedMemName( @Name, _Name );
-  if DosGetNamedSharedMem( _Base, _Name, obj_Giveable + pag_Read + pag_Write + pag_Commit ) = 0 then
+  if DosGetNamedSharedMem( _Base, _Name, {obj_Giveable + }pag_Read + pag_Write {+ pag_Commit} ) = 0 then
     Result := 0
   else
     Result := -1; //Error
@@ -2695,4 +2943,9 @@ procedure SysLowInitPostTLS; {for 2.1 build 279 and later}
   SysLowInit;
   end;
 
-
+{$IfDef LargeFileSupport}
+begin
+LoadLargeFileSupport;
+  { это надо сделать ДО инициализации LFNVP, то есть
+    до первого вызова SysFindFirstNew }
+{$endif}

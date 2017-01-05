@@ -93,7 +93,7 @@ type
     CurDir, LastDir: String;
     CurPos: LongInt;
     TotalLength, TotalCLength: TSize;
-    vSavePos, vSize: LongInt;
+    vSavePos, vSize{!!s}: LongInt;
     constructor Init;
     constructor Load(var S: TStream);
     procedure Store(var S: TStream);
@@ -120,7 +120,7 @@ const
 
 implementation
 uses
-  DNApp, Startup
+  DNApp, Startup, Advance0
   ;
 
 procedure __Error;
@@ -360,7 +360,7 @@ procedure TDirStorage.UpdateRecord;
 
 constructor TDirStorage.Load;
   var
-    P, L: LongInt;
+    P, L: LongInt; {!!s}
   begin
   TObject.Init;
   S.Read(Dirs, SizeOf(Dirs));
@@ -370,7 +370,7 @@ constructor TDirStorage.Load;
   S.Read(L, SizeOf(L));
   vSize := L;
   TryStream(L);
-  P := S.GetPos;
+  P := i32(S.GetPos);
   repeat
     Stream^.CopyFrom(S, L);
     if Stream^.Status = stOK then
@@ -508,7 +508,7 @@ procedure TDirStorage.vTruncate;
   if Stream^.Status = stOK
   then
     begin
-    vSize := Stream^.GetPos;
+    vSize := i32(Stream^.GetPos);
     vSavePos := vSize
     end
   else

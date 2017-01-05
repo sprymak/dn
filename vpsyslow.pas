@@ -61,28 +61,27 @@ type
 const
   NoMouseMove: boolean = false;
 {$ENDIF}
+Var
+  LargeFileSupport      :(LargeFileSupport_unknown,LargeFileSupport_yes,LargeFileSupport_no)
+                        =LargeFileSupport_unknown;
 {$ENDIF}
 
 const
 {$IFDEF OS2}
   SemInfinite = sem_indefinite_wait;
-  PathSeparator = ';';
   AllFilesMask  = '*';
 {$ENDIF}
 {$IFDEF WIN32}
   SemInfinite = INFINITE;
-  PathSeparator = ';';
   AllFilesMask  = '*';
 {$ENDIF}
 {$IFDEF DPMI32}
   SemInfinite = -1; // not used
-  PathSeparator = ';';
   AllFilesMask  = '*.*';
 {$ENDIF}
 {$IFDEF LINUX}
   SemInfinite = -1; // not used
   Exception_Maximum_Parameters = 4;
-  PathSeparator = ':';
   AllFilesMask  = '*';
 {$ENDIF}
 
@@ -119,10 +118,10 @@ function SysFileOpen(FileName: PChar; Mode: Longint; var Handle: Longint): Longi
 function SysFileCreate(FileName: PChar; Mode,Attr: Longint; var Handle: Longint): Longint;
 function SysFileOpen_Create(Open: Boolean;FileName: PChar; Mode,Attr,Action: Longint; var Handle: Longint): Longint;
 function SysFileCopy(_Old, _New: PChar; _Overwrite: Boolean): Boolean;
-function SysFileSeek(Handle,Distance,Method: Longint; var Actual: Longint): Longint;
+function SysFileSeek(Handle: Longint; Distance: TFileSize;Method: Longint; var Actual: TFileSize): Longint;
 function SysFileRead(Handle: Longint; var Buffer; Count: Longint; var Actual: Longint): Longint;
 function SysFileWrite(Handle: Longint; const Buffer; Count: Longint; var Actual: Longint): Longint;
-function SysFileSetSize(Handle,NewSize: Longint): Longint;
+function SysFileSetSize(Handle: Longint; NewSize: TFileSize): Longint;
 function SysFileClose(Handle: Longint): Longint;
 function SysFileFlushBuffers(Handle: Longint): Longint;
 function SysFileDelete(FileName: PChar): Longint;
@@ -166,9 +165,14 @@ type
     NameLStr: Pointer;
     Attr: Byte;
     Time: Longint;
-    Size: Longint;
+    Size: TFileSize;
     Name: ShortString;
     Filler: array[0..3] of Char;
+{$IfDef Os2}
+{$IfDef LargeFileSupport}
+    Level_3L: boolean;          // fil_Standard/fil_StandardL
+{$EndIf}
+{$EndIf}
 {$IFDEF WIN32}
     ExcludeAttr: Longint;
     FindData:    TWin32FindData;
@@ -448,7 +452,10 @@ function Invalid16Parm(const _p: Pointer; const _Length: Longint): Boolean;
 function Fix_64k(const _Memory: Pointer; const _Length: Longint): pointer;
 {$ENDIF}
 
+// the path char, e.g. 'Y:\VP21'
 function SysPathSep: Char;
+// the delimiter, e.g. 'C:\DOS;C:\NC'
+function PathSeparator: Char;
 
 implementation
 
@@ -546,6 +553,19 @@ begin
 {$ENDIF}
 end;
 
+function PathSeparator: Char;
+begin
+{$IFDEF LINUX}
+  if FileSystem = fsUnix then
+    Result := ':'
+  else
+    Result := ';';
+{$ELSE}
+  Result := ';';
+{$ENDIF}
+end;
+
+
 function SysPlatformNameForId( _Id: Integer ): String;
 begin
   case _Id of
@@ -568,7 +588,7 @@ end;
 function SysFileExists(const FileName: PChar): Boolean;
 var
   S: TOSSearchRec;
-begin
+begin // $27=allow archive+system+hidden+readonly, no directories
   Result := SysFindFirst(FileName, $27, S, True) = 0;
   if Result then
     SysFindClose(S);

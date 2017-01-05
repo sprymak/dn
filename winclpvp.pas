@@ -325,7 +325,7 @@ procedure PackLinesStream(var PCS: PStream); {-$VOL begin}
   var
     ps: PString;
     pls: PLongString;
-    sp: LongInt;
+    sp: TFileSize;
     MS: PStream;
     LongStrings: Boolean;
     TempString: String;
@@ -380,7 +380,7 @@ procedure CopyLines2Stream(PC: PCollection; var PCS: PStream);
   var
     i: LongInt;
     P: PLineCollection absolute PC;
-    Pos: LongInt;
+    Pos: TFileSize;
     LongStrings: Boolean;
     TempString: String;
     TempLongString: LongString;

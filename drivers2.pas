@@ -77,7 +77,7 @@ procedure DoDump;
     PhysAddr: Pointer;
     I: Byte;
     PExit, ActiveButton: Byte;
-    Temp: LongInt;
+    Temp: TFileSize;
     {FileName: String;}
 
   function StoreBuffer(var Buf; Size: Word; FH: Word): Word;

@@ -56,7 +56,7 @@ uses
 type
   PIS3Archive = ^TIS3Archive;
   TIS3Archive = object(TARJArchive)
-    FoldersOffs: LongInt;
+    FoldersOffs: LongInt; {!!s}
     FilesNumber: LongInt;
     constructor Init;
     procedure GetFile; virtual;
@@ -86,6 +86,8 @@ type
     end;
 
 implementation
+uses
+  Advance0;
 
 { --- Z --- aka LIB --- aka InstallShield 3.00.xxx --- by piwamoto ------- }
 
@@ -169,7 +171,7 @@ procedure TIS3Archive.GetFile;
   var
     P: IS3FileHdr;
     P1: IS3FolderHdr;
-    FP, FO: LongInt;
+    FP, FO: LongInt;  {!!s}
     C: Char;
     I: Integer;
     S: String;
@@ -181,13 +183,13 @@ procedure TIS3Archive.GetFile;
     FilesNumber := FP and $ffff;
     ArcFile^.Seek(ArcPos+$29);
     ArcFile^.Read(FP, SizeOf(FP));
-    FoldersOffs := FP+ArcPos;
+    FoldersOffs := i32(FP+ArcPos);
     ArcFile^.Seek(ArcPos+$33);
     ArcFile^.Read(FP, SizeOf(FP));
-    FP := FP+ArcPos;
+    FP := i32(FP+ArcPos);
     ArcFile^.Seek(FP);
     end;
-  FP := ArcFile^.GetPos;
+  FP := i32(ArcFile^.GetPos);
   if  (FilesNumber = 0) then
     begin
     FileInfo.Last := 1;

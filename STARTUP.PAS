@@ -52,7 +52,7 @@ interface
 
 uses
   Defines, Dos, Commands, Advance,
-  Advance1, Advance2, Drivers, Collect
+  Advance1, Advance2, Drivers, Collect, CCalc
   ;
 
 procedure FatalError(const S: String);
@@ -421,6 +421,12 @@ const
 
   SortCurPanTypeOnly: Boolean = False;
   FullMenuPanelSetup: Boolean = False;
+
+const
+  MaxCalcFormat: TCalcFormat =
+    (18, 8, 32, 11, 18, 9);
+  CalcFormat: TCalcFormat =
+    (18, 8, 32, 11, 18, 1);
 
 implementation
 uses

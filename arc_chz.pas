@@ -152,7 +152,7 @@ function TCHZArchive.GetSign;
 
 procedure TCHZArchive.GetFile;
   var
-    FP: LongInt;
+    FP: TFileSize;
     P: CHZHdr;
     S: String;
     C: Char;

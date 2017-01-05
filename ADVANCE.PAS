@@ -330,7 +330,7 @@ type
 implementation
 
 uses
-  xTime, Startup, Advance1,
+  xTime, Startup, Advance1, Advance0,
   VpSysLow, Advance2,
   Commands
   ;
@@ -354,7 +354,7 @@ function CutH;
 {-DataCompBoy-}
 constructor TTextReader.Init;
   var
-    FileSz: LongInt;
+    FileSz: TFileSize;
     ToRead: Integer;
   begin
   ClrIO;
@@ -369,7 +369,7 @@ constructor TTextReader.Init;
   Eof := FileSz = 0;
   if not Eof then
     begin
-    ToRead := Min(FileSz, TextReaderBufSize);
+    ToRead := MinBufSize(FileSz, TextReaderBufSize);
     BlockRead(Handle.F, Buf, ToRead, BufSz);
     if  (IOResult <> 0) or Abort or (ToRead <> BufSz) then
       begin
@@ -811,6 +811,7 @@ function Max;
   else
     Max := x
   end;
+
 function Sgn;
   begin
   if x > 0 then

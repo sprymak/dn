@@ -96,19 +96,44 @@ begin
   if not Success then
     SetResult := 1;
 end;
+{/JO}
 
 function GetFileAges(S: String; var Age_LWr, Age_Cr, Age_LAc: LongInt)
   : LongInt;
-begin
+  var
+    f: File;
+    SaveMode: Longint;
+  begin
+  SaveMode := FileMode;
+  FileMode := 0;
+  Assign(f, S);
+  Reset(f, 1);
+  GetFTime(f, Age_LWr);
+{ Тут неплохо бы вставить чтение Age_Cr и Age_LAc через Win95 LFN API}
+  Age_Cr := 0;
+  Age_LAc := 0;
+  Close(f);
+  FileMode := SaveMode;
   Result := 0;
-end;
+  end;
 
 function SetFileAges(S: String; Age_LWr, Age_Cr, Age_LAc: LongInt)
   : LongInt;
-begin
+  var
+    f: File;
+    SaveMode: Longint;
+    i: Longint;
+  begin
+  SaveMode := FileMode;
+  FileMode := open_access_WriteOnly + open_share_DenyReadWrite;
+  Assign(f, S);
+  Reset(f, 1);
+  SetFTime(f, Age_LWr);
+{ Тут неплохо бы вставить запись Age_Cr и Age_LAc через Win95 LFN API}
+  Close(f);
+  FileMode := SaveMode;
   Result := 0;
-end;
-{/JO}
+  end;
 
 procedure GetSerFileSys(Drive: Char; var SerialNo: Longint;
     var VolLab, FileSys: String);
@@ -145,13 +170,26 @@ function GetFSString(Drive: Char): String; {AK155}
   end;
 
 function GetShare(Drive: Char): String; {AK155}
+  var
+    Regs: real_mode_call_structure_typ;
+  const
+    Buf: array[0..4] of char = 'C:\'#0#0;
   begin
-  Result := '';
+  Buf[0] := Drive;
+  move(Buf, segdossyslow32, 5);
+  with Regs do
+    begin
+    AH_ := $60; // CANONICALIZE FILENAME OR PATH
+    DS_ := segdossyslow16; SI_ := 0; // исходное имя
+    ES_ := segdossyslow16; DI_ := 4; // результат
+    intr_realmode(Regs, $21);
+    Result := StrPas(@Mem[segdossyslow32+4])
+    end;
   end;
 
 function GetSubst(Drive: Char): string; {AK155}
   begin
-  Result := '';
+  Result := GetShare(Drive);
   end;
 
 function GetDriveTypeNew(Drive: Char): TDrvTypeNew;
@@ -185,18 +223,17 @@ function GetDriveTypeNew(Drive: Char): TDrvTypeNew;
     regs.bl_ := Byte(Drive) - $40;
     intr_realmode(regs, $21);
     if (regs.flags_ and fCarry = 0) then
+      begin
       if (regs.dh_ and $10) <> 0 then
-      begin
-        Result := dtnLAN;
-        Exit;
-      end
+        Result := dtnLAN
+      else if (regs.dh_ and $1) <> 0 then
+        Result := dtnSubst
       else
-      begin
         Result := dtnHDD;
-        Exit;
       end;
 
   end;
 
 begin
 end.
+

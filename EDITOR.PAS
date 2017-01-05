@@ -68,6 +68,7 @@ uses
   {SBlocks,}Memory, Gauge, Startup, WinClp, Messages, Commands, Macro,
   EdWin, xTime, DnIni, DNUtil, Advance6, Calculat, FViewer {AK155}
   {$IFDEF REGEXP}, RegExp {$ENDIF}
+  , Advance0
   ;
 
 type
@@ -1251,7 +1252,7 @@ function TXFileEditor.HandleCommand;
             SetLength(S, Length(S)-1);
           if S[Length(S)] = '.' then
             SetLength(S, Length(S)-1);
-          Message(Application, evCommand, cmPutInClipboardLong, @S);
+          PutInClipLong(S);
           end;
         end;
       end
@@ -1272,7 +1273,7 @@ function TXFileEditor.HandleCommand;
         SetLength(S, Length(S)-1);
       if S[Length(S)] = '.' then
         SetLength(S, Length(S)-1);
-      Message(Application, evCommand, cmPutInClipboardLong, @S);
+      PutInClipLong(S);
       end;
     end { CalcBlock };
 
@@ -1665,7 +1666,7 @@ function TXFileEditor.HandleCommand;
       begin
       SyncClipIn;
       if ClipBoardStream <> nil then
-        ClipBoardStream^.Seek(Max(ClipBoardStream^.GetPos-1, 0));
+        ClipBoardStream^.Seek(Positive(ClipBoardStream^.GetPos-1));
       CopyLines2Stream(ClipBoard, ClipBoardStream);
       end;
     cmSyncClipOut:

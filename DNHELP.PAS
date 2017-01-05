@@ -94,6 +94,7 @@ const
   hcDiskOperations       = 10006;
   hcPanelView            = 11000;
   hcPanelSortSetup       = 11001;
+  hcPanelShowSetup       = 11002;
   hcPanelHotKeys         = 11003;
   hcDriveInfoSetup       = 11004;
   hcExtFile              = 11005;
@@ -152,7 +153,6 @@ const
   hcGotoLine             = 16577;
   hcGotoAddress          = 16578;
   hcDiskError            = 16579;
-  hcPanelShowSetup       = 16580;
   hcSavePanelSetup       = 16581;
   hcPanelSetup           = 16582;
   hcFileAttr             = 16583;

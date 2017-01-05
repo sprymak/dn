@@ -304,7 +304,7 @@ uses
   {$IFDEF SS}Idlers, {$ENDIF}
   VpSysLow,
   DnIni,
-  DnExec
+  DnExec, Advance0
   ;
 
 var
@@ -1695,7 +1695,7 @@ procedure InitLngStream;
 
   begin
   PS := OpenResourceStream('.LNG');
-  XS := New(PMemoryStream, Init(PS^.GetSize, PS^.GetSize));
+  XS := New(PMemoryStream, Init(i32(PS^.GetSize), i32(PS^.GetSize)));
   if XS^.Status <> stOK then
     begin
     Dispose(XS, Done);

@@ -859,7 +859,7 @@ procedure TPhoneBox.HandleEvent;
   Ph^.Number^;           100
   Ph^.Memo1^;            50
   Ph^.Memo2^;            50
-  Message(Application, evCommand, cmPutInClipboard, @Str);}
+  PutInClip(Str);}
     end;
 
   var
@@ -1222,7 +1222,7 @@ procedure CryptCol(Col: PCollection; Pass: String);
 
 constructor TPhoneDir.Load;
   var
-    Q: LongInt;
+    Q: TFileSize;
   begin
   S.ReadStrV(Name);
   {S.Read(Name[0],1); S.Read(Name[1], Byte(Name[0]));}

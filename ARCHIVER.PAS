@@ -67,15 +67,14 @@ type
     FName: PString;
     Select: Boolean;
     Attr: AWord;
-    USize, PSize,
+    USize, PSize: TFileSize;
     Date: LongInt;
     end;
 
   PFInfo = ^TFInfo;
   TFInfo = record
     FName: String; {DataCompBoy}
-    USize: LongInt;
-    PSize: LongInt;
+    USize, PSize: TFileSize;
     Date: LongInt;
     Attr: Byte;
     Last: Byte;
@@ -246,7 +245,7 @@ const
   ArcFile: PBufStream = nil;
 var
   FileInfo: TFInfo;
-  ArcPos: LongInt;
+  ArcPos: TFileSize;
 
 const
   ArcFileName: String = ''; {DataCompBoy}
@@ -273,7 +272,7 @@ const
 implementation
 
 uses
-  Lfn, Advance, Advance1, Advance2, DNApp, Commands,
+  Lfn, Advance, Advance1, Advance2, DNApp, Commands, Advance0,
   Dialogs, FilesCol, FViewer, Startup, RStrings, {Memory, Messages,}
   ArcView, FileCopy, HistList, {FStorage,}Menus, ArchDet,
    {UserSavr,}DnIni, Messages,
@@ -661,7 +660,7 @@ procedure TARJArchive.GetFile;
 
   var
     i: AWord;
-    FP: LongInt;
+    FP: TFileSize;
     Extr: LongInt;
     C: Char;
     h: record
@@ -1639,7 +1638,7 @@ procedure Check4ArcId; {piwamoto}
     {tested at 21.09.2005 by piwamoto}
   var
     ReEntrance: Byte;
-    ArcId, ArcPosID: LongInt;
+    ArcId, ArcPosID{!!s}: LongInt;
     ArcIdArr: array[0..3] of Byte absolute ArcId;
   label
     Recurce;
@@ -1649,7 +1648,7 @@ procedure Check4ArcId; {piwamoto}
 Recurce:
 
   Inc(ReEntrance);
-  ArcPosID := ArcPos;
+  ArcPosID := i32(ArcPos);
   Repeat
    ArcFile^.Seek(ArcPosID);
    ArcFile^.Read(ArcId, SizeOf(ArcId));
@@ -1766,7 +1765,7 @@ Recurce:
      if ((ArcPosID and $fffc0000) = 0) then
         {<$40000}{feel free to change it}
         begin
-        ArcPosID := ArcPosID + ArcPos + 4;
+        ArcPosID := i32(ArcPosID + ArcPos + 4);
         if ArcPosID < ArcFile^.GetSize then
           begin
           ArcFile^.Seek(ArcPosID);

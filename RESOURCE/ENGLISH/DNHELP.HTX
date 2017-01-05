@@ -1820,43 +1820,114 @@ Menu {Table:_}
 
 .topic Calculator=11016
 .title Calculator
-Navigator's Calculator is a powerful tool for businessman and
-programmers. You can type any arithmetical expression "as is" and
-get results while you are typing it in the result pane.
+Calculator is intended for arithmetical calculations. Operands
+can be entered in different scales of notation.
+Numbers in decimal mode (DEC) are entered as usual, including
+exponential form (1e-3 = 0.001). Besides, one can specify a literal
+multiplier after decimal number (right up to the number, without spaces).
+Russian and international multipliers' notation is allowed
+('u' instead of Greek letter 'mu').
+For example, 1.2ª = 1.2k = 1200; 1.2¬ª = 1.2u = 0.0000012.
+'hecto' multiplier is missing, because its international notation (h)
+conflicts with assembler form of hexadecimal number.
+Multipliers are case-sensitive (for example, m = milli, M = mega),
+other literal information in calculator is case-insensitive.
 
-Calculator window looks like this:
+In hexadecimal mode (HEX) number begins with '$' or '0x',
+or ends with 'h'. The point and the fractional part are allowed, for example,
+$10.1 = 0x10.1 = 10.1h = 16.0625.
+In octuple mode the number ends with 'O' or 'Q', in binary mode
+it ends with 'B'. For example, 10.1o = 1000.001B = 8.125.
 
-  ÉÍ[ş]ÍÍÍÍÍÍÍÍÍÍÍÍÍ Calculator ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
-  º                                               º
-  ºÚ ExpressionÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄ¿º
-  º³ 123+234+0x2EF+0324+01010b+sin(1e-1)     ³Şİ³º
-  ºÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÙº
-  º  Copy as ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿º
-  º  () DEC ³                      1108.0998334 ³º
-  º  ( ) HEX ³    {The result:_}                 454 ³º
- Ú×Ä>( ) BIN ³    {pane:_}               10001010100 ³º
- ³º  ( ) OCT ³                              2124 ³º
- ³º  ( ) EXP ³                  1.1080998334E+03 ³º
- ³º          ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙº
- ³º   ±Evaluate±Ü ±±Copy±±Ü ±Close±±Ü ±±Help±±Ü   º
- ³º    ßßßßßßßßßß  ßßßßßßßß  ßßßßßßßß  ßßßßßßßß   º
- ³ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
- ³
- À It is possible to copy into Navigator's text Clipboard
-   result of evaluation in Decimal, Hexadecimal, Binary,
-   Octal and Exponential format. Use "Copy" key to do it.
+One can use {operations, functions:CalculatorOp} and brackets in expression.
+Brackets and commas can be ommited when writing down functions.
+Spaces are required to separate expression elements
+consisting of letters and digits from each other.
+For example, sin 1 is the correct notation, sin1 is wrong.
 
-Also you can use Ctrl-Ins key to put selected fragment in Clipboard
-and Shift-Ins to get string in Clipboard to place it in the Expression box.
+When the expression is written down correctly, its value
+is automatically calculated and shown in large window
+in all the scale notations simultaneously.
+If you need to continue calculations with this result,
+use the {Calculate:_} button or press <ENTER> key.
 
-Use Evaluate button (or Enter key) to put result (in Decimal) in the Expression box.
+Expression result can be copied to clipboard using the {Copy:_} button.
+The result will be recorded using the scale of notation
+selected in the {Form:_} submenu.
 
-For hexadecimal, octal, and binary numbers you can use all possible
-combinations which existing in different programming languages
-e.g.  0x23AF=$23AF=23AFh, 01234=1234o, 0b100101=100101b
+If the expression contains a syntax error, the 'Error' word is displayed
+in large window. If you press the {Calculate:_} button or <ENTER> key
+in this state, you will see a more detailed error message,
+and cursor in the input line will be moved to the position of error.
 
-Also you can input formulas with functions listed below:
-IF, sin, cos, tg, ctg, arctg, sqr, sqrt, ln, lg, sign, rad, grad.
+If a computational error appears during the calculation (for example,
+division by zero), the name of the operator or function that caused
+an error will be displayed in large window, along with the 'Error' word.
+In this case you can also press the {Calculate:_} button or <ENTER> key,
+and cursor in the input line will be moved to the position of the operator
+that caused an error.
+
+{Operations and functions:CalculatorOp}
+
+.topic CalculatorOp = 50000
+.title Calculator's operators and functions
+{Infix operators:_} (that is being written between their operands)
+are divided into 5 groups according to priority. In the range of one priority
+operators are executed from left to right.
+
+³1. Comparison operators (lowest priority)
+³       = # != <> < > >= <=
+³2. Adding operators
+³       + - | or & and
+³3. Multiplicative operators
+³       * / div % mod \ >> shr << shl
+³4. Exponentiation
+³       ^
+³5. Time (highest priority)
+³       :
+³(a:b = a*60+b, for example, 01:10 = 70).
+
+{Prefix operators:_} (unary + and -, bitwise inversion ~) and all the functions
+have a higher priority over any infix operator.
+
+The functions can be written as prefix operators, i.e. without
+brackets and commas. For example, log 2+1 means log(2,(+1)).
+The log function in this expression is more strongly attached
+to the number of two than the plus sign, therefore plus sign
+loses its left operand and becomes unary.
+
+The following {functions:_} are available (synonyms are put into brackets,
+explanations are given in square brackets).
+
+Trigonometry: SIN, COS, (TAN, TG), (COTAN, CTG), SEC, COSEC,
+(ARCSIN, ASIN), (ARCCOS, ACOS), (ATAN, ARCTAN), (ACTG, ARCCOTAN),
+ARCSEC, ARCCOSEC,
+PI [3.1416...],
+RAD [converts degrees to radians],
+RADG [converts grads to radians],
+DEG [converts radians to degrees],
+GRAD [converts radians to grads].
+
+Hyperbolic functions: (SH, SINH), (CH, COSH), (TH, TANH), (CTH, COTANH),
+(ARCH, ARCCOSH), (ASH, ARCSINH), (ATH, ARCTANH).
+
+Mathematics: EXP, FACT, LG, LN, LOG [log(2,8)=3], SQR [SQR(3)=9],
+SQRT [SQRT(9)=3], ROOT [root(2,16)=4], ROUND, SIGN.
+
+There is also IF function with three arguments. The result returned
+is the third argument when the first is equal to zero, or the second
+argument otherwise.
+For example, if 3<5 log 2 8 4 = 3. The same expression can be written
+as follows: if(3<5, log(2,8), 4).
+
+Arithmetic operators are executing using the floating point using
+the maximum precision provided by CPU. Bit operators are executed on
+32-bit numbers (with any non-integer argument expressed in round numbers).
+
+Comparison operators return 0xFFFFFFFF if the comparison holds true
+and zero result otherwise. Such form of logical values allows to use
+bitwise inverse operator (~) as logical negation. Other bitwise operators
+also correctly work as logical.
 
 
 .topic TempList=11017

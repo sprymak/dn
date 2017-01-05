@@ -68,7 +68,7 @@ function GetCurTime: String;
 //===============================
 
 const
-  VersionName: String = '2.12';
+  VersionName: String = '2.13 alpha';
   VersionDate: String = '';
   VersionWord: AWord = 15198;
 

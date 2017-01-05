@@ -56,7 +56,7 @@ implementation
 uses
   Lfn, Dos, Tree, VPSysLow, Advance, Advance1, Advance2, FileCopy, DNApp,
   Messages, Views, Defines, Dialogs, Commands, Drivers, Memory, HistList,
-  Gauge, Startup, xTime, ErrMess
+  Gauge, Startup, xTime, ErrMess, Advance0
   ;
 
 type
@@ -152,7 +152,7 @@ procedure LongCopy(Fn1: String);
     BinarySplit: Boolean;
     NewMode: Boolean;
     DiskVerify: Boolean;
-    LastPos: LongInt;
+    LastPos: TFileSize;
     Olddate: LongInt;
     PartSize: LongInt;
     PartWrt: LongInt;
@@ -401,7 +401,7 @@ Rep:
     b := 0;
     FillChar(nhd, SizeOf(NHdr), 0);
     Seek(F1.F, 0);
-    BlockRead(F1.F, nhd, Min(FileSize(F1.F), SizeOf(NHdr)));
+    BlockRead(F1.F, nhd, MinBufSize(FileSize(F1.F), SizeOf(NHdr)));
     if ohd.nm=OldStdHdr then
       begin
        b:=1;
@@ -489,7 +489,7 @@ Rep:
       S, Mask: String;
       SR: lSearchRec;
       I: Integer;
-      L: LongInt;
+      L: Longint;
       F: lFile;
       DTA: record
         S: String;
@@ -560,7 +560,7 @@ Rep:
           ClrIO;
           lAssignFile(F, Fn1);
           lResetFile(F, 1);
-          L := FileSize(F.F);
+          L := i32(FileSize(F.F)); {!!s}
           PartSize := (L div PartSize)+Byte((L mod PartSize) <> 0);
           Close(F.F);
           end;
@@ -699,7 +699,7 @@ Rep:
     NewMode := True;
   if not Tuda then
     begin
-    Ls := FileSize(F1.F);
+    Ls := i32(FileSize(F1.F)); {!!s}
     Seek(F1.F, 0);
     end
   else if NewMode then

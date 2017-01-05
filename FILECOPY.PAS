@@ -122,7 +122,7 @@ uses
   , CmdLine
   {$ENDIF}
   , Events {AK155 для LongWorkBegin - LongWorkEnd}
-  , PDSetup
+  , PDSetup, Advance0
   ;
 
 const
@@ -148,7 +148,7 @@ const
   cpoFitAll = $100;
 
 var
-  SeekPos: LongInt;
+  SeekPos: TFileSize;
 
 type
   PDir = ^TDir;
@@ -328,7 +328,7 @@ type
     OldName: PString;
     NewName: PString;
     Size: TSize;
-    Pos: LongInt;
+    Pos: TSize;
     Date: LongInt;
     len: Word;
     Eof: Byte;
@@ -431,7 +431,7 @@ procedure TLine.Read;
   if Stream <> nil then
     begin
     if Stream^.GetPos <> Pos then
-      Stream^.Seek(Pos);
+      Stream^.Seek({$ifndef LargeFileSupport} Round {$endif}(Pos));
     Stream^.Read(B, len);
     end;
   end;
@@ -444,14 +444,16 @@ destructor TLine.Done;
   end;
 
 procedure TLine.PrepareToWrite;
+  var
+    Limit: Longint;
   begin
   if MemStream = nil then
     begin
-    Pos := (MaxAvail div 10)*9;
+    Limit := (MaxAvail div 10)*9;
     if SystemData.CopyLimitBuf > 0 then
-      if SystemData.CopyLimitBuf shl 10 < Pos then
-        Pos := SystemData.CopyLimitBuf shl 10;
-    New(MemStream, Init(Pos, 32768));
+      if SystemData.CopyLimitBuf shl 10 < Limit then
+        Limit := SystemData.CopyLimitBuf shl 10;
+    New(MemStream, Init(Limit, 32768));
     end;
   Pos := Stream^.GetPos;
 
@@ -463,7 +465,7 @@ procedure TLine.PrepareToWrite;
   if Pos + Len > Stream^.GetSize then Len := Stream^.GetSize - Pos;
 *)
   if Pos+len > MemStream^.MemSize then
-    len := MemStream^.MemSize-Pos;
+    len := Round(MemStream^.MemSize-Pos); {??}
   {/AK155}
 
   end { TLine.PrepareToWrite };
@@ -696,7 +698,7 @@ procedure FilesCopy(Files: PCollection; SourcePanel: PView;
      var
        s1, s2, s3: String;
        M: Array [1..3] Of Pointer;
-       Speed: TSize;
+       Speed: Comp;
        Time: Comp;
        D: Longint;
     begin
@@ -1820,9 +1822,9 @@ NoRename:
       if CopyQueue^.Count > 400 then
         MaxWrite; {John_SW  06-11-2002}
       SkipRequested := False;
-      WW := {Cat:warn}Round(ln-Rd);
-      if WW > BSize then
-        WW := BSize;
+      WW := BSize;
+      if WW > ln-Rd then
+        WW := Round(ln-Rd);
       P := nil;
       if P = nil then
         P := New(pLine, Init(WW, Own, FName, NName, ln, Dtt, Attr, EOF));

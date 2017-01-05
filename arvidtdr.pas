@@ -68,6 +68,7 @@ function TdrMakeFileName(S: String): String; {JO}
 implementation
 uses
   Archiver {TdrInit:_Cardinal} {piwamoto}
+  , Advance0
   ;
 
 function TdrMakeFileName(S: String): String;
@@ -101,7 +102,7 @@ procedure TdrSeekDirectory;
     Stream^.Status := stOK;
     Stream^.Seek(D.DirTableOfs);
     Stream^.Read(DD, SizeOf(DD));
-    CurDirPos := Stream^.GetPos;
+    CurDirPos := i32(Stream^.GetPos);
     S := CurDir;
     CurLevel := 0;
     CurDir := '';
@@ -132,7 +133,7 @@ procedure TdrSeekDirectory;
       Insert('.', SS, 9);
       MakeSlash(CurDir);
       CurDir := CurDir+TdrMakeFileName(SS);
-      CurDirPos := Stream^.GetPos;
+      CurDirPos := i32(Stream^.GetPos);
       CurLevel := Lv;
       Inc(Lv);
       end;
@@ -148,7 +149,8 @@ procedure TdrGetDirectory(AvtDr: PArvidDrive; var ALocation: LongInt;
   var
     FF: TTdrFileCell;
     DD: TTdrDirCell;
-    I, J, SeekPos: LongInt;
+    I: LongInt;
+    J, SeekPos: LongInt;{!!s}
     F: PFileRec;
 
   procedure AddFile;
@@ -193,7 +195,7 @@ procedure TdrGetDirectory(AvtDr: PArvidDrive; var ALocation: LongInt;
         F^.DIZ^.Line := SeekPos;
         if FF.Description <> 0 then
           begin
-          j := Stream^.GetPos;
+          j := i32(Stream^.GetPos);
           Stream^.Seek(D.DescTableOfs+FF.Description-1);
           {Cat:warn AnsiString}
           Stream^.Read(FreeStr, 2);
@@ -220,7 +222,7 @@ procedure TdrGetDirectory(AvtDr: PArvidDrive; var ALocation: LongInt;
     begin
     Stream^.Seek(CurDirPos);
     repeat
-      SeekPos := Stream^.GetPos+2;
+      SeekPos := i32(Stream^.GetPos+2);
       Stream^.Read(DD, SizeOf(DD));
       if DD.Level = CurLevel+1 then
         begin
@@ -237,7 +239,7 @@ procedure TdrGetDirectory(AvtDr: PArvidDrive; var ALocation: LongInt;
 
     for I := 1 to CurFileNum do
       begin
-      SeekPos := Stream^.GetPos;
+      SeekPos := i32(Stream^.GetPos);
       Stream^.Read(FF, SizeOf(FF));
       AddFile;
       end;
@@ -248,7 +250,7 @@ procedure TdrGetDirectory(AvtDr: PArvidDrive; var ALocation: LongInt;
 procedure TdrEditDescription;
   var
     FF: TTdrFileCell;
-    I, J: LongInt;
+    I, J{!!s}: LongInt;
   procedure ExpandStream;
     var
       I, J: LongInt;
@@ -257,7 +259,7 @@ procedure TdrEditDescription;
     begin
     with AvtDr^ do
       begin
-      J := Stream^.GetSize;
+      J := i32(Stream^.GetSize);
       repeat
         I := J-512;
         if I < D.PosTableOfs then
@@ -317,7 +319,7 @@ procedure TdrEditDescription;
 procedure TdrCalcTotal;
   var
     DD: TTdrDirCell;
-    SPos: LongInt;
+    SPos: LongInt;{!!s}
   procedure CountDirectory(DD, Num: LongInt);
     var
       FF: TTdrFileCell;
@@ -341,7 +343,7 @@ procedure TdrCalcTotal;
     repeat
       Stream^.Seek(SPos);
       Stream^.Read(DD, SizeOf(DD));
-      SPos := Stream^.GetPos;
+      SPos := i32(Stream^.GetPos);
       if DD.Level > CurLevel then
         CountDirectory(DD.Files, DD.NumFiles);
     until (DD.Level = 0) or (DD.Level <= CurLevel);

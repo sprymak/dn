@@ -194,7 +194,7 @@ function TLHAArchive.GetSign;
 procedure TLHAArchive.GetFile;
   var
     HS, i: AWord;
-    FP: LongInt;
+    FP: TFileSize;
     P: LHAHdr;
     s: String;
     DT: DateTime;

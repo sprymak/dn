@@ -251,8 +251,8 @@ procedure TTARArchive.GetFile;
   GetUNIXDate(FromOct(Hdr.mtime), DT.Year, DT.Month, DT.Day, DT.Hour,
      DT.Min, DT.Sec);
   PackTime(DT, FileInfo.Date);
-  ArcFile^.Seek(ArcFile^.GetPos+((FileInfo.PSize+BlkSize-1) div
-     BlkSize)*BlkSize);
+  ArcFile^.Seek(ArcFile^.GetPos+
+     (Trunc((FileInfo.PSize+BlkSize-1) / BlkSize)*BlkSize));
   end { TTARArchive.GetFile };
 
 end.

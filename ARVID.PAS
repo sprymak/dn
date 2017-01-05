@@ -177,7 +177,7 @@ type
     Name: PString;
     Stream: PStream;
     CurFile: LongInt;
-    CurDirPos: LongInt;
+    CurDirPos: LongInt{!!s};
     PosTableOfs: LongInt;
     CurFileNum: AWord;
     CurLevel: AWord;
@@ -243,7 +243,7 @@ uses
   Advance, Advance2, Advance1, FlPanel, Commands, Startup, DNApp,
   Drivers, Messages, Dialogs, Memory, FileFind, DNUtil, FileCopy, U_KeyMap,
   ArvidAvt, ArvidTdr
-  , PDSetup
+  , PDSetup, Advance0
   ;
 
 constructor TArvidDrive.Init;
@@ -1072,7 +1072,8 @@ procedure TArvidDrive.DrvFindFile(FC: PFilesCollection);
     var
       DD: TTdrDirCell;
       FF: TTdrFileCell;
-      I, J: LongInt;
+      I: LongInt;
+      J: LongInt; {!!s}
       Lv0: Boolean;
       LastLv: Integer;
       SS: String[12];
@@ -1142,7 +1143,7 @@ procedure TArvidDrive.DrvFindFile(FC: PFilesCollection);
             begin
             if SDesc and (FF.Description <> 0) then
               begin
-              J := St^.GetPos;
+              J := i32(St^.GetPos);
               St^.Seek(D.DescTableOfs+FF.Description-1);
               {Cat:warn AnsiString}
               St^.Read(FreeStr, 2);

@@ -86,7 +86,7 @@ type
   {----------------------------------------------------------------------------}
 implementation
 uses
-  DNUtil
+  DNUtil, Advance0
   ;
 {----------------------------------------------------------------------------}
 const
@@ -135,7 +135,7 @@ procedure TIdxMaker.Put;
   begin
   if Count <= Integer(Key) then
     Count := Integer(Key)+1;
-  Index^[Integer(Key)] := TempStream^.GetPos;
+  Index^[Integer(Key)] := i32(TempStream^.GetPos);
   TempStream^.Put(Item);
   if TempStream^.Status <> stOK then
     begin
@@ -162,7 +162,7 @@ destructor TIdxMaker.Done;
     Inc(Index^[I], IdxSize+SizeOf(Count));
   Stream^.Write(Count, SizeOf(Count));
   Stream^.Write(Index^, Count*SizeOf(TOffsetType));
-  MaxPos := TempStream^.GetPos;
+  MaxPos := i32(TempStream^.GetPos);
   TempStream^.Seek(0);
   for I := 0 to MaxPos do
     begin

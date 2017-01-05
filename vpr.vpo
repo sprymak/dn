@@ -83,8 +83,8 @@ Display=0
 
 [Parameters]
 RunParams=O OS2
-PrimaryFile=Q:\dn2s\rcp.pas
-TargetPlatform=0
+PrimaryFile=J:\DN2S\rcp.pas
+TargetPlatform=4
 
 [Mouse]
 RightBtn=1

@@ -90,7 +90,7 @@ function AvtInit(AvtDr: PArvidDrive): Boolean;
 
 implementation
 uses
-  PDSetup
+  PDSetup, Advance0
   ;
 
 var
@@ -1827,7 +1827,7 @@ procedure AvtEditDescription(AvtDr: PArvidDrive; var S, Nam: String);
   with AvtDr^ do
     begin
     FreeStr := OemToCharStr(S);
-    L1 := Stream^.GetPos;
+    L1 := i32(Stream^.GetPos);
     Stream^.Read(C, SizeOf(C));
     if Stream^.Status <> stOK then
       Exit;
